@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCAPrime - Pro Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="intro-overlay" id="loader">
+        <div class="logo-container">
+            <svg viewBox="0 0 120 160" width="100%" height="100%">
+                <path d="M40,25 L48,36 L60,22 L72,36 L80,25 L76,43 L44,43 Z" fill="#ffffff" />
+                <path d="M35,50 H48 V130 H35 Z" fill="#38bdf8" />
+                <path d="M48,50 C75,50 85,66 85,78 C85,90 72,93 58,93 H48 Z M48,93 H58 C76,93 88,96 88,111 C88,126 75,130 48,130 Z" fill="#00c6ff" />
+            </svg>
+        </div>
+    </div>
+
+    <div class="main-site" id="main-content">
+        <header>
+            <div class="logo-group">
+                <img src="https://file.garden/ahE-ij5-ahwp4uMA/BcaPrime_logo.png" alt="Logo" class="logo-img">
+                <h2><span class="text-bca">BCA</span><span class="text-prime">Prime</span></h2>
+            </div>
+            <a href="#" class="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</a>
+        </header>
+        
+        <div class="line-wave">
+            <svg viewBox="0 0 1000 60" preserveAspectRatio="none">
+                <path class="wave-path-1" stroke="#38bdf8" stroke-width="2" fill="transparent" />
+                <path class="wave-path-2" stroke="#38bdf8" stroke-width="2" fill="transparent" />
+                <path class="wave-path-3" stroke="#38bdf8" stroke-width="2" fill="transparent" />
+            </svg>
+        </div>
+
+        <div class="glass-card">
+            <h3>PrimeFinder</h3>
+            <div style="display: flex; gap: 10px;">
+                <select><option>Year</option></select>
+                <select><option>Sem</option></select>
+            </div>
+            <select><option>Select Subject</option></select>
+            <button class="go-btn">GET CONTENT</button>
+        </div>
+
+        <div class="glass-card">
+            <h3>Select Your Year</h3>
+            <a href="javascript:void(0)" onclick="openSheet('sem-layer')" class="tile-card"><div class="tile-icon">01</div> 1st Year</a>
+            <a href="javascript:void(0)" onclick="openSheet('sem-layer')" class="tile-card"><div class="tile-icon">02</div> 2nd Year</a>
+            <a href="javascript:void(0)" onclick="openSheet('sem-layer')" class="tile-card"><div class="tile-icon">03</div> 3rd Year</a>
+        </div>
+
+        <div class="glass-card">
+            <h3>Academic Resources</h3>
+            <div class="content-grid" style="margin-top:15px;">
+                <div class="content-box"><i class="fa-solid fa-book" style="color:#38bdf8;"></i><br>Notes</div>
+                <div class="content-box"><i class="fa-solid fa-file-pdf" style="color:#38bdf8;"></i><br>PYQ</div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="status-container">
+                <div class="live-dot"></div>
+                <span class="status-text">System Status: Online</span>
+            </div>
+            <p class="footer-text">"Empowering your BCA journey, one byte at a time."</p>
+            <p style="margin-top: 20px; font-size: 0.7rem; color: rgba(255,255,255,0.2);">&copy; 2026 BCAPrime | Secure & Optimized</p>
+        </footer>
+    </div>
+
+    <div id="sem-layer" class="bottom-sheet">
+        <button onclick="closeSheet('sem-layer')" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <h3>Select Semester</h3>
+        <a href="javascript:void(0)" onclick="openSheet('sub-layer')" class="tile-card">1st Semester</a>
+        <a href="javascript:void(0)" onclick="openSheet('sub-layer')" class="tile-card">2nd Semester</a>
+    </div>
+
+    <div id="sub-layer" class="bottom-sheet">
+        <button onclick="closeSheet('sub-layer')" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</button>
+        <h3>Subjects</h3>
+        <a href="#" class="tile-card">Maths</a>
+        <a href="#" class="tile-card">C Programming</a>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
