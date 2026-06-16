@@ -25,7 +25,10 @@
                 <img src="https://file.garden/ahE-ij5-ahwp4uMA/BcaPrime_logo.png" alt="Logo" class="logo-img">
                 <h2><span class="text-bca">BCA</span><span class="text-prime">Prime</span></h2>
             </div>
-            <a href="#" class="upload-btn"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</a>
+         <a href="javascript:void(0)" class="upload-btn" onclick="openUploadModal()">
+    <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+</a>
+
         </header>
         
         <div class="line-wave">
@@ -61,16 +64,7 @@
             </div>
         </div>
 
-        <footer>
-            <div class="status-container">
-                <div class="live-dot"></div>
-                <span class="status-text">System Status: Online</span>
-            </div>
-            <p class="footer-text">"Empowering your BCA journey, one byte at a time."</p>
-            <p style="margin-top: 20px; font-size: 0.7rem; color: rgba(255,255,255,0.2);">&copy; 2026 BCAPrime | Secure & Optimized</p>
-        </footer>
-    </div>
-
+      
     <div id="sem-layer" class="bottom-sheet">
         <button onclick="closeSheet('sem-layer')" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</button>
         <h3>Select Semester</h3>
@@ -85,6 +79,79 @@
         <a href="#" class="tile-card">C Programming</a>
     </div>
 
-    <script src="script.js"></script>
+<div class="modal-overlay" id="uploadModal">
+    <div class="upload-box">
+        <button class="close-btn" onclick="closeUploadModal()">&times;</button>
+        <h3>Upload Resource</h3>
+        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <p id="fileNameDisplay">Click to upload or Drag & drop</p>
+            <input type="file" id="fileInput" hidden onchange="updateFileName()">
+        </div>
+        <label>Resource Title</label>
+        <input type="text" id="resTitle" placeholder="e.g. Data Structures Notes">
+        <div class="row">
+            <div><label>Semester</label><select><option>Semester 1</option></select></div>
+            <div><label>Type</label>
+                <div class="type-btns">
+                    <button class="active">Notes</button>
+                    <button>PYQ</button>
+                </div>
+            </div>
+        </div>
+        <label>Subject</label>
+        <input type="text" placeholder="Select or type subject">
+        <button class="submit-btn" onclick="showSuccess()">Upload</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="successModal">
+    <div class="upload-box success-box">
+        <i class="fa-solid fa-circle-check" style="color:#22c55e; font-size: 3rem;"></i>
+        <h2>Thanks for sharing!</h2>
+        <p>Keep uploading to help the community.</p>
+        <button class="submit-btn" onclick="closeUploadModal()">Close</button>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="main-container">
+    <footer>
+        <div class="footer-brand">
+            <span class="sub-heading">NEXT LEVEL PERFORMANCE</span>
+            <h2 class="brand-name">BCAPRIME</h2>
+            <div class="brand-line"></div>
+        </div>
+        <div class="footer-links">
+            <a href="#">ABOUT</a>
+            <a href="#">CONTACT US</a>
+        </div>
+        <div class="status-container">
+            <div class="live-dot"></div>
+            <span class="status-text">SYSTEM STATUS: ONLINE</span>
+        </div>
+        <p class="copyright">&copy; 2026 BCAPrime | Secure & Optimized</p>
+    </footer>
+
+    <section class="secret-about">
+        <h2>ABOUT BCAPRIME</h2>
+        <div class="content">
+            <p>Yahan apna detailed content likhein. Ye section glassmorphism effect ke sath premium dikhega.</p>
+        </div>
+    </section>
+</div>
+
+
+<script src="script.js"></script>
 </body>
 </html>
