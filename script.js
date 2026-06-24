@@ -14,7 +14,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => { 
         document.getElementById('loader').style.display = 'none'; 
         document.getElementById('main-content').classList.add('site-ready'); 
-    }, 1950);
+    }, 1900);
 });
 
 // Navigation Logic
