@@ -1,163 +1,277 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="dark">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BCAPrime - Pro Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BCAPrime | BCA study library</title>
+  <meta name="description" content="Find BCA notes and previous year papers by college and semester.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root{--bg:#f5f7fa;--surface:#fff;--surface-2:#eef2f6;--ink:#172230;--muted:#687789;--line:#dce4ec;--brand:#0d7892;--brand-2:#e4f4f6;--good:#167653;--shadow:0 12px 32px rgba(25,45,65,.07)}
+    [data-theme=dark]{--bg:#05080b;--surface:#0d141a;--surface-2:#141d24;--ink:#eef5f7;--muted:#9cafba;--line:#263640;--brand:#67c9dc;--brand-2:#16343c;--good:#70d1a9;--shadow:0 14px 34px rgba(0,0,0,.32)}
+    *{box-sizing:border-box}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'DM Sans',sans-serif}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
+    .app{max-width:1240px;margin:auto;padding:0 22px 48px}.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px}.brand-mark{width:35px;height:35px;display:grid;place-items:center;border-radius:10px;background:var(--brand);color:#fff;font:700 17px 'Space Grotesk'}.brand strong{font:700 20px 'Space Grotesk'}.brand em{color:var(--brand);font-style:normal}.nav-actions{display:flex;align-items:center;gap:10px}.icon-btn,.college-btn,.primary,.secondary{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px}.icon-btn{width:38px;height:38px}.college-btn{padding:9px 13px;display:flex;gap:8px;align-items:center}.college-btn i{color:var(--brand)}.primary{border-color:var(--brand);background:var(--brand);color:#fff;padding:10px 15px;font-weight:700}.secondary{padding:10px 15px;font-weight:600}.primary:hover,.secondary:hover,.college-btn:hover,.icon-btn:hover{filter:brightness(1.07)}
+    .splash{position:fixed;inset:0;display:grid;place-items:center;background:#05080b;z-index:50;transition:opacity .45s ease,visibility .45s ease}.splash.hidden{opacity:0;visibility:hidden;pointer-events:none}.splash-inner{text-align:center;animation:splashIn .7s ease both}.splash-logo{width:92px;height:92px;object-fit:contain;border-radius:22px;box-shadow:0 0 35px rgba(103,201,220,.25)}.splash-name{margin-top:14px;color:#eef5f7;font:600 24px 'Space Grotesk'}.splash-name span{color:#67c9dc}@keyframes splashIn{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
+    .brand-logo{width:35px;height:35px;object-fit:contain;border-radius:9px}.brand-mark{display:none}
+    .hero{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(280px,.75fr);gap:34px;padding:64px 0 46px;align-items:center}.eyebrow{display:inline-flex;gap:8px;align-items:center;color:var(--brand);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.hero h1{max-width:720px;margin:13px 0 14px;font:700 clamp(38px,5.4vw,68px)/1.02 'Space Grotesk';letter-spacing:-.04em}.hero h1 span{color:var(--brand)}.hero p{max-width:630px;color:var(--muted);font-size:17px;margin:0 0 24px}.hero-search{display:flex;max-width:620px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:5px;box-shadow:var(--shadow)}.hero-search i{padding:12px 10px;color:var(--brand)}.hero-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--ink);padding:0 8px}.hero-search button{border:0;border-radius:7px;background:var(--brand);color:#fff;padding:10px 15px;font-weight:700}.hero-note{display:flex;gap:18px;margin-top:22px;color:var(--muted);font-size:13px}.hero-note b{color:var(--ink);display:block;font-size:17px}.hero-panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}.hero-panel h3{margin:0 0 16px;font:600 20px 'Space Grotesk'}.mini-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}.mini-row:first-of-type{border-top:0}.mini-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--brand-2);color:var(--brand)}.mini-row small{display:block;color:var(--muted)}
+    .section{margin-top:24px}.section-head{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:13px}.section-head h2{margin:0;font:600 24px 'Space Grotesk'}.section-head p{margin:4px 0 0;color:var(--muted)}.section-link{color:var(--brand);font-weight:700;font-size:13px}.finder{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow)}.finder-grid{display:grid;grid-template-columns:1.25fr 1fr 1fr auto;gap:10px}.field{position:relative}.field label{display:block;color:var(--muted);font-size:12px;font-weight:700;margin:0 0 5px}.field select,.field input{width:100%;height:43px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:0 11px;outline:0}.field select:focus,.field input:focus{border-color:var(--brand)}.finder-action{align-self:end;height:43px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.chip{border:1px solid var(--line);background:transparent;color:var(--muted);padding:7px 11px;border-radius:7px;font-size:13px}.chip.active{background:var(--brand-2);color:var(--brand);border-color:var(--brand)}
+    .semester-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.semester{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:15px 10px;text-align:left}.semester:hover,.semester.active{border-color:var(--brand);background:var(--brand-2)}.semester b{display:block;color:var(--brand);font:600 18px 'Space Grotesk'}.semester span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+    .resource-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.count{color:var(--muted);font-size:13px}.resource-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.resource{display:flex;flex-direction:column;min-height:205px;padding:17px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.resource:hover{border-color:var(--brand)}.resource-top{display:flex;justify-content:space-between;align-items:center}.badge{padding:4px 8px;border-radius:5px;background:var(--brand-2);color:var(--brand);font-size:11px;font-weight:700;text-transform:uppercase}.save{border:0;background:transparent;color:var(--muted)}.save.saved{color:#d69228}.resource h3{font:600 17px/1.25 'Space Grotesk';margin:15px 0 8px}.resource p{color:var(--muted);font-size:13px;margin:0}.resource-meta{display:flex;gap:12px;color:var(--muted);font-size:12px;margin-top:auto;padding-top:15px}.resource-meta i{color:var(--brand);margin-right:4px}.resource-actions{display:flex;gap:8px;margin-top:13px}.resource-actions button{flex:1;padding:8px;border-radius:7px;font-weight:600;font-size:13px}.view{border:1px solid var(--line);background:transparent;color:var(--ink)}.download{border:1px solid var(--brand);background:var(--brand);color:#fff}
+    .empty{grid-column:1/-1;text-align:center;border:1px dashed var(--line);border-radius:12px;padding:40px;color:var(--muted)}.contribute{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:center;background:var(--brand-2);border:1px solid var(--line);border-radius:14px;padding:24px}.contribute h2{font:600 25px 'Space Grotesk';margin:0 0 7px}.contribute p{margin:0;color:var(--muted)}.contribute .right{text-align:right}.footer{display:flex;justify-content:space-between;gap:15px;align-items:center;padding-top:36px;margin-top:42px;border-top:1px solid var(--line);color:var(--muted);font-size:13px}.footer strong{color:var(--ink);font-family:'Space Grotesk'}.modal{position:fixed;inset:0;display:none;place-items:center;padding:18px;background:rgba(5,14,22,.66);z-index:10}.modal.open{display:grid}.dialog{width:min(100%,540px);max-height:90vh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.25)}.dialog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.dialog h2{font:600 22px 'Space Grotesk';margin:0}.close{border:0;background:transparent;color:var(--muted);font-size:22px}.college-list{display:grid;gap:8px;margin-top:14px}.college-option{display:flex;justify-content:space-between;align-items:center;text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);padding:11px}.college-option.selected{border-color:var(--brand);background:var(--brand-2)}.college-option small{display:block;color:var(--muted);margin-top:2px}.upload-form{display:grid;gap:12px}.upload-form .field input,.upload-form .field select{background:var(--surface-2)}.upload-form .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.file-box{border:1px dashed var(--brand);padding:18px;text-align:center;border-radius:9px;color:var(--muted);cursor:pointer}.file-box i{display:block;color:var(--brand);font-size:24px;margin-bottom:6px}.toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:var(--bg);padding:11px 15px;border-radius:8px;z-index:20;box-shadow:var(--shadow)}
+    @media(max-width:900px){.hero{grid-template-columns:1fr}.hero-panel{max-width:600px}.finder-grid{grid-template-columns:1fr 1fr}.finder-action{grid-column:1/-1}.semester-grid{grid-template-columns:repeat(3,1fr)}.resource-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:600px){.app{padding:0 15px 34px}.topbar{height:auto;min-height:65px}.college-btn span{display:none}.hero{padding:42px 0 28px}.hero h1{font-size:42px}.hero-note{gap:12px}.finder-grid,.resource-grid,.contribute,.upload-form .row{grid-template-columns:1fr}.semester-grid{grid-template-columns:repeat(2,1fr)}.finder-action{grid-column:auto}.section-head{align-items:start;flex-direction:column}.footer{align-items:flex-start;flex-direction:column}}
+    /* App shell refinements */
+    body{position:relative;isolation:isolate;background:radial-gradient(circle at 82% 0%,rgba(103,201,220,.08),transparent 30%),var(--bg)}
+    .app{position:relative;z-index:1}
+    .app{max-width:1320px;padding-left:28px;padding-right:28px}
+    .topbar{height:68px;position:sticky;top:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);z-index:5}
+    .main-nav{display:flex;align-items:center;gap:5px;margin-right:auto}.main-nav a{padding:8px 12px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:700}.main-nav a:first-child,.main-nav a:hover{background:var(--brand-2);color:var(--brand)}
+    .hero{padding:34px 34px 30px;margin-top:28px;gap:26px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+    .hero h1{font-size:clamp(34px,4.4vw,56px);margin:11px 0 10px}.hero p{font-size:15px;margin-bottom:20px}.hero-search{background:var(--surface-2);box-shadow:none;padding:4px}.hero-note{gap:24px;margin-top:18px}.hero-note b{font-size:16px}.hero-panel{background:var(--surface-2);border-radius:11px;padding:18px}.hero-panel h3{font-size:17px;margin-bottom:13px}
+    .section{margin-top:28px}.section-head h2{font-size:21px}.section-head p{font-size:13px;margin-top:3px}.finder{border-radius:12px;padding:16px}
+    .app{padding-bottom:100px}.bottom-tabs{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);display:grid;grid-template-columns:repeat(4,1fr);width:min(100% - 32px,520px);padding:7px;background:color-mix(in srgb,var(--surface) 94%,transparent);border:1px solid var(--line);border-radius:15px;box-shadow:0 14px 35px rgba(0,0,0,.28);backdrop-filter:blur(16px);z-index:8}.bottom-tab{display:grid;justify-items:center;gap:3px;border:0;border-radius:10px;background:transparent;color:var(--muted);padding:7px 5px;font-size:10px;font-weight:700}.bottom-tab i{font-size:16px}.bottom-tab.active,.bottom-tab:hover{background:var(--brand-2);color:var(--brand)}
+    .hero{min-height:348px}.hero-copy-top{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:620px}.status-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border:1px solid color-mix(in srgb,var(--good) 30%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--good) 10%,transparent);color:var(--good);font-size:11px;font-weight:700;white-space:nowrap}.status-dot{width:6px;height:6px;border-radius:50%;background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 15%,transparent)}.hero-panel{display:grid;gap:14px}.path-head{display:flex;justify-content:space-between;align-items:start;gap:12px}.path-head h3{margin:0;font-size:18px}.path-label{color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.progress-card{display:flex;align-items:center;gap:14px;padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.progress-ring{width:62px;height:62px;display:grid;place-items:center;flex:none;border-radius:50%;background:conic-gradient(var(--brand) 0 62%,var(--line) 62% 100%);position:relative}.progress-ring:after{content:'';position:absolute;inset:7px;border-radius:50%;background:var(--surface-2)}.progress-ring b{position:relative;z-index:1;font:600 15px 'Space Grotesk'}.progress-copy strong{display:block;font:600 15px 'Space Grotesk'}.progress-copy small{display:block;color:var(--muted);font-size:12px;margin-top:3px}.hero-panel .mini-row{padding:9px 0}.hero-panel .mini-row:first-of-type{border-top:1px solid var(--line)}
+    .desk-strip{margin-top:16px}.desk-card{transition:transform .2s ease,border-color .2s ease}.desk-card:hover{transform:translateY(-2px);border-color:var(--brand)}.finder{background:color-mix(in srgb,var(--surface) 94%,var(--surface-2))}.section-head h2{letter-spacing:-.015em}
+    body{font-size:16px;line-height:1.55}.hero p,.section-head p,.contribute p{color:var(--muted)}.field label,.path-label{font-size:13px;color:var(--muted)}.field select,.field input{font-size:15px}.field input::placeholder,.hero-search input::placeholder,.onboarding-custom input::placeholder{color:var(--muted);opacity:.9}.mini-row small,.desk-card small,.progress-copy small{font-size:13px;color:var(--muted)}.resource p{font-size:14px}.resource-meta{font-size:13px}.resource-submeta{font-size:12px}.count,.footer{font-size:14px}.bottom-tab{font-size:11px}.main-nav a{font-size:14px}.chip,.semester span{font-size:13px}.badge{font-size:12px}.toast{font-size:14px}
+    .hero{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(115deg,var(--surface) 0%,var(--surface) 68%,color-mix(in srgb,var(--brand-2) 62%,var(--surface)) 100%);border-color:color-mix(in srgb,var(--brand) 20%,var(--line));animation:dashboardIn .55s ease both}.hero:before{content:'';position:absolute;inset:0;z-index:-1;opacity:.32;background-image:linear-gradient(color-mix(in srgb,var(--brand) 18%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--brand) 18%,transparent) 1px,transparent 1px);background-size:28px 28px;mask-image:linear-gradient(120deg,transparent 25%,#000 72%)}.hero:after{content:'';position:absolute;left:34px;right:34px;top:0;height:3px;background:var(--brand);border-radius:0 0 4px 4px}.hero-note{gap:9px}.hero-note>div{min-width:94px;padding:9px 11px;border:1px solid color-mix(in srgb,var(--brand) 15%,var(--line));border-radius:9px;background:color-mix(in srgb,var(--surface) 78%,transparent)}.hero-note b{font-size:18px}.hero-search{border-color:color-mix(in srgb,var(--brand) 25%,var(--line));box-shadow:0 8px 24px rgba(13,120,146,.08)}.hero-panel{box-shadow:0 18px 40px rgba(13,120,146,.08);animation:panelIn .65s .08s ease both}.desk-card{box-shadow:0 10px 24px rgba(13,120,146,.06)}.section{animation:dashboardIn .6s .12s ease both}.step-number{width:28px;height:28px;display:grid;place-items:center;flex:none;border-radius:8px;background:var(--brand);color:#fff;font:700 12px 'Space Grotesk'}.step-row{gap:10px!important}.step-row .mini-icon{display:none}.step-row strong{font-size:14px}.step-row small{font-size:12px}@keyframes dashboardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@keyframes panelIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+    @media(max-width:600px){.hero:after{left:20px;right:20px}.hero-note>div{min-width:0;flex:1;padding:8px 7px}.hero-note{gap:6px}.hero-note b{font-size:16px}}
+      .desk-strip{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:12px;margin-top:22px}.desk-card{display:flex;align-items:center;gap:13px;padding:15px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.desk-card.primary-desk{background:var(--brand-2);border-color:color-mix(in srgb,var(--brand) 35%,var(--line))}.desk-icon{width:38px;height:38px;display:grid;place-items:center;flex:none;border-radius:9px;background:var(--surface-2);color:var(--brand);font-size:16px}.primary-desk .desk-icon{background:var(--brand);color:#fff}.desk-card strong{display:block;font:600 15px 'Space Grotesk'}.desk-card small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.suggestions{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);padding:7px;background:var(--surface);border:1px solid var(--line);border-radius:9px;box-shadow:var(--shadow);z-index:3}.suggestions.open{display:grid;gap:2px}.suggestion{border:0;background:transparent;color:var(--ink);text-align:left;padding:9px;border-radius:6px;font-size:13px}.suggestion:hover{background:var(--brand-2);color:var(--brand)}.hero-search{position:relative}.resource-submeta{display:flex;gap:11px;flex-wrap:wrap;color:var(--muted);font-size:11px;margin-top:11px}.resource-submeta i{color:var(--brand);margin-right:3px}.profile-dialog{width:min(100%,480px)}.profile-stat{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}.profile-stat:last-child{border-bottom:0}.profile-stat span{color:var(--muted);font-size:13px}.profile-stat strong{font:600 15px 'Space Grotesk'}.profile-actions{display:grid;gap:9px;margin-top:18px}.onboarding-semesters{display:none;gap:8px;grid-template-columns:repeat(3,1fr);margin:18px 0 0;padding-top:18px;border-top:1px solid var(--line)}.onboarding-semesters.open{display:grid}.onboarding-semesters button{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;padding:10px 8px;text-align:left}.onboarding-semesters button.selected,.onboarding-semesters button:hover{border-color:var(--brand);background:var(--brand-2);color:var(--brand)}.onboarding-semesters small{display:block;color:var(--muted);font-size:11px;margin-top:2px}@media(max-width:700px){.desk-strip{grid-template-columns:1fr}.desk-card{padding:13px}.resource-submeta{margin-top:8px}}
+    @media(max-width:700px){.app{padding-left:15px;padding-right:15px;padding-bottom:108px}.main-nav{display:none}.topbar{gap:10px}.hero{padding:24px 20px;margin-top:18px}.hero h1{font-size:39px}.bottom-tabs{bottom:max(12px,env(safe-area-inset-bottom));width:calc(100% - 24px)}}
+    .onboarding{position:fixed;inset:0;display:none;place-items:center;padding:18px;background:rgba(5,14,22,.78);z-index:40}.onboarding.open{display:grid}.onboarding-dialog{width:min(100%,560px);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.35)}.onboarding-kicker{display:inline-flex;align-items:center;gap:8px;color:var(--brand);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.onboarding-dialog h2{font:600 28px/1.1 'Space Grotesk';margin:10px 0 8px}.onboarding-dialog>p{color:var(--muted);margin:0 0 20px}.onboarding-list{display:grid;grid-template-columns:1fr 1fr;gap:9px}.onboarding-option{display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);padding:12px;text-align:left}.onboarding-option:hover{border-color:var(--brand);background:var(--brand-2)}.onboarding-option small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.onboarding-custom{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.onboarding-custom input{min-width:0;flex:1;height:43px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:0 11px;outline:0}.onboarding-custom input:focus{border-color:var(--brand)}@media(max-width:600px){.onboarding-dialog{padding:22px}.onboarding-list{grid-template-columns:1fr}.onboarding-custom{flex-direction:column}.onboarding-custom .primary{width:100%}}
+    @media(max-width:700px){
+      body{font-size:15px;overflow-x:hidden}
+      .app{padding-left:16px;padding-right:16px;padding-bottom:112px}
+      .topbar{height:60px;min-height:60px;margin:0 -16px;padding:0 16px;background:color-mix(in srgb,var(--surface) 92%,transparent);border-bottom-color:color-mix(in srgb,var(--line) 70%,transparent)}
+      .brand{gap:8px}.brand-logo{width:32px;height:32px}.brand strong{font-size:18px}
+      .nav-actions{gap:7px}.college-btn{height:38px;padding:8px 10px}.college-btn i:first-child{font-size:14px}.college-btn i:last-child{display:none}.icon-btn{width:38px;height:38px}.nav-actions>.primary{width:38px;height:38px;padding:0;display:grid;place-items:center;font-size:0}.nav-actions>.primary i{font-size:15px}
+      .hero{display:block;min-height:0;margin-top:14px;padding:22px 18px 18px;border-radius:14px;background:var(--surface);box-shadow:none}.hero:before,.hero:after{display:none}.hero-copy-top{display:block}.status-pill{margin-top:10px}.hero h1{font-size:36px;line-height:1.06;letter-spacing:-.025em;margin:12px 0 10px}.hero p{font-size:15px;line-height:1.5;margin-bottom:17px}
+      .hero-search{min-height:48px;padding:4px;border-radius:10px}.hero-search i{padding:13px 9px}.hero-search input{font-size:15px}.hero-search button{padding:11px 13px}
+      .hero-note{margin-top:14px;gap:6px}.hero-note>div{padding:8px 6px;border-radius:8px;font-size:11px;text-align:center}.hero-note b{font-size:16px}
+      .hero-panel{margin-top:16px;padding:14px;border-radius:10px;box-shadow:none}.hero-panel h3{font-size:16px}.progress-card{padding:11px}.progress-ring{width:54px;height:54px}.hero-panel .mini-row{padding:8px 0}.step-row strong{font-size:13px}.step-row small{font-size:11px}
+      .desk-strip{display:flex;overflow-x:auto;gap:9px;margin:14px -16px 0;padding:0 16px 3px;scrollbar-width:none}.desk-strip::-webkit-scrollbar{display:none}.desk-card{min-width:220px;padding:12px;border-radius:10px;box-shadow:none}.desk-icon{width:34px;height:34px}.desk-card strong{font-size:13px}.desk-card small{font-size:11px}
+      .section{margin-top:22px}.section-head{margin-bottom:10px}.section-head h2{font-size:19px}.section-head p{font-size:13px}.finder{padding:13px;border-radius:10px;box-shadow:none}.finder-grid{gap:9px}.field label{font-size:12px}.field select,.field input{height:46px;border-radius:9px}.finder-action{height:46px;width:100%}.chips{margin-top:11px}.chip{min-height:38px;padding:8px 13px;border-radius:8px}
+      .semester-grid{gap:8px}.semester{min-height:72px;padding:12px 11px;border-radius:9px}.semester b{font-size:16px}.semester span{font-size:12px}
+      .resource-grid{gap:9px}.resource{min-height:0;padding:14px;border-radius:10px;box-shadow:none}.resource h3{font-size:15px;margin:12px 0 7px}.resource p{font-size:13px}.resource-meta{display:block;font-size:11px;line-height:1.8;padding-top:12px}.resource-meta span{display:block}.resource-submeta{font-size:10px;gap:6px}.resource-actions{gap:6px;margin-top:11px}.resource-actions button{min-height:38px;padding:8px 5px;font-size:11px}.badge{font-size:10px}.save{font-size:16px;padding:6px}
+      .contribute{padding:18px;border-radius:10px}.contribute h2{font-size:20px}.contribute .right{text-align:left;margin-top:14px}.contribute .primary{width:100%;min-height:44px}.footer{padding-top:25px;margin-top:28px;font-size:12px}
+      .bottom-tabs{width:calc(100% - 24px);padding:6px;border-radius:13px}.bottom-tab{min-height:48px;padding:7px 4px}.bottom-tab i{font-size:17px}
+      .onboarding{padding:10px;align-items:end}.onboarding-dialog{width:100%;max-height:calc(100dvh - 20px);padding:20px;border-radius:18px 18px 12px 12px}.onboarding-dialog h2{font-size:25px}.onboarding-dialog>p{font-size:14px;margin-bottom:15px}.onboarding-list{gap:7px;max-height:40vh;overflow:auto}.onboarding-option{min-height:58px;padding:10px;border-radius:10px}.onboarding-custom{margin-top:12px;padding-top:12px}.onboarding-custom input{height:46px}.onboarding-custom .primary{min-height:46px}.onboarding-semesters{margin-top:14px;padding-top:14px}.onboarding-semesters button{min-height:48px}
+      .modal{padding:10px;align-items:end}.dialog{width:100%;max-height:calc(100dvh - 20px);padding:18px;border-radius:16px 16px 10px 10px}.dialog h2{font-size:20px}.college-list{gap:6px}.college-option{min-height:52px;padding:10px}.upload-form .row{gap:9px}.file-box{padding:16px}
+    }
+    @media(max-width:390px){.hero h1{font-size:32px}.hero-note>div{font-size:10px}.hero-note b{font-size:15px}.resource{padding:12px}.resource h3{font-size:14px}.resource-actions button{font-size:10px}.desk-card{min-width:205px}}
+    .tour{position:fixed;inset:0;z-index:60;pointer-events:none}.tour-hole{position:fixed;border:2px solid var(--brand);border-radius:12px;background:color-mix(in srgb,var(--brand) 8%,transparent);box-shadow:0 0 0 4px color-mix(in srgb,var(--brand) 18%,transparent),0 8px 24px rgba(13,120,146,.12);transition:all .28s ease;pointer-events:none}.tour-card{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(430px,calc(100% - 32px));padding:18px;background:color-mix(in srgb,var(--surface) 96%,transparent);border:1px solid color-mix(in srgb,var(--brand) 35%,var(--line));border-radius:14px;box-shadow:0 14px 28px rgba(13,120,146,.12);pointer-events:auto;animation:tourIn .25s ease both}.tour-kicker{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--brand);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.tour-card h2{margin:8px 0 5px;font:600 20px 'Space Grotesk'}.tour-card p{margin:0;color:var(--muted);font-size:14px;line-height:1.45}.tour-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px}.tour-actions>div{display:flex;gap:7px}.tour-actions button{min-height:40px;padding:9px 13px;border-radius:8px;font-weight:700}.tour-skip{border:0;background:transparent;color:var(--muted)}.tour-back{border:1px solid var(--line);background:transparent;color:var(--ink)}@keyframes tourIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}@media(max-width:700px){.tour-card{bottom:88px;width:calc(100% - 24px);padding:16px;border-radius:13px}.tour-card h2{font-size:18px}.tour-card p{font-size:13px}.tour-actions button{min-height:44px}.tour-hole{border-radius:10px}}
+  </style>
 </head>
 <body>
+  <div class="splash" id="splash" aria-label="Loading BCAPrime">
+    <div class="splash-inner"><img class="splash-logo" src="assets/logo.png" alt="BCAPrime"><div class="splash-name">BCA<span>Prime</span></div></div>
+  </div>
+  <div class="onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle"><div class="onboarding-dialog"><div class="onboarding-kicker"><i class="fa-solid fa-sparkles"></i> Personalise your library</div><h2 id="onboardingTitle">Where do you study?</h2><p>Choose your college to see the most relevant BCA papers and notes first.</p><div class="onboarding-list" id="onboardingList"></div><div class="onboarding-custom"><input id="onboardingCustom" placeholder="Can't find your college? Add it here"><button class="primary" onclick="addOnboardingCollege()"><i class="fa-solid fa-plus"></i> Add college</button></div><div class="onboarding-semesters" id="onboardingSemesters"><strong style="grid-column:1/-1;font:600 15px 'Space Grotesk'">Which semester are you in?</strong><button onclick="chooseOnboardingSemester(1,this)"><b>Semester 1</b><small>First year</small></button><button onclick="chooseOnboardingSemester(2,this)"><b>Semester 2</b><small>First year</small></button><button onclick="chooseOnboardingSemester(3,this)"><b>Semester 3</b><small>Second year</small></button><button onclick="chooseOnboardingSemester(4,this)"><b>Semester 4</b><small>Second year</small></button><button onclick="chooseOnboardingSemester(5,this)"><b>Semester 5</b><small>Third year</small></button><button onclick="chooseOnboardingSemester(6,this)"><b>Semester 6</b><small>Third year</small></button><button class="primary" style="grid-column:1/-1;text-align:center" onclick="finishOnboarding()">Continue to library <i class="fa-solid fa-arrow-right"></i></button></div></div></div>
+  <main class="app">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="BCAPrime home"><img class="brand-logo" src="assets/logo.png" alt=""><strong>BCA<span>Prime</span></strong></a>
+      <nav class="main-nav" aria-label="Workspace navigation"><a href="#library">Library</a><a href="#semesterGrid">Semesters</a><a href="#resources">Latest</a></nav><nav class="nav-actions" aria-label="Main actions">
+        <button class="college-btn" onclick="openCollege()"><i class="fa-solid fa-building-columns"></i><span id="collegeLabel">All Colleges</span><i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
+        <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
+        <button class="primary" onclick="openUpload()"><i class="fa-solid fa-plus"></i> Upload</button>
+      </nav>
+    </header>
 
-    <div class="intro-overlay" id="loader">
-        <div class="logo-container">
-            <svg viewBox="0 0 120 160" width="100%" height="100%">
-                <path d="M40,25 L48,36 L60,22 L72,36 L80,25 L76,43 L44,43 Z" fill="#ffffff" />
-                <path d="M35,50 H48 V130 H35 Z" fill="#38bdf8" />
-                <path d="M48,50 C75,50 85,66 85,78 C85,90 72,93 58,93 H48 Z M48,93 H58 C76,93 88,96 88,111 C88,126 75,130 48,130 Z" fill="#00c6ff" />
-            </svg>
-        </div>
-    </div>
-
-    <div class="main-site" id="main-content">
-        <header>
-            <div class="logo-group">
-                <img src="/assets/logo.png" alt="Logo" class="logo-img">
-                <h2><span class="text-bca">BCA</span><span class="text-prime">Prime</span></h2>
-            </div>
-         <a href="javascript:void(0)" class="upload-btn" onclick="openUploadModal()">
-    <i class="fa-solid fa-cloud-arrow-up"></i> Upload
-</a>
-
-        </header>
-        
-        <div class="line-wave">
-            <svg viewBox="0 0 1000 60" preserveAspectRatio="none">
-                <path class="wave-path-1" stroke="#38bdf8" stroke-width="2" fill="transparent" />
-                <path class="wave-path-2" stroke="#38bdf8" stroke-width="2" fill="transparent" />
-                <path class="wave-path-3" stroke="#38bdf8" stroke-width="2" fill="transparent" />
-            </svg>
-        </div>
-
-        <div class="glass-card">
-            <h3>PrimeFinder</h3>
-            <div style="display: flex; gap: 10px;">
-                <select><option>Year</option></select>
-                <select><option>Sem</option></select>
-            </div>
-            <select><option>Select Subject</option></select>
-            <button class="go-btn">GET CONTENT</button>
-        </div>
-
-        <div class="glass-card">
-            <h3>Select Your Year</h3>
-            <a href="javascript:void(0)" onclick="openSheet('sem-layer')" class="tile-card"><div class="tile-icon">01</div> 1st Year</a>
-            <a href="javascript:void(0)" onclick="openSheet('sem-layer')" class="tile-card"><div class="tile-icon">02</div> 2nd Year</a>
-            <a href="javascript:void(0)" onclick="openSheet('sem-layer')" class="tile-card"><div class="tile-icon">03</div> 3rd Year</a>
-        </div>
-
-        <div class="glass-card">
-            <h3>Academic Resources</h3>
-            <div class="content-grid" style="margin-top:15px;">
-                <div class="content-box"><i class="fa-solid fa-book" style="color:#38bdf8;"></i><br>Notes</div>
-                <div class="content-box"><i class="fa-solid fa-file-pdf" style="color:#38bdf8;"></i><br>PYQ</div>
-            </div>
-        </div>
-
-      
-    <div id="sem-layer" class="bottom-sheet">
-        <button onclick="closeSheet('sem-layer')" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</button>
-        <h3>Select Semester</h3>
-        <a href="javascript:void(0)" onclick="openSheet('sub-layer')" class="tile-card">1st Semester</a>
-        <a href="javascript:void(0)" onclick="openSheet('sub-layer')" class="tile-card">2nd Semester</a>
-    </div>
-
-    <div id="sub-layer" class="bottom-sheet">
-        <button onclick="closeSheet('sub-layer')" class="back-btn"><i class="fa-solid fa-arrow-left"></i> Back</button>
-        <h3>Subjects</h3>
-        <a href="#" class="tile-card">Maths</a>
-        <a href="#" class="tile-card">C Programming</a>
-    </div>
-
-<div class="modal-overlay" id="uploadModal">
-    <div class="upload-box">
-        <button class="close-btn" onclick="closeUploadModal()">&times;</button>
-        <h3>Upload Resource</h3>
-        <div class="drop-zone" onclick="document.getElementById('fileInput').click()">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <p id="fileNameDisplay">Click to upload or Drag & drop</p>
-            <input type="file" id="fileInput" hidden onchange="updateFileName()">
-        </div>
-        <label>Resource Title</label>
-        <input type="text" id="resTitle" placeholder="e.g. Data Structures Notes">
-        <div class="row">
-            <div><label>Semester</label><select><option>Semester 1</option></select></div>
-            <div><label>Type</label>
-                <div class="type-btns">
-                    <button class="active">Notes</button>
-                    <button>PYQ</button>
-                </div>
-            </div>
-        </div>
-        <label>Subject</label>
-        <input type="text" placeholder="Select or type subject">
-        <button class="submit-btn" onclick="showSuccess()">Upload</button>
-    </div>
-</div>
-
-<div class="modal-overlay" id="successModal">
-    <div class="upload-box success-box">
-        <i class="fa-solid fa-circle-check" style="color:#22c55e; font-size: 3rem;"></i>
-        <h2>Thanks for sharing!</h2>
-        <p>Keep uploading to help the community.</p>
-        <button class="submit-btn" onclick="closeUploadModal()">Close</button>
-    </div>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-<div class="main-container">
-    <footer>
-      <div class="footer-brand">
-    <!-- Yahan image add ki gayi hai -->
-    <img src="/assets/logo.png" alt="Brand Logo" class="brand-logo">
-    
-    <span class="sub-heading">NEXT LEVEL PERFORMANCE</span>
-    <h2 class="brand-name">BCAPRIME</h2>
-    <div class="brand-line"></div>
-</div>
-
-        <div class="footer-links">
-            <a href="#">ABOUT</a>
-            <a href="#">CONTACT US</a>
-        </div>
-        <div class="status-container">
-            <div class="live-dot"></div>
-            <span class="status-text">SYSTEM STATUS: ONLINE</span>
-        </div>
-        <p class="copyright">&copy; 2026 BCAPrime | Secure & Optimized</p>
-    </footer>
-
-    <section class="secret-about">
-        <h2>ABOUT BCAPRIME</h2>
-        <div class="content">
-            <p>Yahan apna detailed content likhein. Ye section glassmorphism effect ke sath premium dikhega.</p>
-        </div>
+    <section class="hero" id="top">
+      <div>
+        <div class="hero-copy-top"><div class="eyebrow"><i class="fa-solid fa-book-open"></i> Your study desk</div><span class="status-pill"><span class="status-dot"></span>Library ready</span></div>
+        <h1>Make this semester <span>count.</span></h1>
+        <p>Find clear notes and previous year question papers for your BCA course, all in one focused library.</p>
+        <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" placeholder="Search notes, subjects or PYQs" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
+        <div class="hero-note"><div><b>6</b> Semesters</div><div><b>2</b> Resource types</div><div><b>24/7</b> Study access</div></div>
+      </div>
+      <aside class="hero-panel"><div class="path-head"><div><span class="path-label">Start here</span><h3 id="pathTitle">Your study plan</h3></div><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--brand)"></i></div><div class="progress-card"><div class="progress-ring"><b>62%</b></div><div class="progress-copy"><strong>Ready to learn</strong><small id="pathCollege">Pick your college and semester.</small></div></div><div class="mini-row step-row"><span class="step-number">1</span><div><strong>Choose your college</strong><small>We show the right papers first.</small></div></div><div class="mini-row step-row"><span class="step-number">2</span><div><strong>Pick your semester</strong><small>See notes made for your level.</small></div></div><div class="mini-row step-row"><span class="step-number">3</span><div><strong>Find and save</strong><small>Open a resource and keep it close.</small></div></div></aside>
     </section>
-</div>
+    <section class="desk-strip" aria-label="Your study desk"><button class="desk-card primary-desk" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[2])"><span class="desk-icon"><i class="fa-solid fa-bookmark"></i></span><span><strong>Your saved resources</strong><small id="savedSummary">Keep important notes close</small></span></button><button class="desk-card" onclick="selectTab('semesters',document.querySelectorAll('.bottom-tab')[1])"><span class="desk-icon"><i class="fa-solid fa-layer-group"></i></span><span><strong id="deskSemester">Explore your semester</strong><small>Jump to subject material</small></span></button><button class="desk-card" onclick="openUpload()"><span class="desk-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span><strong>Share with students</strong><small>Upload notes or a PYQ</small></span></button></section>
 
+    <section class="section" id="library"><div class="section-head"><div><h2>1. Choose your course</h2><p>Tell us your college, year, and semester.</p></div></div><div class="finder" id="finder"><div class="finder-grid"><div class="field"><label for="collegeFilter">College</label><select id="collegeFilter" onchange="applyFilters()"></select></div><div class="field"><label for="yearFilter">Year</label><select id="yearFilter" onchange="applyFilters()"><option value="all">All years</option><option value="1">1st year</option><option value="2">2nd year</option><option value="3">3rd year</option></select></div><div class="field"><label for="semesterFilter">Semester</label><select id="semesterFilter" onchange="applyFilters()"><option value="all">All semesters</option><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><button class="primary finder-action" onclick="applyFilters()"><i class="fa-solid fa-magnifying-glass"></i> Find resources</button></div><div class="chips" id="typeChips"><button class="chip active" onclick="setType('all',this)">All</button><button class="chip" onclick="setType('notes',this)">Notes</button><button class="chip" onclick="setType('pyq',this)">PYQs</button></div></div></section>
 
-<script src="script.js"></script>
+    <section class="section"><div class="section-head"><div><h2>2. Pick a semester</h2><p>Jump straight into your current semester.</p></div></div><div class="semester-grid" id="semesterGrid"></div></section>
+    <section class="section"><div class="resource-toolbar"><div class="section-head" style="margin:0"><div><h2>Latest resources</h2><p>Useful material for your next study session.</p></div></div><span class="count" id="count"></span></div><div class="resource-grid" id="resources"></div></section>
+    <section class="section contribute"><div><div class="eyebrow">Community contribution</div><h2>Have useful BCA material?</h2><p>Share notes or a previous year question paper with fellow students.</p></div><div class="right"><button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Share material</button></div></section>
+    <footer class="footer"><div><strong>BCAPrime</strong> · A focused study library for BCA.</div><div>Notes · PYQs</div></footer>
+  </main>
+  <nav class="bottom-tabs" aria-label="Quick navigation"><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
+
+  <div class="modal" id="collegeModal"><div class="dialog"><div class="dialog-head"><h2>Choose your college</h2><button class="close" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Resources marked for your college will appear first.</p><div class="field"><input id="collegeSearch" placeholder="Search colleges" oninput="renderColleges(this.value)"></div><div class="college-list" id="collegeList"></div><div class="onboarding-custom"><input id="collegeCustom" placeholder="College not listed? Add it here" onkeydown="if(event.key==='Enter')useCustomCollege()"><button class="primary" onclick="useCustomCollege()"><i class="fa-solid fa-plus"></i> Add</button></div></div></div>
+  <div class="modal" id="uploadModal"><div class="dialog"><div class="dialog-head"><h2>Share BCA material</h2><button class="close" onclick="closeModals()">&times;</button></div><form class="upload-form" onsubmit="submitUpload(event)"><label class="file-box" for="file"><i class="fa-solid fa-file-arrow-up"></i><span id="fileName">Choose a PDF, DOCX or ZIP file</span><input id="file" name="file" type="file" accept=".pdf,.doc,.docx,.zip" hidden onchange="showFile(this)"></label><div class="field"><label>Title</label><input name="title" required placeholder="e.g. DBMS Unit 2 notes"></div><div class="row"><div class="field"><label>Semester</label><select name="semester"><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label>Type</label><select name="type"><option value="notes">Notes</option><option value="pyq">PYQ</option></select></div></div><div class="field"><label>Share link <span style="font-weight:400">(optional)</span></label><input name="link" type="url" placeholder="https://drive.google.com/..."></div><button class="primary" type="submit">Publish resource</button></form></div></div>
+  <div class="modal" id="profileModal"><div class="dialog profile-dialog"><div class="dialog-head"><h2>Your profile</h2><button class="close" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Your study preferences are saved on this device.</p><div class="profile-stat"><span>College</span><strong id="profileCollege">All Colleges</strong></div><div class="profile-stat"><span>Saved resources</span><strong id="profileSaved">0</strong></div><div class="profile-stat"><span>Uploaded resources</span><strong id="profileUploads">0</strong></div><div class="profile-actions"><button class="secondary" onclick="closeModals();openCollege()"><i class="fa-solid fa-building-columns"></i> Change college</button><button class="secondary" onclick="resetPreferences()"><i class="fa-solid fa-rotate-left"></i> Reset preferences</button></div></div></div>
+  <div id="toastRoot"></div>
+  <div class="tour" id="tour" hidden aria-live="polite"><div class="tour-hole" id="tourHole"></div><section class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle"><div class="tour-kicker"><span id="tourStep">1 of 5</span><button class="tour-skip" onclick="skipTour()">Skip tour</button></div><h2 id="tourTitle"></h2><p id="tourText"></p><div class="tour-actions"><button class="tour-back" id="tourBack" onclick="previousTourStep()">Back</button><div><button class="primary" id="tourNext" onclick="nextTourStep()">Next <i class="fa-solid fa-arrow-right"></i></button></div></div></section></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script>
+    const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['ipu','GGSIPU Delhi'],['du','Delhi University'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
+    JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
+    let resources=[
+      {title:'C Programming Complete Notes',type:'notes',sem:1,year:1,subject:'Programming Principles & C',college:'all'},
+      {title:'Data Structures PYQ Paper 2024',type:'pyq',sem:2,year:1,subject:'Data Structures Using C',college:'ccsu'},
+      {title:'DBMS and SQL Revision Guide',type:'notes',sem:3,year:2,subject:'Database Management Systems',college:'du'},
+      {title:'Python Programming PYQ Papers',type:'pyq',sem:5,year:3,subject:'Python Programming',college:'ipu'},
+      {title:'Operating Systems PYQ Paper',type:'pyq',sem:6,year:3,subject:'Operating Systems',college:'all'}
+    ];
+    resources=[...resources,...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&resource.status!=='archived');
+    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',year:localStorage.getItem('bca-year')||'all',sem:localStorage.getItem('bca-sem')||'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
+    const $=id=>document.getElementById(id);
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));resources=[...resources,...cloud.filter(item=>!existing.has(item.title))];render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
+    function init(){applyTheme(state.theme);$('collegeFilter').innerHTML=colleges.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join('');ensureCollegeOption(state.college);$('collegeFilter').value=state.college;$('yearFilter').value=state.year==='all'?'all':state.year;$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('pathTitle').textContent=state.sem==='all'?'Choose your semester':`Semester ${state.sem} focus`;$('pathCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('deskSemester').textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;$('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';$('semesterGrid').innerHTML=Array.from({length:6},(_,i)=>`<button class="semester ${state.sem===String(i+1)?'active':''}" onclick="chooseSemester(${i+1},this)"><b>Sem ${i+1}</b><span>${i<2?'1st':i<4?'2nd':'3rd'} year</span></button>`).join('');renderColleges();render();loadCloudResources();setTimeout(()=>$('splash').classList.add('hidden'),1100);}
+    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon'}
+    function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark')}
+    function render(){const q=state.query.toLowerCase();const list=resources.filter(r=>(!state.savedOnly||state.saved.includes(r.title.replace(/\W/g,'')))&&(state.type==='all'||r.type===state.type)&&(state.college==='all'||r.college==='all'||r.college===state.college)&&(state.sem==='all'||r.sem===Number(state.sem))&&(state.year==='all'||r.year===Number(state.year))&&(`${r.title} ${r.subject}`.toLowerCase().includes(q)));$('count').textContent=`${list.length} result${list.length===1?'':'s'}`;$('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':'<div class="empty"><i class="fa-regular fa-folder-open"></i><br><br>No resources match these filters.<br><button class="secondary" style="margin-top:12px" onclick="openUpload()">Share the first one</button></div>'}
+    function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span></div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button><button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
+    function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');render()}
+    function applyFilters(){state.college=$('collegeFilter').value;state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;localStorage.setItem('bca-college',state.college);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);$('pathTitle').textContent=state.sem==='all'?'Choose your semester':`Semester ${state.sem} focus`;$('pathCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('deskSemester').textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;$('collegeLabel').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];render()}
+    function chooseSemester(sem,button){$('semesterFilter').value=sem;document.querySelectorAll('.semester').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.sem=String(sem);localStorage.setItem('bca-sem',state.sem);$('deskSemester').textContent=`Semester ${sem} resources`;render();$('library').scrollIntoView({behavior:'smooth'})}
+    function searchResources(value){state.query=value;showSuggestions();render()}
+    function showSuggestions(){const query=$('search').value.trim().toLowerCase();const matches=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(query)).slice(0,4);$('suggestions').innerHTML=(query?matches.map(r=>`<button class="suggestion" onclick="chooseSuggestion('${r.title.replace(/'/g,"\\'")}')"><i class="fa-solid fa-magnifying-glass"></i> ${r.title}</button>`).join(''):'<small style="padding:5px 8px;color:var(--muted)">Search by subject, paper or resource type</small>');$('suggestions').classList.add('open')}
+    function chooseSuggestion(title){$('search').value=title;state.query=title;closeSuggestions();render()}
+    function closeSuggestions(){$('suggestions').classList.remove('open')}
+    function focusFinder(){$('finder').scrollIntoView({behavior:'smooth'});$('collegeFilter').focus()}
+    function selectTab(tab,button){document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.remove('active'));button.classList.add('active');if(tab==='profile'){state.savedOnly=false;openProfile();return}state.savedOnly=tab==='saved';if(tab==='semesters')$('semesterGrid').scrollIntoView({behavior:'smooth',block:'start'});else if(tab==='saved')$('resources').scrollIntoView({behavior:'smooth',block:'start'});else $('library').scrollIntoView({behavior:'smooth',block:'start'});render()}
+    function toggleSave(id){state.saved=state.saved.includes(id)?state.saved.filter(x=>x!==id):[...state.saved,id];localStorage.setItem('bca-saved',JSON.stringify(state.saved));setTimeout(render,90)}
+    function download(title){const resource=resources.find(item=>item.title===title);if(resource&&(resource.fileData||resource.fileUrl)){const a=document.createElement('a');a.href=resource.fileData||resource.fileUrl;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;$('profileModal').classList.add('open')};function openUpload(){$('uploadModal').classList.add('open')};function closeModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'));closeSuggestions()}
+    function renderColleges(query=''){const q=query.toLowerCase();$('collegeList').innerHTML=colleges.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
+    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeFilter').value=id;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();render()}
+    function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));ensureCollegeOption(college[0]);input.value='';selectCollege(college[0])}
+    function showFile(input){if(input.files[0])$('fileName').textContent=input.files[0].name}
+    function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);toast(resource?`Preview ready: ${resource.title}`:'Preview opened')}
+    function createLocalUploadRecord(file, upload){return {title:upload.title,type:upload.type,sem:upload.sem,year:upload.year,subject:upload.subject,college:upload.college,date:'Just now',downloads:0,fileName:file.name,fileData:upload.fileData||'',status:upload.status||'pending'}}
+    async function uploadResourceToSupabase(file, upload){
+      if(!supabaseClient){throw new Error('Supabase client is not available');}
+      const safeTitle=(upload.title||'resource').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'resource';
+      const filePath=`${upload.type}/${upload.sem}/${Date.now()}-${safeTitle}-${file.name.replace(/\s+/g,'-')}`;
+      const {data:storageData,error:storageError}=await supabaseClient.storage.from('resources').upload(filePath,file,{cacheControl:'3600',upsert:false,contentType:file.type || 'application/octet-stream'});
+      if(storageError) throw storageError;
+      const {data:publicData}=supabaseClient.storage.from('resources').getPublicUrl(storageData.path);
+      const row={title:upload.title,type:upload.type,subject:upload.subject,college:upload.college,semester:upload.sem,year:upload.year,file_name:file.name,file_url:publicData.publicUrl,status:'pending',downloads:0};
+      const {error:insertError}=await supabaseClient.from('resources').insert(row);
+      if(insertError) throw insertError;
+      return {...row,title:row.title,type:row.type,sem:row.semester,fileUrl:row.file_url,downloads:0,status:row.status,fileName:file.name,subject:row.subject,college:row.college};
+    }
+    async function submitUpload(event){
+      event.preventDefault();
+      const form=event.target;
+      const file=$('file').files[0];
+      if(!file){toast('Choose a file first');return;}
+      const title=form.querySelector('input[name="title"]').value.trim();
+      const sem=Number(form.querySelector('select[name="semester"]').value);
+      const type=form.querySelector('select[name="type"]').value.toLowerCase();
+      const subject=form.querySelector('input[name="link"]').value.trim() || 'Community upload';
+      const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending'};
+      const reader=new FileReader();
+      reader.onload=async ()=>{
+        try {
+          const fileData = reader.result;
+          const cloudUpload=await uploadResourceToSupabase(file,{...payload,fileData});
+          const uploadRecord={...cloudUpload,title:cloudUpload.title,type:cloudUpload.type,sem:cloudUpload.sem,year:cloudUpload.year,subject:cloudUpload.subject,college:cloudUpload.college,date:'Just now',downloads:0,fileName:file.name,fileData:fileData,status:'pending'};
+          resources.unshift(uploadRecord);
+          const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(resource=>resource.type==='notes'||resource.type==='pyq');
+          uploads.unshift(uploadRecord);
+          localStorage.setItem('bca-uploads',JSON.stringify(uploads));
+          closeModals();
+          form.reset();
+          $('fileName').textContent='Choose a PDF, DOCX or ZIP file';
+          render();
+          toast('File uploaded and waiting for approval');
+        } catch (error) {
+          const localUpload=createLocalUploadRecord(file,{...payload,fileData:reader.result,status:'approved'});
+          resources.unshift(localUpload);
+          const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(resource=>resource.type==='notes'||resource.type==='pyq');
+          uploads.unshift(localUpload);
+          localStorage.setItem('bca-uploads',JSON.stringify(uploads));
+          closeModals();
+          form.reset();
+          $('fileName').textContent='Choose a PDF, DOCX or ZIP file';
+          render();
+          toast('Supabase upload unavailable; file saved locally for demo use');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    function resetPreferences(){localStorage.removeItem('bca-onboarded');localStorage.removeItem('bca-tour-seen');localStorage.removeItem('bca-college');location.reload()}
+    function toast(message){const node=document.createElement('div');node.className='toast';node.textContent=message;$('toastRoot').append(node);setTimeout(()=>node.remove(),2300)}
+    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals()});window.addEventListener('DOMContentLoaded',init);
+    function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;renderOnboardingColleges();$('onboarding').classList.add('open')}
+    function renderOnboardingColleges(){const options=colleges.filter(c=>c[0]!=='other');$('onboardingList').innerHTML=options.map(c=>`<button class="onboarding-option ${state.onboardingCollege===c[0]?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.onboardingCollege===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
+    function chooseOnboardingCollege(id){state.onboardingCollege=id;renderOnboardingColleges();$('onboardingSemesters').classList.add('open')}
+    function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected')}
+    function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);if(!college||$('collegeFilter').querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];$('collegeFilter').append(option)}
+    function completeOnboarding(id){ensureCollegeOption(id);state.college=id;state.sem=state.onboardingSem;state.year=String(Math.ceil(Number(state.onboardingSem)/2));localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-onboarded','true');$('collegeFilter').value=id;$('semesterFilter').value=state.sem;$('yearFilter').value=state.year;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;$('onboarding').classList.remove('open');render();setTimeout(startTour,200)}
+    function finishOnboarding(){if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
+    function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
+    const tourSteps=[
+      {selector:'.hero-search',title:'Search bar',text:'This is where you can search subjects, notes, or previous year papers in one quick step.'},
+      {selector:'#finder',title:'Filter your library',text:'Choose your college, year, semester, and resource type to narrow results to exactly what you need.'},
+      {selector:'#semesterGrid',title:'Semester cards',text:'Tap any semester to jump straight into that section and find material for your current level.'},
+      {selector:'#resources',title:'Latest resources',text:'This panel shows your filtered study files. Preview, save, or download anything useful.'},
+      {selector:'.bottom-tabs',title:'Quick navigation',text:'Use the bottom menu to move between the library, semesters, saved items, and your profile whenever you need.'}
+    ];
+    let tourIndex=0;
+    function startTour(){
+      if (localStorage.getItem('bca-tour-seen') === 'true') return;
+      if ($('onboarding').classList.contains('open')) return;
+      tourIndex = 0;
+      renderTourStep();
+      $('tour').hidden = false;
+    }
+    function renderTourStep(){
+      const step = tourSteps[tourIndex];
+      const target = document.querySelector(step.selector);
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      $('tourHole').style.left = `${Math.max(8, rect.left - 6)}px`;
+      $('tourHole').style.top = `${Math.max(8, rect.top - 6)}px`;
+      $('tourHole').style.width = `${rect.width + 12}px`;
+      $('tourHole').style.height = `${rect.height + 12}px`;
+      $('tourStep').textContent = `${tourIndex + 1} of ${tourSteps.length}`;
+      $('tourTitle').textContent = step.title;
+      $('tourText').textContent = step.text;
+      $('tourBack').style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
+      $('tourNext').innerHTML = tourIndex === tourSteps.length - 1 ? 'Finish <i class="fa-solid fa-check"></i>' : 'Next <i class="fa-solid fa-arrow-right"></i>';
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function nextTourStep(){
+      if (tourIndex >= tourSteps.length - 1) {
+        finishTour();
+        return;
+      }
+      tourIndex += 1;
+      renderTourStep();
+    }
+    function previousTourStep(){
+      if (tourIndex === 0) return;
+      tourIndex -= 1;
+      renderTourStep();
+    }
+    function finishTour(){
+      localStorage.setItem('bca-tour-seen', 'true');
+      $('tour').hidden = true;
+    }
+    function skipTour(){
+      finishTour();
+    }
+    window.addEventListener('resize', () => {
+      if ($('tour') && $('tour').hidden === false) renderTourStep();
+    });
+    new MutationObserver(() => {
+      if (!$('onboarding').classList.contains('open') && localStorage.getItem('bca-onboarded') === 'true' && localStorage.getItem('bca-tour-seen') !== 'true') {
+        setTimeout(startTour, 200);
+      }
+    }).observe($('onboarding'), { attributes: true, attributeFilter: ['class'] });
+    setTimeout(() => {
+      if (localStorage.getItem('bca-onboarded') === 'true') {
+        if (localStorage.getItem('bca-tour-seen') !== 'true') startTour();
+      } else {
+        showOnboarding();
+      }
+    }, 1200);
+  </script>
 </body>
 </html>
