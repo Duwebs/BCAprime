@@ -11,7 +11,10 @@ The student library is installable as a PWA. Serve the project over HTTPS in pro
 2. Open **SQL Editor** and run the complete contents of `supabase-schema.sql`.
 3. Add approved rows to `public.resources` with a `file_url` pointing to your PDF storage.
 4. Open `index.html` to verify approved rows appear in the student library.
-5. Open `admin.html` to verify resource records appear in the admin table.
+5. In Supabase Authentication, create or confirm the admin user, then set its `app_metadata` to include `{ "role": "admin" }`.
+6. Open `admin.html`, sign in with that admin account, and verify pending uploads can be reviewed.
+
+The admin page includes Supabase email/password login and signup. Signup creates an account, but only accounts with `app_metadata.role` set to `admin` can access the review dashboard or approve resources.
 
 ### Recommended architecture
 - Use Supabase for: admin dashboard, metadata, status, row approval, auth, and user roles.

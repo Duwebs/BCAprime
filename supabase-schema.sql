@@ -9,24 +9,50 @@ create table if not exists public.resources (
   file_name text,
   file_path text,
   file_url text,
-  status text not null default 'pending' check (status in ('pending', 'approved', 'archived')),
+  status text not null default 'pending' check (status in ('pending', 'approved', 'rejected', 'archived')),
   downloads integer not null default 0,
   created_at timestamptz not null default now()
 );
 
+do $$
+begin
+  alter table public.resources drop constraint if exists resources_status_check;
+  alter table public.resources add constraint resources_status_check
+    check (status in ('pending', 'approved', 'rejected', 'archived'));
+end $$;
+
 alter table public.resources enable row level security;
 
+drop policy if exists "Anyone can read approved resources" on public.resources;
 create policy "Anyone can read approved resources"
 on public.resources for select
 using (status = 'approved');
 
+drop policy if exists "Anyone can submit pending resources" on public.resources;
+create policy "Anyone can submit pending resources"
+on public.resources for insert
+to anon, authenticated
+with check (status = 'pending');
+
+drop policy if exists "Authenticated admins can manage resources" on public.resources;
 create policy "Authenticated admins can manage resources"
 on public.resources for all
 to authenticated
-using (auth.jwt() ->> 'role' = 'admin')
-with check (auth.jwt() ->> 'role' = 'admin');
+using (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+with check (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin');
 
 insert into storage.buckets (id, name, public)
 values ('resources', 'resources', true)
 on conflict (id) do nothing;
--- no rows are returned
+
+drop policy if exists "Anyone can upload resource files" on storage.objects;
+create policy "Anyone can upload resource files"
+on storage.objects for insert
+to anon, authenticated
+with check (bucket_id = 'resources');
+
+drop policy if exists "Anyone can read resource files" on storage.objects;
+create policy "Anyone can read resource files"
+on storage.objects for select
+to anon, authenticated
+using (bucket_id = 'resources');
