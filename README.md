@@ -16,6 +16,8 @@ The student library is installable as a PWA. Serve the project over HTTPS in pro
 
 The admin page includes Supabase email/password login and signup. Signup creates an account, but only accounts with `app_metadata.role` set to `admin` can access the review dashboard or approve resources.
 
+Both the student Profile and admin login also support Google and Apple sign-in. Enable Google and Apple under Supabase **Authentication > Providers**, and add these redirect URLs: `https://bcaprime.vercel.app/` and `https://bcaprime.vercel.app/admin.html`.
+
 ### Recommended architecture
 - Use Supabase for: admin dashboard, metadata, status, row approval, auth, and user roles.
 - Use Supabase Storage for: student notes and PYQ PDFs. This is the simplest production setup for this app.
