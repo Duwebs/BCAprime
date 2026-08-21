@@ -1,0 +1,19 @@
+{
+  "name": "BCAPrime - BCA Study Library",
+  "short_name": "BCAPrime",
+  "description": "Find BCA notes and previous year papers by college and semester.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#05080b",
+  "theme_color": "#67c9dc",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

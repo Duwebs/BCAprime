@@ -1,6 +1,10 @@
 # BCAprime
 BCAprime Web App Study Platform.
 
+## PWA install
+
+The student library is installable as a PWA. Serve the project over HTTPS in production, or use `http://localhost` during development; service workers do not run from `file://` pages. On a supported browser, use the **Install app** button when it appears, or the browser's install option in the address bar/menu.
+
 ## Supabase setup
 
 1. Open the Supabase project linked in `supabase-config.js`.

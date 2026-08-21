@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>BCAPrime | BCA study library</title>
   <meta name="description" content="Find BCA notes and previous year papers by college and semester.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#67c9dc">
+  <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -76,6 +79,7 @@
       <nav class="main-nav" aria-label="Workspace navigation"><a href="#library">Library</a><a href="#semesterGrid">Semesters</a><a href="#resources">Latest</a></nav><nav class="nav-actions" aria-label="Main actions">
         <button class="college-btn" onclick="openProfile()" aria-label="Current college. Change it from Profile" title="Change college from Profile"><i class="fa-solid fa-building-columns"></i><span id="collegeLabel">All Colleges</span><i class="fa-solid fa-user-gear" style="font-size:10px"></i></button>
         <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
+        <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
         <button class="primary" onclick="openUpload()"><i class="fa-solid fa-plus"></i> Upload</button>
       </nav>
     </header>
@@ -280,6 +284,27 @@
         setTimeout(startTour, 200);
       }
     }).observe($('onboarding'), { attributes: true, attributeFilter: ['class'] });
+    let deferredInstallPrompt;
+    window.addEventListener('beforeinstallprompt', event => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      $('installButton').hidden = false;
+    });
+    window.addEventListener('appinstalled', () => {
+      deferredInstallPrompt = null;
+      $('installButton').hidden = true;
+      toast('BCAPrime installed');
+    });
+    async function installApp(){
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      deferredInstallPrompt = null;
+      $('installButton').hidden = true;
+    }
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(error => console.info('PWA service worker unavailable.', error.message)));
+    }
     setTimeout(() => {
       if (localStorage.getItem('bca-onboarded') === 'true') {
         if (localStorage.getItem('bca-tour-seen') !== 'true') startTour();
