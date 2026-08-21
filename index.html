@@ -292,7 +292,9 @@
       deferredInstallPrompt = event;
       $('installButton').hidden = false;
       $('footerInstallButton').hidden = false;
-      $('installBanner').classList.add('show');
+      setTimeout(() => {
+        if (deferredInstallPrompt) $('installBanner').classList.add('show');
+      }, 3000);
     });
     window.addEventListener('appinstalled', () => {
       deferredInstallPrompt = null;
