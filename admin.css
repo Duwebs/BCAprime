@@ -1,0 +1,338 @@
+/* ============================================================
+   BCAPrime Admin - admin.css
+   ============================================================ */
+
+/* ---- Theme variables ---- */
+:root {
+  --bg: #f5f7fa;
+  --surface: #fff;
+  --surface2: #eef2f6;
+  --ink: #172230;
+  --muted: #687789;
+  --line: #dce4ec;
+  --brand: #0d7892;
+  --good: #167653;
+  --danger: #b83d4b;
+  --shadow: 0 14px 32px rgba(25, 45, 65, .08);
+}
+
+[data-theme=dark] {
+  --bg: #05080b;
+  --surface: #0d141a;
+  --surface2: #141d24;
+  --ink: #eef5f7;
+  --muted: #9cafba;
+  --line: #263640;
+  --brand: #67c9dc;
+  --good: #70d1a9;
+  --danger: #ff8c98;
+  --shadow: 0 14px 34px rgba(0, 0, 0, .3);
+}
+
+/* ---- Base / layout ---- */
+* { box-sizing: border-box }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 90% 0%, rgba(103, 201, 220, .1), transparent 28%), var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 'DM Sans', sans-serif;
+}
+
+.shell {
+  max-width: 1180px;
+  margin: auto;
+  padding: 0 24px 48px;
+}
+
+/* ---- Topbar ---- */
+.topbar {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink);
+  text-decoration: none;
+  font: 700 20px 'Space Grotesk';
+}
+
+.brand-mark {
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 16px;
+}
+
+.actions { display: flex; gap: 8px }
+.logout-button { display: none }
+
+/* ---- Buttons & inputs ---- */
+.button,
+.select {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 9px 13px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+
+.button.danger { color: var(--danger) }
+.button:hover { filter: brightness(1.08) }
+
+.search {
+  min-width: 220px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--ink);
+  padding: 10px 12px;
+  outline: 0;
+}
+
+/* ---- Intro / stats ---- */
+.eyebrow {
+  color: var(--brand);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.intro { padding: 42px 0 26px }
+
+.intro h1 {
+  font: 600 clamp(32px, 5vw, 52px)/1.05 'Space Grotesk';
+  margin: 9px 0;
+}
+
+.intro p { color: var(--muted); margin: 0 }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.stat,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.stat { padding: 17px }
+
+.stat strong {
+  display: block;
+  font: 600 27px 'Space Grotesk';
+}
+
+.stat span { color: var(--muted); font-size: 13px }
+
+/* ---- Review panel ---- */
+.panel { padding: 18px }
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.toolbar h2 {
+  font: 600 20px 'Space Grotesk';
+  margin: 0;
+}
+
+.filters { display: flex; gap: 8px }
+
+/* ---- Bulk actions bar (replaces old inline styles) ---- */
+.bulk-actions {
+  display: none;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 15px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+
+.bulk-count {
+  font-weight: 700;
+  margin-right: 10px;
+  color: var(--ink);
+}
+
+/* ---- Table ---- */
+.table-wrap { overflow: auto }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 13px 10px;
+  border-top: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.table th {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.col-check { width: 40px }
+
+.table td small {
+  display: block;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--good) 14%, transparent);
+  color: var(--good);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge.archived {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+
+.row-actions { display: flex; gap: 6px }
+.empty { padding: 34px; text-align: center; color: var(--muted) }
+.note { margin-top: 14px; color: var(--muted); font-size: 12px }
+
+/* ---- Auth screen ---- */
+.auth-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.auth-card {
+  width: min(100%, 430px);
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.auth-card h1 {
+  font: 600 28px/1.1 'Space Grotesk';
+  margin: 10px 0 7px;
+}
+
+.auth-card p { color: var(--muted); margin: 0 0 20px }
+
+.auth-form { display: grid; gap: 11px }
+
+.auth-form label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.auth-form input {
+  width: 100%;
+  height: 44px;
+  margin-top: 5px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--ink);
+  outline: 0;
+}
+
+.auth-form input:focus { border-color: var(--brand) }
+.auth-card .button { width: 100%; margin-top: 4px }
+
+.auth-message {
+  min-height: 22px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.oauth-actions { display: grid; gap: 8px; margin-top: 12px }
+
+.oauth-button {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Fallback added for --brand-2 which was never defined */
+.oauth-button:hover {
+  border-color: var(--brand);
+  background: var(--brand-2, var(--surface));
+}
+
+/* ---- Responsive ---- */
+@media(max-width: 700px) {
+  .shell { padding: 0 16px 34px }
+  .topbar { min-height: 62px }
+  .brand { font-size: 18px }
+  .intro { padding: 28px 0 20px }
+  .stats { gap: 8px }
+  .stat { padding: 12px 10px }
+  .stat strong { font-size: 22px }
+  .stat span { font-size: 11px }
+  .toolbar { align-items: stretch; flex-direction: column }
+  .filters { display: grid; grid-template-columns: 1fr 1fr }
+  .search { min-width: 0; grid-column: 1/-1 }
+  .panel { padding: 13px }
+}
+
+@media(max-width: 600px) {
+  .auth-card { padding: 22px }
+  .shell { padding-left: 16px; padding-right: 16px }
+  .toolbar { align-items: stretch; flex-direction: column }
+  .filters { flex-direction: column }
+  .search { min-width: 0 }
+}
+

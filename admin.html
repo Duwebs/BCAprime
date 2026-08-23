@@ -1,181 +1,124 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BCAPrime Admin</title>
+  <meta name="description" content="BCAPrime admin portal - review and moderate shared BCA study material.">
+  <meta name="robots" content="noindex">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root{--bg:#f5f7fa;--surface:#fff;--surface2:#eef2f6;--ink:#172230;--muted:#687789;--line:#dce4ec;--brand:#0d7892;--good:#167653;--danger:#b83d4b;--shadow:0 14px 32px rgba(25,45,65,.08)}
-    [data-theme=dark]{--bg:#05080b;--surface:#0d141a;--surface2:#141d24;--ink:#eef5f7;--muted:#9cafba;--line:#263640;--brand:#67c9dc;--good:#70d1a9;--danger:#ff8c98;--shadow:0 14px 34px rgba(0,0,0,.3)}
-    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 90% 0%,rgba(103,201,220,.1),transparent 28%),var(--bg);color:var(--ink);font:15px/1.5 'DM Sans',sans-serif}.shell{max-width:1180px;margin:auto;padding:0 24px 48px}.topbar{min-height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font:700 20px 'Space Grotesk'}.brand-mark{width:35px;height:35px;display:grid;place-items:center;border-radius:10px;background:var(--brand);color:#fff;font-size:16px}.actions{display:flex;gap:8px}.button,.select{border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);padding:9px 13px;font:inherit;cursor:pointer}.button.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}.button.danger{color:var(--danger)}.button:hover{filter:brightness(1.08)}.eyebrow{color:var(--brand);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700}.intro{padding:42px 0 26px}.intro h1{font:600 clamp(32px,5vw,52px)/1.05 'Space Grotesk';margin:9px 0}.intro p{color:var(--muted);margin:0}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}.stat,.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}.stat{padding:17px}.stat strong{display:block;font:600 27px 'Space Grotesk'}.stat span{color:var(--muted);font-size:13px}.panel{padding:18px}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px}.toolbar h2{font:600 20px 'Space Grotesk';margin:0}.filters{display:flex;gap:8px}.search{min-width:220px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);padding:10px 12px;outline:0}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:720px}.table th,.table td{text-align:left;padding:13px 10px;border-top:1px solid var(--line);vertical-align:middle}.table th{font-size:12px;color:var(--muted);font-weight:700}.table td small{display:block;color:var(--muted);margin-top:2px}.badge{display:inline-block;padding:4px 8px;border-radius:999px;background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good);font-size:11px;font-weight:700}.badge.archived{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}.row-actions{display:flex;gap:6px}.empty{padding:34px;text-align:center;color:var(--muted)}.note{margin-top:14px;color:var(--muted);font-size:12px}@media(max-width:700px){.shell{padding:0 16px 34px}.topbar{min-height:62px}.brand{font-size:18px}.intro{padding:28px 0 20px}.stats{gap:8px}.stat{padding:12px 10px}.stat strong{font-size:22px}.stat span{font-size:11px}.toolbar{align-items:stretch;flex-direction:column}.filters{display:grid;grid-template-columns:1fr 1fr}.search{min-width:0;grid-column:1/-1}.panel{padding:13px}}
-    .auth-screen{min-height:100vh;display:grid;place-items:center;padding:24px}.auth-card{width:min(100%,430px);padding:28px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}.auth-card h1{font:600 28px/1.1 'Space Grotesk';margin:10px 0 7px}.auth-card p{color:var(--muted);margin:0 0 20px}.auth-form{display:grid;gap:11px}.auth-form label{font-size:12px;font-weight:700;color:var(--muted)}.auth-form input{width:100%;height:44px;margin-top:5px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);outline:0}.auth-form input:focus{border-color:var(--brand)}.auth-message{min-height:22px;margin:12px 0 0;color:var(--muted);font-size:13px}.auth-switch{border:0;background:transparent;color:var(--brand);cursor:pointer;font:inherit;padding:0}.auth-card .button{width:100%;margin-top:4px}.oauth-actions{display:grid;gap:8px;margin-top:12px}.oauth-button{width:100%;min-height:42px;border:1px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--ink);font:inherit;font-weight:700;cursor:pointer}.oauth-button:hover{border-color:var(--brand);background:var(--brand-2)}.logout-button{display:none}@media(max-width:600px){.auth-card{padding:22px}.shell{padding-left:16px;padding-right:16px}.toolbar{align-items:stretch;flex-direction:column}.filters{flex-direction:column}.search{min-width:0}}
-  </style>
+  <link rel="stylesheet" href="admin.css">
 </head>
 <body>
-  <section class="auth-screen" id="authScreen"><div class="auth-card"><div class="eyebrow">BCAPrime admin</div><h1 id="authTitle">Admin portal</h1><p id="authDescription">Sign in with authorized administrator credentials.</p><form class="auth-form" id="authForm"><label>Admin Email<input id="authEmail" type="email" autocomplete="email" required></label><label>Password<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="button primary" id="authSubmit" type="submit">Secure Login</button></form><p class="auth-message" id="authMessage" aria-live="polite"></p></div></section>
+
+  <!-- ================= Auth screen ================= -->
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="eyebrow">BCAPrime admin</div>
+      <h1 id="authTitle">Admin portal</h1>
+      <p id="authDescription">Sign in with authorized administrator credentials.</p>
+      <form class="auth-form" id="authForm">
+        <label>Admin Email
+          <input id="authEmail" type="email" autocomplete="email" required>
+        </label>
+        <label>Password
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+        </label>
+        <button class="button primary" id="authSubmit" type="submit">Secure Login</button>
+      </form>
+      <p class="auth-message" id="authMessage" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- ================= Admin dashboard ================= -->
   <main class="shell" id="adminShell" hidden>
-    <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">B</span><span>BCA<span style="color:var(--brand)">Prime</span> Admin</span></a><div class="actions"><button class="button" onclick="toggleTheme()">Theme</button><a class="button primary" href="index.html">Open library</a><button class="button logout-button" id="logoutButton" onclick="logout()">Log out</button></div></header>
-    <section class="intro"><div class="eyebrow">Content control</div><h1>Keep the library useful.</h1><p>Review shared material, manage colleges, and keep student resources tidy.</p></section>
-    <section class="stats"><div class="stat"><strong id="totalCount">0</strong><span>Total uploads</span></div><div class="stat"><strong id="collegeCount">0</strong><span>Colleges represented</span></div><div class="stat"><strong id="activeCount">0</strong><span>Active resources</span></div></section>
-    <section class="panel"><div class="toolbar"><h2>Shared material</h2><div class="filters"><input class="search" id="search" placeholder="Search title or college" oninput="render()"><select class="select" id="statusFilter" onchange="render()"><option value="all">All status</option><option value="pending">Needs review</option><option value="approved">Active</option><option value="rejected">Rejected</option><option value="archived">Archived</option></select></div></div><div id="bulkActions" style="display:none; gap:8px; align-items:center; margin-bottom:15px; padding:10px 14px; background:var(--surface2); border-radius:8px; border:1px solid var(--line); flex-wrap:wrap;"><span id="bulkCount" style="font-weight:700; margin-right:10px; color:var(--ink);">0 selected</span><button class="button primary" onclick="bulkUpdateStatus('approved')">Approve Selected</button><button class="button danger" onclick="bulkUpdateStatus('rejected')">Reject Selected</button><button class="button danger" onclick="bulkDelete()">Delete Selected</button></div><div class="table-wrap"><table class="table"><thead><tr><th style="width: 40px;"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th><th>Material</th><th>College</th><th>Semester</th><th>Status</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div><div class="note">Review pending uploads before approving them. Only approved resources appear in the student library.</div></section>
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">B</span>
+        <span>BCA<span style="color:var(--brand)">Prime</span> Admin</span>
+      </a>
+      <div class="actions">
+        <button class="button" onclick="toggleTheme()">Theme</button>
+        <a class="button primary" href="index.html">Open library</a>
+        <button class="button logout-button" id="logoutButton" onclick="logout()">Log out</button>
+      </div>
+    </header>
+
+    <!-- Intro -->
+    <section class="intro">
+      <div class="eyebrow">Content control</div>
+      <h1>Keep the library useful.</h1>
+      <p>Review shared material, manage colleges, and keep student resources tidy.</p>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats">
+      <div class="stat">
+        <strong id="totalCount">0</strong>
+        <span>Total uploads</span>
+      </div>
+      <div class="stat">
+        <strong id="collegeCount">0</strong>
+        <span>Colleges represented</span>
+      </div>
+      <div class="stat">
+        <strong id="activeCount">0</strong>
+        <span>Active resources</span>
+      </div>
+    </section>
+
+    <!-- Review panel -->
+    <section class="panel">
+      <div class="toolbar">
+        <h2>Shared material</h2>
+        <div class="filters">
+          <input class="search" id="search" placeholder="Search title or college" oninput="render()">
+          <select class="select" id="statusFilter" onchange="render()">
+            <option value="all">All status</option>
+            <option value="pending">Needs review</option>
+            <option value="approved">Active</option>
+            <option value="rejected">Rejected</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Bulk actions (shown when rows are selected) -->
+      <div class="bulk-actions" id="bulkActions">
+        <span class="bulk-count" id="bulkCount">0 selected</span>
+        <button class="button primary" onclick="bulkUpdateStatus('approved')">Approve Selected</button>
+        <button class="button danger" onclick="bulkUpdateStatus('rejected')">Reject Selected</button>
+        <button class="button danger" onclick="bulkDelete()">Delete Selected</button>
+      </div>
+
+      <!-- Uploads table -->
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th>
+              <th>Material</th>
+              <th>College</th>
+              <th>Semester</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <div class="note">Review pending uploads before approving them. Only approved resources appear in the student library.</div>
+    </section>
   </main>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script>
-    const key='bca-uploads';
-    const demoUploads=[
-      {id:'demo-1',title:'DBMS Unit 2 Revision Notes',type:'notes',sem:3,year:2,subject:'Database Management Systems',college:'du',fileName:'dbms-unit-2.pdf',status:'approved'},
-      {id:'demo-2',title:'Operating Systems PYQ 2024',type:'pyq',sem:6,year:3,subject:'Operating Systems',college:'ccsu',fileName:'os-pyq-2024.pdf',status:'approved'},
-      {id:'demo-3',title:'C Programming Crash Notes',type:'notes',sem:1,year:1,subject:'Programming Principles & C',college:'all',fileName:'c-programming-notes.pdf',status:'approved'}
-    ];
-    const collegeNames={all:'All colleges',ccsu:'CCSU Meerut',ipu:'GGSIPU Delhi',du:'Delhi University',aktu:'AKTU / UPTU',ignou:'IGNOU',pune:'Pune University',bangalore:'Bangalore University',other:'Other University'};
-    let uploads=[];
-    const selectedIds=new Set();
-    const $=id=>document.getElementById(id);
-    function setAuthMessage(message){$('authMessage').textContent=message}
-    async function submitAuth(event){
-      event.preventDefault();
-      setAuthMessage('Authenticating...');
-      const email=$('authEmail').value.trim();
-      const password=$('authPassword').value;
-      
-      // Temporary direct admin bypass
-      if(email === 'admin@bcaprime' && password === '8662863787dsDS*#@bcaprime'){
-        sessionStorage.setItem('bca-direct-admin', 'true');
-        showDirectAdmin();
-        return;
-      }
 
-      if(!supabaseClient){setAuthMessage('Supabase is not configured.');return}
-      const result=await supabaseClient.auth.signInWithPassword({email,password});
-      if(result.error){setAuthMessage(result.error.message);return}
-      await showAdmin(result.data.session)
-    }
-
-    function showDirectAdmin(){
-      $('authScreen').hidden=true;
-      $('adminShell').hidden=false;
-      $('logoutButton').style.display='inline-block';
-      load();
-    }
-    async function showAdmin(session){const role=session?.user?.app_metadata?.role;if(role!=='admin'){await supabaseClient.auth.signOut();setAuthMessage('Access denied: This account does not have admin privileges.');return}$('authScreen').hidden=true;$('adminShell').hidden=false;$('logoutButton').style.display='inline-block';load()}
-    async function logout(){
-      if(sessionStorage.getItem('bca-direct-admin')==='true'){
-        sessionStorage.removeItem('bca-direct-admin');
-        $('adminShell').hidden=true;
-        $('authScreen').hidden=false;
-        $('logoutButton').style.display='none';
-        setAuthMessage('Logged out');
-        $('authForm').reset();
-        return;
-      }
-      if(supabaseClient) await supabaseClient.auth.signOut();
-      $('adminShell').hidden=true;
-      $('authScreen').hidden=false;
-      $('logoutButton').style.display='none';
-      setAuthMessage('Logged out');
-      $('authForm').reset()
-    }
-    
-    // ---- Admin panel: Supabase-backed moderation ----
-    function toggleTheme(){const root=document.documentElement;root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('bca-theme',root.dataset.theme)}
-    function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
-    async function load(){
-      if(!supabaseClient){
-        uploads=JSON.parse(localStorage.getItem(key)||'[]');
-        if(!uploads.length)uploads=[...demoUploads];
-        render();return;
-      }
-      try{
-        const {data,error}=await supabaseClient.from('resources').select('*').order('created_at',{ascending:false});
-        if(error)throw error;
-        uploads=(data||[]).map(item=>({id:String(item.id),title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,status:item.status,uploader:item.uploader_email||'',date:item.created_at}));
-      }catch(error){console.warn('Could not load resources.',error.message);uploads=[]}
-      render();
-    }
-    function filteredUploads(){
-      const query=($('search').value||'').toLowerCase();
-      const status=$('statusFilter').value;
-      return uploads.filter(item=>{
-        const matchQuery=!query||(item.title||'').toLowerCase().includes(query)||(item.college||'').toLowerCase().includes(query);
-        const matchStatus=status==='all'||item.status===status;
-        return matchQuery&&matchStatus;
-      });
-    }
-    function render(){
-      const list=filteredUploads();
-      $('totalCount').textContent=uploads.length;
-      $('collegeCount').textContent=new Set(uploads.map(item=>item.college)).size;
-      $('activeCount').textContent=uploads.filter(item=>item.status==='approved').length;
-      [...selectedIds].forEach(id=>{if(!uploads.some(item=>String(item.id)===id))selectedIds.delete(id)});
-      $('bulkActions').style.display=selectedIds.size?'flex':'none';
-      $('bulkCount').textContent=`${selectedIds.size} selected`;
-      $('checkAll').checked=list.length>0&&list.every(item=>selectedIds.has(String(item.id)));
-      const tbody=$('rows');
-      if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">No material found for this filter.</div></td></tr>';return}
-      tbody.innerHTML=list.map(item=>{
-        const id=String(item.id);
-        const badgeClass=item.status==='approved'?'':'archived';
-        return `<tr>
-          <td><input type="checkbox" ${selectedIds.has(id)?'checked':''} onchange="toggleSelected('${id}',this.checked)"></td>
-          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject||'')} · ${item.type==='pyq'?'PYQ':'Notes'}${item.fileName?` · ${escapeHtml(item.fileName)}`:''}</small>${item.fileUrl?`<small><a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Open file</a></small>`:''}</td>
-          <td>${collegeNames[item.college]||escapeHtml(item.college||'All colleges')}${item.uploader?`<small>by ${escapeHtml(item.uploader)}</small>`:''}</td>
-          <td>Semester ${item.sem}${item.year?`<small>Year ${item.year}</small>`:''}</td>
-          <td><span class="badge ${badgeClass}">${item.status}</span></td>
-          <td><div class="row-actions">
-            ${item.status!=='approved'?`<button class="button primary" onclick="updateStatus('${id}','approved')">Approve</button>`:''}
-            ${item.status!=='rejected'?`<button class="button danger" onclick="updateStatus('${id}','rejected')">Reject</button>`:''}
-            ${item.status!=='archived'?`<button class="button" onclick="updateStatus('${id}','archived')">Archive</button>`:''}
-          </div></td>
-        </tr>`}).join('');
-    }
-    function toggleSelected(id,checked){if(checked)selectedIds.add(String(id));else selectedIds.delete(String(id));render()}
-    function toggleCheckAll(checked){filteredUploads().forEach(item=>{if(checked)selectedIds.add(String(item.id));else selectedIds.delete(String(item.id))});render()}
-    function saveLocalMirror(){try{localStorage.setItem(key,JSON.stringify(uploads.filter(item=>typeof item.id==='string'&&item.id.startsWith('local-'))))}catch(error){}}
-    async function updateStatus(id,status){
-      const item=uploads.find(entry=>String(entry.id)===String(id));
-      if(!item)return;
-      if(supabaseClient&&!id.startsWith('demo-')&&!id.startsWith('local-')){
-        const {error}=await supabaseClient.from('resources').update({status}).eq('id',id);
-        if(error){alert('Update failed: '+error.message);load();return}
-      }
-      item.status=status;saveLocalMirror();render();
-    }
-    async function bulkUpdateStatus(status){
-      if(!selectedIds.size)return;
-      const cloudIds=[...selectedIds].filter(id=>!id.startsWith('demo-')&&!id.startsWith('local-'));
-      if(supabaseClient&&cloudIds.length){
-        const {error}=await supabaseClient.from('resources').update({status}).in('id',cloudIds);
-        if(error){alert('Bulk update failed: '+error.message);return}
-      }
-      uploads.forEach(item=>{if(selectedIds.has(String(item.id)))item.status=status});
-      saveLocalMirror();selectedIds.clear();render();
-    }
-    async function bulkDelete(){
-      if(!selectedIds.size)return;
-      if(!confirm(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`))return;
-      const cloudIds=[...selectedIds].filter(id=>!id.startsWith('demo-')&&!id.startsWith('local-'));
-      if(supabaseClient&&cloudIds.length){
-        const {error}=await supabaseClient.from('resources').delete().in('id',cloudIds);
-        if(error){alert('Delete failed: '+error.message);return}
-      }
-      uploads=uploads.filter(item=>!selectedIds.has(String(item.id)));
-      saveLocalMirror();selectedIds.clear();render();
-    }
-    setInterval(()=>{if(supabaseClient&&document.visibilityState==='visible'&&$('adminShell')&&$('adminShell').hidden===false)load()},20000);
-    document.documentElement.dataset.theme=localStorage.getItem('bca-theme')||'dark';
-    $('authForm').addEventListener('submit',submitAuth);
-    async function initAuth(){
-      if(sessionStorage.getItem('bca-direct-admin')==='true'){
-        showDirectAdmin();
-        return;
-      }
-      if(!supabaseClient){setAuthMessage('Supabase is not configured.');return}
-      const {data}=await supabaseClient.auth.getSession();
-      if(data.session)await showAdmin(data.session)
-    }
-    initAuth();
-  </script>
+  <!-- ================= Scripts ================= -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="admin.js"></script>
 </body>
 </html>
