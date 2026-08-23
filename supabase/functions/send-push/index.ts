@@ -60,13 +60,20 @@ Deno.serve(async (req) => {
   }
 
   // --- Configure VAPID ---
-  const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
-  const vapidSubject = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:admin@bcaprime.com';
-  const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
+  // .trim() guards against stray spaces from copy-paste into the secrets UI
+  const vapidPrivateKey = (Deno.env.get('VAPID_PRIVATE_KEY') ?? '').trim();
+  const vapidSubject = (Deno.env.get('VAPID_SUBJECT') ?? '').trim();
+  const vapidPublicKey = (Deno.env.get('VAPID_PUBLIC_KEY') ?? '').trim();
   try {
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
   } catch (error) {
-    return new Response(JSON.stringify({ error: 'VAPID misconfigured', details: String(error) }), {
+    const hint = [
+      `details=${String((error && error.message) || error)}`,
+      `subject=${vapidSubject.length}ch(starts:${vapidSubject.slice(0, 6)})`,
+      `public=${vapidPublicKey.length}ch(expected:87)`,
+      `private=${vapidPrivateKey.length}ch(expected:43)`,
+    ].join(' | ');
+    return new Response(JSON.stringify({ error: 'VAPID misconfigured', hint }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
