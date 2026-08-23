@@ -27,6 +27,7 @@
       <nav class="main-nav" aria-label="Workspace navigation"><a href="#library">Library</a><a href="#resources">Latest</a></nav><nav class="nav-actions" aria-label="Main actions">
         <button class="college-btn" onclick="openProfile()" aria-label="Current college & semester. Change from Profile" title="Change preferences from Profile"><i class="fa-solid fa-building-columns"></i><span id="collegeLabel">All Colleges</span> <span id="navSemBadge" style="opacity:0.8;font-size:12px">· Sem 3</span><i class="fa-solid fa-user-gear" style="font-size:10px"></i></button>
         <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
+        <button class="icon-btn notify-bell" id="notifyBell" onclick="toggleNotifications(event,this)" aria-label="Toggle notifications" title="Notifications"><i id="bellIcon" class="fa-regular fa-bell"></i></button>
         <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
         <button class="primary" id="uploadTopBtn" onclick="openUpload()"><i class="fa-solid fa-plus"></i> Upload</button>
         <button class="topbar-avatar" id="topbarAvatarBtn" onclick="toggleProfileCard(event)" aria-label="Open profile card" title="Your profile"><img id="topbarAvatar" alt="Profile"></button>
@@ -63,7 +64,7 @@
   <div id="toastRoot" role="status" aria-live="polite"></div>
   <div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="Welcome tour"><button class="tour-skip" type="button" onclick="skipTour()">Skip</button><div class="tour-stage" id="tourStage"><div class="tour-icon-wrap"><i id="tourIcon" class="fa-solid fa-magnifying-glass"></i></div><div class="tour-dots" id="tourDots"></div><h2 id="tourTitle"></h2><p id="tourText"></p></div><div class="tour-actions"><button class="tour-back" id="tourBack" type="button" onclick="previousTourStep()" hidden aria-label="Previous"><i class="fa-solid fa-arrow-left"></i></button><button class="primary" id="tourNext" type="button" onclick="nextTourStep()">Next <i class="fa-solid fa-arrow-right"></i></button></div></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="push-subscribe.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

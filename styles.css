@@ -75,6 +75,161 @@
     .count,.resource-submeta{font-variant-numeric:tabular-nums}
     .bottom-tabs{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
     .toast{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+
+/* ============================================================
+   BCAPrime — Web Push notifications (bell, banner, toast)
+   ============================================================ */
+.notify-bell { position: relative }
+.notify-bell.is-on { color: var(--brand) }
+.notify-bell.is-on::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* ---- Enable banner (install-banner jaisa, premium glass look) ---- */
+.notify-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 24px);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(94vw, 560px);
+  padding: 13px 16px;
+  border: 1px solid color-mix(in srgb, var(--brand) 28%, var(--line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .28), 0 2px 0 rgba(255, 255, 255, .04) inset;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s ease, transform .35s cubic-bezier(.2, .9, .25, 1.2);
+}
+.notify-banner.visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto }
+.notify-banner.leaving { opacity: 0; transform: translate(-50%, 18px); pointer-events: none }
+.notify-banner-icon { position: relative; flex: none }
+.notify-banner-icon img { border-radius: 10px }
+.pulse-dot {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #34c759 30%, transparent);
+  animation: notifyPulse 1.8s ease-out infinite;
+}
+@keyframes notifyPulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, #34c759 45%, transparent) }
+  70% { box-shadow: 0 0 0 9px transparent }
+  100% { box-shadow: 0 0 0 0 transparent }
+}
+.notify-banner-copy { display: grid; gap: 2px; min-width: 0 }
+.notify-banner-copy strong { font: 600 15px 'Geist', sans-serif }
+.notify-banner-copy span { color: var(--muted); font-size: 12.5px; line-height: 1.4 }
+.notify-banner-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; flex: none }
+.notify-banner-actions .primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, var(--brand), color-mix(in srgb, var(--brand) 70%, #7c5cff));
+  color: #fff;
+  font: 600 13.5px 'Geist', sans-serif;
+  cursor: pointer;
+  transition: filter .15s ease, transform .15s ease;
+}
+.notify-banner-actions .primary:hover { filter: brightness(1.08); transform: translateY(-1px) }
+.notify-dismiss {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+  padding: 8px 6px;
+}
+@media(max-width: 600px) {
+  .notify-banner { left: 12px; right: 12px; transform: translate(0, 24px); width: auto; max-width: none; flex-wrap: wrap }
+  .notify-banner.visible { transform: translate(0, 0) }
+  .notify-banner.leaving { transform: translate(0, 18px) }
+  .notify-banner-actions { margin-left: 0; width: 100%; justify-content: flex-end }
+}
+
+/* ---- In-app push toast (premium slide-in card + chime ke saath) ---- */
+#pushToastRoot {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top, 0px));
+  right: 14px;
+  z-index: 1400;
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+  pointer-events: none;
+}
+.push-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(92vw, 380px);
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .26);
+  opacity: 0;
+  transform: translateX(28px) scale(.97);
+  pointer-events: auto;
+  transition: opacity .32s ease, transform .32s cubic-bezier(.2, .9, .25, 1.15);
+}
+.push-toast.visible { opacity: 1; transform: none }
+.push-toast.leaving { opacity: 0; transform: translateX(28px) scale(.97) }
+.push-toast-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: 17px;
+  background: color-mix(in srgb, var(--brand) 14%, transparent);
+  color: var(--brand);
+}
+.push-toast.tone-success .push-toast-icon { background: color-mix(in srgb, #34c759 16%, transparent); color: #34c759 }
+.push-toast.tone-warn .push-toast-icon { background: color-mix(in srgb, #ffab2e 18%, transparent); color: #ffab2e }
+.push-toast.tone-error .push-toast-icon { background: color-mix(in srgb, #ff6b6b 16%, transparent); color: #ff6b6b }
+.push-toast-copy { min-width: 0; display: grid; gap: 1px }
+.push-toast-copy strong { font: 600 14px 'Geist', sans-serif }
+.push-toast-copy span { color: var(--muted); font-size: 12.5px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis }
+.push-toast-close {
+  flex: none;
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+@media(max-width: 600px) {
+  #pushToastRoot { left: 12px; right: 12px; justify-items: stretch }
+  .push-toast { width: 100% }
+}
+
     @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}html{scroll-behavior:auto}}
     .hero{position:relative}
     .hero::before{content:'';position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(34% 46% at 20% 30%,rgba(0,124,240,.14),transparent 70%),radial-gradient(30% 42% at 66% 24%,rgba(121,40,202,.12),transparent 70%),radial-gradient(28% 40% at 86% 58%,rgba(255,0,128,.09),transparent 70%),radial-gradient(26% 40% at 42% 72%,rgba(0,223,216,.12),transparent 70%),radial-gradient(20% 32% at 56% 50%,rgba(249,203,40,.08),transparent 70%);filter:blur(32px)}

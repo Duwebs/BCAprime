@@ -216,6 +216,9 @@ async function updateStatus(id, status) {
   item.status = status;
   saveLocalMirror();
   render();
+  if (status === 'approved' && $('notifyOnApprove') && $('notifyOnApprove').checked) {
+    notifyResourceApproved(item);
+  }
 }
 
 async function bulkUpdateStatus(status) {
@@ -225,10 +228,25 @@ async function bulkUpdateStatus(status) {
     const { error } = await supabaseClient.from('resources').update({ status }).in('id', cloudIds);
     if (error) { alert('Bulk update failed: ' + error.message); return; }
   }
+  const newlyApproved = status === 'approved'
+    ? uploads.filter(item => selectedIds.has(String(item.id)))
+    : [];
   uploads.forEach(item => { if (selectedIds.has(String(item.id))) item.status = status; });
   saveLocalMirror();
   selectedIds.clear();
   render();
+  const autoNotify = $('notifyOnApprove') && $('notifyOnApprove').checked;
+  if (status === 'approved' && newlyApproved.length && autoNotify) {
+    if (newlyApproved.length === 1) {
+      notifyResourceApproved(newlyApproved[0]);
+    } else {
+      sendPushBroadcast(
+        `${newlyApproved.length} new materials available! 📚`,
+        'Fresh notes & PYQs were just approved on BCAPrime — open the library to grab them.',
+        'resource-approved'
+      );
+    }
+  }
 }
 
 async function bulkDelete() {
@@ -249,6 +267,60 @@ async function bulkDelete() {
 setInterval(() => {
   if (supabaseClient && document.visibilityState === 'visible' && $('adminShell') && $('adminShell').hidden === false) load();
 }, 20000);
+
+/* ---- Broadcast push notifications (Web Push via Edge Function) ---- */
+// Must match the NOTIFY_SECRET configured on the send-push Edge Function.
+const ADMIN_NOTIFY_SECRET = 'bcaprime-notify-CHANGE-ME';
+
+async function sendPushBroadcast(title, body, tag) {
+  if (typeof SEND_PUSH_FUNCTION_URL === 'undefined') {
+    console.warn('send-push function URL missing.');
+    return false;
+  }
+  try {
+    const response = await fetch(SEND_PUSH_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_PUBLISHABLE_KEY
+      },
+      body: JSON.stringify({ title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET })
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) { alert('Notification failed: ' + (result.error || response.status)); return false; }
+    return true;
+  } catch (error) {
+    alert('Notification failed: ' + error.message);
+    return false;
+  }
+}
+
+function notifyResourceApproved(item) {
+  const college = collegeNames[item.college] || item.college || 'all colleges';
+  const title = item.type === 'pyq' ? 'New PYQ available! 📝' : 'New notes available! 📚';
+  const body = `${item.title} — Semester ${item.sem}, ${college}. Open BCAPrime to download.`;
+  return sendPushBroadcast(title, body, 'resource-approved');
+}
+
+async function handleNotifyFormSubmit(event) {
+  event.preventDefault();
+  const button = $('notifySend');
+  const title = $('notifyTitle').value.trim();
+  const body = $('notifyBody').value.trim();
+  if (!title) return;
+  button.disabled = true;
+  button.textContent = 'Sending…';
+  const ok = await sendPushBroadcast(title, body);
+  button.disabled = false;
+  button.innerHTML = '<i>&#128276;</i> Send to all users';
+  if (ok) {
+    $('notifyForm').reset();
+    setAuthMessage('');
+    button.textContent = '✓ Sent!';
+    setTimeout(() => { button.innerHTML = '<i>&#128276;</i> Send to all users'; }, 2500);
+  }
+}
+$('notifyForm').addEventListener('submit', handleNotifyFormSubmit);
 
 /* ---- Boot ---- */
 document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'dark';

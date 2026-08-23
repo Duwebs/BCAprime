@@ -39,3 +39,40 @@ The admin page includes Supabase email/password login and signup. Signup creates
 - Blaze is optional but not required for this project; Supabase already covers the admin and database needs well.
 
 The publishable key is safe for browser use. Never place a `service_role` key in either HTML file.
+
+## Push notifications (new material & broadcast alerts)
+
+Students can opt in from the bell icon (or the "Never miss an update" banner) and then receive Web Push notifications **even when the app is closed** — with the BCAPrime logo, action buttons ("Open now" / "Later"), vibration, and the system alert sound. While the app is open, a premium in-app toast with a soft chime plays instead.
+
+### One-time setup
+
+1. **Database** — run the `push_subscriptions` section of `supabase-schema.sql` in the Supabase SQL Editor (it creates the table + RLS policies).
+2. **Install the Supabase CLI**: <https://supabase.com/docs/guides/cli/getting-started>, then `supabase login`.
+3. **Link the project**: `supabase link --project-ref kjesjaakjddfxykisssh`
+4. **Set the function secrets** (the VAPID keys are already generated — see below):
+
+   ```
+   supabase secrets set VAPID_PUBLIC_KEY=BOp0K96ECGm8PnrQQL3aFNQoQAAgbeaEnUJSx16jT4D_WSkAk95OqTYn48RpxwId3tieyHC1w_JN2SYccQKyWfQ
+   supabase secrets set VAPID_PRIVATE_KEY=5o1g5aMO6yZajZpmA4hLDiXOz7SG-eZxF8G4Yo6yT6Q
+   supabase secrets set VAPID_SUBJECT="mailto:admin@bcaprime.com"
+   supabase secrets set NOTIFY_SECRET=bcaprime-notify-CHANGE-ME
+   ```
+
+   > Change `NOTIFY_SECRET` to any long random string — but use the **same value** as `ADMIN_NOTIFY_SECRET` in `admin.js`, otherwise the admin page cannot authorise sends. The private key must never be placed in any browser-facing file.
+5. **Deploy the function**:
+
+   ```
+   supabase functions deploy send-push
+   ```
+
+### Sending notifications
+
+- **Manual broadcast**: open `admin.html` → *Send notification* panel → title + message → **Send to all users**.
+- **Automatic**: approving one or many resources in the review table sends "New notes/PYQ available 📚" automatically (toggle in the same panel).
+
+### Platform notes
+
+- **Android/Chrome/desktop**: works fully, including app-closed delivery.
+- **iOS Safari**: requires the site to be installed to the Home Screen first (**Share → Add to Home Screen**), then enable from the bell inside the installed PWA.
+- Notification sound/vibration style is controlled by each OS; the custom chime plays only while the app is open.
+

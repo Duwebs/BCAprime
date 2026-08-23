@@ -328,6 +328,7 @@ body {
   .panel { padding: 13px }
 }
 
+
 @media(max-width: 600px) {
   .auth-card { padding: 22px }
   .shell { padding-left: 16px; padding-right: 16px }
@@ -335,4 +336,45 @@ body {
   .filters { flex-direction: column }
   .search { min-width: 0 }
 }
+
+/* ---- Broadcast notification composer ---- */
+.notify-form {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.notify-title {
+  width: 100%;
+  min-width: 0;
+}
+
+.notify-body {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface2);
+  color: var(--ink);
+  padding: 10px 12px;
+  font: inherit;
+  outline: 0;
+}
+
+.notify-body:focus { border-color: var(--brand) }
+
+.notify-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.notify-check input { accent-color: var(--brand); width: 15px; height: 15px }
+
+#notifySend { justify-self: start }
+#notifySend i { font-style: normal; margin-right: 4px }
+
 

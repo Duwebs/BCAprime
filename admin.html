@@ -114,6 +114,23 @@
 
       <div class="note">Review pending uploads before approving them. Only approved resources appear in the student library.</div>
     </section>
+
+    <!-- Broadcast notifications -->
+    <section class="panel">
+      <div class="toolbar">
+        <h2>Send notification</h2>
+      </div>
+      <form class="notify-form" id="notifyForm">
+        <input class="search notify-title" id="notifyTitle" placeholder="Title — e.g. New DBMS notes just dropped 📚" maxlength="80" required>
+        <textarea class="notify-body" id="notifyBody" rows="2" placeholder="Message shown on the user's lock screen…" maxlength="240"></textarea>
+        <label class="notify-check">
+          <input type="checkbox" id="notifyOnApprove" checked>
+          <span>Auto-notify users whenever I approve a resource</span>
+        </label>
+        <button class="button primary" id="notifySend" type="submit"><i>&#128276;</i> Send to all users</button>
+      </form>
+      <div class="note">Delivered instantly to every device where notifications are enabled — even when the app is closed.</div>
+    </section>
   </main>
 
   <!-- ================= Scripts ================= -->
