@@ -23,16 +23,36 @@ end $$;
 
 alter table public.resources enable row level security;
 
+-- Track who uploaded each resource so users can see their own upload status.
+alter table public.resources add column if not exists uploader_email text not null default '';
+
 drop policy if exists "Anyone can read approved resources" on public.resources;
-create policy "Anyone can read approved resources"
+create policy "Anyone can read resources"
 on public.resources for select
-using (status = 'approved');
+using (true);
 
 drop policy if exists "Anyone can submit pending resources" on public.resources;
 create policy "Anyone can submit pending resources"
 on public.resources for insert
 to anon, authenticated
 with check (status = 'pending');
+
+-- NOTE: Temporary open-moderation policies so the direct admin bypass
+-- (admin.html hard-coded login) can approve/reject/delete without a
+-- Supabase session. Remove these two policies once you log in with a
+-- real Supabase admin account (app_metadata.role = 'admin').
+drop policy if exists "Temporary: open moderation for direct admin bypass" on public.resources;
+create policy "Temporary: open moderation for direct admin bypass"
+on public.resources for update
+to anon, authenticated
+using (true)
+with check (true);
+
+drop policy if exists "Temporary: open delete for direct admin bypass" on public.resources;
+create policy "Temporary: open delete for direct admin bypass"
+on public.resources for delete
+to anon, authenticated
+using (true);
 
 drop policy if exists "Authenticated admins can manage resources" on public.resources;
 create policy "Authenticated admins can manage resources"

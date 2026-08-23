@@ -78,7 +78,92 @@
       $('authForm').reset()
     }
     
-    // ...existing code...
+    // ---- Admin panel: Supabase-backed moderation ----
+    function toggleTheme(){const root=document.documentElement;root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('bca-theme',root.dataset.theme)}
+    function escapeHtml(value){return String(value==null?'':value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
+    async function load(){
+      if(!supabaseClient){
+        uploads=JSON.parse(localStorage.getItem(key)||'[]');
+        if(!uploads.length)uploads=[...demoUploads];
+        render();return;
+      }
+      try{
+        const {data,error}=await supabaseClient.from('resources').select('*').order('created_at',{ascending:false});
+        if(error)throw error;
+        uploads=(data||[]).map(item=>({id:String(item.id),title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,status:item.status,uploader:item.uploader_email||'',date:item.created_at}));
+      }catch(error){console.warn('Could not load resources.',error.message);uploads=[]}
+      render();
+    }
+    function filteredUploads(){
+      const query=($('search').value||'').toLowerCase();
+      const status=$('statusFilter').value;
+      return uploads.filter(item=>{
+        const matchQuery=!query||(item.title||'').toLowerCase().includes(query)||(item.college||'').toLowerCase().includes(query);
+        const matchStatus=status==='all'||item.status===status;
+        return matchQuery&&matchStatus;
+      });
+    }
+    function render(){
+      const list=filteredUploads();
+      $('totalCount').textContent=uploads.length;
+      $('collegeCount').textContent=new Set(uploads.map(item=>item.college)).size;
+      $('activeCount').textContent=uploads.filter(item=>item.status==='approved').length;
+      [...selectedIds].forEach(id=>{if(!uploads.some(item=>String(item.id)===id))selectedIds.delete(id)});
+      $('bulkActions').style.display=selectedIds.size?'flex':'none';
+      $('bulkCount').textContent=`${selectedIds.size} selected`;
+      $('checkAll').checked=list.length>0&&list.every(item=>selectedIds.has(String(item.id)));
+      const tbody=$('rows');
+      if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty">No material found for this filter.</div></td></tr>';return}
+      tbody.innerHTML=list.map(item=>{
+        const id=String(item.id);
+        const badgeClass=item.status==='approved'?'':'archived';
+        return `<tr>
+          <td><input type="checkbox" ${selectedIds.has(id)?'checked':''} onchange="toggleSelected('${id}',this.checked)"></td>
+          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject||'')} · ${item.type==='pyq'?'PYQ':'Notes'}${item.fileName?` · ${escapeHtml(item.fileName)}`:''}</small>${item.fileUrl?`<small><a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Open file</a></small>`:''}</td>
+          <td>${collegeNames[item.college]||escapeHtml(item.college||'All colleges')}${item.uploader?`<small>by ${escapeHtml(item.uploader)}</small>`:''}</td>
+          <td>Semester ${item.sem}${item.year?`<small>Year ${item.year}</small>`:''}</td>
+          <td><span class="badge ${badgeClass}">${item.status}</span></td>
+          <td><div class="row-actions">
+            ${item.status!=='approved'?`<button class="button primary" onclick="updateStatus('${id}','approved')">Approve</button>`:''}
+            ${item.status!=='rejected'?`<button class="button danger" onclick="updateStatus('${id}','rejected')">Reject</button>`:''}
+            ${item.status!=='archived'?`<button class="button" onclick="updateStatus('${id}','archived')">Archive</button>`:''}
+          </div></td>
+        </tr>`}).join('');
+    }
+    function toggleSelected(id,checked){if(checked)selectedIds.add(String(id));else selectedIds.delete(String(id));render()}
+    function toggleCheckAll(checked){filteredUploads().forEach(item=>{if(checked)selectedIds.add(String(item.id));else selectedIds.delete(String(item.id))});render()}
+    function saveLocalMirror(){try{localStorage.setItem(key,JSON.stringify(uploads.filter(item=>typeof item.id==='string'&&item.id.startsWith('local-'))))}catch(error){}}
+    async function updateStatus(id,status){
+      const item=uploads.find(entry=>String(entry.id)===String(id));
+      if(!item)return;
+      if(supabaseClient&&!id.startsWith('demo-')&&!id.startsWith('local-')){
+        const {error}=await supabaseClient.from('resources').update({status}).eq('id',id);
+        if(error){alert('Update failed: '+error.message);load();return}
+      }
+      item.status=status;saveLocalMirror();render();
+    }
+    async function bulkUpdateStatus(status){
+      if(!selectedIds.size)return;
+      const cloudIds=[...selectedIds].filter(id=>!id.startsWith('demo-')&&!id.startsWith('local-'));
+      if(supabaseClient&&cloudIds.length){
+        const {error}=await supabaseClient.from('resources').update({status}).in('id',cloudIds);
+        if(error){alert('Bulk update failed: '+error.message);return}
+      }
+      uploads.forEach(item=>{if(selectedIds.has(String(item.id)))item.status=status});
+      saveLocalMirror();selectedIds.clear();render();
+    }
+    async function bulkDelete(){
+      if(!selectedIds.size)return;
+      if(!confirm(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`))return;
+      const cloudIds=[...selectedIds].filter(id=>!id.startsWith('demo-')&&!id.startsWith('local-'));
+      if(supabaseClient&&cloudIds.length){
+        const {error}=await supabaseClient.from('resources').delete().in('id',cloudIds);
+        if(error){alert('Delete failed: '+error.message);return}
+      }
+      uploads=uploads.filter(item=>!selectedIds.has(String(item.id)));
+      saveLocalMirror();selectedIds.clear();render();
+    }
+    setInterval(()=>{if(supabaseClient&&document.visibilityState==='visible'&&$('adminShell')&&$('adminShell').hidden===false)load()},20000);
     document.documentElement.dataset.theme=localStorage.getItem('bca-theme')||'dark';
     $('authForm').addEventListener('submit',submitAuth);
     async function initAuth(){
