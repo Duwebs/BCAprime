@@ -288,7 +288,11 @@ async function sendPushBroadcast(title, body, tag) {
       body: JSON.stringify({ title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET })
     });
     const result = await response.json().catch(() => ({}));
-    if (!response.ok) { alert('Notification failed: ' + (result.error || response.status)); return false; }
+    if (!response.ok) {
+      const detail = [result.error, result.hint].filter(Boolean).join(' | ');
+      alert('Notification failed: ' + (detail || response.status));
+      return false;
+    }
     return true;
   } catch (error) {
     alert('Notification failed: ' + error.message);

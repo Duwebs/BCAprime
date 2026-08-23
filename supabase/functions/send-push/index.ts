@@ -41,7 +41,11 @@ Deno.serve(async (req) => {
     });
   }
   if (!NOTIFY_SECRET || body.secret !== NOTIFY_SECRET) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    // Debug hints to diagnose mismatches (never leaks the actual secret)
+    const hint = !NOTIFY_SECRET
+      ? 'Server has NO NOTIFY_SECRET set'
+      : `Length mismatch -> server: ${NOTIFY_SECRET.length} chars | browser sent: ${String(body.secret ?? '').length} chars`;
+    return new Response(JSON.stringify({ error: 'Unauthorized', hint }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
