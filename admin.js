@@ -293,7 +293,7 @@ async function sendPushBroadcast(title, body, tag) {
       alert('Notification failed: ' + (detail || response.status));
       return false;
     }
-    return true;
+    return { ok: true, sent: result.sent ?? 0, failed: result.failed ?? 0, removed: result.removed ?? 0 };
   } catch (error) {
     alert('Notification failed: ' + error.message);
     return false;
@@ -315,14 +315,14 @@ async function handleNotifyFormSubmit(event) {
   if (!title) return;
   button.disabled = true;
   button.textContent = 'Sending…';
-  const ok = await sendPushBroadcast(title, body);
+  const res = await sendPushBroadcast(title, body);
   button.disabled = false;
-  button.innerHTML = '<i>&#128276;</i> Send to all users';
-  if (ok) {
+  if (res && res.ok) {
     $('notifyForm').reset();
-    setAuthMessage('');
-    button.textContent = '✓ Sent!';
-    setTimeout(() => { button.innerHTML = '<i>&#128276;</i> Send to all users'; }, 2500);
+    button.innerHTML = `✓ Sent! (delivered: ${res.sent}, failed: ${res.failed})`;
+    setTimeout(() => { button.innerHTML = '<i>&#128276;</i> Send to all users'; }, 6000);
+  } else {
+    button.innerHTML = '<i>&#128276;</i> Send to all users';
   }
 }
 $('notifyForm').addEventListener('submit', handleNotifyFormSubmit);
