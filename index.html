@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BCAPrime | BCA study library</title>
   <meta name="description" content="Find BCA notes and previous year papers by college and semester.">
   <link rel="manifest" href="manifest.webmanifest">
@@ -28,7 +28,7 @@
         <button class="college-btn" onclick="openProfile()" aria-label="Current college & semester. Change from Profile" title="Change preferences from Profile"><i class="fa-solid fa-building-columns"></i><span id="collegeLabel">All Colleges</span> <span id="navSemBadge" style="opacity:0.8;font-size:12px">· Sem 3</span><i class="fa-solid fa-user-gear" style="font-size:10px"></i></button>
         <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
         <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
-        <button class="primary" onclick="openUpload()"><i class="fa-solid fa-plus"></i> Upload</button>
+        <button class="primary" id="uploadTopBtn" onclick="openUpload()"><i class="fa-solid fa-plus"></i> Upload</button>
         <button class="topbar-avatar" id="topbarAvatarBtn" onclick="toggleProfileCard(event)" aria-label="Open profile card" title="Your profile"><img id="topbarAvatar" alt="Profile"></button>
       </nav>
       <div class="profile-pop" id="profilePop" hidden>

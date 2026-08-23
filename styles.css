@@ -84,3 +84,49 @@
     .danger-logout{border-color:color-mix(in srgb,#ee0000 40%,var(--line));background:color-mix(in srgb,#ee0000 8%,transparent);color:#ee0000}
     .danger-logout:hover{background:color-mix(in srgb,#ee0000 16%,transparent)}
     @media(max-width:700px){.hero::before{filter:blur(24px)}}
+    /* ---- Responsive hardening (mobile PWA) ---- */
+    html,body{overflow-x:clip}
+    img{max-width:100%}
+    @media(max-width:1024px){.finder-reset{grid-column:1/-1}}
+    @media(max-width:860px){.main-nav{display:none}.nav-actions{gap:8px}}
+    @media(max-width:700px){
+      .topbar-avatar{width:36px;height:36px}
+      .college-btn{padding:8px 10px;font-size:13px}
+      .primary{padding:9px 16px}
+      .dialog,.onboarding-dialog{padding:18px;border-radius:14px}
+      .modal{padding:12px}
+      .resource-actions{display:flex;gap:8px}
+      .resource-actions button{flex:1}
+      .resource-actions .view,.resource-actions .download{padding:9px 10px}
+      .bottom-tab{padding:9px 4px}.bottom-tab i{font-size:17px}
+      .bottom-tabs{backdrop-filter:blur(16px)}
+      .profile-pop{position:fixed;top:64px;right:12px;left:12px;width:auto}
+    }
+    @media(max-width:640px){
+      .app{padding:0 14px 92px}
+      .hero{padding:36px 0 26px}
+      .hero p{font-size:15px;margin-bottom:18px}
+      .hero-search button{padding:10px 14px}
+      .field select,.field input,.account-form input,.onboarding-custom input,.hero-search input,input[id="collegeSearch"],input[id="collegeCustom"]{font-size:16px}
+      .field select,.field input{height:46px}
+      .account-form input,.onboarding-custom input{height:44px}
+      .account-form .primary,.upload-form button[type="submit"],.auth-gate-card .primary,.preview-open{width:100%}
+      .file-box{padding:14px}
+      .chip{flex:1 1 auto;text-align:center}
+      .eyebrow,.onboarding-kicker,.tour-kicker{font-size:11px}
+      .section-head h2{font-size:21px}
+      .resource h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .close{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center}
+      .preview-open{justify-content:center}
+      .footer{font-size:12px}
+    }
+    @media(max-width:430px){
+      .app{padding:0 12px 86px}
+      .nav-actions{gap:6px}
+      .icon-btn{width:36px;height:36px}
+      #uploadTopBtn{width:40px;height:40px;padding:0;font-size:0;border-radius:6px;display:inline-grid;place-items:center}
+      #uploadTopBtn i{font-size:15px}
+      .college-btn{padding:8px}
+      .brand strong{font-size:18px}
+      .hero h1{letter-spacing:-.03em}
+    }
