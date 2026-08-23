@@ -183,59 +183,41 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
     const tourSteps=[
-      {selector:'.hero-search',title:'Search bar',text:'This is where you can search subjects, notes, or previous year papers in one quick step.'},
-      {selector:'#finder',title:'Filter your library',text:'Choose your college, year, semester, and resource type to narrow results to exactly what you need.'},
-      {selector:'#semesterGrid',title:'Semester cards',text:'Tap any semester to jump straight into that section and find material for your current level.'},
-      {selector:'#resources',title:'Latest resources',text:'This panel shows your filtered study files. Preview, save, or download anything useful.'},
-      {selector:'.bottom-tabs',title:'Quick navigation',text:'Use the bottom menu to move between the library, semesters, saved items, and your profile whenever you need.'}
+      {icon:'fa-magnifying-glass',title:'Search anything',text:'Find notes, question papers and study material for any subject with one quick search.'},
+      {icon:'fa-sliders',title:'Smart filters',text:'Narrow results by your college, year, semester and material type in seconds.'},
+      {icon:'fa-layer-group',title:'Semester shelf',text:'Tap your semester to jump straight into the material your syllabus needs.'},
+      {icon:'fa-bookmark',title:'Save & download',text:'Bookmark favourites and download files to study anytime, even offline.'}
     ];
     let tourIndex=0;
     function startTour(){
-      if (localStorage.getItem('bca-tour-seen') === 'true') return;
-      if ($('onboarding').classList.contains('open')) return;
-      tourIndex = 0;
-      renderTourStep();
-      $('tour').hidden = false;
+      try{if(localStorage.getItem('bca-tour-seen')==='true')return}catch(error){}
+      try{if($('onboarding').classList.contains('open'))return}catch(error){}
+      try{$('tour').hidden=false;document.body.style.overflow='hidden'}catch(error){try{localStorage.setItem('bca-tour-seen','true')}catch(ignored){}return}
+      tourIndex=0;renderTourStep()
     }
     function renderTourStep(){
-      const step = tourSteps[tourIndex];
-      const target = document.querySelector(step.selector);
-      if (!target) return;
-      const rect = target.getBoundingClientRect();
-      $('tourHole').style.left = `${Math.max(8, rect.left - 6)}px`;
-      $('tourHole').style.top = `${Math.max(8, rect.top - 6)}px`;
-      $('tourHole').style.width = `${rect.width + 12}px`;
-      $('tourHole').style.height = `${rect.height + 12}px`;
-      $('tourStep').textContent = `${tourIndex + 1} of ${tourSteps.length}`;
-      $('tourTitle').textContent = step.title;
-      $('tourText').textContent = step.text;
-      $('tourBack').style.visibility = tourIndex === 0 ? 'hidden' : 'visible';
-      $('tourNext').innerHTML = tourIndex === tourSteps.length - 1 ? 'Finish <i class="fa-solid fa-check"></i>' : 'Next <i class="fa-solid fa-arrow-right"></i>';
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const step=tourSteps[tourIndex]||tourSteps[0];
+      try{
+        $('tourIcon').className=`fa-solid ${step.icon}`;
+        $('tourTitle').textContent=step.title;
+        $('tourText').textContent=step.text;
+        $('tourBack').hidden=tourIndex===0;
+        $('tourNext').innerHTML=tourIndex===tourSteps.length-1?'Get started <i class="fa-solid fa-check"></i>':'Next <i class="fa-solid fa-arrow-right"></i>';
+        $('tourDots').innerHTML=tourSteps.map((item,index)=>`<span class="${index===tourIndex?'active':''}"></span>`).join('');
+        const stage=$('tourStage');if(stage){stage.classList.remove('slide-in');void stage.offsetWidth;stage.classList.add('slide-in')}
+      }catch(error){console.warn('Tour step skipped.',error)}
     }
-    function nextTourStep(){
-      if (tourIndex >= tourSteps.length - 1) {
-        finishTour();
-        return;
-      }
-      tourIndex += 1;
-      renderTourStep();
-    }
-    function previousTourStep(){
-      if (tourIndex === 0) return;
-      tourIndex -= 1;
-      renderTourStep();
-    }
-    function finishTour(){
-      localStorage.setItem('bca-tour-seen', 'true');
-      $('tour').hidden = true;
-    }
-    function skipTour(){
-      finishTour();
-    }
-    window.addEventListener('resize', () => {
-      if ($('tour') && $('tour').hidden === false) renderTourStep();
-    });
+    function nextTourStep(){if(tourIndex>=tourSteps.length-1){finishTour();return}tourIndex+=1;renderTourStep()}
+    function previousTourStep(){if(tourIndex<=0)return;tourIndex-=1;renderTourStep()}
+    function finishTour(){try{localStorage.setItem('bca-tour-seen','true')}catch(error){}try{$('tour').hidden=true}catch(error){}try{document.body.style.overflow=''}catch(error){}}
+    function skipTour(){finishTour()}
+    (function bindTourGestures(){
+      let startX=0;
+      const active=()=>{const t=$('tour');return t&&!t.hidden};
+      document.addEventListener('touchstart',event=>{if(active())startX=event.touches[0].clientX},{passive:true});
+      document.addEventListener('touchend',event=>{if(!active())return;const delta=event.changedTouches[0].clientX-startX;if(Math.abs(delta)<50)return;if(delta<0)nextTourStep();else previousTourStep()},{passive:true});
+      document.addEventListener('keydown',event=>{if(!active())return;if(event.key==='ArrowRight')nextTourStep();else if(event.key==='ArrowLeft')previousTourStep();else if(event.key==='Escape')skipTour()});
+    })();
     new MutationObserver(() => {
       if (!$('onboarding').classList.contains('open') && localStorage.getItem('bca-onboarded') === 'true' && localStorage.getItem('bca-tour-seen') !== 'true') {
         setTimeout(startTour, 200);
