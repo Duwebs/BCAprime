@@ -197,13 +197,10 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       grid.innerHTML=html;
     }
     /* ---- Feedback / bug report ---- */
-    const FEEDBACK_WHATSAPP_NUMBER='91XXXXXXXXXX'; // apna WhatsApp number daalo (country code ke saath)
     let feedbackKind='bug';
     function openFeedback(){
       if(!supabaseClient){toast('Feedback abhi unavailable hai');return}
       setFeedbackKind(document.querySelector('.fb-kind.active')||document.querySelector('.fb-kind'));
-      const wa=$('waLink');
-      if(wa)wa.href='https://wa.me/'+FEEDBACK_WHATSAPP_NUMBER+'?text='+encodeURIComponent('Hi BCAPrime team! Mera feedback: ');
       $('feedbackModal').classList.add('open');
     }
     function setFeedbackKind(btn){
