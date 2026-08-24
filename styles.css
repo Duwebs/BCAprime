@@ -373,6 +373,8 @@
 .add-subject-row input:focus{border-color:var(--brand)}
 .add-subject-row .primary{min-height:43px;white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
 @media(max-width:600px){.add-subject-row{gap:6px}.add-subject-row .primary{padding:9px 13px;font-size:14px}}
+.finder-add-row{margin-top:12px;animation:dashboardIn .3s ease both}
+.finder-add-row .secondary{min-height:43px;min-width:43px;padding:0 13px;font-size:16px}
 
 
 /* ============================================================

@@ -88,7 +88,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         if(state.sem!=='all'){state.sem='all';localStorage.setItem('bca-sem','all')}
       }
     }
-    function resetFinder(){$('yearFilter').value='all';updateSemesterOptions();$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
+    function resetFinder(){$('yearFilter').value='all';updateSemesterOptions();$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
     function chooseSemester(sem,button){const year=String(Math.ceil(Number(sem)/2)||1);state.year=year;$('yearFilter').value=year;updateSemesterOptions();$('semesterFilter').value=String(sem);document.querySelectorAll('.semester').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.sem=String(sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);const __cs=$('deskSemester');if(__cs)__cs.textContent=`Semester ${sem} resources`;render();$('library').scrollIntoView({behavior:'smooth'})}
     function searchResources(value){state.query=value;showSuggestions();render()}
     /* ---- Subject filter engine ----
@@ -113,10 +113,43 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       const seen=new Map();
       [...base,...getAvailableSubjects(),...customs].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
       const merged=[...seen.values()].sort((a,b)=>a.localeCompare(b));
-      sel.innerHTML='<option value="all">All subjects</option>'+merged.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('');
+      sel.innerHTML='<option value="all">All subjects</option>'+merged.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('')+'<option value="__add">+ Add new subject&#8230;</option>';
       const values=[...sel.options].map(option=>option.value);
       sel.value=values.includes(preferred)?preferred:'all';
+      const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=sel.value!=='__add';
       renderSubjectCards();
+    }
+    /* Subject dropdown se naya subject add karne ka flow */
+    function onSubjectFilterChange(sel){
+      if(sel.value==='__add'){openFinderAddSubject();return}
+      const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
+      applyFilters();
+    }
+    function openFinderAddSubject(){
+      if(state.sem==='all'){toast('Pehle year + semester select karo');$('subjectFilter').value='all';return}
+      const addRow=$('finderAddSubjectRow');
+      if(addRow){addRow.hidden=false}
+      const input=$('finderNewSubjectInput');if(input)input.focus();
+    }
+    function confirmFinderAddSubject(){
+      const input=$('finderNewSubjectInput');
+      const name=(input&&input.value||'').trim().replace(/\s+/g,' ');
+      if(!name){toast('Subject ka naam likho');if(input)input.focus();return}
+      if(name.length<2){toast('Thoda bada naam likho');return}
+      if(state.sem==='all'){toast('Pehle semester select karo');return}
+      addCustomSubject(Number(state.sem),name);
+      if(input)input.value='';
+      state.subject=name;
+      localStorage.setItem('bca-subject',name);
+      renderSubjectFilter();
+      $('subjectFilter').value=name;
+      const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
+      applyFilters();
+      toast('"'+name+'" add ho gaya ✅ Ab isme material upload kar sakte ho');
+    }
+    function cancelFinderAddSubject(){
+      const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
+      $('subjectFilter').value='all';state.subject='all';localStorage.setItem('bca-subject','all');renderSubjectFilter();render();
     }
     /* ---- Upload form subject picker (semester ke hisaab se bharta hai) ---- */
     function updateUploadSubjects(){
