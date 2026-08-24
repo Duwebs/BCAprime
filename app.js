@@ -89,6 +89,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       sel.innerHTML='<option value="all">All subjects</option>'+merged.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('');
       const values=[...sel.options].map(option=>option.value);
       sel.value=values.includes(preferred)?preferred:'all';
+      renderSubjectCards();
     }
     /* ---- Upload form subject picker (semester ke hisaab se bharta hai) ---- */
     function updateUploadSubjects(){
@@ -105,6 +106,61 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       onUploadSubjectChange(sel);
     }
     function onUploadSubjectChange(sel){const custom=$('customSubjectField');if(custom)custom.hidden=sel.value!=='__other'}
+    /* ---- Subject cards (semester ke hisaab se, click par Notes/PYQ choice) ---- */
+    function subjectIcon(name){
+      const n=name.toLowerCase();
+      if(/data\s*structure|algorithm/.test(n))return'fa-solid fa-sitemap';
+      if(/dbms|database|sql/.test(n))return'fa-solid fa-database';
+      if(/python/.test(n))return'fa-brands fa-python';
+      if(/java/.test(n))return'fa-brands fa-java';
+      if(/web|html|css|script/.test(n))return'fa-solid fa-code';
+      if(/network|communication/.test(n))return'fa-solid fa-network-wired';
+      if(/operating|^os$/.test(n))return'fa-solid fa-gears';
+      if(/secur|cyber|hack/.test(n))return'fa-solid fa-shield-halved';
+      if(/artificial|machine|learning|\bai\b/.test(n))return'fa-solid fa-brain';
+      if(/cloud/.test(n))return'fa-solid fa-cloud';
+      if(/math/.test(n))return'fa-solid fa-square-root-variable';
+      if(/electron|archit|processor/.test(n))return'fa-solid fa-microchip';
+      if(/software/.test(n))return'fa-solid fa-diagram-project';
+      if(/graphic/.test(n))return'fa-solid fa-palette';
+      if(/commerce|business/.test(n))return'fa-solid fa-cart-shopping';
+      if(/mobile|app\b/.test(n))return'fa-solid fa-mobile-screen';
+      if(/project/.test(n))return'fa-solid fa-rocket';
+      if(/english/.test(n))return'fa-solid fa-comments';
+      if(/environment/.test(n))return'fa-solid fa-leaf';
+      return'fa-solid fa-book-open';
+    }
+    function subjectHue(name){let h=0;for(const ch of String(name))h=(h*31+ch.charCodeAt(0))%360;return h}
+    function renderSubjectCards(){
+      const wrap=$('subjectCards');if(!wrap)return;
+      let subjects=[];
+      if(state.sem!=='all'&&BASE_SUBJECTS[Number(state.sem)])subjects=[...BASE_SUBJECTS[Number(state.sem)],...getCustomSubjects(state.sem)];
+      getAvailableSubjects().forEach(s=>{if(!subjects.some(x=>normSubject(x)===normSubject(s)))subjects.push(s)});
+      if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Apna semester chuno — yahan uske saare subjects dikhenge 📚</div>';return}
+      const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
+      const countFor=s=>resources.filter(r=>normSubject(r.subject)===normSubject(s)&&(state.college==='all'||r.college==='all'||r.college===state.college)&&(!state.sem||state.sem==='all'||r.sem===Number(state.sem))).length;
+      wrap.innerHTML=[...seen.values()].map((s,i)=>{
+        const hue=subjectHue(s);const count=countFor(s);
+        return `<button class="subject-card" style="--hue:${hue};animation-delay:${Math.min(i*45,450)}ms" onclick="openSubjectType('${s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
+          <span class="subject-card-icon"><i class="${subjectIcon(s)}"></i></span>
+          <strong>${s}</strong>
+          <small>${count?count+' material'+(count>1?'s':''):state.sem==='all'?'Explore':'Semester '+state.sem}</small>
+          <span class="subject-card-go"><i class="fa-solid fa-arrow-right"></i></span>
+        </button>`}).join('');
+    }
+    let pendingSubject='';
+    function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
+    function closeSubjectType(){const modal=$('subjectTypeModal');if(modal)modal.classList.remove('open')}
+    function browseSubjectAs(kind){
+      const subject=pendingSubject;if(!subject)return;
+      state.subject=subject;localStorage.setItem('bca-subject',state.subject);
+      state.type=kind;
+      document.querySelectorAll('#typeChips .chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()===(kind==='pyq'?'PYQs':'Notes')));
+      closeSubjectType();
+      render();
+      $('resources').scrollIntoView({behavior:'smooth',block:'start'});
+      toast((kind==='pyq'?'PYQs':'Notes')+': '+subject);
+    }
     function showSuggestions(){const query=$('search').value.trim().toLowerCase();const matches=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(query)).slice(0,4);$('suggestions').innerHTML=(query?matches.map(r=>`<button class="suggestion" onclick="chooseSuggestion('${r.title.replace(/'/g,"\\'")}')"><i class="fa-solid fa-magnifying-glass"></i> ${r.title}</button>`).join(''):'<small style="padding:5px 8px;color:var(--muted)">Search by subject, paper or resource type</small>');$('suggestions').classList.add('open')}
     function chooseSuggestion(title){$('search').value=title;state.query=title;closeSuggestions();render()}
     function closeSuggestions(){$('suggestions').classList.remove('open')}
