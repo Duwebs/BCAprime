@@ -260,7 +260,7 @@
     }
     @media(max-width:640px){
       .app{padding:0 14px 92px}
-      .hero{padding:36px 0 26px}
+      .hero{padding:36px 16px 26px;border-radius:14px}
       .hero p{font-size:15px;margin-bottom:18px}
       .hero-search button{padding:10px 14px}
       .field select,.field input,.account-form input,.onboarding-custom input,.hero-search input,input[id="collegeSearch"],input[id="collegeCustom"]{font-size:16px}
