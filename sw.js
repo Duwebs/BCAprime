@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'bcaprime-v4';
+﻿const CACHE_NAME = 'bcaprime-v5';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,7 +8,9 @@ const APP_SHELL = [
   './manifest.webmanifest',
   './firebase-config.js',
   './supabase-config.js',
-  './assets/logo.png'
+  './assets/logo.png',
+  './assets/icon-192.png',
+  './assets/icon-512.png'
 ];
 
 
