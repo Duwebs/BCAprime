@@ -196,6 +196,67 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       for(let i=0;i<count;i++)html+='<article class="resource skel"><span class="sk-title"></span><span class="sk-line"></span><span class="sk-line short"></span><span class="sk-line"></span><span class="sk-line short"></span></article>';
       grid.innerHTML=html;
     }
+    /* ---- Feedback / bug report ---- */
+    const FEEDBACK_WHATSAPP_NUMBER='91XXXXXXXXXX'; // apna WhatsApp number daalo (country code ke saath)
+    let feedbackKind='bug';
+    function openFeedback(){
+      if(!supabaseClient){toast('Feedback abhi unavailable hai');return}
+      setFeedbackKind(document.querySelector('.fb-kind.active')||document.querySelector('.fb-kind'));
+      const wa=$('waLink');
+      if(wa)wa.href='https://wa.me/'+FEEDBACK_WHATSAPP_NUMBER+'?text='+encodeURIComponent('Hi BCAPrime team! Mera feedback: ');
+      $('feedbackModal').classList.add('open');
+    }
+    function setFeedbackKind(btn){
+      if(!btn)return;
+      document.querySelectorAll('.fb-kind').forEach(k=>k.classList.remove('active'));
+      btn.classList.add('active');
+      feedbackKind=btn.dataset.kind||'idea';
+    }
+    function showFeedbackFile(input){
+      const label=$('feedbackFileName');
+      if(label)label.textContent=input.files[0]?input.files[0].name:'Attach screenshot';
+    }
+    async function submitFeedback(event){
+      event.preventDefault();
+      const form=event.target;
+      const message=form.querySelector('textarea[name="message"]').value.trim();
+      if(message.length<5){toast('Thoda detail likho please');return}
+      const btn=form.querySelector('button[type="submit"]');
+      btn.disabled=true;btn.textContent='Sending…';
+      try{
+        let screenshotUrl=null;
+        const file=$('feedbackFile').files[0];
+        if(file){
+          if(file.size>5*1024*1024)throw new Error('Screenshot 5MB se chota hona chahiye');
+          const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+          const path='fb-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+          const {error:upErr}=await supabaseClient.storage.from('feedback').upload(path,file);
+          if(upErr)throw upErr;
+          const {data:pub}=supabaseClient.storage.from('feedback').getPublicUrl(path);
+          screenshotUrl=pub.publicUrl;
+        }
+        const contactInput=form.querySelector('input[name="contact"]');
+        const row={
+          kind:feedbackKind,
+          message:message.slice(0,1000),
+          contact:contactInput?contactInput.value.trim().slice(0,120):'',
+          screenshot_url:screenshotUrl,
+          page_url:location.href.slice(0,300),
+          user_agent:navigator.userAgent.slice(0,300)
+        };
+        const {error}=await supabaseClient.from('feedback').insert(row);
+        if(error)throw error;
+        closeModals();
+        form.reset();
+        if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
+        toast('Thanks! Feedback mil gaya 🙏 Hum jaldi dekhenge');
+      }catch(error){
+        console.error('[BCAPrime] Feedback error:',error);
+        toast('Feedback send failed: '+(error&&error.message||error));
+      }finally{
+        btn.disabled=false;btn.textContent='Send feedback';
+      }
+    }
     function showSuggestions(){const query=$('search').value.trim().toLowerCase();const matches=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(query)).slice(0,4);$('suggestions').innerHTML=(query?matches.map(r=>`<button class="suggestion" onclick="chooseSuggestion('${r.title.replace(/'/g,"\\'")}')"><i class="fa-solid fa-magnifying-glass"></i> ${r.title}</button>`).join(''):'<small style="padding:5px 8px;color:var(--muted)">Search by subject, paper or resource type</small>');$('suggestions').classList.add('open')}
     function chooseSuggestion(title){$('search').value=title;state.query=title;closeSuggestions();render()}
     function closeSuggestions(){$('suggestions').classList.remove('open')}

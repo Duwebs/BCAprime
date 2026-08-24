@@ -116,6 +116,7 @@ async function load() {
     uploads = [];
   }
   render();
+  loadFeedback();
 }
 
 /* ---- Rendering ---- */
@@ -311,6 +312,39 @@ async function handleNotifyFormSubmit(event) {
   }
 }
 $('notifyForm').addEventListener('submit', handleNotifyFormSubmit);
+
+/* ---- User feedback panel ---- */
+async function loadFeedback(){
+  const list=$('feedbackList');if(!list)return;
+  list.innerHTML='<p class="note">Loading&hellip;</p>';
+  if(typeof supabaseClient==='undefined'||!supabaseClient){list.innerHTML='<p class="note">Supabase is not configured.</p>';return}
+  const {data,error}=await supabaseClient.from('feedback').select('*').order('created_at',{ascending:false}).limit(50);
+  if(error){list.innerHTML='<p class="note">Load failed: '+error.message+'</p>';return}
+  if(!data||!data.length){list.innerHTML='<p class="note">Koi feedback nahi aaya abhi. 🎉</p>';return}
+  list.innerHTML=data.map(item=>{
+    const kindClass={bug:'k-bug',idea:'k-idea',question:'k-question'}[item.kind]||'k-idea';
+    return `<div class="feedback-item ${item.status}">
+      <div class="fi-head"><span class="fi-kind ${kindClass}">${item.kind}</span><small>${new Date(item.created_at).toLocaleString()}</small></div>
+      <p class="fi-msg">${escapeHtml(item.message)}</p>
+      ${item.screenshot_url?`<a href="${escapeHtml(item.screenshot_url)}" target="_blank" rel="noopener"><img src="${escapeHtml(item.screenshot_url)}" class="fi-shot" alt="screenshot"></a>`:''}
+      <div class="fi-meta">${item.contact?escapeHtml(item.contact)+' &middot; ':''}${escapeHtml((item.user_agent||'').slice(0,70))}</div>
+      <div class="row-actions">
+        ${item.status==='open'?`<button class="button primary" onclick="resolveFeedback(${item.id})">Mark resolved</button>`:'<span class="fi-resolved">✔ Resolved</span>'}
+        <button class="button danger" onclick="deleteFeedback(${item.id})">Delete</button>
+      </div>
+    </div>`}).join('');
+}
+async function resolveFeedback(id){
+  if(typeof supabaseClient==='undefined'||!supabaseClient)return;
+  await supabaseClient.from('feedback').update({status:'resolved'}).eq('id',id);
+  loadFeedback();
+}
+async function deleteFeedback(id){
+  if(!confirm('Delete this feedback?'))return;
+  if(typeof supabaseClient==='undefined'||!supabaseClient)return;
+  await supabaseClient.from('feedback').delete().eq('id',id);
+  loadFeedback();
+}
 
 /* ---- Boot ---- */
 document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'dark';

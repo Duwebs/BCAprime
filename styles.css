@@ -479,3 +479,28 @@
 .resource-grid.reveal .resource:nth-child(n+6){animation-delay:.3s}
 @keyframes resourceIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 
+
+/* ============================================================
+   Feedback FAB + modal (bug report / idea)
+   ============================================================ */
+.feedback-fab{
+  position:fixed;left:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:900;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 15px;border:0;border-radius:9999px;
+  background:linear-gradient(135deg,#7c5cff,#5a3df0);color:#fff;
+  font:600 13px 'Geist',sans-serif;cursor:pointer;
+  box-shadow:0 8px 22px rgba(124,92,255,.4);
+  transition:transform .18s ease,box-shadow .18s ease;
+}
+.feedback-fab:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(124,92,255,.5)}
+.feedback-fab i{font-size:14px}
+.fb-kinds{display:flex;gap:8px;margin-bottom:12px}
+.fb-kind{flex:1;padding:9px 6px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--muted);font:600 13px 'Geist',sans-serif;cursor:pointer;transition:border-color .18s ease,color .18s ease,background .18s ease}
+.fb-kind.active{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 12%,transparent);color:var(--brand)}
+.upload-form textarea{width:100%;resize:vertical;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:10px 11px;font:inherit;outline:0}
+.upload-form textarea:focus{border-color:var(--brand)}
+.fb-file i{margin-bottom:4px}
+.wa-link{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:10px;border-radius:9px;background:color-mix(in srgb,#25d366 12%,transparent);color:#1fa855;font:700 13px 'Geist',sans-serif;text-decoration:none;transition:filter .18s ease}
+.wa-link:hover{filter:brightness(1.06)}
+@media(max-width:700px){.feedback-fab{bottom:calc(78px + env(safe-area-inset-bottom,0px));left:12px;padding:10px 13px}.feedback-fab span{display:none}.feedback-fab i{font-size:16px}}
+

@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -83,7 +83,11 @@
   <!-- Subject type chooser (Notes ya PYQ?) -->
   <div class="modal" id="subjectTypeModal"><div class="dialog subject-type-dialog"><button class="close" aria-label="Close dialog" onclick="closeSubjectType()">&times;</button><div class="st-icon" id="subjectTypeIcon"><i class="fa-solid fa-book-open"></i></div><p class="st-kicker">Explore subject</p><h2 id="subjectTypeTitle">Subject</h2><p class="st-sub">Choose what you want to study</p><div class="subject-type-row"><button class="subject-type-btn notes" onclick="browseSubjectAs('notes')"><i class="fa-solid fa-book"></i><strong>Notes</strong><small>All notes of this subject</small><span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span></button><button class="subject-type-btn pyq" onclick="browseSubjectAs('pyq')"><i class="fa-solid fa-file-pen"></i><strong>PYQs</strong><small>Previous year papers</small><span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span></button></div></div></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=6"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=6"></script><script src="push-subscribe.js?v=2"></script>
-  <script src="app.js?v=6"></script>
+  <!-- Feedback / bug report -->
+  <button class="feedback-fab" id="feedbackFab" onclick="openFeedback()" aria-label="Send feedback or report a bug"><i class="fa-solid fa-comment-dots"></i><span>Feedback</span></button>
+  <div class="modal" id="feedbackModal"><div class="dialog feedback-dialog"><div class="dialog-head"><h2>Feedback ya Bug?</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Koi problem aayi ya koi badhiya idea hai? Batao &mdash; hum turant sudhrenge! 🙏</p><form class="upload-form" autocomplete="off" onsubmit="submitFeedback(event)"><div class="fb-kinds"><button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">&#128027; Bug</button><button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">&#128161; Idea</button><button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">&#10067; Question</button></div><div class="field"><label>Kya issue hai? *</label><textarea name="message" rows="3" required maxlength="1000" placeholder="e.g. Notes download ho hi nahi raha..."></textarea></div><div class="field"><label>Screenshot (optional)</label><label class="file-box fb-file" for="feedbackFile"><i class="fa-solid fa-image"></i><span id="feedbackFileName">Attach screenshot</span><input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)"></label></div><div class="field"><label>Email / WhatsApp (optional)</label><input name="contact" maxlength="120" placeholder="Reply ke liye - apna email ya number"></div><button class="primary" type="submit">Send feedback</button></form><a class="wa-link" id="waLink" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp par bhejna hai? Yahan tap karo</a></div></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=7"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=7"></script><script src="push-subscribe.js?v=2"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
