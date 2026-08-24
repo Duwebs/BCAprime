@@ -28,7 +28,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     resources=[...resources,...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
     const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',year:localStorage.getItem('bca-year')||'all',sem:localStorage.getItem('bca-sem')||'all',subject:localStorage.getItem('bca-subject')||'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
     const $=id=>document.getElementById(id);
-    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));resources=[...resources,...cloud.filter(item=>!existing.has(item.title))];renderSubjectFilter();render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
     function init(){
       applyTheme(state.theme);
       $('yearFilter').value=state.year==='all'?'all':state.year;
@@ -184,6 +184,31 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       return {...row,title:row.title,type:row.type,sem:row.semester,fileUrl:row.file_url,downloads:0,status:row.status,fileName:file.name,subject:row.subject,college:row.college};
     }
     function getUploaderEmail(){return accountSession&&accountSession.email?accountSession.email:''}
+    /* ---- Duplicate upload guard ----
+       Same title + semester + college combination pehle se ho (pending ya
+       approved) to naya upload rok deta hai. */
+    async function findExistingUpload(payload){
+      if(!supabaseClient)return null;
+      try{
+        const {data,error}=await supabaseClient.from('resources')
+          .select('id,title,status')
+          .eq('title',payload.title)
+          .eq('semester',payload.sem)
+          .eq('college',payload.college)
+          .limit(1);
+        if(error)return null;
+        return data&&data.length?data[0]:null;
+      }catch(error){return null}
+    }
+    function isLocalDuplicate(payload){
+      const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]');
+      return uploads.some(item=>
+        normSubject(item.title)===normSubject(payload.title)&&
+        Number(item.sem)===payload.sem&&
+        item.college===payload.college&&
+        (item.status||'pending')!=='rejected'
+      );
+    }
     async function loadMyUploads(){try{const email=getUploaderEmail();if(!supabaseClient||!email)return[];const {data,error}=await supabaseClient.from('resources').select('id,title,type,status,semester,file_name,created_at,downloads').eq('uploader_email',email).order('created_at',{ascending:false});if(error)return[];return data||[]}catch(error){return[]}}
     async function renderMyUploads(){
       const listEl=$('myUploadsList');const summaryEl=$('myUploadsSummary');if(!listEl)return;
@@ -222,6 +247,11 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       // Backwards compatibility: purane cached HTML mein link field ho sakta hai
       if(subject==='Community upload'){const linkInput=form.querySelector('input[name="link"]');if(linkInput&&linkInput.value.trim())subject=linkInput.value.trim();}
       const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploader:accountSession?getUserName(accountSession):'Anonymous',uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
+      // Duplicate guard: same title + semester + college pehle se hai to rok do
+      let existing=null;
+      try{existing=await findExistingUpload(payload)}catch(error){}
+      if(existing){toast('Duplicate! Ye material pehle se upload ho chuka hai ('+existing.status+')');return}
+      if(isLocalDuplicate(payload)){toast('Duplicate! Ye material aapne pehle hi submit kiya hai — review mein hai');return}
       const reader=new FileReader();
       reader.onload=async ()=>{
         try {
