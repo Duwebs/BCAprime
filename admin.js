@@ -323,11 +323,13 @@ async function loadFeedback(){
   if(!data||!data.length){list.innerHTML='<p class="note">Koi feedback nahi aaya abhi. 🎉</p>';return}
   list.innerHTML=data.map(item=>{
     const kindClass={bug:'k-bug',idea:'k-idea',question:'k-question'}[item.kind]||'k-idea';
+    const whoLine=[item.user_name,item.user_email].filter(Boolean).join(' · ');
     return `<div class="feedback-item ${item.status}">
       <div class="fi-head"><span class="fi-kind ${kindClass}">${item.kind}</span><small>${new Date(item.created_at).toLocaleString()}</small></div>
       <p class="fi-msg">${escapeHtml(item.message)}</p>
       ${item.screenshot_url?`<a href="${escapeHtml(item.screenshot_url)}" target="_blank" rel="noopener"><img src="${escapeHtml(item.screenshot_url)}" class="fi-shot" alt="screenshot"></a>`:''}
-      <div class="fi-meta">${item.contact?escapeHtml(item.contact)+' &middot; ':''}${escapeHtml((item.user_agent||'').slice(0,70))}</div>
+      ${whoLine?`<div class="fi-who"><i class="fa-solid fa-user"></i>${escapeHtml(whoLine)}${item.page_url?`<small>&middot; ${escapeHtml((item.page_url||'').slice(0,40))}</small>`:''}</div>`:''}
+      <div class="fi-meta">${escapeHtml((item.user_agent||'').slice(0,70))}</div>
       <div class="row-actions">
         ${item.status==='open'?`<button class="button primary" onclick="resolveFeedback(${item.id})">Mark resolved</button>`:'<span class="fi-resolved">✔ Resolved</span>'}
         <button class="button danger" onclick="deleteFeedback(${item.id})">Delete</button>

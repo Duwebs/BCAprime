@@ -118,6 +118,8 @@ create table if not exists public.feedback (
   kind text not null default 'idea' check (kind in ('bug','idea','question')),
   message text not null,
   contact text default '',
+  user_email text default '',
+  user_name text default '',
   screenshot_url text,
   page_url text,
   user_agent text,
@@ -127,30 +129,34 @@ create table if not exists public.feedback (
 
 alter table public.feedback enable row level security;
 
+-- App login Firebase se hota hai (Supabase JWT nahi), isliye insert anonymous
+-- rehta hai. Page pe chuniye to issuer bhi nuach nahi: inset ansi read/delete sirf admin.
+-- > insert pe aane nya nahi: login-gating app.js karta hai + user email/name auto.
 drop policy if exists "Anyone can submit feedback" on public.feedback;
 create policy "Anyone can submit feedback"
 on public.feedback for insert
 to anon, authenticated
 with check (true);
 
+-- Only admins can view, update or delete feedback.
 drop policy if exists "Authenticated can view feedback" on public.feedback;
-create policy "Authenticated can view feedback"
+create policy "Admins can view feedback"
 on public.feedback for select
 to authenticated
-using (true);
+using (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin');
 
 drop policy if exists "Authenticated can manage feedback" on public.feedback;
-create policy "Authenticated can manage feedback"
+create policy "Admins can update feedback"
 on public.feedback for update
 to authenticated
-using (true)
-with check (true);
+using (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin')
+with check (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin');
 
 drop policy if exists "Authenticated can delete feedback" on public.feedback;
-create policy "Authenticated can delete feedback"
+create policy "Admins can delete feedback"
 on public.feedback for delete
 to authenticated
-using (true);
+using (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin');
 
 -- Storage bucket for feedback screenshots
 insert into storage.buckets (id, name, public)

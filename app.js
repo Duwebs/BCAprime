@@ -200,6 +200,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     let feedbackKind='bug';
     function openFeedback(){
       if(!supabaseClient){toast('Feedback abhi unavailable hai');return}
+      if(!accountSession){requireAccount('Feedback ya bug report bhejne ke liye login karo.', 'feedback');return}
       setFeedbackKind(document.querySelector('.fb-kind.active')||document.querySelector('.fb-kind'));
       $('feedbackModal').classList.add('open');
     }
@@ -229,6 +230,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     function updateFbCount(value){const counter=$('fbCount');if(counter)counter.textContent=String(value.length)+'/1000'}
     async function submitFeedback(event){
       event.preventDefault();
+      if(!accountSession){toast('Feedback bhejne ke liye login karo');return}
       const form=event.target;
       const message=form.querySelector('textarea[name="message"]').value.trim();
       if(message.length<5){toast('Thoda detail likho please');return}
@@ -246,11 +248,12 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
           const {data:pub}=supabaseClient.storage.from('feedback').getPublicUrl(path);
           screenshotUrl=pub.publicUrl;
         }
-        const contactInput=form.querySelector('input[name="contact"]');
+        const sessionName=(accountSession&&(accountSession.displayName||(accountSession.user_metadata&&accountSession.user_metadata.name)))||'';
         const row={
           kind:feedbackKind,
           message:message.slice(0,1000),
-          contact:contactInput?contactInput.value.trim().slice(0,120):'',
+          user_email:getUploaderEmail(),
+          user_name:String(sessionName||'').slice(0,120),
           screenshot_url:screenshotUrl,
           page_url:location.href.slice(0,300),
           user_agent:navigator.userAgent.slice(0,300)
@@ -289,7 +292,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     function isGuestMode(){return !accountSession&&sessionStorage.getItem('bca-guest-mode')==='true'}
     function setAccessAuthMode(mode){accessAuthMode=mode;$('accessAuthTitle').textContent=mode==='signup'?'Sign up to continue':'Login to continue';$('accessAuthDescription').textContent=mode==='signup'?'Create a free account to upload and download study material.':'Login to continue with this action.';$('accessAuthSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accessAuthSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accessAuthMessage').textContent='';$('accessAuthNameLabel').hidden=mode!=='signup';if(mode==='signup')$('accessAuthName').setAttribute('required','');else $('accessAuthName').removeAttribute('required')}
     function requireAccount(message,action,title=''){if(accountSession)return true;restrictedAction={action,title};setAccessAuthMode('signup');$('accessAuthDescription').textContent=message;$('accessAuthMessage').textContent='';$('accessAuthModal').classList.add('open');return false}
-    function resumeRestrictedAction(){if(!accountSession||!restrictedAction)return;const action=restrictedAction;restrictedAction=null;closeModals();if(action.action==='upload')openUpload();if(action.action==='download')download(action.title)}
+    function resumeRestrictedAction(){if(!accountSession||!restrictedAction)return;const action=restrictedAction;restrictedAction=null;closeModals();if(action.action==='upload')openUpload();if(action.action==='download')download(action.title);if(action.action==='feedback')openFeedback()}
     async function submitAccessAuth(event){event.preventDefault();if(!firebaseApp){$('accessAuthMessage').textContent='Firebase is not configured.';return}$('accessAuthMessage').textContent='Working...';const email=$('accessAuthEmail').value.trim();const password=$('accessAuthPassword').value;try{if(accessAuthMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accessAuthName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccessAuthMode('login');$('accessAuthMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();resumeRestrictedAction()}catch(error){authSuppress=false;$('accessAuthMessage').textContent=error.message;return}}
     function download(title){if(!requireAccount('Sign up or login to download this note.','download',title))return;const resource=resources.find(item=>item.title===title);if(resource&&(resource.fileData||resource.fileUrl)){const a=document.createElement('a');a.href=resource.fileData||resource.fileUrl;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
     let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;
