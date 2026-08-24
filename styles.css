@@ -367,6 +367,13 @@
 .subject-type-btn small{color:var(--muted);font-size:11px;text-align:center;line-height:1.4}
 @media(max-width:480px){.subject-cards{grid-template-columns:repeat(2,1fr)}.subject-type-row{grid-template-columns:1fr}}
 
+/* ---- Add subject row (Your subjects section) ---- */
+.add-subject-row{display:flex;gap:8px;margin-top:12px}
+.add-subject-row input{flex:1;min-width:0;height:43px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:0 11px;outline:0}
+.add-subject-row input:focus{border-color:var(--brand)}
+.add-subject-row .primary{min-height:43px;white-space:nowrap;display:inline-flex;align-items:center;gap:7px}
+@media(max-width:600px){.add-subject-row{gap:6px}.add-subject-row .primary{padding:9px 13px;font-size:14px}}
+
 
 /* ============================================================
    PrimeFinder 2.0 — #bca-prime-finder

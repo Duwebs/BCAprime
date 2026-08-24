@@ -175,6 +175,19 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
           <span class="subject-card-go"><i class="fa-solid fa-arrow-right"></i></span>
         </button>`}).join('');
     }
+    /* ---- Naya custom subject add karo -> turant card ban jata hai ---- */
+    function addSubjectCard(){
+      const input=$('newSubjectInput');
+      const name=(input&&input.value||'').trim().replace(/\s+/g,' ');
+      if(!name){toast('Subject ka naam likho');if(input)input.focus();return}
+      if(name.length<2){toast('Thoda bada naam likho');return}
+      if(state.sem==='all'){toast('Pehle semester select karo, phir subject add hoga');return}
+      addCustomSubject(Number(state.sem),name);
+      if(input){input.value='';input.blur()}
+      renderSubjectFilter();
+      render();
+      toast('"'+name+'" add ho gaya — Semester '+state.sem+' ✅');
+    }
     let pendingSubject='';
     function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
     function closeSubjectType(){const modal=$('subjectTypeModal');if(modal)modal.classList.remove('open')}
