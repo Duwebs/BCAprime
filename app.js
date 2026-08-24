@@ -68,9 +68,14 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       if(!yearSel||!semSel)return;
       const year=yearSel.value;
       if(year==='all'){
-        semSel.disabled=true;
-        semSel.innerHTML='<option value="all">Pehle year select karo</option>';
-        if(state.sem!=='all'){state.sem='all';localStorage.setItem('bca-sem','all')}
+        /* Fix: year "all" par semester dropdown disable mat karo —
+           saare 6 semesters available rakho taaki finder directly sem-wise kaam kare */
+        semSel.disabled=false;
+        const allOpts=['<option value="all">All semesters</option>'];
+        for(let s=1;s<=6;s++)allOpts.push('<option value="'+s+'">Semester '+s+'</option>');
+        semSel.innerHTML=allOpts.join('');
+        if(state.sem!=='all'&&Number(state.sem)>=1&&Number(state.sem)<=6){semSel.value=String(state.sem)}
+        else{semSel.value='all'}
         return;
       }
       const start=(Number(year)-1)*2+1;
