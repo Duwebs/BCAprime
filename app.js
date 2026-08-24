@@ -2,6 +2,21 @@
 // Must load AFTER firebase-config.js and supabase-config.js.
 const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
+    /* ---- Subject-wise finder ----
+       Base subjects per semester (common BCA syllabus). Colleges with extra
+       subjects are handled dynamically: any subject uploaded by users shows up
+       in the subject filter automatically once approved. */
+    const BASE_SUBJECTS={
+      1:['Programming Principles & C','Mathematics-I','Computer Fundamentals & Office Automation','PC Software','Communication Skills'],
+      2:['Data Structures Using C','Mathematics-II','Digital Electronics','Computer Architecture','Environmental Studies'],
+      3:['Database Management Systems','Operating Systems','Web Technologies','Object Oriented Programming using C++','Python Programming'],
+      4:['Java Programming','Computer Networks','Software Engineering','Design & Analysis of Algorithms','Data Communication'],
+      5:['Artificial Intelligence','Cloud Computing','Computer Graphics','Mobile Application Development','Elective-I'],
+      6:['Cyber Security & Ethical Hacking','Machine Learning','Big Data Analytics','E-Commerce','Major Project / Elective-II']
+    };
+    function getCustomSubjects(sem){try{return JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}')[String(sem)]||[]}catch(error){return[]}}
+    function addCustomSubject(sem,name){try{const all=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}');const key=String(sem);all[key]=[...new Set([...(all[key]||[]),name])];localStorage.setItem('bca-custom-subjects',JSON.stringify(all))}catch(error){}}
+    const normSubject=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
     let resources=[
       {title:'C Programming Complete Notes',type:'notes',sem:1,year:1,subject:'Programming Principles & C',college:'all'},
       {title:'Data Structures PYQ Paper 2024',type:'pyq',sem:2,year:1,subject:'Data Structures Using C',college:'ccsu'},
@@ -10,9 +25,9 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       {title:'Operating Systems PYQ Paper',type:'pyq',sem:6,year:3,subject:'Operating Systems',college:'all'}
     ];
     resources=[...resources,...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
-    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',year:localStorage.getItem('bca-year')||'all',sem:localStorage.getItem('bca-sem')||'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
+    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',year:localStorage.getItem('bca-year')||'all',sem:localStorage.getItem('bca-sem')||'all',subject:localStorage.getItem('bca-subject')||'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
     const $=id=>document.getElementById(id);
-    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));resources=[...resources,...cloud.filter(item=>!existing.has(item.title))];render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));resources=[...resources,...cloud.filter(item=>!existing.has(item.title))];renderSubjectFilter();render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
     function init(){
       applyTheme(state.theme);
       $('yearFilter').value=state.year==='all'?'all':state.year;
@@ -23,6 +38,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       $('navSemBadge').textContent = `· ${semText}`;
       $('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';
       renderColleges();
+      renderSubjectFilter();
       render();
       loadCloudResources();
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
@@ -36,16 +52,58 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         const matchSem = state.sem === 'all' || r.sem === Number(state.sem);
         const matchYear = state.year === 'all' || r.year === Number(state.year);
         const matchQuery = `${r.title} ${r.subject}`.toLowerCase().includes(q);
-        return matchSaved && matchType && matchCollege && matchSem && matchYear && matchQuery;
+        const matchSubject = !state.subject || state.subject === 'all' || normSubject(r.subject) === normSubject(state.subject);
+        return matchSaved && matchType && matchCollege && matchSem && matchYear && matchQuery && matchSubject;
       });
       $('count').textContent=`${list.length} result${list.length===1?'':'s'}`;
       $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':'<div class="empty"><i class="fa-regular fa-folder-open"></i><br><br>No resources match these filters.<br><button class="secondary" style="margin-top:12px" onclick="openUpload()">Share the first one</button></div>'}
     function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span>${r.uploader?`<span><i class="fa-solid fa-user"></i>${r.uploader}</span>`:''}</div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button><button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');render()}
-    function applyFilters(){state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);$('deskSemester').textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
-    function resetFinder(){$('yearFilter').value='all';$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');$('deskSemester').textContent='Explore your semester';render()}
+    function applyFilters(){state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;renderSubjectFilter();if($('subjectFilter'))state.subject=$('subjectFilter').value;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);$('deskSemester').textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
+    function resetFinder(){$('yearFilter').value='all';$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));$('deskSemester').textContent='Explore your semester';render()}
     function chooseSemester(sem,button){$('semesterFilter').value=sem;document.querySelectorAll('.semester').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.sem=String(sem);localStorage.setItem('bca-sem',state.sem);$('deskSemester').textContent=`Semester ${sem} resources`;render();$('library').scrollIntoView({behavior:'smooth'})}
     function searchResources(value){state.query=value;showSuggestions();render()}
+    /* ---- Subject filter engine ----
+       Options = base subjects (per semester) + custom subjects the user added
+       + subjects already present in uploads for the active college/semester.
+       This is how unknown college-specific subjects discover themselves. */
+    function getAvailableSubjects(){
+      return [...new Set(resources.filter(r=>{
+        const matchCollege=state.college==='all'||r.college==='all'||r.college===state.college;
+        const matchSem=state.sem==='all'||r.sem===Number(state.sem);
+        const matchYear=state.year==='all'||r.year===Number(state.year);
+        const matchType=state.type==='all'||r.type===state.type;
+        return matchCollege&&matchSem&&matchYear&&matchType;
+      }).map(r=>String(r.subject||'').trim()).filter(Boolean))];
+    }
+    function renderSubjectFilter(){
+      const sel=$('subjectFilter');if(!sel)return;
+      const preferred=(typeof state.subject==='string'&&state.subject)||sel.value;
+      const semNumber=Number(state.sem);
+      const base=state.sem!=='all'&&BASE_SUBJECTS[semNumber]?BASE_SUBJECTS[semNumber]:[];
+      const customs=state.sem!=='all'?getCustomSubjects(state.sem):[];
+      const seen=new Map();
+      [...base,...getAvailableSubjects(),...customs].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
+      const merged=[...seen.values()].sort((a,b)=>a.localeCompare(b));
+      sel.innerHTML='<option value="all">All subjects</option>'+merged.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('');
+      const values=[...sel.options].map(option=>option.value);
+      sel.value=values.includes(preferred)?preferred:'all';
+    }
+    /* ---- Upload form subject picker (semester ke hisaab se bharta hai) ---- */
+    function updateUploadSubjects(){
+      const sel=$('uploadSubjectSelect');if(!sel)return;
+      const semSel=document.querySelector('#uploadModal select[name="semester"]');
+      const sem=semSel&&semSel.value?Number(semSel.value):(Number(state.sem)||1);
+      const seen=new Map();
+      [...(BASE_SUBJECTS[sem]||[]),
+       ...resources.filter(r=>r.sem===sem).map(r=>String(r.subject||'').trim()).filter(Boolean),
+       ...getCustomSubjects(sem)
+      ].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
+      const sorted=[...seen.values()].sort((a,b)=>a.localeCompare(b));
+      sel.innerHTML=sorted.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${s}</option>`).join('')+'<option value="__other">+ Other / new subject…</option>';
+      onUploadSubjectChange(sel);
+    }
+    function onUploadSubjectChange(sel){const custom=$('customSubjectField');if(custom)custom.hidden=sel.value!=='__other'}
     function showSuggestions(){const query=$('search').value.trim().toLowerCase();const matches=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(query)).slice(0,4);$('suggestions').innerHTML=(query?matches.map(r=>`<button class="suggestion" onclick="chooseSuggestion('${r.title.replace(/'/g,"\\'")}')"><i class="fa-solid fa-magnifying-glass"></i> ${r.title}</button>`).join(''):'<small style="padding:5px 8px;color:var(--muted)">Search by subject, paper or resource type</small>');$('suggestions').classList.add('open')}
     function chooseSuggestion(title){$('search').value=title;state.query=title;closeSuggestions();render()}
     function closeSuggestions(){$('suggestions').classList.remove('open')}
@@ -83,7 +141,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const email=$('accountEmail').value.trim();const password=$('accountPassword').value;try{if(accountMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccountMode('login');$('accountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}catch(error){authSuppress=false;$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){await firebase.auth().signOut();accountSession=null;hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out')}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open')};function closeModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'));closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'));closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
     function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -150,7 +208,15 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       const title=form.querySelector('input[name="title"]').value.trim();
       const sem=Number(form.querySelector('select[name="semester"]').value);
       const type=form.querySelector('select[name="type"]').value.toLowerCase();
-      const subject=form.querySelector('input[name="link"]').value.trim() || 'Community upload';
+      // Subject: pick from list, or take the custom name when "__other" is chosen
+      const subjectSel=form.querySelector('select[name="subjectSelect"]');
+      let subject=subjectSel&&subjectSel.value&&subjectSel.value!=='__other'?subjectSel.value:'';
+      if(subjectSel&&subjectSel.value==='__other'){
+        const customInput=form.querySelector('input[name="customSubject"]');
+        subject=customInput?customInput.value.trim():'';
+        if(subject)addCustomSubject(sem,subject);
+      }
+      subject=subject||'Community upload';
       const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploader:accountSession?getUserName(accountSession):'Anonymous',uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
       const reader=new FileReader();
       reader.onload=async ()=>{
@@ -198,7 +264,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
     function chooseOnboardingCollege(id){state.onboardingCollege=id;renderOnboardingColleges();$('onboardingSemesters').classList.add('open')}
     function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected');if(state.onboardingCollege&&!state.onboardingDone)setTimeout(()=>finishOnboarding(),400)}
     function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);if(!college||$('collegeFilter').querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];$('collegeFilter').append(option)}
-    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';state.year=String(Math.ceil(Number(state.sem)/2)||1);try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{$('semesterFilter').value=state.sem;$('yearFilter').value=state.year;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;render()}catch(error){console.warn('Library refresh skipped.',error)}setTimeout(startTour,200)}
+    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';state.year=String(Math.ceil(Number(state.sem)/2)||1);try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{$('semesterFilter').value=state.sem;$('yearFilter').value=state.year;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}setTimeout(startTour,200)}
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
     const tourSteps=[
