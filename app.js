@@ -1,5 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
+console.info('[BCAPrime] app.js v3 loaded ✔');
 const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -201,6 +202,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       setInterval(()=>{if(document.visibilityState==='visible')loadCloudResources()},30000);
     }
     async function submitUpload(event){
+      try{
       event.preventDefault();
       const form=event.target;
       const file=$('file').files[0];
@@ -217,6 +219,8 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         if(subject)addCustomSubject(sem,subject);
       }
       subject=subject||'Community upload';
+      // Backwards compatibility: purane cached HTML mein link field ho sakta hai
+      if(subject==='Community upload'){const linkInput=form.querySelector('input[name="link"]');if(linkInput&&linkInput.value.trim())subject=linkInput.value.trim();}
       const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploader:accountSession?getUserName(accountSession):'Anonymous',uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
       const reader=new FileReader();
       reader.onload=async ()=>{
@@ -248,6 +252,10 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         }
       };
       reader.readAsDataURL(file);
+      }catch(error){
+        console.error('[BCAPrime] Upload error:',error);
+        toast('Upload problem: '+(error&&error.message||error));
+      }
     }
     /* ---- Upload success celebration ---- */
     function showUploadSuccess(kind){
