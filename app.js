@@ -213,9 +213,23 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       feedbackKind=btn.dataset.kind||'idea';
     }
     function showFeedbackFile(input){
+      const file=input.files[0];
       const label=$('feedbackFileName');
-      if(label)label.textContent=input.files[0]?input.files[0].name:'Attach screenshot';
+      if(label)label.textContent=file?file.name:'Attach screenshot';
+      const wrap=$('fbThumbWrap'),thumb=$('fbThumb');
+      if(file&&wrap&&thumb){
+        const reader=new FileReader();
+        reader.onload=e=>{thumb.src=e.target.result;wrap.hidden=false};
+        reader.readAsDataURL(file);
+      }else if(wrap){wrap.hidden=true}
     }
+    function removeFeedbackFile(e){
+      if(e)e.preventDefault();
+      const input=$('feedbackFile');if(input)input.value='';
+      const wrap=$('fbThumbWrap');if(wrap)wrap.hidden=true;
+      if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
+    }
+    function updateFbCount(value){const counter=$('fbCount');if(counter)counter.textContent=String(value.length)+'/1000'}
     async function submitFeedback(event){
       event.preventDefault();
       const form=event.target;
@@ -249,6 +263,8 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         closeModals();
         form.reset();
         if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
+        const thumbWrap=$('fbThumbWrap');if(thumbWrap)thumbWrap.hidden=true;
+        if($('fbCount'))$('fbCount').textContent='0/1000';
         toast('Thanks! Feedback mil gaya 🙏 Hum jaldi dekhenge');
       }catch(error){
         console.error('[BCAPrime] Feedback error:',error);
