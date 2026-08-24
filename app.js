@@ -67,6 +67,9 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       const yearSel=$('yearFilter'),semSel=$('semesterFilter');
       if(!yearSel||!semSel)return;
       const year=yearSel.value;
+      /* Fix: user ki current selection ko preserve karo — warna har
+         applyFilters() par dropdown 'all' par reset ho jata tha */
+      const current=semSel.value;
       if(year==='all'){
         /* Fix: year "all" par semester dropdown disable mat karo —
            saare 6 semesters available rakho taaki finder directly sem-wise kaam kare */
@@ -74,18 +77,19 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         const allOpts=['<option value="all">All semesters</option>'];
         for(let s=1;s<=6;s++)allOpts.push('<option value="'+s+'">Semester '+s+'</option>');
         semSel.innerHTML=allOpts.join('');
-        if(state.sem!=='all'&&Number(state.sem)>=1&&Number(state.sem)<=6){semSel.value=String(state.sem)}
-        else{semSel.value='all'}
+        const keep=(current&&current!=='all'&&Number(current)>=1&&Number(current)<=6)?current:(state.sem!=='all'?String(state.sem):'all');
+        semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
         return;
       }
       const start=(Number(year)-1)*2+1;
       semSel.disabled=false;
       semSel.innerHTML='<option value="all">All semesters</option><option value="'+start+'">Semester '+start+'</option><option value="'+(start+1)+'">Semester '+(start+1)+'</option>';
-      if(state.sem!=='all'&&Number(state.sem)>=start&&Number(state.sem)<=start+1){
-        semSel.value=String(state.sem);
+      const candidate=(current&&current!=='all')?current:String(state.sem);
+      if(candidate!=='all'&&Number(candidate)>=start&&Number(candidate)<=start+1){
+        semSel.value=candidate;
       }else{
         semSel.value='all';
-        if(state.sem!=='all'){state.sem='all';localStorage.setItem('bca-sem','all')}
+        if(state.sem!=='all'&&(!current||current==='all')){state.sem='all';localStorage.setItem('bca-sem','all')}
       }
     }
     function resetFinder(){$('yearFilter').value='all';updateSemesterOptions();$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
