@@ -171,7 +171,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         </button>`}).join('');
     }
     let pendingSubject='';
-    function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
+    function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
     function closeSubjectType(){const modal=$('subjectTypeModal');if(modal)modal.classList.remove('open')}
     function browseSubjectAs(kind){
       const subject=pendingSubject;if(!subject)return;
@@ -179,9 +179,22 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       state.type=kind;
       document.querySelectorAll('#typeChips .chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()===(kind==='pyq'?'PYQs':'Notes')));
       closeSubjectType();
-      render();
+      // Smooth content experience: pehle skeleton, phir results stagger-reveal
+      showResourceSkeletons(6);
       $('resources').scrollIntoView({behavior:'smooth',block:'start'});
-      toast((kind==='pyq'?'PYQs':'Notes')+': '+subject);
+      setTimeout(()=>{
+        const grid=$('resources');
+        if(grid)grid.classList.add('reveal');
+        render();
+        toast((kind==='pyq'?'PYQs':'Notes')+': '+subject);
+        setTimeout(()=>{if(grid)grid.classList.remove('reveal')},900);
+      },520);
+    }
+    function showResourceSkeletons(count){
+      const grid=$('resources');if(!grid)return;
+      let html='';
+      for(let i=0;i<count;i++)html+='<article class="resource skel"><span class="sk-title"></span><span class="sk-line"></span><span class="sk-line short"></span><span class="sk-line"></span><span class="sk-line short"></span></article>';
+      grid.innerHTML=html;
     }
     function showSuggestions(){const query=$('search').value.trim().toLowerCase();const matches=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(query)).slice(0,4);$('suggestions').innerHTML=(query?matches.map(r=>`<button class="suggestion" onclick="chooseSuggestion('${r.title.replace(/'/g,"\\'")}')"><i class="fa-solid fa-magnifying-glass"></i> ${r.title}</button>`).join(''):'<small style="padding:5px 8px;color:var(--muted)">Search by subject, paper or resource type</small>');$('suggestions').classList.add('open')}
     function chooseSuggestion(title){$('search').value=title;state.query=title;closeSuggestions();render()}
