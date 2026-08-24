@@ -377,4 +377,8 @@ body {
 #notifySend { justify-self: start }
 #notifySend i { font-style: normal; margin-right: 4px }
 
+/* ---- Dark-theme contrast fix (light blue brand + white text was faint) ---- */
+[data-theme=dark] .button.primary { color: #0d141a }
+
+
 

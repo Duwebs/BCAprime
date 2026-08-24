@@ -286,3 +286,13 @@
       .brand strong{font-size:18px}
       .hero h1{letter-spacing:-.03em}
     }
+
+/* ============================================================
+   Dark-theme contrast fix
+   .primary uses var(--ink) as its background; in dark theme --ink
+   becomes near-white, so the label switches to near-black for a
+   premium white-pill look (Vercel style) instead of white-on-white.
+   ============================================================ */
+[data-theme=dark] .primary{color:#0a0a0a;border-color:var(--ink)}
+[data-theme=dark] .primary:hover{filter:none;background:#fff;transform:translateY(-1px)}
+
