@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'bcaprime-v10';
+﻿const CACHE_NAME = 'bcaprime-v11';
 const APP_SHELL = [
   './',
   './index.html',
