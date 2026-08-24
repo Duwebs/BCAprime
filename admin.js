@@ -40,26 +40,16 @@ async function submitAuth(event) {
   const email = $('authEmail').value.trim();
   const password = $('authPassword').value;
 
-  // Temporary direct admin bypass
-  if (email === 'admin@bcaprime' && password === '8662863787dsDS*#@bcaprime') {
-    sessionStorage.setItem('bca-direct-admin', 'true');
-    showDirectAdmin();
-    return;
-  }
-
+  // Security: sirf Supabase admin accounts (app_metadata.role='admin') allowed.
+  // Direct password bypass removed — dekh: supabase-security-fix.sql
   if (!supabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
   const result = await supabaseClient.auth.signInWithPassword({ email, password });
   if (result.error) { setAuthMessage(result.error.message); return; }
   await showAdmin(result.data.session);
 }
 
-function showDirectAdmin() {
-  $('authScreen').hidden = true;
-  $('adminShell').hidden = false;
-  $('logoutButton').style.display = 'inline-block';
-  load();
-}
-
+/* Security note: showDirectAdmin() removed — ab sirf Supabase admin session se
+   dashboard khulta hai. Admin banane ke liye supabase-security-fix.sql dekho. */
 async function showAdmin(session) {
   const role = session?.user?.app_metadata?.role;
   if (role !== 'admin') {
@@ -74,11 +64,6 @@ async function showAdmin(session) {
 }
 
 async function logout() {
-  if (sessionStorage.getItem('bca-direct-admin') === 'true') {
-    sessionStorage.removeItem('bca-direct-admin');
-    resetToAuthScreen();
-    return;
-  }
   if (supabaseClient) await supabaseClient.auth.signOut();
   resetToAuthScreen();
 }
@@ -270,7 +255,7 @@ setInterval(() => {
 
 /* ---- Broadcast push notifications (Web Push via Edge Function) ---- */
 // Must match the NOTIFY_SECRET configured on the send-push Edge Function.
-const ADMIN_NOTIFY_SECRET = 'bcaprime-notify-CHANGE-ME';
+const ADMIN_NOTIFY_SECRET = 'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz';
 
 async function sendPushBroadcast(title, body, tag) {
   if (typeof SEND_PUSH_FUNCTION_URL === 'undefined') {
@@ -332,10 +317,6 @@ document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'd
 $('authForm').addEventListener('submit', submitAuth);
 
 async function initAuth() {
-  if (sessionStorage.getItem('bca-direct-admin') === 'true') {
-    showDirectAdmin();
-    return;
-  }
   if (!supabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
   const { data } = await supabaseClient.auth.getSession();
   if (data.session) await showAdmin(data.session);

@@ -18,16 +18,17 @@ The student app, `index.html`, uses **Firebase Authentication** for login/signup
 
 > **If you see “This domain is not authorized for OAuth operations” when using Google/Apple sign-in (`auth/unauthorized-domain`):** the hostname in the address bar is missing from the Authorized domains list. Fix it by (a) switching to `http://localhost:5501` when testing locally, or (b) adding your custom/preview hostname under *Authentication → Settings → Authorized domains*, or (c) using an HTTPS tunnel (e.g. ngrok/cloudflared) with its hostname added when you must test from another device.
 
-Note: The admin page (`admin.html`) keeps using Supabase auth with an admin role — it is separate from the student account.
+Note: The admin page (`admin.html`) uses **Supabase auth only** with an admin role (`app_metadata.role = 'admin'`). The old direct password bypass has been removed for security. Run `supabase-security-fix.sql` once to harden the database policies.
 
 ## Supabase setup
 
 1. Open the Supabase project linked in `supabase-config.js`.
 2. Open **SQL Editor** and run the complete contents of `supabase-schema.sql`.
-3. Add approved rows to `public.resources` with a `file_url` pointing to your PDF storage.
-4. Open `index.html` to verify approved rows appear in the student library.
-5. In Supabase Authentication, create or confirm the admin user, then set its `app_metadata` to include `{ "role": "admin" }`.
-6. Open `admin.html`, sign in with that admin account, and verify pending uploads can be reviewed.
+3. **Run `supabase-security-fix.sql` too** — ye temporary open-moderation policies hata kar database lock karta hai.
+4. Add approved rows to `public.resources` with a `file_url` pointing to your PDF storage.
+5. Open `index.html` to verify approved rows appear in the student library.
+6. In Supabase Authentication, create or confirm the admin user, then set its `app_metadata` to include `{ "role": "admin" }` (query is given inside `supabase-security-fix.sql`).
+7. Open `admin.html`, sign in with that admin account, and verify pending uploads can be reviewed.
 
 The admin page includes Supabase email/password login and signup. Signup creates an account, but only accounts with `app_metadata.role` set to `admin` can access the review dashboard or approve resources.
 
@@ -52,10 +53,10 @@ Students can opt in from the bell icon (or the "Never miss an update" banner) an
 4. **Set the function secrets** (the VAPID keys are already generated — see below):
 
    ```
-   supabase secrets set VAPID_PUBLIC_KEY=BOp0K96ECGm8PnrQQL3aFNQoQAAgbeaEnUJSx16jT4D_WSkAk95OqTYn48RpxwId3tieyHC1w_JN2SYccQKyWfQ
-   supabase secrets set VAPID_PRIVATE_KEY=5o1g5aMO6yZajZpmA4hLDiXOz7SG-eZxF8G4Yo6yT6Q
+   supabase secrets set VAPID_PUBLIC_KEY=<apni public key — supabase-config.js mein hai>
+   supabase secrets set VAPID_PRIVATE_KEY=<apni private key — vapid-keys-PRIVATE.txt mein>
    supabase secrets set VAPID_SUBJECT="mailto:admin@bcaprime.com"
-   supabase secrets set NOTIFY_SECRET=bcaprime-notify-CHANGE-ME
+   supabase secrets set NOTIFY_SECRET=<naya secret — admin.js ke ADMIN_NOTIFY_SECRET se same>
    ```
 
    > Change `NOTIFY_SECRET` to any long random string — but use the **same value** as `ADMIN_NOTIFY_SECRET` in `admin.js`, otherwise the admin page cannot authorise sends. The private key must never be placed in any browser-facing file.

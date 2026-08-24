@@ -1,0 +1,11 @@
+# Dependencies (future-proof)
+node_modules/
+
+# Local secrets — KABHI git par push mat karna
+vapid-keys-PRIVATE.txt
+newsecret.txt
+*.secret.txt
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
