@@ -58,7 +58,31 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
         return matchSaved && matchType && matchCollege && matchSem && matchYear && matchQuery && matchSubject;
       });
       $('count').textContent=`${list.length} result${list.length===1?'':'s'}`;
-      $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':'<div class="empty"><i class="fa-regular fa-folder-open"></i><br><br>No resources match these filters.<br><button class="secondary" style="margin-top:12px" onclick="openUpload()">Share the first one</button></div>'}
+      $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':buildEmptyState()}
+    /* ---- Empty state: upload karo ya WhatsApp pe friends se request bhejo ---- */
+    function buildEmptyState(){
+      const searching=state.year!=='all'||state.sem!=='all'||(state.subject&&state.subject!=='all')||state.type!=='all';
+      return `<div class="empty"><i class="fa-regular fa-folder-open"></i><br>
+        <strong>${searching?'Ye material abhi library mein nahi mila':'Library is quiet — be the first!'}</strong><br>
+        <small>${searching?'Aapke filters ka koi Notes/PYQ available nahi hai. Pehle aap upload kar do, ya apne doston se request bhejo:':'Yahan sabse pehla material aap share kar sakte ho.'}</small>
+        <div class="empty-actions">
+          <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Khud upload karo</button>
+          <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Friends se request karo</button>
+        </div></div>`;
+    }
+    function requestMaterialOnWhatsApp(){
+      const semText=state.sem==='all'?'kisi bhi semester':('Semester '+state.sem);
+      let yearText='';
+      if(state.year!=='all')yearText=' ('+(state.year==='1'?'1st':state.year==='2'?'2nd':'3rd')+' year)';
+      const subjText=(!state.subject||state.subject==='all')?'':(' — '+state.subject);
+      const typeText=state.type==='all'?'Notes ya PYQ':(state.type==='notes'?'Notes':'PYQ');
+      const msg='📚 *BCAPrime* — Study Material Request 🙏\n\n'
+        +'Yaar mujhe '+semText+yearText+subjText+' ka '+typeText+' chahiye, aur library mein abhi nahi mil raha. 😅\n\n'
+        +'Agar tumhare paas hai to please 2 minute nikaal ke yahan upload kar do:\n'
+        +'👉 https://bcaprime.vercel.app\n\n'
+        +'Pehle tu upload karega, phir sab padhenge! 💪🚀';
+      window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+    }
     function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span>${r.uploader?`<span><i class="fa-solid fa-user"></i>${r.uploader}</span>`:''}</div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button><button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');render()}
     function applyFilters(){updateSemesterOptions();state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;renderSubjectFilter();if($('subjectFilter'))state.subject=$('subjectFilter').value;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
