@@ -296,3 +296,31 @@
 [data-theme=dark] .primary{color:#0a0a0a;border-color:var(--ink)}
 [data-theme=dark] .primary:hover{filter:none;background:#fff;transform:translateY(-1px)}
 
+/* ============================================================
+   Upload success celebration — payment-style animated tick
+   ============================================================ */
+.upload-success-overlay{position:fixed;inset:0;z-index:1500;display:none;place-items:center;padding:18px;background:rgba(4,10,16,.72);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.upload-success-overlay.open{display:grid}
+.upload-success-card{width:min(100%,380px);text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:36px 26px 28px;box-shadow:var(--shadow-float);animation:successCardIn .55s cubic-bezier(.18,.9,.28,1.35) both}
+@keyframes successCardIn{from{opacity:0;transform:translateY(26px) scale(.9)}to{opacity:1;transform:none}}
+.tick-wrap{position:relative;width:96px;height:96px;margin:0 auto 18px;border-radius:50%;background:color-mix(in srgb,#2fbf71 14%,transparent);display:grid;place-items:center;animation:tickPop .45s cubic-bezier(.2,.9,.3,1.5) .25s both}
+@keyframes tickPop{from{transform:scale(.55)}to{transform:scale(1)}}
+.tick-wrap svg{width:62px;height:62px}
+.tick-wrap circle,.tick-wrap path{fill:none;stroke:#2fbf71;stroke-linecap:round;stroke-linejoin:round}
+.tick-wrap circle{stroke-width:3.5;stroke-dasharray:146;stroke-dashoffset:146;animation:drawStroke .6s ease-out .15s forwards}
+.tick-wrap path{stroke-width:5;stroke-dasharray:34;stroke-dashoffset:34;animation:drawStroke .35s ease-out .68s forwards}
+@keyframes drawStroke{to{stroke-dashoffset:0}}
+.spark{position:absolute;top:50%;left:50%;width:8px;height:8px;border-radius:50%;opacity:0;animation:sparkFly .85s ease-out .9s both}
+.spark.s1{background:#ffb84d;--dx:-58px;--dy:-52px}
+.spark.s2{background:#2fbf71;--dx:56px;--dy:-60px}
+.spark.s3{background:#3291ff;--dx:-66px;--dy:14px}
+.spark.s4{background:#ff7ab0;--dx:64px;--dy:22px}
+.spark.s5{background:#ffd93d;--dx:-30px;--dy:-72px}
+.spark.s6{background:#7c5cff;--dx:34px;--dy:66px}
+@keyframes sparkFly{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}30%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1)}}
+.upload-success-card h3{margin:0 0 8px;font:700 24px 'Geist'}
+.upload-success-card p{margin:0;color:var(--ink);font-size:14.5px;line-height:1.5}
+.upload-success-card small{display:block;margin-top:10px;color:var(--muted);font-size:12.5px;line-height:1.5}
+.upload-success-card button{margin-top:18px;min-width:160px}
+
+

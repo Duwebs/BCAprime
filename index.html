@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -64,7 +64,21 @@
   <div id="toastRoot" role="status" aria-live="polite"></div>
   <div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="Welcome tour"><button class="tour-skip" type="button" onclick="skipTour()">Skip</button><div class="tour-stage" id="tourStage"><div class="tour-icon-wrap"><i id="tourIcon" class="fa-solid fa-magnifying-glass"></i></div><div class="tour-dots" id="tourDots"></div><h2 id="tourTitle"></h2><p id="tourText"></p></div><div class="tour-actions"><button class="tour-back" id="tourBack" type="button" onclick="previousTourStep()" hidden aria-label="Previous"><i class="fa-solid fa-arrow-left"></i></button><button class="primary" id="tourNext" type="button" onclick="nextTourStep()">Next <i class="fa-solid fa-arrow-right"></i></button></div></div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="push-subscribe.js"></script>
-  <script src="app.js"></script>
+  <!-- Upload success celebration -->
+  <div class="upload-success-overlay" id="uploadSuccess" onclick="if(event.target===this)closeUploadSuccess()">
+    <div class="upload-success-card">
+      <div class="tick-wrap">
+        <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span><span class="spark s4"></span><span class="spark s5"></span><span class="spark s6"></span>
+        <svg viewBox="0 0 52 52" aria-hidden="true"><circle cx="26" cy="26" r="23"/><path d="M15 27.5l7.5 7.5L37.5 20"/></svg>
+      </div>
+      <h3>Upload ho gaya! 🎉</h3>
+      <p id="uploadSuccessText">Aapka material review ke liye bhej diya gaya hai.</p>
+      <small>Admin approve karega — live hote hi notification milega 🔔</small>
+      <button class="primary" type="button" onclick="closeUploadSuccess()">Great!</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=3"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=3"></script><script src="push-subscribe.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>

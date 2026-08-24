@@ -232,7 +232,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
           form.reset();
           $('fileName').textContent='Choose a PDF, DOCX or ZIP file';
           render();
-          toast('File uploaded and waiting for approval');
+          showUploadSuccess(type);
           renderMyUploads();
         } catch (error) {
           const localUpload=createLocalUploadRecord(file,{...payload,fileData:reader.result,status:'pending'});
@@ -244,11 +244,24 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
           form.reset();
           $('fileName').textContent='Choose a PDF, DOCX or ZIP file';
           render();
-          toast('Upload submitted for admin review');
+          showUploadSuccess(type);
         }
       };
       reader.readAsDataURL(file);
     }
+    /* ---- Upload success celebration ---- */
+    function showUploadSuccess(kind){
+      const overlay=$('uploadSuccess');
+      if(!overlay){toast('Uploaded for review');return}
+      const text=$('uploadSuccessText');
+      if(text)text.textContent=(kind==='pyq'?'Aapka PYQ':'Aapke notes')+' successfully upload ho gaye hain!';
+      // Restart animations on every upload
+      overlay.classList.remove('open');
+      void overlay.offsetWidth;
+      overlay.classList.add('open');
+    }
+    function closeUploadSuccess(){const overlay=$('uploadSuccess');if(overlay)overlay.classList.remove('open')}
+    window.closeUploadSuccess=closeUploadSuccess;
     function resetPreferences(){
       if(!confirm('Reset all preferences? This clears saved items, your uploads list, college and theme on this device.'))return;
       const keys=['bca-onboarded','bca-tour-seen','bca-college','bca-sem','bca-year','bca-saved','bca-custom-colleges','bca-uploads','bca-theme'];
