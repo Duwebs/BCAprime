@@ -4,11 +4,11 @@ const ADMIN_SHELL = [
   './admin.html',
   './admin.css',
   './admin.js',
-  './supabase-config.js',
+  '../supabase-config.js',
   './admin-manifest.webmanifest',
-  './assets/logo.png',
-  './assets/icon-192.png',
-  './assets/icon-512.png'
+  '../assets/logo.png',
+  '../assets/icon-192.png',
+  '../assets/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
