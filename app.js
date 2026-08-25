@@ -18,6 +18,26 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function getCustomSubjects(sem){try{return JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}')[String(sem)]||[]}catch(error){return[]}}
     function addCustomSubject(sem,name){try{const all=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}');const key=String(sem);all[key]=[...new Set([...(all[key]||[]),name])];localStorage.setItem('bca-custom-subjects',JSON.stringify(all))}catch(error){}}
     const normSubject=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
+    /* ---- PrimeFinder robust matching — har user scenario cover karta hai ----
+       - Multi-word query: har word title/subject/college mein AND-hotá hai (order irrelevant)
+       - Subject: exact + normalized containment (partial/near subjects bhi milte hain)
+       - Missing sem/year/college data: drop nahi karte, universal treat karte hain
+       - '__add' (Add-subject UI state) ko filter nahi maante */
+    function collegeMatchesFilter(c){return state.college==='all'||!c||c==='all'||c===state.college}
+    function semMatchesFilter(v){return state.sem==='all'||v==null||String(v)===''||Number(v)===Number(state.sem)}
+    function yearMatchesFilter(v){return state.year==='all'||v==null||String(v)===''||Number(v)===Number(state.year)}
+    function queryTokens(q){return normSubject(q).split(' ').filter(Boolean)}
+    function queryMatchesFilter(q,title,subject,collegeName){
+      if(!q)return true;const tokens=queryTokens(q);if(!tokens.length)return true;
+      const hay=normSubject(title)+' '+normSubject(subject)+' '+normSubject(collegeName);
+      return tokens.every(t=>hay.includes(t));
+    }
+    function subjectMatchesFilter(resourceSubject,filter){
+      if(!filter||filter==='all'||filter==='__add')return true;
+      const r=normSubject(resourceSubject);if(!r)return true;
+      const f=normSubject(filter);
+      return r===f||r.includes(f)||f.includes(r);
+    }
     let resources=[
       {title:'C Programming Complete Notes',type:'notes',sem:1,year:1,subject:'Programming Principles & C',college:'all'},
       {title:'Data Structures PYQ Paper 2024',type:'pyq',sem:2,year:1,subject:'Data Structures Using C',college:'ccsu'},
@@ -55,21 +75,21 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     }
     function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark')}
-    function render(){const q=state.query.toLowerCase();const list=resources.filter(r=>{
-        const matchSaved = !state.savedOnly || state.saved.includes(r.title.replace(/\W/g,''));
-        const matchType = state.type === 'all' || r.type === state.type;
-        const matchCollege = state.college === 'all' || r.college === 'all' || r.college === state.college;
-        const matchSem = state.sem === 'all' || r.sem === Number(state.sem);
-        const matchYear = state.year === 'all' || r.year === Number(state.year);
-        const matchQuery = `${r.title} ${r.subject}`.toLowerCase().includes(q);
-        const matchSubject = !state.subject || state.subject === 'all' || normSubject(r.subject) === normSubject(state.subject);
-        return matchSaved && matchType && matchCollege && matchSem && matchYear && matchQuery && matchSubject;
+    function render(){const list=resources.filter(r=>{
+        if(state.savedOnly&&!state.saved.includes(r.title.replace(/\W/g,'')))return false;
+        if(state.type!=='all'&&r.type!==state.type)return false;
+        if(!collegeMatchesFilter(r.college))return false;
+        if(!semMatchesFilter(r.sem))return false;
+        if(!yearMatchesFilter(r.year))return false;
+        if(!queryMatchesFilter(state.query,r.title,r.subject,(colleges.find(c=>c[0]===r.college)||['',''])[1]))return false;
+        if(!subjectMatchesFilter(r.subject,state.subject))return false;
+        return true;
       });
       $('count').textContent=`${list.length} result${list.length===1?'':'s'}`;
       $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':buildEmptyState()}
     /* ---- Empty state: upload karo ya WhatsApp pe friends se request bhejo ---- */
     function buildEmptyState(){
-      const searching=state.year!=='all'||state.sem!=='all'||(state.subject&&state.subject!=='all')||state.type!=='all';
+      const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.year!=='all'||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
       return `<div class="empty"><i class="fa-regular fa-folder-open"></i><br>
         <strong>${searching?'Ye material abhi library mein nahi mila':'Library is quiet — be the first!'}</strong><br>
         <small>${searching?'Aapke filters ka koi Notes/PYQ available nahi hai. Pehle aap upload kar do, ya apne doston se request bhejo:':'Yahan sabse pehla material aap share kar sakte ho.'}</small>
@@ -93,7 +113,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     }
     function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span>${r.uploader?`<span><i class="fa-solid fa-user"></i>${r.uploader}</span>`:''}</div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button><button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');render()}
-    function applyFilters(){updateSemesterOptions();state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;renderSubjectFilter();if($('subjectFilter'))state.subject=$('subjectFilter').value;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
+    function applyFilters(){updateSemesterOptions();state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
     /* Year select hone par semester dropdown usi year ke sems tak simit hota hai */
     function updateSemesterOptions(){
       const yearSel=$('yearFilter'),semSel=$('semesterFilter');
@@ -134,9 +154,9 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
        This is how unknown college-specific subjects discover themselves. */
     function getAvailableSubjects(){
       return [...new Set(resources.filter(r=>{
-        const matchCollege=state.college==='all'||r.college==='all'||r.college===state.college;
-        const matchSem=state.sem==='all'||r.sem===Number(state.sem);
-        const matchYear=state.year==='all'||r.year===Number(state.year);
+        const matchCollege=collegeMatchesFilter(r.college);
+        const matchSem=semMatchesFilter(r.sem);
+        const matchYear=yearMatchesFilter(r.year);
         const matchType=state.type==='all'||r.type===state.type;
         return matchCollege&&matchSem&&matchYear&&matchType;
       }).map(r=>String(r.subject||'').trim()).filter(Boolean))];
@@ -235,7 +255,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       getAvailableSubjects().forEach(s=>{if(!subjects.some(x=>normSubject(x)===normSubject(s)))subjects.push(s)});
       if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Apna semester chuno — yahan uske saare subjects dikhenge 📚</div>';return}
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
-      const countFor=s=>resources.filter(r=>normSubject(r.subject)===normSubject(s)&&(state.college==='all'||r.college==='all'||r.college===state.college)&&(!state.sem||state.sem==='all'||r.sem===Number(state.sem))).length;
+      const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&semMatchesFilter(r.sem)).length;
       wrap.innerHTML=[...seen.values()].map((s,i)=>{
         const hue=subjectHue(s);const count=countFor(s);
         return `<button class="subject-card" style="--hue:${hue};animation-delay:${Math.min(i*45,450)}ms" onclick="openSubjectType('${s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
@@ -407,7 +427,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
     function logoutFromPop(){hideProfileCard();if(firebaseApp&&accountSession){signOutAccount();return}sessionStorage.removeItem('bca-guest-mode');accountSession=null;hideAuthenticatedApp();toast('Logged out')}
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].sort((a,b)=>{if(a[0]==='all')return -1;if(b[0]==='all')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
-    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();render()}
+    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render()}
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
     function showFile(input){if(input.files[0])$('fileName').textContent=input.files[0].name}
     function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
