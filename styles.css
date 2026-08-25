@@ -538,3 +538,26 @@
 .onboarding-back i{pointer-events:none}
 @media(prefers-reduced-motion:reduce){.onboarding-track{transition:none}}
 
+/* ============================================================
+   New-device approval (WhatsApp-style linking)
+   ============================================================ */
+.device-gate-dialog{text-align:center;padding-top:36px;max-width:420px}
+.device-gate-icon{width:72px;height:72px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;font-size:30px;color:#fff;background:linear-gradient(135deg,var(--brand),#7c5cff);box-shadow:0 10px 26px color-mix(in srgb,var(--brand) 35%,transparent)}
+.device-gate-code{margin:22px 0 6px;padding:14px;border:1px dashed color-mix(in srgb,var(--brand) 45%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--brand) 8%,var(--surface))}
+.device-gate-code span{display:block;font:700 30px/1 'Geist Mono',monospace;letter-spacing:.18em;color:var(--brand)}
+.device-gate-code small{display:block;margin-top:8px;color:var(--muted);font-size:12px}
+.device-gate-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+.device-gate-actions .primary,.device-gate-actions .secondary{min-width:150px}
+
+/* Floating banner on the approved device asking to approve a new device */
+.device-request-banner{position:fixed;left:50%;bottom:20px;transform:translate(-50%,140%);z-index:1200;display:flex;align-items:center;gap:14px;max-width:min(92vw,560px);padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:color-mix(in srgb,var(--surface) 94%,var(--brand));box-shadow:var(--shadow-float);transition:transform .35s cubic-bezier(.2,.9,.3,1.2)}
+.device-request-banner.show{transform:translate(-50%,0)}
+.device-request-icon{width:46px;height:46px;flex:none;border-radius:13px;display:grid;place-items:center;font-size:19px;color:#fff;background:linear-gradient(135deg,var(--brand),#7c5cff)}
+.device-request-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.device-request-copy strong{font:600 14.5px 'Geist';color:var(--ink)}
+.device-request-copy>span{color:var(--muted);font-size:12.5px;line-height:1.45}
+.device-request-copy b{color:var(--brand)}
+.device-request-actions{display:flex;gap:8px;flex:none}
+.device-request-actions .primary,.device-request-actions .secondary{padding:8px 12px;font-size:12.5px}
+@media(max-width:520px){.device-request-banner{flex-wrap:wrap;bottom:12px}.device-request-actions{width:100%;justify-content:stretch}.device-request-actions button{flex:1}}
+

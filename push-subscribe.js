@@ -44,6 +44,14 @@
       return (v && v !== 'all' && n >= 1 && n <= 6) ? n : null;
     } catch (e) { return null; }
   }
+  // Account (Firebase uid) bhi save karo, taaki naye-device approval wali
+  // notification sirf is user ke devices ko targeting kar sake.
+  function enrolledUid() {
+    try {
+      if (window.__bcaSessionUid) return window.__bcaSessionUid() || null;
+      return null;
+    } catch (e) { return null; }
+  }
   async function saveSubscription(subscription) {
     const json = subscription.toJSON();
     const payload = {
@@ -52,7 +60,8 @@
       auth: json.keys ? json.keys.auth : null,
       user_agent: navigator.userAgent,
       college: enrolledCollege(),
-      semester: enrolledSemester()
+      semester: enrolledSemester(),
+      uid: enrolledUid()
     };
     const { error } = await supabaseClient.from(SUBS_TABLE).upsert(payload, { onConflict: 'endpoint' });
     if (error) console.warn('Could not save push subscription.', error.message);

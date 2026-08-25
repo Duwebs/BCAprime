@@ -138,7 +138,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       }
     }
     function resetFinder(){$('yearFilter').value='all';updateSemesterOptions();$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
-    function chooseSemester(sem,button){const year=String(Math.ceil(Number(sem)/2)||1);state.year=year;$('yearFilter').value=year;updateSemesterOptions();$('semesterFilter').value=String(sem);document.querySelectorAll('.semester').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.sem=String(sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);const __cs=$('deskSemester');if(__cs)__cs.textContent=`Semester ${sem} resources`;render();$('library').scrollIntoView({behavior:'smooth'})}
+    function chooseSemester(sem,button){const year=String(Math.ceil(Number(sem)/2)||1);state.year=year;$('yearFilter').value=year;updateSemesterOptions();$('semesterFilter').value=String(sem);document.querySelectorAll('.semester').forEach(x=>x.classList.remove('active'));button.classList.add('active');state.sem=String(sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);const __cs=$('deskSemester');if(__cs)__cs.textContent=`Semester ${sem} resources`;render();saveProfileToAccount();$('library').scrollIntoView({behavior:'smooth'})}
     let lastSearchTrack={query:'',ts:0};
     function searchResources(value){state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count})}}catch(error){}}
     /* ---- Subject filter engine ----
@@ -408,13 +408,131 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     let gateMode='signup';
     function setGateMode(mode){gateMode=mode;$('gateAccountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('gateAccountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('gateAccountMessage').textContent='';$('gateNameLabel').hidden=mode!=='signup';if(mode==='signup')$('gateAccountName').setAttribute('required','');else $('gateAccountName').removeAttribute('required')}
     async function submitGateAccount(event){event.preventDefault();if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';return}$('gateAccountMessage').textContent='Working...';const email=$('gateAccountEmail').value.trim();const password=$('gateAccountPassword').value;try{if(gateMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('gateAccountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setGateMode('login');$('gateAccountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}catch(error){authSuppress=false;$('gateAccountMessage').textContent=error.message;return}}
-    function showAuthenticatedApp(){$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();renderAvatar();setTimeout(showOnboardingIfNeeded,180)}
+    function showAuthenticatedApp(){$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();renderAvatar();afterAccountAuth();setTimeout(showOnboardingIfNeeded,180)}
     function continueAsGuest(){sessionStorage.setItem('bca-guest-mode','true');showAuthenticatedApp();toast('Guest mode enabled')}
     function hideAuthenticatedApp(){$('authGate').hidden=false;$('appShell').hidden=true;$('appTabs').hidden=true;renderGreeting()}
+    /* ================== Account-bound college & semester ==================
+       Ab account (Firebase uid) ki ek server-side profile hoti hai (college +
+       semester). Login par is profile se sync hota hai, taaki SAME account har
+       device par SAME college + semester rakhe — 'DU laptop / Glocal phone'
+       wala data-conflict ab possible nahi hai. Server = source of truth. */
+    function accountUid(){return(accountSession&&accountSession.uid)?accountSession.uid:''}
+    window.__bcaSessionUid=accountUid;
+    async function syncProfileToAccount(){
+      if(!supabaseClient||!accountUid())return;
+      try{
+        const {data}=await supabaseClient.from('user_profiles').select('college,semester').eq('uid',accountUid()).maybeSingle();
+        if(data){
+          let changed=false;
+          if(data.college&&data.college!=='all'){state.college=data.college;try{localStorage.setItem('bca-college',data.college)}catch(e){}changed=true}
+          if(data.semester!=null){state.sem=String(data.semester);state.year=data.semester>4?'3':(data.semester>2?'2':'1');try{localStorage.setItem('bca-sem',String(data.semester));localStorage.setItem('bca-year',state.year)}catch(e){}changed=true}
+          if(changed){
+            const lbl=$('collegeLabel');if(lbl)lbl.textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];
+            try{$('yearFilter').value=state.year;updateSemesterOptions();const ss=$('semesterFilter');if(ss&&state.sem!=='all')ss.value=state.sem;}catch(e){}
+            const ds=$('deskSemester');if(ds)ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;
+            renderSubjectFilter();render();
+          }
+        }
+      }catch(e){}
+    }
+    async function saveProfileToAccount(){
+      if(!supabaseClient||!accountUid())return;
+      const uid=accountUid();
+      const sem=(state.sem&&state.sem!=='all')?Number(state.sem):null;
+      const email=(accountSession&&accountSession.email)?accountSession.email:'';
+      try{await supabaseClient.from('user_profiles').upsert({uid,email,college:state.college||'all',semester:sem,updated_at:new Date().toISOString()},{onConflict:'uid'})}catch(e){}
+    }
+    /* ================== WhatsApp-style new-device approval ==================
+       Har device ka ek stable device_id (localStorage). Pehla device auto-
+       approved (lockout na ho). Naye device par login -> pending -> kisi
+       already-approved device par banner aata hai (Approve/Deny) -> approve
+       hone par naya device unlock ho jata hai. */
+    const getDeviceId=(()=>{let d='';try{d=localStorage.getItem('bca-device-id')}catch(e){}if(!d){d='dev-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);try{localStorage.setItem('bca-device-id',d)}catch(e){}}return d})();
+    function getDeviceName(){const ua=navigator.userAgent;if(/iPhone|iPad|iPod/i.test(ua))return'iPhone/iPad';if(/Android/i.test(ua))return'Android phone';if(/Windows/i.test(ua))return'Windows laptop/PC';if(/Macintosh/i.test(ua))return'Mac';return'Browser device'}
+    async function afterAccountAuth(){
+      if(!supabaseClient||!accountUid())return;
+      try{await syncProfileToAccount()}catch(e){}
+      try{saveProfileToAccount()}catch(e){}
+      try{await ensureDeviceApproved()}catch(e){}
+      startDeviceRequestWatch();
+    }
+    async function ensureDeviceApproved(){
+      if(!accountUid()||!supabaseClient)return true;
+      const uid=accountUid(),devId=getDeviceId();
+      try{
+        const r1=await supabaseClient.from('device_sessions').select('status').eq('uid',uid).eq('device_id',devId).maybeSingle();
+        const mine=r1.data;
+        if(mine&&mine.status==='approved')return true;
+        const r2=await supabaseClient.from('device_sessions').select('id').eq('uid',uid).eq('status','approved').limit(1);
+        const anyApproved=r2.data;
+        if(!anyApproved||!anyApproved.length){
+          await supabaseClient.from('device_sessions').upsert({uid,device_id:devId,device_name:getDeviceName(),status:'approved',approved_at:new Date().toISOString()},{onConflict:'uid,device_id'});
+          return true;
+        }
+        showDeviceGate(uid,devId);
+        return false;
+      }catch(e){return true} /* fail open: user ko kabhi lock-out mat karo */
+    }
+    let devicePollTimer=null;
+    async function showDeviceGate(uid,devId){
+      const modal=$('deviceGateModal');if(!modal)return;
+      const code=('000000'+Math.floor(100000+Math.random()*900000)).slice(-6);
+      modal.dataset.code=code;
+      try{await supabaseClient.from('device_sessions').upsert({uid,device_id:devId,device_name:getDeviceName(),link_code:code,status:'pending'},{onConflict:'uid,device_id'})}catch(e){}
+      const cEl=$('deviceCode');if(cEl)cEl.textContent=code;
+      modal.classList.add('open');
+      stopDevicePolling();
+      devicePollTimer=setInterval(async()=>{
+        try{
+          const {data}=await supabaseClient.from('device_sessions').select('status').eq('uid',uid).eq('device_id',devId).maybeSingle();
+          if(data&&data.status==='approved'){stopDevicePolling();modal.classList.remove('open');toast('Is device ka login approve ho gaya ✓')}
+          else if(data&&data.status==='denied'){stopDevicePolling();modal.classList.remove('open');toast('Device request deny ho gaya')}
+        }catch(e){}
+      },3000);
+    }
+    function stopDevicePolling(){if(devicePollTimer){clearInterval(devicePollTimer);devicePollTimer=null}}
+    function leaveDeviceGate(){stopDevicePolling();if(accountSession&&firebaseApp)signOutAccount()}
+    /* Existing (approved) device: pending naye-device requests check karo + banner dikhao */
+    let requestWatchTimer=null,currentRequestId=null;
+    function startDeviceRequestWatch(){
+      stopDeviceRequestWatch();
+      if(!accountUid()||!supabaseClient)return;
+      requestWatchTimer=setInterval(checkDeviceRequests,5000);
+      checkDeviceRequests();
+    }
+    function stopDeviceRequestWatch(){if(requestWatchTimer){clearInterval(requestWatchTimer);requestWatchTimer=null}hideDeviceRequestBanner()}
+    async function checkDeviceRequests(){
+      if(!accountUid()||!supabaseClient)return;
+      const uid=accountUid(),devId=getDeviceId();
+      try{
+        const {data}=await supabaseClient.from('device_sessions').select('id,device_name,link_code').eq('uid',uid).eq('status','pending').neq('device_id',devId).limit(1);
+        if(data&&data.length){
+          const req=data[0];
+          if(currentRequestId!==String(req.id)){
+            currentRequestId=String(req.id);
+            const nm=$('deviceReqName');if(nm)nm.textContent=req.device_name||'naya device';
+            const cd=$('deviceReqCode');if(cd)cd.textContent=req.link_code||'----';
+            const bd=$('deviceReqId');if(bd)bd.value=String(req.id);
+            const b=$('deviceRequestBanner');if(b)b.classList.add('show');
+          }
+        }else{hideDeviceRequestBanner();currentRequestId=null}
+      }catch(e){}
+    }
+    function hideDeviceRequestBanner(){const b=$('deviceRequestBanner');if(b)b.classList.remove('show')}
+    async function approveDeviceReq(){
+      const id=$('deviceReqId');if(!id||!id.value)return;
+      try{await supabaseClient.from('device_sessions').update({status:'approved',approved_at:new Date().toISOString()}).eq('id',id.value)}catch(e){}
+      hideDeviceRequestBanner();currentRequestId=null;toast('Naya device approve ho gaya ✅');
+    }
+    async function denyDeviceReq(){
+      const id=$('deviceReqId');if(!id||!id.value)return;
+      try{await supabaseClient.from('device_sessions').update({status:'denied'}).eq('id',id.value)}catch(e){}
+      hideDeviceRequestBanner();currentRequestId=null;toast('Request deny kar diya');
+    }
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const email=$('accountEmail').value.trim();const password=$('accountPassword').value;try{if(accountMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccountMode('login');$('accountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}catch(error){authSuppress=false;$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){await firebase.auth().signOut();accountSession=null;hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out')}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){document.querySelectorAll('.modal').forEach(m=>m.classList.remove('open'));closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
     function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -423,7 +541,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
     function logoutFromPop(){hideProfileCard();if(firebaseApp&&accountSession){signOutAccount();return}sessionStorage.removeItem('bca-guest-mode');accountSession=null;hideAuthenticatedApp();toast('Logged out')}
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].sort((a,b)=>{if(a[0]==='all')return -1;if(b[0]==='all')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
-    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render()}
+    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
     function showFile(input){if(input.files[0])$('fileName').textContent=input.files[0].name}
     function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
@@ -590,7 +708,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function backToOnboardingCollege(){state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2')}
     function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected');if(state.onboardingCollege&&!state.onboardingDone)setTimeout(()=>finishOnboarding(),400)}
     function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);const cf=$('collegeFilter');if(!college||!cf||cf.querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];cf.append(option)}
-    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';state.year=String(Math.ceil(Number(state.sem)/2)||1);try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{$('yearFilter').value=state.year;updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}setTimeout(startTour,200)}
+    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';state.year=String(Math.ceil(Number(state.sem)/2)||1);try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{$('yearFilter').value=state.year;updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
     const tourSteps=[

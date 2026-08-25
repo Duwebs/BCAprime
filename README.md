@@ -79,3 +79,13 @@ Students can opt in from the bell icon (or the "Never miss an update" banner) an
 - **iOS Safari**: requires the site to be installed to the Home Screen first (**Share → Add to Home Screen**), then enable from the bell inside the installed PWA.
 - Notification sound/vibration style is controlled by each OS; the custom chime plays only while the app is open.
 
+## Account-bound college & semester + WhatsApp-style device linking
+
+Ek account (email/Google/Apple) ab **poore devices par ek hi college + semester** rakhta hai — server-side `user_profiles` table (Firebase uid key). 
+
+- **Conflict prevention**: laptop par DU set karke phone par Glocal wala galat scenario ab possible nahi. Jab bhi login hota hai, device ki local prefs server profile se **overwrite** ho jaati hain (server = source of truth). College/semester change karne par (`chooseSemester`, `selectCollege`, onboarding) wahi value account par save hoti hai, taaki har device sync ho.
+- **New-device approval (WhatsApp-style)**: har browser ek stable `device_id` rakhta hai. **Pehla device auto-approve** hota hai (lockout nahi). Naya device login kare to `device_sessions` mein `pending` ho jaata hai aur us par ek code wala gate modal aata hai. Kisi already-approved device par ek floating banner aata hai ("Naya device login chahta hai" + code, Approve/Deny). Approve hone par naya device unlock ho jaata hai; deny hone par sign-out.
+- Push notifications ab `uid` bhi target kar sakti hain (Edge Function me `uid` filter), taaki "naye device approve karo" wali alerts sirf us account ke devices ko jayein.
+
+**SQL add-on (already-deployed DBs ke liye)**: `supabase-schema.sql` mein naye tables (`user_profiles`, `device_sessions`) aur `push_subscriptions.uid` column hain — unhe run karo (SQL Editor), phir `supabase functions deploy send-push`.
+

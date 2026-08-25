@@ -82,13 +82,18 @@ Deno.serve(async (req) => {
     });
   }
 
-  // --- Targeting: optional college + semester filters (broadcast when absent) ---
+  // --- Targeting: optional college/semester/uid filters (broadcast when absent) ---
   const targetCollege = typeof body.college === 'string' && body.college.trim() ? body.college.trim() : null;
   const targetSemester = body.semester == null || body.semester === '' ? null : Number(body.semester);
+  const targetUid = typeof body.uid === 'string' && body.uid.trim() ? body.uid.trim() : null;
 
-  // Subscription ki enrolled college/semester target se match karni chahiye.
+  // Subscription ki enrolled college/semester/uid target se match karni chahiye.
   // - 'all' college walon ko (jinhone college choose nahi kiya) kisi bhi college ki news milti hai.
   // - Koi filter nahi -> sab match (broadcast).
+  function matchUid(subUid: any) {
+    if (!targetUid) return true;
+    return subUid != null && String(subUid) === targetUid;
+  }
   function matchCollege(subCollege: any) {
     if (!targetCollege || targetCollege === 'all') return true;
     if (subCollege == null || subCollege === '' || subCollege === 'all') return true;
@@ -105,7 +110,7 @@ Deno.serve(async (req) => {
   );
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth, college, semester');
+    .select('endpoint, p256dh, auth, college, semester, uid');
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
@@ -114,7 +119,7 @@ Deno.serve(async (req) => {
   }
 
   // Sirf un subscriptions ko push karo jo targeting match karti hon.
-  const targets = (subs ?? []).filter((sub: any) => matchCollege(sub.college) && matchSemester(sub.semester));
+  const targets = (subs ?? []).filter((sub: any) => matchUid(sub.uid) && matchCollege(sub.college) && matchSemester(sub.semester));
 
   const payload = JSON.stringify({
     title: typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 80) : 'BCAPrime',
