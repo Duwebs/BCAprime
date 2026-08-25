@@ -410,3 +410,16 @@ body {
 
 
 
+
+/* ---- Admin analytics panel ---- */
+.an-stats{grid-template-columns:repeat(4,1fr)}
+.an-heading{font:600 15px 'Space Grotesk';margin:22px 0 10px}
+.an-chips{display:flex;flex-wrap:wrap;gap:8px}
+.an-chip{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface-2);font-size:13px;color:var(--muted)}
+.an-chip b{color:var(--ink)}
+.an-chip.alt{border-style:dashed}
+.an-user{display:flex;flex-direction:column;gap:1px}
+.an-sub{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.an-mono{font-family:ui-monospace,monospace;opacity:.7}
+.an-up{color:var(--brand);font-size:11px;font-weight:700;margin-left:4px}
+@media(max-width:700px){.an-stats{grid-template-columns:repeat(2,1fr)}}

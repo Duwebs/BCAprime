@@ -78,6 +78,56 @@
       </div>
     </section>
 
+    <!-- Analytics -->
+    <section class="panel" id="analyticsPanel">
+      <div class="toolbar">
+        <h2>Analytics</h2>
+        <div class="filters">
+          <select class="select" id="anRange" onchange="loadAnalytics()">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="0">All time</option>
+          </select>
+          <button class="button" onclick="loadAnalytics()">Refresh</button>
+        </div>
+      </div>
+
+      <div class="stats an-stats">
+        <div class="stat"><strong id="anUsers">0</strong><span>Total users (devices)</span></div>
+        <div class="stat"><strong id="anSignedUp">0</strong><span>Signed-up users</span></div>
+        <div class="stat"><strong id="anGuests">0</strong><span>Guest users</span></div>
+        <div class="stat"><strong id="anDownloads">0</strong><span>Total downloads</span></div>
+        <div class="stat"><strong id="anViews">0</strong><span>Notes/PYQs opened</span></div>
+        <div class="stat"><strong id="anUploads">0</strong><span>User uploads</span></div>
+        <div class="stat"><strong id="anSessions">0</strong><span>Sessions</span></div>
+        <div class="stat"><strong id="anAvgTime">0m</strong><span>Avg time / session</span></div>
+      </div>
+
+      <h3 class="an-heading">Devices &amp; platforms</h3>
+      <div class="an-chips" id="anDevices"></div>
+
+      <h3 class="an-heading">Top resources (opens / downloads)</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Resource</th><th>Type</th><th>Opened</th><th>Downloads</th></tr></thead>
+          <tbody id="anTopRows"></tbody>
+        </table>
+      </div>
+
+      <h3 class="an-heading">Users — kaun kya kar raha hai</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>User</th><th>Device</th><th>Opened</th><th>Downloads</th><th>Time spent</th><th>Last seen</th></tr></thead>
+          <tbody id="anUserRows"></tbody>
+        </table>
+      </div>
+
+      <h3 class="an-heading">Live activity feed</h3>
+      <div id="anFeed" class="feedback-list"><p class="note">Loading&hellip;</p></div>
+      <div class="note">Tracking: visits, opens, downloads, uploads, time spent, device/OS/browser. Anonymous users bhi visitor ID se count hote hain.</div>
+    </section>
+
     <!-- Review panel -->
     <section class="panel">
       <div class="toolbar">
