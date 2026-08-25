@@ -13,13 +13,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css?v=14">
+  <link rel="stylesheet" href="styles.css?v=15">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
     <div class="splash-inner"><img class="splash-logo" src="assets/logo.png" alt="BCAPrime" width="92" height="92"><div class="splash-name">BCA<span>Prime</span></div></div>
   </div>
-  <section class="auth-gate" id="authGate"><div class="auth-gate-card"><div class="auth-gate-brand"><img src="assets/logo.png" alt="BCAPrime logo" width="38" height="38"><span>BCA<span style="color:var(--brand)">Prime</span></span></div><h1>Welcome to your study desk.</h1><p>Login or create an account to access the BCA library, saved resources, and uploads.</p><form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button></div></section>
+  <section class="auth-gate" id="authGate"><div class="auth-gate-card">
+      <aside class="auth-side" aria-label="BCAPrime overview">
+        <div class="auth-gate-brand auth-side-brand"><img src="assets/logo.png" alt="BCAPrime logo" width="42" height="42"><span>BCA<span style="color:var(--brand)">Prime</span></span></div>
+        <h1 class="auth-side-title">Welcome to your study desk.</h1>
+        <p class="auth-side-sub">Poora BCA library ek jagah &mdash; notes, previous year papers aur saved material, sab kuch organised.</p>
+        <ol class="auth-steps">
+          <li><span class="auth-step-num"><i class="fa-solid fa-building-columns"></i></span><div><strong>Apna college chuno</strong><small>Onboarding me college select karo &mdash; us college ke resources sabse pehle dikhenge.</small></div></li>
+          <li><span class="auth-step-num"><i class="fa-solid fa-layer-group"></i></span><div><strong>Semester + subject pick karo</strong><small>PrimeFinder se apne semester ke notes aur PYQs seconds me dhundo.</small></div></li>
+          <li><span class="auth-step-num"><i class="fa-solid fa-bookmark"></i></span><div><strong>Save karo, kahin bhi padho</strong><small>Important material bookmark karo &mdash; Saved tab me hamesha ek tap door.</small></div></li>
+        </ol>
+        <div class="auth-side-foot"><i class="fa-solid fa-shield-halved"></i><span>Aapka data sirf aapke account se sync hota hai &mdash; har device par same experience.</span></div>
+      </aside>
+      <div class="auth-main">
+        <div class="auth-mob-head">
+          <div class="auth-gate-brand"><img src="assets/logo.png" alt="BCAPrime logo" width="38" height="38"><span>BCA<span style="color:var(--brand)">Prime</span></span></div>
+          <h1>Welcome to your study desk.</h1>
+          <p>Login or create an account to access the BCA library, saved resources, and uploads.</p>
+        </div>
+        <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
+      </div>
+    </div></section>
   <aside class="install-banner" id="installBanner" aria-live="polite"><span class="install-banner-icon"><img src="assets/logo.png" alt="BCAPrime logo" width="36" height="36"></span><span class="install-banner-copy"><strong>Install BCAPrime</strong><span>Keep your study library one tap away.</span></span><span class="install-banner-actions"><button class="primary" onclick="installApp()"><i class="fa-solid fa-download"></i> Install</button><button class="install-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss install prompt" title="Dismiss"><i class="fa-solid fa-xmark"></i><span>Later</span></button></span></aside>
   <div class="onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle"><div class="onboarding-dialog"><div class="onboarding-kicker"><i class="fa-solid fa-sparkles"></i> Personalise your library</div><div class="onboarding-viewport"><div class="onboarding-track" id="obTrack"><div class="onboarding-step" id="obStep1"><h2 id="onboardingTitle">Where do you study?</h2><p>Choose your college to see the most relevant BCA papers and notes first.</p><div class="onboarding-list" id="onboardingList"></div><div class="onboarding-custom"><input id="onboardingCustom" aria-label="Add your college name" placeholder="Can't find your college? Add it here&#8230;"><button class="primary" onclick="addOnboardingCollege()"><i class="fa-solid fa-plus"></i> Add college</button></div></div><div class="onboarding-step" id="obStep2"><button type="button" class="onboarding-back" onclick="backToOnboardingCollege()" aria-label="Back to college selection"><i class="fa-solid fa-arrow-left"></i></button><h2>Which semester are you in?</h2><p>Pick your current semester to personalise your study desk.</p><div class="onboarding-semesters open" id="onboardingSemesters"><button onclick="chooseOnboardingSemester(1,this)"><b>Semester 1</b><small>First year</small></button><button onclick="chooseOnboardingSemester(2,this)"><b>Semester 2</b><small>First year</small></button><button onclick="chooseOnboardingSemester(3,this)"><b>Semester 3</b><small>Second year</small></button><button onclick="chooseOnboardingSemester(4,this)"><b>Semester 4</b><small>Second year</small></button><button onclick="chooseOnboardingSemester(5,this)"><b>Semester 5</b><small>Third year</small></button><button onclick="chooseOnboardingSemester(6,this)"><b>Semester 6</b><small>Third year</small></button></div></div></div></div><select id="collegeFilter" class="onboarding-college-select" hidden><option value="">Select a college</option></select></div></div></div>
   <main class="app" id="appShell" hidden>
@@ -105,4 +125,5 @@
   <script src="app.js?v=15"></script>
 </body>
 </html>
+
 
