@@ -38,14 +38,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       const f=normSubject(filter);
       return r===f||r.includes(f)||f.includes(r);
     }
-    let resources=[
-      {title:'C Programming Complete Notes',type:'notes',sem:1,year:1,subject:'Programming Principles & C',college:'all'},
-      {title:'Data Structures PYQ Paper 2024',type:'pyq',sem:2,year:1,subject:'Data Structures Using C',college:'ccsu'},
-      {title:'DBMS and SQL Revision Guide',type:'notes',sem:3,year:2,subject:'Database Management Systems',college:'du'},
-      {title:'Python Programming PYQ Papers',type:'pyq',sem:5,year:3,subject:'Python Programming',college:'ipu'},
-      {title:'Operating Systems PYQ Paper',type:'pyq',sem:6,year:3,subject:'Operating Systems',college:'all'}
-    ];
-    resources=[...resources,...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
+    let resources=[...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
     const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',year:localStorage.getItem('bca-year')||'all',sem:localStorage.getItem('bca-sem')||'all',subject:localStorage.getItem('bca-subject')||'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
     const $=id=>document.getElementById(id);
     /* ---- Analytics tracking (fire-and-forget, UI kabhi block nahi karta) ---- */
@@ -256,12 +249,15 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Apna semester chuno — yahan uske saare subjects dikhenge 📚</div>';return}
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
       const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&semMatchesFilter(r.sem)).length;
+      /* Har subject ke semesters nikaalo: syllabus (BASE_SUBJECTS) + uploaded resources */
+      const semsOf=s=>{const n=normSubject(s);const set=new Set();Object.keys(BASE_SUBJECTS).forEach(sem=>{if(BASE_SUBJECTS[sem].some(x=>normSubject(x)===n))set.add(Number(sem))});resources.forEach(r=>{if(r.subject&&r.sem!=null&&subjectMatchesFilter(r.subject,s))set.add(Number(r.sem))});return [...set].sort((a,b)=>a-b)};
       wrap.innerHTML=[...seen.values()].map((s,i)=>{
-        const hue=subjectHue(s);const count=countFor(s);
+        const hue=subjectHue(s);const count=countFor(s);const sems=semsOf(s);
+        const semBadge=sems.length?`<span class="subject-badge-sem"><i class="fa-solid fa-layer-group"></i>Semester ${sems.join(' &amp; ')}</span>`:'';
         return `<button class="subject-card" style="--hue:${hue};animation-delay:${Math.min(i*45,450)}ms" onclick="openSubjectType('${s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')">
           <span class="subject-card-icon"><i class="${subjectIcon(s)}"></i></span>
           <strong>${s}</strong>
-          <small>${count?count+' material'+(count>1?'s':''):state.sem==='all'?'Explore':'Semester '+state.sem}</small>
+          <span class="subject-card-meta">${semBadge}${count?`<small>${count} material${count>1?'s':''}</small>`:''}</span>
           <span class="subject-card-go"><i class="fa-solid fa-arrow-right"></i></span>
         </button>`}).join('');
     }
