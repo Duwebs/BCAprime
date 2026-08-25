@@ -522,3 +522,16 @@
 .wa-link{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:10px;border-radius:9px;background:color-mix(in srgb,#25d366 12%,transparent);color:#1fa855;font:700 13px 'Geist',sans-serif;text-decoration:none;transition:filter .18s ease}
 .wa-link:hover{filter:brightness(1.06)}
 
+/* ---- Onboarding 2-step wizard slider ---- */
+.onboarding-viewport{overflow:hidden}
+.onboarding-track{display:flex;width:200%;transform:translateX(0);transition:transform .42s cubic-bezier(.22,.9,.32,1);will-change:transform}
+.onboarding-track.step2{transform:translateX(-50%)}
+.onboarding-step{width:50%;min-width:50%;flex:none}
+.onboarding-step h2{font:600 28px/1.1 'Geist';margin:10px 0 8px}
+.onboarding-step p{color:var(--muted);margin:0 0 20px}
+.onboarding-back{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;margin-bottom:4px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);font-size:14px;cursor:pointer;transition:border-color .18s ease,color .18s ease,transform .18s ease}
+.onboarding-back:hover{border-color:var(--brand);color:var(--brand)}
+.onboarding-back:active{transform:scale(.94)}
+.onboarding-back i{pointer-events:none}
+@media(prefers-reduced-motion:reduce){.onboarding-track{transition:none}}
+
