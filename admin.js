@@ -360,3 +360,11 @@ async function initAuth() {
 
 initAuth();
 
+/* ---- PWA: installable admin panel ---- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () =>
+    navigator.serviceWorker.register('./admin-sw.js')
+      .catch(error => console.info('Admin PWA service worker unavailable.', error.message))
+  );
+}
+
