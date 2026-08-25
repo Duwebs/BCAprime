@@ -529,8 +529,139 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       try{await supabaseClient.from('device_sessions').update({status:'denied'}).eq('id',id.value)}catch(e){}
       hideDeviceRequestBanner();currentRequestId=null;toast('Request deny kar diya');
     }
+    /* ================== WhatsApp-style QR login (desktop) ==================
+       Desktop ek qr_login_sessions row banata hai (3 min expiry) aur approval
+       ko Supabase Realtime broadcast + polling (fallback) dono se sunta hai.
+       Logged-in phone QR ke URL (?qr=<id>) se approve karta hai — desktop
+       automatic login + device approved. Single-use + expiry enforced. */
+    const QR_TTL_MS=180000;
+    let qrSession=null;
+    function isDesktopViewport(){return window.matchMedia('(min-width:1024px)').matches}
+    function newQrId(){try{if(crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'qr-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}
+    function setAuthMode(mode){
+      const main=document.querySelector('.auth-main');if(!main)return;
+      main.classList.toggle('mode-qr',mode==='qr');
+      main.classList.toggle('mode-form',mode==='form');
+      if(mode==='qr'&&isDesktopViewport())startQrSession();else stopQrSession();
+    }
+    function loadQrLib(){
+      if(window.QRCode)return Promise.resolve(true);
+      if(loadQrLib._p)return loadQrLib._p;
+      loadQrLib._p=new Promise(res=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';s.onload=()=>res(true);s.onerror=()=>{loadQrLib._p=null;res(false)};document.head.appendChild(s)});
+      return loadQrLib._p;
+    }
+    async function startQrSession(){
+      stopQrSession();
+      if(!supabaseClient){const st0=$('qrStatus');if(st0)st0.textContent='QR login ke liye connection nahi ban paya.';return}
+      try{supabaseClient.from('qr_login_sessions').delete().lt('expires_at',new Date().toISOString()).then(()=>{},()=>{})}catch(e){}
+      const id=newQrId();
+      try{await supabaseClient.from('qr_login_sessions').insert({session_id:id,status:'pending',expires_at:new Date(Date.now()+QR_TTL_MS).toISOString()})}catch(e){}
+      const exp=Math.floor((Date.now()+QR_TTL_MS)/1000);
+      const payload=location.origin+location.pathname+'?qr='+encodeURIComponent(id)+'&e='+exp;
+      qrSession={id,deadline:Date.now()+QR_TTL_MS};
+      const box=$('qrBox');if(box)box.innerHTML='';
+      const okLib=await loadQrLib();
+      if(okLib&&window.QRCode&&box){try{new window.QRCode(box,{text:payload,width:188,height:188,colorDark:'#101216',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M})}catch(e){}}
+      else if(box){box.innerHTML='<small style="display:block;max-width:190px;color:#333;font-size:11px">QR render nahi hua — phone par ye link kholo: '+payload+'</small>'}
+      setQrUi('waiting');
+      try{
+        const ch=supabaseClient.channel('qr-'+id,{config:{broadcast:{self:false}}});
+        ch.on('broadcast',{event:'LOGIN_SUCCESS'},()=>qrHandleApproved());
+        ch.on('broadcast',{event:'LOGIN_DENIED'},()=>qrHandleDenied());
+        ch.subscribe(()=>{});
+        qrSession.channel=ch;
+      }catch(e){}
+      qrSession.poll=setInterval(async()=>{
+        try{
+          const {data}=await supabaseClient.from('qr_login_sessions').select('status').eq('session_id',id).maybeSingle();
+          if(!data)return;
+          if(data.status==='approved')qrHandleApproved();
+          else if(data.status==='denied')qrHandleDenied();
+        }catch(e){}
+      },2000);
+      qrSession.tick=setInterval(()=>{
+        if(!qrSession)return;
+        const left=qrSession.deadline-Date.now();
+        const tEl=$('qrTimer');
+        if(tEl)tEl.textContent=(left>0?('0'+Math.floor(left/60000)).slice(-2)+':'+('0'+Math.floor(left%60000/1000)).slice(-2):'00:00');
+        if(left<=0)qrExpire();
+      },1000);
+    }
+    function setQrUi(state){
+      const p=document.querySelector('.auth-qr-panel');
+      if(p){p.classList.remove('is-waiting','is-expired','is-success','is-denied');p.classList.add('is-'+state)}
+      const st=$('qrStatus');
+      if(st)st.textContent=state==='waiting'?'Phone se scan karo — login turant ho jayega':state==='success'?'Login approved! Desk khul raha hai…':state==='expired'?'Code expire ho gaya — Refresh dabao':state==='denied'?'Request deny ho gayi':'';
+      const rf=$('qrRefresh');if(rf)rf.hidden=state!=='expired';
+    }
+    function qrExpire(){setQrUi('expired')}
+    function stopQrSession(){
+      if(!qrSession)return;
+      if(qrSession.poll)clearInterval(qrSession.poll);
+      if(qrSession.tick)clearInterval(qrSession.tick);
+      try{if(qrSession.channel)supabaseClient.removeChannel(qrSession.channel)}catch(e){}
+      qrSession=null;
+    }
+    async function qrHandleApproved(){
+      if(!qrSession||!supabaseClient)return;
+      const id=qrSession.id;
+      stopQrSession();
+      try{
+        const {data:row}=await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle();
+        if(!row||row.status!=='approved'||row.consumed_at||(row.expires_at&&new Date(row.expires_at)<new Date())){setQrUi('expired');return}
+        await supabaseClient.from('qr_login_sessions').update({consumed_at:new Date().toISOString()}).eq('session_id',id);
+        try{await supabaseClient.from('device_sessions').upsert({uid:row.uid,device_id:getDeviceId(),device_name:getDeviceName(),status:'approved',approved_at:new Date().toISOString()},{onConflict:'uid,device_id'})}catch(e){}
+        sessionStorage.setItem('bca-qr-linked','true');
+        sessionStorage.setItem('bca-qr-account',JSON.stringify({uid:row.uid,email:row.email||'',displayName:row.display_name||''}));
+        accountSession={uid:row.uid,email:row.email||'',displayName:row.display_name||'',photoURL:null};
+        setQrUi('success');
+        setTimeout(()=>{sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()},900);
+      }catch(e){setQrUi('expired')}
+    }
+    function qrHandleDenied(){stopQrSession();setQrUi('denied')}
+    function restoreQrSession(){try{const raw=sessionStorage.getItem('bca-qr-account');if(!raw)return false;const a=JSON.parse(raw);if(a&&a.uid){accountSession={uid:a.uid,email:a.email||'',displayName:a.displayName||'',photoURL:null};return true}}catch(e){}return false}
+    /* ---- Phone side: QR scan ke baad ?qr= param se approval ---- */
+    function readQrParam(){
+      let id=null;
+      try{const p=new URLSearchParams(location.search);id=p.get('qr');if(id)history.replaceState({},'',location.pathname)}catch(e){}
+      return id;
+    }
+    function maybePromptQrApproval(id){
+      if(!supabaseClient||!id)return;
+      if(accountUid()){
+        sessionStorage.setItem('bca-active-qr',id);
+        const m=$('qrApproveModal');if(m)m.classList.add('open');
+      }else{
+        sessionStorage.setItem('bca-pending-qr',id);
+        const g=$('gateAccountMessage');if(g)g.textContent='Computer login approve karne ke liye pehle is phone par login karo.';
+      }
+    }
+    async function confirmQrLogin(){
+      const id=sessionStorage.getItem('bca-active-qr');
+      if(!id||!accountUid()||!supabaseClient)return;
+      const {error}=await supabaseClient.from('qr_login_sessions').update({status:'approved',uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName()}).eq('session_id',id);
+      const msg=$('qrApproveMsg');
+      if(error){if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
+      sendQrBroadcast(id,'LOGIN_SUCCESS');
+      if(msg)msg.textContent='Approved ✅ Computer me login ho gaya.';
+      setTimeout(()=>{const m=$('qrApproveModal');if(m)m.classList.remove('open');sessionStorage.removeItem('bca-active-qr')},1600);
+    }
+    async function denyQrLogin(){
+      const id=sessionStorage.getItem('bca-active-qr');
+      if(id&&supabaseClient){try{await supabaseClient.from('qr_login_sessions').update({status:'denied'}).eq('session_id',id)}catch(e){}sendQrBroadcast(id,'LOGIN_DENIED')}
+      const m=$('qrApproveModal');if(m)m.classList.remove('open');
+      sessionStorage.removeItem('bca-active-qr');
+    }
+    function sendQrBroadcast(id,event){
+      return new Promise(res=>{try{
+        const ch=supabaseClient.channel('qr-'+id);
+        const to=setTimeout(()=>{try{supabaseClient.removeChannel(ch)}catch(e){}res(false)},4000);
+        ch.subscribe(status=>{if(status==='SUBSCRIBED'){ch.send({type:'broadcast',event,payload:{sessionId:id}}).then(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(true)}).catch(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(false)})}});
+      }catch(e){res(false)}});
+    }
+    function maybeStartQrLogin(){if(isDesktopViewport()&&!accountUid()&&sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')setAuthMode('qr')}
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const email=$('accountEmail').value.trim();const password=$('accountPassword').value;try{if(accountMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccountMode('login');$('accountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}catch(error){authSuppress=false;$('accountMessage').textContent=error.message;return}}
-    async function signOutAccount(){await firebase.auth().signOut();accountSession=null;hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out')}
+    async function signOutAccount(){await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
     function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
     function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
@@ -699,7 +830,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       location.reload();
     }
     function toast(message){const node=document.createElement('div');node.className='toast';node.textContent=message;$('toastRoot').append(node);setTimeout(()=>node.remove(),2300)}
-    async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';return}accountSession=firebase.auth().currentUser;if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}firebase.auth().onAuthStateChanged(user=>{accountSession=user;if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction()}else if(sessionStorage.getItem('bca-guest-mode')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}
+    async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{accountSession=user;if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
     document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount()});
     function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}

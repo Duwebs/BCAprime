@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css?v=15">
+  <link rel="stylesheet" href="styles.css?v=16">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -31,13 +31,29 @@
         </ol>
         <div class="auth-side-foot"><i class="fa-solid fa-shield-halved"></i><span>Aapka data sirf aapke account se sync hota hai &mdash; har device par same experience.</span></div>
       </aside>
-      <div class="auth-main">
+      <div class="auth-main mode-qr">
         <div class="auth-mob-head">
           <div class="auth-gate-brand"><img src="assets/logo.png" alt="BCAPrime logo" width="38" height="38"><span>BCA<span style="color:var(--brand)">Prime</span></span></div>
           <h1>Welcome to your study desk.</h1>
           <p>Login or create an account to access the BCA library, saved resources, and uploads.</p>
         </div>
+        <div class="auth-qr-panel is-waiting">
+          <h2 class="qr-title">Scan to log in</h2>
+          <p class="qr-sub">BCAPrime web par instant login &mdash; password ki zaroorat nahi.</p>
+          <div class="qr-frame" aria-live="polite"><span class="qc c-tl"></span><span class="qc c-tr"></span><span class="qc c-bl"></span><span class="qc c-br"></span><div id="qrBox" role="img" aria-label="Login QR code"></div></div>
+          <div class="qr-meta"><span class="qr-timer" id="qrTimer">03:00</span><span class="qr-dot">&bull;</span><span id="qrStatus">Phone se scan karo &mdash; login turant ho jayega</span></div>
+          <button class="secondary qr-refresh" id="qrRefresh" type="button" onclick="startQrSession()" hidden><i class="fa-solid fa-rotate-right"></i> Refresh code</button>
+          <ol class="qr-steps">
+            <li><b>1.</b> Apne phone par BCAPrime kholo aur login raho.</li>
+            <li><b>2.</b> Phone ka Scanner / camera kholo (dashboard menu se bhi milta hai).</li>
+            <li><b>3.</b> Is screen ko scan karo &mdash; instant login ho jayega.</li>
+          </ol>
+          <button class="linklike auth-alt-link" type="button" onclick="setAuthMode('form')">Log in with Email / Socials instead</button>
+        </div>
+        <div class="auth-form-wrap">
         <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
+        <button class="linklike auth-qr-toggle" type="button" onclick="setAuthMode('qr')"><i class="fa-solid fa-qrcode"></i> Use QR code instead</button>
+        </div>
       </div>
     </div></section>
   <aside class="install-banner" id="installBanner" aria-live="polite"><span class="install-banner-icon"><img src="assets/logo.png" alt="BCAPrime logo" width="36" height="36"></span><span class="install-banner-copy"><strong>Install BCAPrime</strong><span>Keep your study library one tap away.</span></span><span class="install-banner-actions"><button class="primary" onclick="installApp()"><i class="fa-solid fa-download"></i> Install</button><button class="install-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss install prompt" title="Dismiss"><i class="fa-solid fa-xmark"></i><span>Later</span></button></span></aside>
@@ -104,6 +120,9 @@
   <!-- Subject type chooser (Notes ya PYQ?) -->
   <div class="modal" id="subjectTypeModal"><div class="dialog subject-type-dialog"><button class="close" aria-label="Close dialog" onclick="closeSubjectType()">&times;</button><div class="st-icon" id="subjectTypeIcon"><i class="fa-solid fa-book-open"></i></div><p class="st-kicker">Explore subject</p><h2 id="subjectTypeTitle">Subject</h2><p class="st-sub">Choose what you want to study</p><div class="subject-type-row"><button class="subject-type-btn notes" onclick="browseSubjectAs('notes')"><i class="fa-solid fa-book"></i><strong>Notes</strong><small>All notes of this subject</small><span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span></button><button class="subject-type-btn pyq" onclick="browseSubjectAs('pyq')"><i class="fa-solid fa-file-pen"></i><strong>PYQs</strong><small>Previous year papers</small><span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span></button></div></div></div>
 
+  <!-- Phone side: QR login approval request (scan ke baad yahan aata hai) -->
+  <div class="modal" id="qrApproveModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-laptop"></i></div><p class="st-kicker">QR login request</p><h2>Is computer ko approve karein?</h2><p class="st-sub">Ek computer aapke BCAPrime account me login karna chahta hai. Approve karne par wahan turant login ho jayega &mdash; password share karne ki zaroorat nahi.</p><div class="device-gate-actions"><button class="secondary" type="button" onclick="denyQrLogin()"><i class="fa-solid fa-xmark"></i> Deny</button><button class="primary" type="button" onclick="confirmQrLogin()"><i class="fa-solid fa-check"></i> Approve login</button></div><p class="st-sub" id="qrApproveMsg" aria-live="polite"></p></div></div>
+
   <!-- Feedback / bug report -->
   <div class="modal" id="feedbackModal"><div class="dialog feedback-dialog"><div class="dialog-head"><h2>Feedback ya Bug?</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Koi problem aayi ya koi badhiya idea hai? Batao &mdash; hum turant sudhrenge! 🙏</p><form class="upload-form" autocomplete="off" onsubmit="submitFeedback(event)"><div class="fb-kinds"><button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">&#128027; Bug</button><button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">&#128161; Idea</button><button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">&#10067; Question</button></div><div class="field"><label>Kya issue hai? *</label><textarea name="message" rows="3" required maxlength="1000" placeholder="e.g. Notes download ho hi nahi raha..." oninput="updateFbCount(this.value)"></textarea><span class="fb-count" id="fbCount">0/1000</span></div><div class="field"><label>Screenshot (optional)</label><label class="file-box fb-file" for="feedbackFile"><i class="fa-solid fa-image"></i><span id="feedbackFileName">Attach screenshot</span><input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)"></label><div class="fb-thumb-wrap" id="fbThumbWrap" hidden><img id="fbThumb" alt="Screenshot preview"><button type="button" class="fb-thumb-remove" onclick="removeFeedbackFile(event)" aria-label="Remove screenshot">&times;</button></div></div><p class="fb-note">Login kiya hua account automatically attach hoga, taaki hum reply kar sakeen.</p><button class="primary" type="submit">Send feedback</button></form></div></div>
 
@@ -122,8 +141,9 @@
   </aside>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=11"></script><script src="push-subscribe.js?v=3"></script>
-  <script src="app.js?v=15"></script>
+  <script src="app.js?v=16"></script>
 </body>
 </html>
+
 
 

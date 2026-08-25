@@ -89,3 +89,15 @@ Ek account (email/Google/Apple) ab **poore devices par ek hi college + semester*
 
 **SQL add-on (already-deployed DBs ke liye)**: `supabase-schema.sql` mein naye tables (`user_profiles`, `device_sessions`) aur `push_subscriptions.uid` column hain — unhe run karo (SQL Editor), phir `supabase functions deploy send-push`.
 
+## WhatsApp-style QR Code Login (Desktop only, >=1024px)
+
+Desktop auth screen ka right column ab **"Scan to log in"** QR interface dikhata hai (email/social form fallback toggle ke saath). Mobile view bilkul unchanged hai.
+
+- **Flow**: Desktop mount par unique `qrSessionId` banata hai (3 min expiry) → Supabase `qr_login_sessions` table me pending row + QR code (payload: `<origin>/index.html?qr=<id>`) render hota hai. Desktop **Supabase Realtime broadcast** (`LOGIN_SUCCESS`/`LOGIN_DENIED` channel `qr-<id>` par) + 2s polling (fallback) dono se approval sunta hai.
+- **Phone side**: logged-in phone camera/app se QR scan karta hai → `index.html?qr=<id>` khulta hai → URL param clean ho jata hai → agar phone logged-in hai to **Approve/Deny modal** aata hai; guest ho to pehle login karne ka message. Approve karne par row `approved` ho jati hai (uid/email/display_name ke saath) aur desktop ko broadcast milta hai.
+- **Handshake completion**: Desktop row verify karta hai (status approved + not expired + not consumed), row consume karta hai (single-use), `device_sessions` me is device ko approve karta hai, aur app-level session set karke dashboard khul jata hai. Reload par session restore hota hai (`sessionStorage`); logout sab clear.
+- **Note (architecture)**: project me custom `/api/auth/qr-login` server nahi hai, isliye "mobile sends request → server verifies → broadcasts LOGIN_SUCCESS" wala handshake Supabase se implement hua hai — phone ka DB update = verified request, realtime broadcast = signaling, row-consume = single-use guarantee. Firebase custom-token minting ke bina desktop session app-level synthetic session hai (wahi trust model jo device-linking use karta hai).
+- QR rendering: `qrcodejs` CDN lib (vanilla equivalent of qrcode.react), lazy-loaded, graceful fallback (link text) agar CDN fail ho.
+
+**Naya SQL zaroori hai**: `qr_login_sessions` table + policies (`supabase-schema.sql` ka QR section) run kiye bina desktop par console me 404s aayenge aur QR login kaam nahi karega.
+

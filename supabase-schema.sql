@@ -197,6 +197,53 @@ using (true)
 with check (true);
 
 -- ============================================================
+-- QR login sessions (WhatsApp Web style desktop login)
+-- Desktop ek pending session banata hai (3 min expiry). Logged-in
+-- phone URL scan karke usse 'approved' karta hai apne uid ke saath;
+-- desktop Realtime broadcast + polling dono se approval uthata hai,
+-- row ko consume karta hai aur device_sessions me device approve
+-- karta hai. Single-use + expiry enforced.
+-- ============================================================
+create table if not exists public.qr_login_sessions (
+  session_id text primary key,
+  status text not null default 'pending' check (status in ('pending','approved','denied')),
+  uid text,
+  email text default '',
+  display_name text default '',
+  device_name text default '',
+  expires_at timestamptz not null,
+  consumed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+alter table public.qr_login_sessions enable row level security;
+
+drop policy if exists "Anyone can create qr sessions" on public.qr_login_sessions;
+create policy "Anyone can create qr sessions"
+on public.qr_login_sessions for insert
+to anon, authenticated
+with check (true);
+
+drop policy if exists "Anyone can read qr sessions" on public.qr_login_sessions;
+create policy "Anyone can read qr sessions"
+on public.qr_login_sessions for select
+to anon, authenticated
+using (true);
+
+drop policy if exists "Anyone can answer qr sessions" on public.qr_login_sessions;
+create policy "Anyone can answer qr sessions"
+on public.qr_login_sessions for update
+to anon, authenticated
+using (true)
+with check (true);
+
+drop policy if exists "Anyone can clear expired qr sessions" on public.qr_login_sessions;
+create policy "Anyone can clear expired qr sessions"
+on public.qr_login_sessions for delete
+to anon, authenticated
+using (true);
+
+-- ============================================================
 -- User feedback / bug reports
 -- ============================================================
 create table if not exists public.feedback (
