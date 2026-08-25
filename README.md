@@ -68,7 +68,9 @@ Students can opt in from the bell icon (or the "Never miss an update" banner) an
 
 ### Sending notifications
 
-- **Manual broadcast**: open `admin.html` → *Send notification* panel → title + message → **Send to all users**.
+- **Manual broadcast**: open `admin.html` → *Send notification* panel → title + message, aur (optional) college + semester choose karo → **Send notification**. College/semester chhoda to sabko jaata hai.
+- **Targeted auto-notify**: approving a resource sends the notification **sirf us college + semester ke subscribed users ko** — e.g. Avviare sem 1 ka upload sirf Avviare sem 1 wale students ko jaata hai. (`push_subscriptions` mein user ki enrolled `college` + `semester` subscribe time par save hoti hai; `send-push` Edge Function usi se filter karta hai.)
+- **Bulk approve**: jitne resources approve kiye, agar sab same college + semester ke hain tabhi usi ko target karta hai; otherwise sabko.
 - **Automatic**: approving one or many resources in the review table sends "New notes/PYQ available 📚" automatically (toggle in the same panel).
 
 ### Platform notes

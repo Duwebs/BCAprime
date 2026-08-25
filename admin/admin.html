@@ -194,13 +194,40 @@
       <form class="notify-form" id="notifyForm">
         <input class="search notify-title" id="notifyTitle" placeholder="Title — e.g. New DBMS notes just dropped 📚" maxlength="80" required>
         <textarea class="notify-body" id="notifyBody" rows="2" placeholder="Message shown on the user's lock screen…" maxlength="240"></textarea>
+        <div class="notify-targets">
+          <select class="select notify-college" id="notifyCollege">
+            <option value="">All colleges</option>
+            <option value="all">All Colleges (shared)</option>
+            <option value="avviare">Avviare Educational Hub</option>
+            <option value="glocal">Glocal University</option>
+            <option value="ccsu">CCSU Meerut</option>
+            <option value="du">Delhi University</option>
+            <option value="ipu">GGSIPU Delhi</option>
+            <option value="aktu">AKTU / UPTU</option>
+            <option value="ignou">IGNOU</option>
+            <option value="mdu">MDU Rohtak</option>
+            <option value="bhu">BHU</option>
+            <option value="pune">Pune University</option>
+            <option value="bangalore">Bangalore University</option>
+            <option value="other">Other University</option>
+          </select>
+          <select class="select notify-sem" id="notifySemester">
+            <option value="">All semesters</option>
+            <option value="1">Semester 1</option>
+            <option value="2">Semester 2</option>
+            <option value="3">Semester 3</option>
+            <option value="4">Semester 4</option>
+            <option value="5">Semester 5</option>
+            <option value="6">Semester 6</option>
+          </select>
+        </div>
         <label class="notify-check">
           <input type="checkbox" id="notifyOnApprove" checked>
           <span>Auto-notify users whenever I approve a resource</span>
         </label>
-        <button class="button primary" id="notifySend" type="submit"><i>&#128276;</i> Send to all users</button>
+        <button class="button primary" id="notifySend" type="submit"><i>&#128276;</i> Send notification</button>
       </form>
-      <div class="note">Delivered instantly to every device where notifications are enabled — even when the app is closed.</div>
+      <div class="note">College + semester select karo to sirf us college &amp; semester ke users ko notification milega. Khali chhodo to sabko jaata hai. Auto-notify humesha resource ke college + semester ke hisaab se targeting karta hai.</div>
     </section>
 
     <!-- User feedback / bug reports -->

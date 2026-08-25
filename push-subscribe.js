@@ -32,13 +32,27 @@
   }
 
   /* ---------- Supabase subscription storage ---------- */
+  // User ki enrolled college + semester subscribe time par save hota hai taaki
+  // notifications sirf same college + semester ke users ko targeting kar sakein.
+  function enrolledCollege() {
+    try { return localStorage.getItem('bca-college') || 'all'; } catch (e) { return 'all'; }
+  }
+  function enrolledSemester() {
+    try {
+      var v = localStorage.getItem('bca-sem');
+      var n = Number(v);
+      return (v && v !== 'all' && n >= 1 && n <= 6) ? n : null;
+    } catch (e) { return null; }
+  }
   async function saveSubscription(subscription) {
     const json = subscription.toJSON();
     const payload = {
       endpoint: json.endpoint,
       p256dh: json.keys ? json.keys.p256dh : null,
       auth: json.keys ? json.keys.auth : null,
-      user_agent: navigator.userAgent
+      user_agent: navigator.userAgent,
+      college: enrolledCollege(),
+      semester: enrolledSemester()
     };
     const { error } = await supabaseClient.from(SUBS_TABLE).upsert(payload, { onConflict: 'endpoint' });
     if (error) console.warn('Could not save push subscription.', error.message);

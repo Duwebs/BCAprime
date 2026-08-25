@@ -375,6 +375,14 @@ body {
 .notify-check input { accent-color: var(--brand); width: 15px; height: 15px }
 
 #notifySend { justify-self: start }
+.notify-targets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+.notify-targets .select { width: 100%; min-width: 0 }
+@media (max-width: 520px) { .notify-targets { grid-template-columns: 1fr } }
 #notifySend i { font-style: normal; margin-right: 4px }
 
 /* ---- User feedback panel ---- */

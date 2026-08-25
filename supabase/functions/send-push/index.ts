@@ -7,7 +7,10 @@
 //   supabase secrets set VAPID_PRIVATE_KEY=<private key>
 //   supabase secrets set VAPID_SUBJECT="mailto:admin@bcaprime.com"
 //
-// Body JSON: { "title": "...", "body": "...", "url": "/index.html", "tag": "...", "secret": "<NOTIFY_SECRET>" }
+// Body JSON: { "title": "...", "body": "...", "url": "/index.html", "tag": "...", "secret": "<NOTIFY_SECRET>", "college": "avviare", "semester": 1 }
+// "college" + "semester" OPTIONAL targeting. Jab diye jaate hain, notification SIRF
+// un subscriptions ko jaata hai jinke enrolled college / semester match karte hain.
+// Koi filter nahi -> broadcast to every subscribed device (default).
 // ============================================================
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
@@ -79,20 +82,39 @@ Deno.serve(async (req) => {
     });
   }
 
-  // --- Fetch all subscriptions with the service role ---
+  // --- Targeting: optional college + semester filters (broadcast when absent) ---
+  const targetCollege = typeof body.college === 'string' && body.college.trim() ? body.college.trim() : null;
+  const targetSemester = body.semester == null || body.semester === '' ? null : Number(body.semester);
+
+  // Subscription ki enrolled college/semester target se match karni chahiye.
+  // - 'all' college walon ko (jinhone college choose nahi kiya) kisi bhi college ki news milti hai.
+  // - Koi filter nahi -> sab match (broadcast).
+  function matchCollege(subCollege: any) {
+    if (!targetCollege || targetCollege === 'all') return true;
+    if (subCollege == null || subCollege === '' || subCollege === 'all') return true;
+    return subCollege === targetCollege;
+  }
+  function matchSemester(subSemester: any) {
+    if (targetSemester == null || Number.isNaN(targetSemester)) return true;
+    return subSemester != null && Number(subSemester) === targetSemester;
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   );
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth');
+    .select('endpoint, p256dh, auth, college, semester');
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
+
+  // Sirf un subscriptions ko push karo jo targeting match karti hon.
+  const targets = (subs ?? []).filter((sub: any) => matchCollege(sub.college) && matchSemester(sub.semester));
 
   const payload = JSON.stringify({
     title: typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 80) : 'BCAPrime',
@@ -107,7 +129,7 @@ Deno.serve(async (req) => {
   let failed = 0;
   const stale: string[] = [];
 
-  await Promise.all((subs ?? []).map(async (sub: any) => {
+  await Promise.all(targets.map(async (sub: any) => {
     try {
       await webpush.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },

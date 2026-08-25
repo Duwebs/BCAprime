@@ -227,10 +227,18 @@ async function bulkUpdateStatus(status) {
     if (newlyApproved.length === 1) {
       notifyResourceApproved(newlyApproved[0]);
     } else {
+      // Bulk: agar sabhi meine same college + semester ho, tabhi target karo; warna sabko.
+      const colleges = [...new Set(newlyApproved.map(i => i.college ? String(i.college) : 'all'))];
+      const sems = [...new Set(newlyApproved.map(i => i.sem != null ? Number(i.sem) : null))];
+      const target = {
+        college: colleges.length === 1 ? colleges[0] : null,
+        semester: sems.length === 1 ? sems[0] : null
+      };
       sendPushBroadcast(
         `${newlyApproved.length} new materials available! 📚`,
         'Fresh notes & PYQs were just approved on BCAPrime — open the library to grab them.',
-        'resource-approved'
+        'resource-approved',
+        target
       );
     }
   }
@@ -259,12 +267,16 @@ setInterval(() => {
 // Must match the NOTIFY_SECRET configured on the send-push Edge Function.
 const ADMIN_NOTIFY_SECRET = 'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz';
 
-async function sendPushBroadcast(title, body, tag) {
+async function sendPushBroadcast(title, body, tag, target) {
   if (typeof SEND_PUSH_FUNCTION_URL === 'undefined') {
     console.warn('send-push function URL missing.');
     return false;
   }
   try {
+    const payload = { title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET };
+    // Optional targeting (college + semester) — jab diya jaye, sirf matching users ko push.
+    if (target && target.college) payload.college = target.college;
+    if (target && target.semester != null) payload.semester = Number(target.semester);
     const response = await fetch(SEND_PUSH_FUNCTION_URL, {
       method: 'POST',
       headers: {
@@ -272,7 +284,7 @@ async function sendPushBroadcast(title, body, tag) {
         'apikey': SUPABASE_PUBLISHABLE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY
       },
-      body: JSON.stringify({ title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET })
+      body: JSON.stringify(payload)
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -291,7 +303,8 @@ function notifyResourceApproved(item) {
   const college = collegeNames[item.college] || item.college || 'all colleges';
   const title = item.type === 'pyq' ? 'New PYQ available! 📝' : 'New notes available! 📚';
   const body = `${item.title} — Semester ${item.sem}, ${college}. Open BCAPrime to download.`;
-  return sendPushBroadcast(title, body, 'resource-approved');
+  // Targeting: sirf us college + semester ke subscribed users ko jaaye.
+  return sendPushBroadcast(title, body, 'resource-approved', { college: item.college || 'all', semester: item.sem != null ? Number(item.sem) : null });
 }
 
 async function handleNotifyFormSubmit(event) {
@@ -302,7 +315,12 @@ async function handleNotifyFormSubmit(event) {
   if (!title) return;
   button.disabled = true;
   button.textContent = 'Sending…';
-  const res = await sendPushBroadcast(title, body);
+  // Optional targeting from the form — empty = broadcast to all.
+  const target = {
+    college: $('notifyCollege').value || null,
+    semester: $('notifySemester').value ? Number($('notifySemester').value) : null
+  };
+  const res = await sendPushBroadcast(title, body, undefined, target);
   button.disabled = false;
   if (res && res.ok) {
     $('notifyForm').reset();
