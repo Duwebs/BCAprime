@@ -17,11 +17,15 @@ create table if not exists public.analytics_events (
   subject text not null default '',
   semester int,
   duration_seconds int,                  -- session_end ke liye
+  results_count int,                     -- search events ke liye: kitne results mile
   device text not null default '',       -- Mobile | Desktop | Tablet
   os text not null default '',
   browser text not null default '',
   page_path text not null default ''
 );
+
+-- Agar table pehle bana li thi to ye column safely add karo:
+alter table public.analytics_events add column if not exists results_count int;
 
 create index if not exists idx_analytics_type on public.analytics_events (event_type);
 create index if not exists idx_analytics_visitor on public.analytics_events (visitor_id);

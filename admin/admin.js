@@ -405,6 +405,7 @@ async function loadAnalytics() {
     feedEl.innerHTML = '<p class="note">Is range mein koi activity nahi mili. Users aane par yahan live data dikhega. 📊</p>';
     ['anUsers','anSignedUp','anGuests','anDownloads','anViews','anUploads','anSessions'].forEach(id => { $(id).textContent = '0'; });
     $('anAvgTime').textContent = '0m'; $('anDevices').innerHTML = ''; $('anTopRows').innerHTML = ''; $('anUserRows').innerHTML = '';
+    $('anChart').innerHTML = '<p class="note">No data yet.</p>'; $('anSearches').innerHTML = ''; $('anFailRows').innerHTML = '<tr><td colspan="2" class="note">Koi failed search nahi 🎉</td></tr>';
     return;
   }
   renderAnalytics(events);
@@ -449,6 +450,49 @@ function renderAnalytics(events) {
   $('anUploads').textContent = uploads;
   $('anSessions').textContent = sessions;
   $('anAvgTime').textContent = fmtDuration(durationCount ? durationSum / durationCount : 0);
+
+  /* ---- Daily activity bar chart (visits vs downloads) ---- */
+  const dayKeys = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    dayKeys.push(d.toISOString().slice(0, 10));
+  }
+  const perDay = {};
+  dayKeys.forEach(k => perDay[k] = { v: 0, d: 0 });
+  events.forEach(ev => {
+    const k = String(ev.created_at).slice(0, 10);
+    if (!perDay[k]) return;
+    if (ev.event_type === 'visit') perDay[k].v++;
+    else if (ev.event_type === 'download') perDay[k].d++;
+  });
+  const maxDay = Math.max(1, ...dayKeys.map(k => Math.max(perDay[k].v, perDay[k].d)));
+  $('anChart').innerHTML = '<div class="an-bars">' + dayKeys.map(k => {
+    const d = new Date(k);
+    const label = d.getDate() + '/' + (d.getMonth() + 1);
+    return `<div class="an-bar-group" title="${label}: ${perDay[k].v} visits, ${perDay[k].d} downloads">
+      <div class="an-bar-pair">
+        <div class="an-bar bv" style="height:${Math.round(perDay[k].v / maxDay * 100)}%"></div>
+        <div class="an-bar bd" style="height:${Math.round(perDay[k].d / maxDay * 100)}%"></div>
+      </div>
+      <small>${label}</small>
+    </div>`;
+  }).join('') + '</div>';
+
+  /* ---- Top searches + failed searches ---- */
+  const searchCounts = {}, failCounts = {};
+  events.forEach(ev => {
+    if (ev.event_type !== 'search' || !ev.resource_title) return;
+    searchCounts[ev.resource_title] = (searchCounts[ev.resource_title] || 0) + 1;
+    if ((ev.results_count == null && ev.subject === '0') || ev.results_count === 0) failCounts[ev.resource_title] = (failCounts[ev.resource_title] || 0) + 1;
+  });
+  const topSearches = Object.entries(searchCounts).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  $('anSearches').innerHTML = topSearches.length
+    ? topSearches.map(([q, c]) => `<span class="an-chip"><b>${escapeHtml(q)}</b> ×${c}</span>`).join('')
+    : '<p class="note">Abhi koi search nahi hui.</p>';
+  const fails = Object.entries(failCounts).sort((a, b) => b[1] - a[1]).slice(0, 15);
+  $('anFailRows').innerHTML = fails.length
+    ? fails.map(([q, c]) => `<tr><td>🔍 ${escapeHtml(q)}</td><td><b>${c}</b></td></tr>`).join('')
+    : '<tr><td colspan="2" class="note">Koi failed search nahi — sab queries ke results mil rahe hain 🎉</td></tr>';
 
   $('anDevices').innerHTML =
     Object.entries(deviceCounts).map(([d, c]) => `<span class="an-chip"><b>${escapeHtml(d)}</b> ${c}</span>`).join('') +

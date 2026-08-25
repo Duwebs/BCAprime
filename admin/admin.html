@@ -104,6 +104,9 @@
         <div class="stat"><strong id="anAvgTime">0m</strong><span>Avg time / session</span></div>
       </div>
 
+      <h3 class="an-heading">Daily activity <small class="an-legend"><i class="dot dot-v"></i>Visits <i class="dot dot-d"></i>Downloads</small></h3>
+      <div class="an-chart" id="anChart"></div>
+
       <h3 class="an-heading">Devices &amp; platforms</h3>
       <div class="an-chips" id="anDevices"></div>
 
@@ -120,6 +123,17 @@
         <table class="table">
           <thead><tr><th>User</th><th>Device</th><th>Opened</th><th>Downloads</th><th>Time spent</th><th>Last seen</th></tr></thead>
           <tbody id="anUserRows"></tbody>
+        </table>
+      </div>
+
+      <h3 class="an-heading">Top searches — users kya dhundh rahe hain</h3>
+      <div class="an-chips" id="anSearches"></div>
+
+      <h3 class="an-heading">⚠️ Failed searches (0 results) — ye content add karo!</h3>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Query</th><th>Searched</th></tr></thead>
+          <tbody id="anFailRows"></tbody>
         </table>
       </div>
 
