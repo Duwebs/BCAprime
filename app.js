@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v20 loaded ✔');
+console.info('[BCAPrime] app.js v21 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -766,10 +766,97 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       }catch(e){res(false)}});
     }
     function maybeStartQrLogin(){if(isDesktopViewport()&&!accountUid()&&sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')setAuthMode('qr')}
+    /* ================== In-app QR Scanner (mobile) ==================
+       User ko alag scanner app kholne ki zaroorat nahi — web app ke andar hi
+       camera se desktop ka QR scan karke approve/deny kar sakta hai.
+       BarcodeDetector API (native, fast) + jsQR fallback (CDN lazy-load). */
+    let qrScanStream=null,qrScanTimer=null;
+    function loadJsQr(){
+      if(window.jsQR)return Promise.resolve(true);
+      if(loadJsQr._p)return loadJsQr._p;
+      loadJsQr._p=new Promise(res=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';s.onload=()=>res(true);s.onerror=()=>{loadJsQr._p=null;res(false)};document.head.appendChild(s)});
+      return loadJsQr._p;
+    }
+    function handleScannedQr(text){
+      let id=null;
+      try{
+        const url=new URL(text);
+        id=url.searchParams.get('qr');
+      }catch(e){/* plain text QR */}
+      if(!id){
+        const m=/[?&]qr=([^&]+)/.exec(text||'');
+        if(m)id=decodeURIComponent(m[1]);
+      }
+      return id;
+    }
+    function stopQrScannerCamera(){
+      if(qrScanTimer){clearInterval(qrScanTimer);qrScanTimer=null}
+      if(qrScanStream){try{qrScanStream.getTracks().forEach(t=>t.stop())}catch(e){}qrScanStream=null}
+      const v=document.getElementById('qrScanVideo');
+      if(v){try{v.srcObject=null}catch(e){}}
+    }
+    async function openQrScanner(){
+      const modal=$('qrScanModal'),msg=$('qrScanMsg');
+      if(!modal)return;
+      hideProfileCard();
+      closeModals();
+      modal.classList.add('open');
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(msg)msg.textContent='Is browser me camera support nahi hai — phone ka default camera app use karo.';return}
+      try{
+        qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
+      }catch(err){
+        console.warn('[qr-scan] camera error:',err);
+        if(msg)msg.textContent='Camera nahi khul paya — permission do ya phone ke camera app se scan karo.';
+        return;
+      }
+      const video=document.getElementById('qrScanVideo');
+      if(!video){stopQrScannerCamera();return}
+      video.srcObject=qrScanStream;
+      try{await video.play()}catch(e){}
+      if(msg)msg.textContent='QR code camera me dikhao…';
+      /* Native BarcodeDetector pehle (fast), warna jsQR canvas par */
+      let detector=null;
+      try{if('BarcodeDetector' in window){detector=new window.BarcodeDetector({formats:['qr_code']})}}catch(e){}
+      if(!detector)await loadJsQr();
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      let done=false;
+      const tick=async()=>{
+        if(done||!qrScanStream||video.readyState<2)return;
+        try{
+          let text=null;
+          if(detector){
+            const codes=await detector.detect(video);
+            if(codes&&codes.length&&codes[0].rawValue)text=codes[0].rawValue;
+          }else if(window.jsQR){
+            canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+            ctx.drawImage(video,0,0);
+            const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+            const res=window.jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+            if(res&&res.data)text=res.data;
+          }
+          if(text){
+            const id=handleScannedQr(text);
+            if(id){
+              done=true;
+              stopQrScannerCamera();
+              modal.classList.remove('open');
+              toast('QR scan ho gaya ✓');
+              maybePromptQrApproval(id);
+            }
+          }
+        }catch(e){}
+      };
+      qrScanTimer=setInterval(tick,250);
+    }
+    function closeQrScanner(){
+      stopQrScannerCamera();
+      const m=$('qrScanModal');if(m)m.classList.remove('open');
+    }
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const email=$('accountEmail').value.trim();const password=$('accountPassword').value;try{if(accountMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccountMode('login');$('accountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}catch(error){authSuppress=false;$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
     function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}

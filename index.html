@@ -51,7 +51,7 @@
           <button class="linklike auth-alt-link" type="button" onclick="setAuthMode('form')">Log in with Email / Socials instead</button>
         </div>
         <div class="auth-form-wrap">
-        <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
+        <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button mobile-qr-scan" type="button" onclick="openQrScanner()"><i class="fa-solid fa-camera"></i> Computer par login karna hai? QR Scan karo</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
         <button class="linklike auth-qr-toggle" type="button" onclick="setAuthMode('qr')"><i class="fa-solid fa-qrcode"></i> Use QR code instead</button>
         </div>
       </div>
@@ -71,6 +71,7 @@
       <div class="profile-pop" id="profilePop" hidden>
         <div class="profile-pop-head"><img id="popAvatar" alt="Profile photo"><div class="profile-pop-copy"><strong id="popName">Guest</strong><small id="popMail">Browsing as guest</small></div></div>
         <div class="profile-pop-meta"><span><i class="fa-solid fa-building-columns"></i>College<b id="popCollege">All Colleges</b></span><span><i class="fa-solid fa-layer-group"></i>Semester<b id="popSem">All</b></span></div>
+        <button class="pop-scan" onclick="hideProfileCard();openQrScanner()"><i class="fa-solid fa-camera"></i> Computer login &mdash; QR scan karo</button>
         <button class="danger-logout" onclick="logoutFromPop()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log out</button>
       </div>
     </header>
@@ -123,6 +124,16 @@
   <!-- Phone side: QR login approval request (scan ke baad yahan aata hai) -->
   <div class="modal" id="qrApproveModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-laptop"></i></div><p class="st-kicker">QR login request</p><h2>Is computer ko approve karein?</h2><p class="st-sub">Ek computer aapke BCAPrime account me login karna chahta hai. Approve karne par wahan turant login ho jayega &mdash; password share karne ki zaroorat nahi.</p><div class="device-gate-actions"><button class="secondary" type="button" onclick="denyQrLogin()"><i class="fa-solid fa-xmark"></i> Deny</button><button class="primary" type="button" onclick="confirmQrLogin()"><i class="fa-solid fa-check"></i> Approve login</button></div><p class="st-sub" id="qrApproveMsg" aria-live="polite"></p></div></div>
 
+  <!-- In-app QR scanner (mobile): camera se desktop ka QR scan karo -->
+  <div class="modal" id="qrScanModal"><div class="dialog device-gate-dialog qr-scan-dialog">
+    <div class="dialog-head"><span class="st-kicker">QR Scanner</span><button class="close" aria-label="Close scanner" onclick="closeQrScanner()">&times;</button></div>
+    <h2>Computer ka QR scan karo</h2>
+    <p class="st-sub">Camera ko computer screen par dikhaye QR code ki taraf rakho &mdash; scan hote hi approve/deny ka option khul jayega.</p>
+    <div class="qr-scan-frame"><video id="qrScanVideo" autoplay playsinline muted></video><div class="qr-scan-laser"></div></div>
+    <p class="st-sub" id="qrScanMsg" aria-live="polite">Camera start ho raha hai…</p>
+    <button class="secondary" type="button" onclick="closeQrScanner()"><i class="fa-solid fa-xmark"></i> Band karo</button>
+  </div></div>
+
   <!-- Feedback / bug report -->
   <div class="modal" id="feedbackModal"><div class="dialog feedback-dialog"><div class="dialog-head"><h2>Feedback ya Bug?</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Koi problem aayi ya koi badhiya idea hai? Batao &mdash; hum turant sudhrenge! 🙏</p><form class="upload-form" autocomplete="off" onsubmit="submitFeedback(event)"><div class="fb-kinds"><button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">&#128027; Bug</button><button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">&#128161; Idea</button><button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">&#10067; Question</button></div><div class="field"><label>Kya issue hai? *</label><textarea name="message" rows="3" required maxlength="1000" placeholder="e.g. Notes download ho hi nahi raha..." oninput="updateFbCount(this.value)"></textarea><span class="fb-count" id="fbCount">0/1000</span></div><div class="field"><label>Screenshot (optional)</label><label class="file-box fb-file" for="feedbackFile"><i class="fa-solid fa-image"></i><span id="feedbackFileName">Attach screenshot</span><input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)"></label><div class="fb-thumb-wrap" id="fbThumbWrap" hidden><img id="fbThumb" alt="Screenshot preview"><button type="button" class="fb-thumb-remove" onclick="removeFeedbackFile(event)" aria-label="Remove screenshot">&times;</button></div></div><p class="fb-note">Login kiya hua account automatically attach hoga, taaki hum reply kar sakeen.</p><button class="primary" type="submit">Send feedback</button></form></div></div>
 
@@ -141,7 +152,7 @@
   </aside>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=11"></script><script src="push-subscribe.js?v=3"></script>
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
 </body>
 </html>
 

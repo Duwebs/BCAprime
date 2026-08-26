@@ -644,6 +644,26 @@
   .auth-qr-panel.is-expired .qr-refresh[hidden]{display:none}
   .qr-steps{list-style:none;margin:4px 0 0;padding:13px 16px;display:grid;gap:9px;text-align:left;width:100%;max-width:370px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
   .qr-steps li{color:var(--muted);font-size:12.5px;line-height:1.5}
+
+  /* ============================================================
+     In-app QR scanner (mobile only entries)
+     ============================================================ */
+  .mobile-qr-scan{display:none}
+  @media (max-width:1023.98px){
+    .mobile-qr-scan{display:inline-flex;width:100%;justify-content:center;border-style:dashed;margin-top:-2px}
+    .pop-scan{display:flex}
+  }
+  .pop-scan{display:none;width:100%;align-items:center;gap:9px;padding:11px 14px;margin-bottom:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .2s ease,background .2s ease}
+  .pop-scan:hover{border-color:var(--brand);background:rgba(35,128,143,.08)}
+  .pop-scan i{color:var(--brand)}
+  .qr-scan-dialog{text-align:center;max-width:420px;width:100%}
+  .qr-scan-dialog .dialog-head{display:flex;justify-content:space-between;align-items:center}
+  .qr-scan-dialog h2{margin:6px 0 8px;font-size:19px}
+  .qr-scan-frame{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:14px auto;border-radius:18px;overflow:hidden;background:#0b0e11;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08)}
+  #qrScanVideo{width:100%;height:100%;object-fit:cover;display:block}
+  .qr-scan-laser{position:absolute;left:10%;right:10%;top:12%;height:2px;background:linear-gradient(90deg,transparent,#2fbf71,transparent);box-shadow:0 0 12px rgba(47,191,113,.9);animation:qrLaser 2.2s ease-in-out infinite alternate;pointer-events:none}
+  @keyframes qrLaser{from{top:12%}to{top:86%}}
+  #qrScanMsg{min-height:20px}
   .qr-steps b{color:var(--ink);margin-right:6px}
 }
 
