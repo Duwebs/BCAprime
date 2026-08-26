@@ -1130,8 +1130,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         try{sessionStorage.setItem('bca-auto-updated','true')}catch(e){}
         location.reload();
       });
-      window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js').then(reg=>{
+            window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./sw.js?v=2').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */
