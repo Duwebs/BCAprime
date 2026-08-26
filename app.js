@@ -534,7 +534,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
        ko Supabase Realtime broadcast + polling (fallback) dono se sunta hai.
        Logged-in phone QR ke URL (?qr=<id>) se approve karta hai — desktop
        automatic login + device approved. Single-use + expiry enforced. */
-    const QR_TTL_MS=180000;
+    const QR_TTL_MS=300000;
     let qrSession=null;
     function isDesktopViewport(){return window.matchMedia('(min-width:1024px)').matches}
     function newQrId(){try{if(crypto.randomUUID)return crypto.randomUUID()}catch(e){}return 'qr-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}
@@ -587,7 +587,11 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         /* Auto-regenerate (WhatsApp Web style): expire hone par naya QR ban jata
            hai, taaki phone par late approval "code expired" dead-end na de. */
         if(left<=0){
-          if(document.querySelector('.auth-main.mode-qr')&&isDesktopViewport()){startQrSession()}
+          if(document.querySelector('.auth-main.mode-qr')&&isDesktopViewport()){
+            const prev=qrSession?qrSession.id:null;
+            startQrSession();
+            if(prev)watchLegacyQr(prev);
+          }
           else qrExpire();
         }
       },1000);
@@ -607,13 +611,35 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       try{if(qrSession.channel)supabaseClient.removeChannel(qrSession.channel)}catch(e){}
       qrSession=null;
     }
-    async function qrHandleApproved(){
+    /* Purane (auto-refresh hue) session id ke liye chhota watcher — taaki
+       agar phone ne abhi-abhi replace hue code ko approve kiya ho to wo
+       approval bhi login me convert ho jaye, ignore na ho. */
+    function watchLegacyQr(id){
+      if(!supabaseClient||!id)return;
+      const iv=setInterval(async()=>{
+        try{
+          const {data}=await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle();
+          if(data&&data.status==='approved'){
+            clearInterval(iv);
+            if(qrSession){qrSession.id=id;/* current session isi id ko adopt karo */}
+            qrHandleApproved(data);
+          }
+        }catch(e){}
+      },2000);
+      setTimeout(()=>clearInterval(iv),60000);
+    }
+    async function qrHandleApproved(preRow){
       if(!qrSession||!supabaseClient)return;
       const id=qrSession.id;
       stopQrSession();
       try{
-        const {data:row}=await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle();
-        if(!row||row.status!=='approved'||row.consumed_at||(row.expires_at&&new Date(row.expires_at)<new Date())){setQrUi('expired');return}
+        const row=preRow||(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data;
+        /* 30s ka grace — sirf minor clock-skew/delay tolerate karo */
+        const expired=row&&row.expires_at&&(Date.now()-new Date(row.expires_at).getTime()>30000);
+        if(!row||row.status!=='approved'||row.consumed_at||expired){
+          console.warn('[qr-login] approval verify fail:',{found:!!row,status:row&&row.status,consumed:!!(row&&row.consumed_at),expired});
+          setQrUi('expired');return
+        }
         await supabaseClient.from('qr_login_sessions').update({consumed_at:new Date().toISOString()}).eq('session_id',id);
         try{await supabaseClient.from('device_sessions').upsert({uid:row.uid,device_id:getDeviceId(),device_name:getDeviceName(),status:'approved',approved_at:new Date().toISOString()},{onConflict:'uid,device_id'})}catch(e){}
         sessionStorage.setItem('bca-qr-linked','true');
@@ -846,7 +872,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       location.reload();
     }
     function toast(message){const node=document.createElement('div');node.className='toast';node.textContent=message;$('toastRoot').append(node);setTimeout(()=>node.remove(),2300)}
-    async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{accountSession=user;if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
+    async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{const qrLinked=sessionStorage.getItem('bca-qr-linked')==='true';/* QR synthetic session ko Firebase ke null user se overwrite hone se bachao */accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
     document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount()});
     function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
