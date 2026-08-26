@@ -227,7 +227,7 @@ async function bulkUpdateStatus(status) {
     if (newlyApproved.length === 1) {
       notifyResourceApproved(newlyApproved[0]);
     } else {
-      // Bulk: agar sabhi meine same college + semester ho, tabhi target karo; warna sabko.
+            // Bulk: if all share the same college + semester, target only those; otherwise broadcast to all.
       const colleges = [...new Set(newlyApproved.map(i => i.college ? String(i.college) : 'all'))];
       const sems = [...new Set(newlyApproved.map(i => i.sem != null ? Number(i.sem) : null))];
       const target = {
@@ -274,7 +274,7 @@ async function sendPushBroadcast(title, body, tag, target) {
   }
   try {
     const payload = { title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET };
-    // Optional targeting (college + semester) — jab diya jaye, sirf matching users ko push.
+        // Optional targeting (college + semester) — when provided, only matching users get the push.
     if (target && target.college) payload.college = target.college;
     if (target && target.semester != null) payload.semester = Number(target.semester);
     const response = await fetch(SEND_PUSH_FUNCTION_URL, {
@@ -303,7 +303,7 @@ function notifyResourceApproved(item) {
   const college = collegeNames[item.college] || item.college || 'all colleges';
   const title = item.type === 'pyq' ? 'New PYQ available! 📝' : 'New notes available! 📚';
   const body = `${item.title} — Semester ${item.sem}, ${college}. Open BCAPrime to download.`;
-  // Targeting: sirf us college + semester ke subscribed users ko jaaye.
+    // Targeting: only subscribed users matching this college + semester receive it.
   return sendPushBroadcast(title, body, 'resource-approved', { college: item.college || 'all', semester: item.sem != null ? Number(item.sem) : null });
 }
 
@@ -339,7 +339,7 @@ async function loadFeedback(){
   if(typeof supabaseClient==='undefined'||!supabaseClient){list.innerHTML='<p class="note">Supabase is not configured.</p>';return}
   const {data,error}=await supabaseClient.from('feedback').select('*').order('created_at',{ascending:false}).limit(50);
   if(error){list.innerHTML='<p class="note">Load failed: '+error.message+'</p>';return}
-  if(!data||!data.length){list.innerHTML='<p class="note">Koi feedback nahi aaya abhi. 🎉</p>';return}
+    if(!data||!data.length){list.innerHTML='<p class="note">No feedback yet. 🎉</p>';return}
   list.innerHTML=data.map(item=>{
     const kindClass={bug:'k-bug',idea:'k-idea',question:'k-question'}[item.kind]||'k-idea';
     const whoLine=[item.user_name,item.user_email].filter(Boolean).join(' · ');
@@ -416,14 +416,14 @@ async function loadAnalytics() {
 
   const { data, error } = await query;
   const feedEl = $('anFeed');
-  if (error) { if (feedEl) feedEl.innerHTML = '<p class="note">Analytics load failed: ' + escapeHtml(error.message) + '<br>Check ki supabase-analytics.sql run ho chuka hai.</p>'; return; }
+    if (error) { if (feedEl) feedEl.innerHTML = '<p class="note">Analytics load failed: ' + escapeHtml(error.message) + '<br>Make sure supabase-analytics.sql has been run.</p>'; return; }
   const events = data || [];
   if (!feedEl) return;
   if (!events.length) {
-    feedEl.innerHTML = '<p class="note">Is range mein koi activity nahi mili. Users aane par yahan live data dikhega. 📊</p>';
+        feedEl.innerHTML = '<p class="note">No activity in this range yet. Live data will appear here once users interact. 📊</p>';
     ['anUsers','anSignedUp','anGuests','anDownloads','anViews','anUploads','anSessions'].forEach(id => { $(id).textContent = '0'; });
     $('anAvgTime').textContent = '0m'; $('anDevices').innerHTML = ''; $('anTopRows').innerHTML = ''; $('anUserRows').innerHTML = '';
-    $('anChart').innerHTML = '<p class="note">No data yet.</p>'; $('anSearches').innerHTML = ''; $('anFailRows').innerHTML = '<tr><td colspan="2" class="note">Koi failed search nahi 🎉</td></tr>';
+    $('anChart').innerHTML = '<p class="note">No data yet.</p>'; $('anSearches').innerHTML = '';     $('anFailRows').innerHTML = '<tr><td colspan="2" class="note">No failed searches yet 🎉</td></tr>';
     return;
   }
   renderAnalytics(events);
@@ -506,11 +506,11 @@ function renderAnalytics(events) {
   const topSearches = Object.entries(searchCounts).sort((a, b) => b[1] - a[1]).slice(0, 12);
   $('anSearches').innerHTML = topSearches.length
     ? topSearches.map(([q, c]) => `<span class="an-chip"><b>${escapeHtml(q)}</b> ×${c}</span>`).join('')
-    : '<p class="note">Abhi koi search nahi hui.</p>';
+        : '<p class="note">No searches yet.</p>';
   const fails = Object.entries(failCounts).sort((a, b) => b[1] - a[1]).slice(0, 15);
   $('anFailRows').innerHTML = fails.length
     ? fails.map(([q, c]) => `<tr><td>🔍 ${escapeHtml(q)}</td><td><b>${c}</b></td></tr>`).join('')
-    : '<tr><td colspan="2" class="note">Koi failed search nahi — sab queries ke results mil rahe hain 🎉</td></tr>';
+        : '<tr><td colspan="2" class="note">No failed searches — every query is returning results 🎉</td></tr>';
 
   $('anDevices').innerHTML =
     Object.entries(deviceCounts).map(([d, c]) => `<span class="an-chip"><b>${escapeHtml(d)}</b> ${c}</span>`).join('') +

@@ -80,28 +80,28 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       });
       $('count').textContent=`${list.length} result${list.length===1?'':'s'}`;
       $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':buildEmptyState()}
-    /* ---- Empty state: upload karo ya WhatsApp pe friends se request bhejo ---- */
+    /* ---- Empty state: upload it yourself or request from friends on WhatsApp ---- */
     function buildEmptyState(){
       const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.year!=='all'||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
       return `<div class="empty"><i class="fa-regular fa-folder-open"></i><br>
-        <strong>${searching?'Ye material abhi library mein nahi mila':'Library is quiet — be the first!'}</strong><br>
-        <small>${searching?'Aapke filters ka koi Notes/PYQ available nahi hai. Pehle aap upload kar do, ya apne doston se request bhejo:':'Yahan sabse pehla material aap share kar sakte ho.'}</small>
+        <strong>${searching?'This material isn\'t in the library yet':'The library is quiet — be the first!'}</strong><br>
+        <small>${searching?'No Notes/PYQs match your filters right now. Be the first to upload it, or request it from your friends:':'You could be the first to share material here.'}</small>
         <div class="empty-actions">
-          <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Khud upload karo</button>
-          <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Friends se request karo</button>
+          <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
+          <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Request from friends</button>
         </div></div>`;
     }
     function requestMaterialOnWhatsApp(){
-      const semText=state.sem==='all'?'kisi bhi semester':('Semester '+state.sem);
+      const semText=state.sem==='all'?'any semester':('Semester '+state.sem);
       let yearText='';
       if(state.year!=='all')yearText=' ('+(state.year==='1'?'1st':state.year==='2'?'2nd':'3rd')+' year)';
-      const subjText=(!state.subject||state.subject==='all')?'':(' — '+state.subject);
-      const typeText=state.type==='all'?'Notes ya PYQ':(state.type==='notes'?'Notes':'PYQ');
+      const subjText=(!state.subject||state.subject==='all')?'':(' for '+state.subject);
+      const typeText=state.type==='all'?'Notes or PYQs':(state.type==='notes'?'Notes':'PYQs');
       const msg='📚 *BCAPrime* — Study Material Request 🙏\n\n'
-        +'Yaar mujhe '+semText+yearText+subjText+' ka '+typeText+' chahiye, aur library mein abhi nahi mil raha. 😅\n\n'
-        +'Agar tumhare paas hai to please 2 minute nikaal ke yahan upload kar do:\n'
+        +'Hey! I need '+typeText+subjText+' for '+semText+yearText+', but it\'s not available in the library yet. 😅\n\n'
+        +'If you have them, please take 2 minutes to upload here:\n'
         +'👉 https://bcaprime.vercel.app\n\n'
-        +'Pehle tu upload karega, phir sab padhenge! 💪🚀';
+        +'You upload first, everyone studies next! 💪🚀';
       window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     }
     function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span>${r.uploader?`<span><i class="fa-solid fa-user"></i>${r.uploader}</span>`:''}</div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button><button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
@@ -176,7 +176,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       applyFilters();
     }
     function openFinderAddSubject(){
-      if(state.sem==='all'){toast('Pehle year + semester select karo');$('subjectFilter').value='all';return}
+      if(state.sem==='all'){toast('Select a year + semester first');$('subjectFilter').value='all';return}
       const addRow=$('finderAddSubjectRow');
       if(addRow){addRow.hidden=false}
       const input=$('finderNewSubjectInput');if(input)input.focus();
@@ -184,9 +184,9 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function confirmFinderAddSubject(){
       const input=$('finderNewSubjectInput');
       const name=(input&&input.value||'').trim().replace(/\s+/g,' ');
-      if(!name){toast('Subject ka naam likho');if(input)input.focus();return}
-      if(name.length<2){toast('Thoda bada naam likho');return}
-      if(state.sem==='all'){toast('Pehle semester select karo');return}
+      if(!name){toast('Type a subject name');if(input)input.focus();return}
+      if(name.length<2){toast('Enter a slightly longer name');return}
+      if(state.sem==='all'){toast('Select a semester first');return}
       addCustomSubject(Number(state.sem),name);
       if(input)input.value='';
       state.subject=name;
@@ -195,7 +195,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       $('subjectFilter').value=name;
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
       applyFilters();
-      toast('"'+name+'" add ho gaya ✅ Ab isme material upload kar sakte ho');
+      toast('"'+name+'" added ✅ You can upload material to it now');
     }
     function cancelFinderAddSubject(){
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
@@ -246,7 +246,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       let subjects=[];
       if(state.sem!=='all'&&BASE_SUBJECTS[Number(state.sem)])subjects=[...BASE_SUBJECTS[Number(state.sem)],...getCustomSubjects(state.sem)];
       getAvailableSubjects().forEach(s=>{if(!subjects.some(x=>normSubject(x)===normSubject(s)))subjects.push(s)});
-      if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Apna semester chuno — yahan uske saare subjects dikhenge 📚</div>';return}
+      if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester — all its subjects will show up here 📚</div>';return}
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
       const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&semMatchesFilter(r.sem)).length;
       /* Har subject ke semesters nikaalo: syllabus (BASE_SUBJECTS) + uploaded resources */
@@ -261,18 +261,18 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
           <span class="subject-card-go"><i class="fa-solid fa-arrow-right"></i></span>
         </button>`}).join('');
     }
-    /* ---- Naya custom subject add karo -> turant card ban jata hai ---- */
+    /* ---- Add a new custom subject -> card appears instantly ---- */
     function addSubjectCard(){
       const input=$('newSubjectInput');
       const name=(input&&input.value||'').trim().replace(/\s+/g,' ');
-      if(!name){toast('Subject ka naam likho');if(input)input.focus();return}
-      if(name.length<2){toast('Thoda bada naam likho');return}
-      if(state.sem==='all'){toast('Pehle semester select karo, phir subject add hoga');return}
+      if(!name){toast('Type a subject name');if(input)input.focus();return}
+      if(name.length<2){toast('Please use a slightly longer name');return}
+      if(state.sem==='all'){toast('Select a semester first, then add subjects');return}
       addCustomSubject(Number(state.sem),name);
       if(input){input.value='';input.blur()}
       renderSubjectFilter();
       render();
-      toast('"'+name+'" add ho gaya — Semester '+state.sem+' ✅');
+      toast('"'+name+'" added — Semester '+state.sem+' ✅');
     }
     let pendingSubject='';
     function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
@@ -283,7 +283,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       state.type=kind;
       document.querySelectorAll('#typeChips .chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()===(kind==='pyq'?'PYQs':'Notes')));
       closeSubjectType();
-      // Smooth content experience: pehle skeleton, phir results stagger-reveal
+      // Smooth content experience: skeleton first, then staggered results
       showResourceSkeletons(6);
       $('resources').scrollIntoView({behavior:'smooth',block:'start'});
       setTimeout(()=>{
@@ -303,8 +303,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     /* ---- Feedback / bug report ---- */
     let feedbackKind='bug';
     function openFeedback(){
-      if(!supabaseClient){toast('Feedback abhi unavailable hai');return}
-      if(!accountSession){requireAccount('Feedback ya bug report bhejne ke liye login karo.', 'feedback');return}
+      if(!supabaseClient){toast('Feedback is unavailable right now');return}
+      if(!accountSession){requireAccount('Log in to send feedback or report a bug.', 'feedback');return}
       setFeedbackKind(document.querySelector('.fb-kind.active')||document.querySelector('.fb-kind'));
       $('feedbackModal').classList.add('open');
     }
@@ -369,7 +369,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
         const thumbWrap=$('fbThumbWrap');if(thumbWrap)thumbWrap.hidden=true;
         if($('fbCount'))$('fbCount').textContent='0/1000';
-        toast('Thanks! Feedback mil gaya 🙏 Hum jaldi dekhenge');
+        toast('Thanks! Your feedback is in 🙏 We\'ll review it soon');
       }catch(error){
         console.error('[BCAPrime] Feedback error:',error);
         toast('Feedback send failed: '+(error&&error.message||error));
@@ -381,6 +381,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function chooseSuggestion(title){$('search').value=title;state.query=title;closeSuggestions();render()}
     function closeSuggestions(){$('suggestions').classList.remove('open')}
     function focusFinder(){$('bca-prime-finder').scrollIntoView({behavior:'smooth'})}
+    function scrollToLibrary(){const lib=$('library')||$('bca-prime-finder');if(lib)lib.scrollIntoView({behavior:'smooth',block:'start'});render()}
     function selectTab(tab,button){
       document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.remove('active'));
       if(button) button.classList.add('active');
@@ -527,7 +528,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     async function denyDeviceReq(){
       const id=$('deviceReqId');if(!id||!id.value)return;
       try{await supabaseClient.from('device_sessions').update({status:'denied'}).eq('id',id.value)}catch(e){}
-      hideDeviceRequestBanner();currentRequestId=null;toast('Request deny kar diya');
+      hideDeviceRequestBanner();currentRequestId=null;toast('Request denied');
     }
     /* ================== WhatsApp-style QR login (desktop) ==================
        Desktop ek qr_login_sessions row banata hai (3 min expiry) aur approval
