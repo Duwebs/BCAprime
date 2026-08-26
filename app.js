@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v23 loaded ✔');
+console.info('[BCAPrime] app.js v24 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -1025,6 +1025,14 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function toast(message){const node=document.createElement('div');node.className='toast';node.textContent=message;$('toastRoot').append(node);setTimeout(()=>node.remove(),2300)}
     /* HTML escaping — user-supplied strings (college/subject names etc.) ko
        innerHTML me daalne se pehle escape karo, warna XSS possible hai */
+    /* ===== Founder credit config =====
+       Jab Instagram link add karna ho bas yahan URL daal do — footer me
+       button khud dikhne lagega. Khaali ('') rahega to link hidden rahega. */
+    const FOUNDER_INSTAGRAM_URL='';
+    try{
+      const fi=document.getElementById('founderInsta');
+      if(fi&&FOUNDER_INSTAGRAM_URL){fi.href=FOUNDER_INSTAGRAM_URL;fi.hidden=false}
+    }catch(e){}
     function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m])}
     async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{const qrLinked=sessionStorage.getItem('bca-qr-linked')==='true';/* QR synthetic session ko Firebase ke null user se overwrite hone se bachao */accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
     document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount()});

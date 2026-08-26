@@ -666,6 +666,27 @@
   .qr-scan-laser{position:absolute;left:10%;right:10%;top:12%;height:2px;background:linear-gradient(90deg,transparent,#2fbf71,transparent);box-shadow:0 0 12px rgba(47,191,113,.9);animation:qrLaser 2.2s ease-in-out infinite alternate;pointer-events:none}
   @keyframes qrLaser{from{top:12%}to{top:86%}}
   #qrScanMsg{min-height:20px}
+
+  /* ============================================================
+     Founder credit — subtle, app-native, wow without showing off
+     ============================================================ */
+  .footer{flex-direction:column;gap:14px}
+  .footer-credit{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 22px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);position:relative;overflow:hidden;transition:border-color .25s ease,transform .25s ease,box-shadow .25s ease}
+  .footer-credit::before{content:'';position:absolute;inset:-60% 40% auto -60%;height:160%;background:radial-gradient(closest-side,color-mix(in srgb,var(--brand) 16%,transparent),transparent);opacity:0;transition:opacity .4s ease;pointer-events:none}
+  .footer-credit:hover{border-color:color-mix(in srgb,var(--brand) 45%,var(--line));transform:translateY(-2px);box-shadow:0 10px 30px rgba(35,128,143,.18)}
+  .footer-credit:hover::before{opacity:1;animation:fcSheen 1.6s ease}
+  @keyframes fcSheen{from{transform:translateX(0)}to{transform:translateX(220%)}}
+  .founder-badge{display:inline-flex;margin-bottom:2px;filter:drop-shadow(0 0 0 rgba(47,191,113,0));transition:filter .3s ease,transform .3s ease}
+  .footer-credit:hover .founder-badge{transform:scale(1.08) rotate(-4deg);filter:drop-shadow(0 0 8px rgba(47,191,113,.55))}
+  .fg-spark{animation:fgSpark 2.4s ease-in-out infinite;transform-origin:center}
+  @keyframes fgSpark{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.25)}}
+  .footer-credit-line{margin:0;font-size:13.5px;color:var(--muted)}
+  .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em}
+  .footer-heart{color:#ff5d73;display:inline-block;animation:fHeart 1.8s ease-in-out infinite}
+  @keyframes fHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.28)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
+  .footer-credit-sub{color:color-mix(in srgb,var(--muted) 75%,transparent);font-size:11.5px;letter-spacing:.04em}
+  .founder-insta{margin-top:6px;display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:#fff;text-decoration:none;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
+  .founder-insta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(225,48,108,.4)}
   .qr-steps b{color:var(--ink);margin-right:6px}
 }
 

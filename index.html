@@ -101,7 +101,28 @@
       <div class="subject-cards" id="subjectCards"></div></section>
 
     <section class="section"><div class="resource-toolbar"><div class="section-head" style="margin:0"><div><h2>Latest resources</h2></div></div><span class="count" id="count"></span></div><div class="resource-grid" id="resources"></div></section>
-    <footer class="footer"><div><strong>BCAPrime</strong> &middot; A focused study library for BCA.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="secondary feedback-link" onclick="openFeedback()"><i class="fa-solid fa-comment-dots"></i> Feedback</button><button class="secondary footer-install" id="footerInstallButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button></div></footer>
+    <footer class="footer">
+      <div class="footer-credit">
+        <span class="founder-badge" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="fgGrad" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#23808f"/><stop offset=".55" stop-color="#2fbf71"/><stop offset="1" stop-color="#7c5cff"/>
+              </linearGradient>
+            </defs>
+            <circle cx="24" cy="24" r="21" stroke="url(#fgGrad)" stroke-width="2.5"/>
+            <path d="M24 13 L35 19 L24 25 L13 19 Z" fill="url(#fgGrad)"/>
+            <path d="M17 22.5 V29 C17 31.5 20 33.4 24 33.4 C28 33.4 31 31.5 31 29 V22.5 L24 26.3 Z" fill="url(#fgGrad)" opacity=".85"/>
+            <path d="M34.5 20 V27.5" stroke="url(#fgGrad)" stroke-width="2" stroke-linecap="round"/>
+            <circle class="fg-spark" cx="38.5" cy="12.5" r="2" fill="#2fbf71"/>
+          </svg>
+        </span>
+        <p class="footer-credit-line">Crafted with <i class="fa-solid fa-heart footer-heart" aria-hidden="true"></i> by <strong class="founder-name">Durgesh</strong></p>
+        <small class="footer-credit-sub">Founder &amp; Developer — BCAPrime</small>
+        <a class="founder-insta" id="founderInsta" href="#" target="_blank" rel="noopener" hidden><i class="fa-brands fa-instagram"></i> Follow on Instagram</a>
+      </div>
+      <div><strong>BCAPrime</strong> &middot; A focused study library for BCA.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="secondary feedback-link" onclick="openFeedback()"><i class="fa-solid fa-comment-dots"></i> Feedback</button><button class="secondary footer-install" id="footerInstallButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button></div>
+    </footer>
   </main>
   <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab bottom-star" onclick="openUpload()"><i class="fa-solid fa-plus"></i><span>Upload</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
 
