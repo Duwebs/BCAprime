@@ -670,15 +670,16 @@
   /* ============================================================
      Footer — minimal single-row: brand | links, phir credit line
      ============================================================ */
-  .footer{flex-direction:column;gap:14px;padding-bottom:26px}
-  .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:14px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
-  .footer-brand-row{display:flex;align-items:center;gap:9px}
-  .footer-brand-row strong{font-size:16px}
+  .footer{flex-direction:column;gap:12px;padding-bottom:26px}
+  .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+  .footer-brand-row{display:inline-flex;align-items:center;gap:8px;line-height:1}
+  .footer-brand-row img{width:26px;height:26px;object-fit:contain;display:block}
+  .footer-brand-row strong{font-size:15.5px;font-weight:700;display:flex;align-items:center}
   .footer-brand-row span{color:var(--brand)}
-  .footer-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-  .footer-links a,.footer-links button.feedback-link,.footer-links button.footer-install{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border-radius:9px;font-size:13px;font-weight:600;text-decoration:none;transition:color .18s ease,background .18s ease}
-  .footer-links a{border:0;background:transparent;color:var(--muted);cursor:pointer}
-  .footer-links a:hover{color:var(--brand);background:color-mix(in srgb,var(--brand) 10%,transparent)}
+  .footer-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .footer-feedback{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;padding:6px 4px;cursor:pointer;border-radius:8px;transition:color .18s ease}
+  .footer-feedback:hover{color:var(--brand)}
+  .footer-feedback i{font-size:12px}
   .footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;width:100%;padding:0 4px;color:var(--muted);font-size:12.5px}
   .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em;cursor:default;transition:filter .2s ease}
   .founder-name:hover{filter:brightness(1.25)}
