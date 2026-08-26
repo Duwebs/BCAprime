@@ -668,25 +668,35 @@
   #qrScanMsg{min-height:20px}
 
   /* ============================================================
-     Founder credit — subtle, app-native, wow without showing off
+     Footer — structured: brand | explore | support + bottom bar
      ============================================================ */
-  .footer{flex-direction:column;gap:14px}
-  .footer-credit{display:flex;flex-direction:column;align-items:center;gap:3px;padding:16px 22px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);position:relative;overflow:hidden;transition:border-color .25s ease,transform .25s ease,box-shadow .25s ease}
-  .footer-credit::before{content:'';position:absolute;inset:-60% 40% auto -60%;height:160%;background:radial-gradient(closest-side,color-mix(in srgb,var(--brand) 16%,transparent),transparent);opacity:0;transition:opacity .4s ease;pointer-events:none}
-  .footer-credit:hover{border-color:color-mix(in srgb,var(--brand) 45%,var(--line));transform:translateY(-2px);box-shadow:0 10px 30px rgba(35,128,143,.18)}
-  .footer-credit:hover::before{opacity:1;animation:fcSheen 1.6s ease}
-  @keyframes fcSheen{from{transform:translateX(0)}to{transform:translateX(220%)}}
-  .founder-badge{display:inline-flex;margin-bottom:2px;filter:drop-shadow(0 0 0 rgba(47,191,113,0));transition:filter .3s ease,transform .3s ease}
-  .footer-credit:hover .founder-badge{transform:scale(1.08) rotate(-4deg);filter:drop-shadow(0 0 8px rgba(47,191,113,.55))}
-  .fg-spark{animation:fgSpark 2.4s ease-in-out infinite;transform-origin:center}
-  @keyframes fgSpark{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.25)}}
-  .footer-credit-line{margin:0;font-size:13.5px;color:var(--muted)}
-  .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em}
+  .footer{flex-direction:column;gap:18px;padding-bottom:26px}
+  .footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:26px;width:100%;padding:22px 24px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2)}
+  .footer-col{display:flex;flex-direction:column;gap:9px}
+  .footer-brand-row{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+  .footer-brand-row strong{font-size:17px;letter-spacing:.01em}
+  .footer-brand-row span{color:var(--brand)}
+  .footer-brand p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;max-width:300px}
+  .footer-brand small{color:color-mix(in srgb,var(--muted) 70%,transparent);font-size:11px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
+  .footer-col h4{margin:0 0 3px;font-size:11.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+  .footer-col a,.footer-col button.feedback-link,.footer-col button.footer-install{width:fit-content;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none;padding:4px 0;cursor:pointer;transition:color .18s ease,transform .18s ease}
+  .footer-col a:hover{color:var(--brand);transform:translateX(3px)}
+  .footer-col button.feedback-link:hover,.footer-col button.footer-install:hover{color:var(--brand)}
+  .footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;width:100%;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+  .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em;cursor:default;transition:filter .2s ease}
+  .founder-name:hover{filter:brightness(1.25)}
   .footer-heart{color:#ff5d73;display:inline-block;animation:fHeart 1.8s ease-in-out infinite}
   @keyframes fHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.28)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
-  .footer-credit-sub{color:color-mix(in srgb,var(--muted) 75%,transparent);font-size:11.5px;letter-spacing:.04em}
-  .founder-insta{margin-top:6px;display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:#fff;text-decoration:none;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
+  .founder-insta{margin-top:4px;width:fit-content;display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:999px;font-size:12.5px;font-weight:600;color:#fff;text-decoration:none;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
   .founder-insta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(225,48,108,.4)}
+  @media(max-width:860px){
+    .footer-grid{grid-template-columns:1fr 1fr;padding:18px}
+    .footer-brand{grid-column:1/-1}
+    .footer-bottom{justify-content:center;text-align:center}
+  }
+  @media(max-width:430px){
+    .footer-grid{grid-template-columns:1fr;gap:18px}
+  }
   .qr-steps b{color:var(--ink);margin-right:6px}
 }
 

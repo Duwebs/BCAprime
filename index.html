@@ -102,26 +102,30 @@
 
     <section class="section"><div class="resource-toolbar"><div class="section-head" style="margin:0"><div><h2>Latest resources</h2></div></div><span class="count" id="count"></span></div><div class="resource-grid" id="resources"></div></section>
     <footer class="footer">
-      <div class="footer-credit">
-        <span class="founder-badge" aria-hidden="true">
-          <svg viewBox="0 0 48 48" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="fgGrad" x1="6" y1="6" x2="42" y2="42" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#23808f"/><stop offset=".55" stop-color="#2fbf71"/><stop offset="1" stop-color="#7c5cff"/>
-              </linearGradient>
-            </defs>
-            <circle cx="24" cy="24" r="21" stroke="url(#fgGrad)" stroke-width="2.5"/>
-            <path d="M24 13 L35 19 L24 25 L13 19 Z" fill="url(#fgGrad)"/>
-            <path d="M17 22.5 V29 C17 31.5 20 33.4 24 33.4 C28 33.4 31 31.5 31 29 V22.5 L24 26.3 Z" fill="url(#fgGrad)" opacity=".85"/>
-            <path d="M34.5 20 V27.5" stroke="url(#fgGrad)" stroke-width="2" stroke-linecap="round"/>
-            <circle class="fg-spark" cx="38.5" cy="12.5" r="2" fill="#2fbf71"/>
-          </svg>
-        </span>
-        <p class="footer-credit-line">Crafted with <i class="fa-solid fa-heart footer-heart" aria-hidden="true"></i> by <strong class="founder-name">Durgesh</strong></p>
-        <small class="footer-credit-sub">Founder &amp; Developer — BCAPrime</small>
-        <a class="founder-insta" id="founderInsta" href="#" target="_blank" rel="noopener" hidden><i class="fa-brands fa-instagram"></i> Follow on Instagram</a>
+      <div class="footer-grid">
+        <div class="footer-col footer-brand">
+          <div class="footer-brand-row"><img src="assets/logo.png" alt="" width="34" height="34"><strong>BCA<span>Prime</span></strong></div>
+          <p>A focused study library for BCA &mdash; notes, PYQs aur PrimeFinder, sab ek jagah.</p>
+          <small>Made for students, by a student.</small>
+        </div>
+        <nav class="footer-col" aria-label="Footer quick links">
+          <h4>Explore</h4>
+          <a href="#library" onclick="selectTab('library',document.querySelector('.bottom-tab'))">Library</a>
+          <a href="#resources" onclick="selectTab('semesters',document.querySelectorAll('.bottom-tab')[1])">Latest</a>
+          <a href="javascript:void(0)" onclick="openUpload()">Upload notes</a>
+          <a href="javascript:void(0)" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[3])">Saved</a>
+        </nav>
+        <nav class="footer-col" aria-label="Footer support">
+          <h4>Support</h4>
+          <button class="secondary feedback-link" onclick="openFeedback()"><i class="fa-solid fa-comment-dots"></i> Feedback &amp; support</button>
+          <button class="secondary footer-install" id="footerInstallButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
+          <a id="founderInsta" class="founder-insta" href="#" target="_blank" rel="noopener" hidden><i class="fa-brands fa-instagram"></i> Follow on Instagram</a>
+        </nav>
       </div>
-      <div><strong>BCAPrime</strong> &middot; A focused study library for BCA.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="secondary feedback-link" onclick="openFeedback()"><i class="fa-solid fa-comment-dots"></i> Feedback</button><button class="secondary footer-install" id="footerInstallButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button></div>
+      <div class="footer-bottom">
+        <span>&copy; <span id="footerYear">2026</span> BCAPrime</span>
+        <span class="footer-credit-line">Crafted with <i class="fa-solid fa-heart footer-heart" aria-hidden="true"></i> by <strong class="founder-name" title="Founder &amp; Developer — BCAPrime">Durgesh</strong></span>
+      </div>
     </footer>
   </main>
   <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab bottom-star" onclick="openUpload()"><i class="fa-solid fa-plus"></i><span>Upload</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
