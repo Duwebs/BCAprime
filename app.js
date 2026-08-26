@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v19 loaded ✔');
+console.info('[BCAPrime] app.js v20 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -735,16 +735,18 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         console.warn('[qr-login] phone-side select fail (SELECT policy?), fallback to broadcast:',rowErr);
       }
       /* Approve karte waqt expires_at thoda aage badha do taaki desktop ko
-         poll/broadcast pakadne ka buffer mil jaye. */
+         poll/broadcast pakadne ka buffer mil jaye.
+         IMPORTANT: DB update me sirf table ke asli columns — profile/avatar
+         sirf broadcast payload me jaate hain (DB me unke columns nahi hain). */
       const acct={uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName()};
-      /* Poora profile bhejo — desktop par wahi data set ho jaye jo is device par hai */
+      const dbUpdate=Object.assign({status:'approved'},acct,{expires_at:new Date(Date.now()+120000).toISOString()});
       try{
         acct.profile={college:localStorage.getItem('bca-college')||'all',semester:localStorage.getItem('bca-sem')||''};
         const av=localStorage.getItem('bca-avatar')||'';
         if(av&&av.length<=150000)acct.avatar=av; /* chhota avatar hi bhejo (payload limit) */
       }catch(e){}
-      const {error}=await supabaseClient.from('qr_login_sessions').update(Object.assign({status:'approved'},acct,{expires_at:new Date(Date.now()+120000).toISOString()})).eq('session_id',id);
-      if(error){if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
+      const {error}=await supabaseClient.from('qr_login_sessions').update(dbUpdate).eq('session_id',id);
+      if(error){console.error('[qr-login] approve update fail:',error);if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
       sendQrBroadcast(id,'LOGIN_SUCCESS',acct);
       if(msg)msg.textContent='Approved ✅ Computer me login ho gaya.';
       setTimeout(()=>{const m=$('qrApproveModal');if(m)m.classList.remove('open');sessionStorage.removeItem('bca-active-qr')},1600);
