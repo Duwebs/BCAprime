@@ -584,7 +584,12 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         const left=qrSession.deadline-Date.now();
         const tEl=$('qrTimer');
         if(tEl)tEl.textContent=(left>0?('0'+Math.floor(left/60000)).slice(-2)+':'+('0'+Math.floor(left%60000/1000)).slice(-2):'00:00');
-        if(left<=0)qrExpire();
+        /* Auto-regenerate (WhatsApp Web style): expire hone par naya QR ban jata
+           hai, taaki phone par late approval "code expired" dead-end na de. */
+        if(left<=0){
+          if(document.querySelector('.auth-main.mode-qr')&&isDesktopViewport()){startQrSession()}
+          else qrExpire();
+        }
       },1000);
     }
     function setQrUi(state){
@@ -639,8 +644,19 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     async function confirmQrLogin(){
       const id=sessionStorage.getItem('bca-active-qr');
       if(!id||!accountUid()||!supabaseClient)return;
-      const {error}=await supabaseClient.from('qr_login_sessions').update({status:'approved',uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName()}).eq('session_id',id);
       const msg=$('qrApproveMsg');
+      /* Pehle row verify karo — expired/consumed/denied session ko approve
+         karne se desktop par fake "expired" nahi dikhega, phone ko seedha
+         sahi message milega. */
+      let row=null,rowErr=null;
+      try{const r=await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at').eq('session_id',id).maybeSingle();row=r.data;rowErr=r.error}catch(e){rowErr=e}
+      if(rowErr||!row){if(msg)msg.textContent='QR session nahi mila — computer par Refresh dabao aur naya code scan karo.';return}
+      if(row.status==='denied'){if(msg)msg.textContent='Ye request deny ho chuki hai — computer par naya code generate karo.';return}
+      if(row.consumed_at){if(msg)msg.textContent='Ye code already use ho chuka hai — computer par naya code scan karo.';return}
+      if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='Code expire ho gaya — computer par naya QR aya hai, usse dobara scan karo.';return}
+      /* Approve karte waqt expires_at thoda aage badha do taaki desktop ko
+         poll/broadcast pakadne ka buffer mil jaye. */
+      const {error}=await supabaseClient.from('qr_login_sessions').update({status:'approved',uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName(),expires_at:new Date(Date.now()+120000).toISOString()}).eq('session_id',id);
       if(error){if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
       sendQrBroadcast(id,'LOGIN_SUCCESS');
       if(msg)msg.textContent='Approved ✅ Computer me login ho gaya.';
