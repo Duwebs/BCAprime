@@ -631,23 +631,41 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     async function qrHandleApproved(preRow){
       if(!qrSession||!supabaseClient)return;
       const id=qrSession.id;
+      const stEl=$('qrStatus');
+      const dbg=t=>{if(stEl)stEl.textContent='[QR] '+t};
       stopQrSession();
       try{
+        dbg('approval mili, verify kar rahe hain…');
         const row=preRow||(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data;
         /* 30s ka grace — sirf minor clock-skew/delay tolerate karo */
         const expired=row&&row.expires_at&&(Date.now()-new Date(row.expires_at).getTime()>30000);
         if(!row||row.status!=='approved'||row.consumed_at||expired){
           console.warn('[qr-login] approval verify fail:',{found:!!row,status:row&&row.status,consumed:!!(row&&row.consumed_at),expired});
+          dbg('verify fail: '+(row?('status='+(row.status||'?')+(row.consumed_at?' (already used)':'')+(expired?' (expired)':'')):'row DB me nahi mili'));
           setQrUi('expired');return
         }
+        dbg('verify OK, session set kar rahe hain…');
         await supabaseClient.from('qr_login_sessions').update({consumed_at:new Date().toISOString()}).eq('session_id',id);
         try{await supabaseClient.from('device_sessions').upsert({uid:row.uid,device_id:getDeviceId(),device_name:getDeviceName(),status:'approved',approved_at:new Date().toISOString()},{onConflict:'uid,device_id'})}catch(e){}
         sessionStorage.setItem('bca-qr-linked','true');
         sessionStorage.setItem('bca-qr-account',JSON.stringify({uid:row.uid,email:row.email||'',displayName:row.display_name||''}));
         accountSession={uid:row.uid,email:row.email||'',displayName:row.display_name||'',photoURL:null};
         setQrUi('success');
-        setTimeout(()=>{sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()},900);
-      }catch(e){setQrUi('expired')}
+        setTimeout(()=>{
+          try{
+            sessionStorage.removeItem('bca-guest-mode');
+            showAuthenticatedApp();
+            /* Verify: dashboard sach me khula? */
+            setTimeout(()=>{
+              const shell=document.getElementById('appShell');
+              if(!shell||shell.hidden){dbg('Dashboard nahi khula — appShell hidden hai. Console check karo.');console.error('[qr-login] appShell still hidden after showAuthenticatedApp')}
+            },400);
+          }catch(err){
+            console.error('[qr-login] showAuthenticatedApp error:',err);
+            dbg('Dashboard open error: '+err.message);
+          }
+        },900);
+      }catch(e){console.error('[qr-login] handshake error:',e);setQrUi('expired');const s=$('qrStatus');if(s)s.textContent='[QR] Error: '+((e&&e.message)||'unknown')}
     }
     function qrHandleDenied(){stopQrSession();setQrUi('denied')}
     function restoreQrSession(){try{const raw=sessionStorage.getItem('bca-qr-account');if(!raw)return false;const a=JSON.parse(raw);if(a&&a.uid){accountSession={uid:a.uid,email:a.email||'',displayName:a.displayName||'',photoURL:null};return true}}catch(e){}return false}
