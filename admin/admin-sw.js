@@ -1,4 +1,4 @@
-const ADMIN_CACHE = 'bcaprime-admin-v1';
+const ADMIN_CACHE = 'bcaprime-admin-v2';
 const ADMIN_SHELL = [
   './',
   './admin.html',

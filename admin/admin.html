@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="admin.css">
+  <link rel="stylesheet" href="admin.css?v=2">
 </head>
 <body>
 
@@ -46,7 +46,7 @@
     <header class="topbar">
       <a class="brand" href="../index.html">
         <span class="brand-mark">B</span>
-        <span>BCA<span style="color:var(--brand)">Prime</span> Admin</span>
+        <span>BCA<span>Prime</span> Admin</span>
       </a>
       <div class="actions">
         <button class="button" onclick="toggleTheme()">Theme</button>
@@ -104,42 +104,56 @@
         <div class="stat"><strong id="anAvgTime">0m</strong><span>Avg time / session</span></div>
       </div>
 
-      <h3 class="an-heading">Daily activity <small class="an-legend"><i class="dot dot-v"></i>Visits <i class="dot dot-d"></i>Downloads</small></h3>
-      <div class="an-chart" id="anChart"></div>
-
-      <h3 class="an-heading">Devices &amp; platforms</h3>
-      <div class="an-chips" id="anDevices"></div>
-
-      <h3 class="an-heading">Top resources (opens / downloads)</h3>
-      <div class="table-wrap">
-        <table class="table">
-          <thead><tr><th>Resource</th><th>Type</th><th>Opened</th><th>Downloads</th></tr></thead>
-          <tbody id="anTopRows"></tbody>
-        </table>
+      <div class="an-section">
+        <h3 class="an-heading">Daily activity <small class="an-legend"><i class="dot dot-v"></i>Visits <i class="dot dot-d"></i>Downloads</small></h3>
+        <div class="an-chart" id="anChart"></div>
       </div>
 
-      <h3 class="an-heading">Users — kaun kya kar raha hai</h3>
-      <div class="table-wrap">
-        <table class="table">
-          <thead><tr><th>User</th><th>Device</th><th>Opened</th><th>Downloads</th><th>Time spent</th><th>Last seen</th></tr></thead>
-          <tbody id="anUserRows"></tbody>
-        </table>
+      <div class="an-section">
+        <h3 class="an-heading">Devices &amp; platforms</h3>
+        <div class="an-chips" id="anDevices"></div>
       </div>
 
-      <h3 class="an-heading">Top searches — users kya dhundh rahe hain</h3>
-      <div class="an-chips" id="anSearches"></div>
-
-            <h3 class="an-heading">⚠️ Failed searches (0 results) — add this content!</h3>
-      <div class="table-wrap">
-        <table class="table">
-          <thead><tr><th>Query</th><th>Searched</th></tr></thead>
-          <tbody id="anFailRows"></tbody>
-        </table>
+      <div class="an-section">
+        <h3 class="an-heading">Top resources</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Resource</th><th>Type</th><th>Opened</th><th>Downloads</th></tr></thead>
+            <tbody id="anTopRows"></tbody>
+          </table>
+        </div>
       </div>
 
-      <h3 class="an-heading">Live activity feed</h3>
-      <div id="anFeed" class="feedback-list"><p class="note">Loading&hellip;</p></div>
-      <div class="note">Tracking: visits, opens, downloads, uploads, time spent, device/OS/browser. Anonymous users bhi visitor ID se count hote hain.</div>
+      <div class="an-section">
+        <h3 class="an-heading">Users</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>User</th><th>Device</th><th>Opened</th><th>Downloads</th><th>Time spent</th><th>Last seen</th></tr></thead>
+            <tbody id="anUserRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="an-section">
+        <h3 class="an-heading">Top searches</h3>
+        <div class="an-chips" id="anSearches"></div>
+      </div>
+
+      <div class="an-section">
+        <h3 class="an-heading">Failed searches</h3>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Query</th><th>Searched</th></tr></thead>
+            <tbody id="anFailRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="an-section">
+        <h3 class="an-heading">Live activity feed</h3>
+        <div id="anFeed" class="feedback-list"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Tracking: visits, opens, downloads, uploads, time spent, device/OS/browser. Anonymous users bhi visitor ID se count hote hain.</div>
+      </div>
     </section>
 
     <!-- Review panel -->

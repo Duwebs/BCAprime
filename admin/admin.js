@@ -143,7 +143,12 @@ function render() {
   [...selectedIds].forEach(id => {
     if (!uploads.some(item => String(item.id) === id)) selectedIds.delete(id);
   });
-  $('bulkActions').style.display = selectedIds.size ? 'flex' : 'none';
+    const bulkEl = $('bulkActions');
+  if (selectedIds.size) {
+    bulkEl.classList.add('visible');
+  } else {
+    bulkEl.classList.remove('visible');
+  }
   $('bulkCount').textContent = `${selectedIds.size} selected`;
   $('checkAll').checked = list.length > 0 && list.every(item => selectedIds.has(String(item.id)));
 
@@ -382,7 +387,7 @@ initAuth();
 /* ---- PWA: installable admin panel ---- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () =>
-    navigator.serviceWorker.register('./admin-sw.js')
+    navigator.serviceWorker.register('./admin-sw.js?q=2')
       .catch(error => console.info('Admin PWA service worker unavailable.', error.message))
   );
 }
