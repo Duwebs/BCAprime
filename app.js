@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v17 loaded ✔');
+console.info('[BCAPrime] app.js v18 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -636,14 +636,19 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       stopQrSession();
       try{
         dbg('approval mili, verify kar rahe hain…');
-        let row=preRow||(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data;
-        /* FALLBACK: agar live DB me SELECT policy missing hai (row null) aur
-           broadcast payload me account info aayi hai — to payload se login
-           complete karo. Broadcast channel sirf session id wale log sun sakte
-           hain, isliye ye utna hi trusted hai jitna DB row. */
-        if(!row&&preRow&&preRow.uid){
+        /* Broadcast payload me status/expires_at nahi hote — sirf account
+           info hoti hai. Isliye pehle DB se full row lene ki koshish karo,
+           aur na mile (SELECT policy block) to payload se hi approve maano. */
+        let dbRow=null;
+        try{dbRow=(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data}catch(e){}
+        let row=dbRow;
+        if(!row&&preRow&&(preRow.uid||preRow.display_name)){
           console.warn('[qr-login] row select nahi hui (SELECT policy missing?) — broadcast payload se login kar rahe hain');
-          row={status:'approved',uid:preRow.uid,email:preRow.email||'',display_name:preRow.display_name||preRow.displayName||'',expires_at:null,consumed_at:null};
+          row={status:'approved',uid:preRow.uid||'',email:preRow.email||'',display_name:preRow.display_name||preRow.displayName||'',expires_at:null,consumed_at:null};
+        }
+        if(!row&&preRow&&preRow.sessionId===id){
+          /* Purana-style broadcast bina account info ke — DB row hi sach hai */
+          row=dbRow;
         }
         /* 30s ka grace — sirf minor clock-skew/delay tolerate karo */
         const expired=row&&row.expires_at&&(Date.now()-new Date(row.expires_at).getTime()>30000);
