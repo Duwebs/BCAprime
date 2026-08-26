@@ -52,7 +52,6 @@
         </div>
         <div class="auth-form-wrap">
         <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
-        <button class="linklike auth-qr-toggle" type="button" onclick="setAuthMode('qr')"><i class="fa-solid fa-qrcode"></i> Use QR code instead</button>
         </div>
       </div>
     </div></section>

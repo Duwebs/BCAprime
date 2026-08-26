@@ -617,14 +617,13 @@
    QR login (WhatsApp Web style) — desktop >=1024px only
    Mobile pe strictly unchanged: base me .auth-qr-panel hidden.
    ============================================================ */
-.auth-qr-panel,.auth-qr-toggle{display:none}
+.auth-qr-panel{display:none}
 .linklike{border:0;background:transparent;color:var(--brand);font-weight:600;font-size:13.5px;padding:6px 10px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .18s ease,color .18s ease}
 .linklike:hover{background:color-mix(in srgb,var(--brand) 12%,transparent)}
 @keyframes authFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @media(min-width:1024px){
   .auth-main.mode-qr .auth-form-wrap{display:none}
   .auth-main.mode-form .auth-qr-panel{display:none}
-  .auth-main.mode-form .auth-qr-toggle{display:inline-flex;align-self:center;margin-top:6px}
   .auth-main.mode-qr .auth-qr-panel{display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;animation:authFade .35s ease both}
   .auth-main.mode-form .auth-form-wrap{animation:authFade .35s ease both}
   .qr-title{margin:0;font:600 26px/1.15 'Geist';color:var(--ink)}
