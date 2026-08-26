@@ -30,10 +30,17 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-
+  const url = new URL(event.request.url);
+  /* API/auth/data requests ko cache mat karo — stale data + unbounded cache
+     dono se bachav. Sirf same-origin static assets network-first jate hain. */
+  const isApi = url.origin !== self.location.origin ||
+    url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/') ||
+    url.pathname.startsWith('/functions/') || url.pathname.startsWith('/realtime/');
+  if (isApi) return;
   event.respondWith(
     fetch(event.request)
       .then(response => {
+        if (!response || !response.ok || response.type === 'opaque') return response;
         const copy = response.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         return response;

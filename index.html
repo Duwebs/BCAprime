@@ -4,7 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BCAPrime | BCA study library</title>
-  <meta name="description" content="Find BCA notes and previous year papers by college and semester.">
+  <meta name="description" content="Find BCA notes and previous year papers by college and semester. Free BCA study material — notes, PYQs, PrimeFinder and more.">
+  <link rel="canonical" href="https://bcaprime.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="BCAPrime">
+  <meta property="og:title" content="BCAPrime | BCA study library">
+  <meta property="og:description" content="Free BCA notes and previous year papers, organised by college and semester.">
+  <meta property="og:url" content="https://bcaprime.vercel.app/">
+  <meta property="og:image" content="https://bcaprime.vercel.app/assets/logo.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="robots" content="index,follow">
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#05080b">
   <link rel="apple-touch-icon" href="assets/logo.png">
@@ -13,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css?v=16">
+  <link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -41,7 +50,7 @@
           <h2 class="qr-title">Scan to log in</h2>
           <p class="qr-sub">BCAPrime web par instant login &mdash; password ki zaroorat nahi.</p>
           <div class="qr-frame" aria-live="polite"><span class="qc c-tl"></span><span class="qc c-tr"></span><span class="qc c-bl"></span><span class="qc c-br"></span><div id="qrBox" role="img" aria-label="Login QR code"></div></div>
-          <div class="qr-meta"><span class="qr-timer" id="qrTimer">03:00</span><span class="qr-dot">&bull;</span><span id="qrStatus">Phone se scan karo &mdash; login turant ho jayega</span></div>
+          <div class="qr-meta"><span class="qr-timer" id="qrTimer">05:00</span><span class="qr-dot">&bull;</span><span id="qrStatus">Phone se scan karo &mdash; login turant ho jayega</span></div>
           <button class="secondary qr-refresh" id="qrRefresh" type="button" onclick="startQrSession()" hidden><i class="fa-solid fa-rotate-right"></i> Refresh code</button>
           <ol class="qr-steps">
             <li><b>1.</b> Apne phone par BCAPrime kholo aur login raho.</li>
