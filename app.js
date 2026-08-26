@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v18 loaded ✔');
+console.info('[BCAPrime] app.js v19 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -644,7 +644,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         let row=dbRow;
         if(!row&&preRow&&(preRow.uid||preRow.display_name)){
           console.warn('[qr-login] row select nahi hui (SELECT policy missing?) — broadcast payload se login kar rahe hain');
-          row={status:'approved',uid:preRow.uid||'',email:preRow.email||'',display_name:preRow.display_name||preRow.displayName||'',expires_at:null,consumed_at:null};
+          row={status:'approved',uid:preRow.uid||'',email:preRow.email||'',display_name:preRow.display_name||preRow.displayName||'',expires_at:null,consumed_at:null,__fromPayload:true,profile:preRow.profile,avatar:preRow.avatar};
         }
         if(!row&&preRow&&preRow.sessionId===id){
           /* Purana-style broadcast bina account info ke — DB row hi sach hai */
@@ -663,6 +663,24 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         sessionStorage.setItem('bca-qr-linked','true');
         sessionStorage.setItem('bca-qr-account',JSON.stringify({uid:row.uid,email:row.email||'',displayName:row.display_name||''}));
         accountSession={uid:row.uid,email:row.email||'',displayName:row.display_name||'',photoURL:null};
+        /* Dusre device wala pura data apply karo — college, semester, avatar.
+           (Server user_profiles bhi afterAccountAuth me sync hoti hai, ye
+           instant local sync hai taaki dashboard turant personalized dikhe.) */
+        try{
+          if(row.profile){
+            if(row.profile.college&&row.profile.college!=='all'){
+              state.college=row.profile.college;
+              try{localStorage.setItem('bca-college',row.profile.college)}catch(e){}
+              const lbl=$('collegeLabel');if(lbl)lbl.textContent=(colleges.find(c=>c[0]===row.profile.college)||['',row.profile.college])[1];
+            }
+            if(row.profile.semester&&row.profile.semester!=='all'&&row.profile.semester!==''){
+              state.sem=String(row.profile.semester);
+              state.year=Number(row.profile.semester)>4?'3':(Number(row.profile.semester)>2?'2':'1');
+              try{localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year)}catch(e){}
+            }
+          }
+          if(row.avatar){try{localStorage.setItem('bca-avatar',row.avatar)}catch(e){}}
+        }catch(e){}
         setQrUi('success');
         setTimeout(()=>{
           try{
@@ -719,6 +737,12 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       /* Approve karte waqt expires_at thoda aage badha do taaki desktop ko
          poll/broadcast pakadne ka buffer mil jaye. */
       const acct={uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName()};
+      /* Poora profile bhejo — desktop par wahi data set ho jaye jo is device par hai */
+      try{
+        acct.profile={college:localStorage.getItem('bca-college')||'all',semester:localStorage.getItem('bca-sem')||''};
+        const av=localStorage.getItem('bca-avatar')||'';
+        if(av&&av.length<=150000)acct.avatar=av; /* chhota avatar hi bhejo (payload limit) */
+      }catch(e){}
       const {error}=await supabaseClient.from('qr_login_sessions').update(Object.assign({status:'approved'},acct,{expires_at:new Date(Date.now()+120000).toISOString()})).eq('session_id',id);
       if(error){if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
       sendQrBroadcast(id,'LOGIN_SUCCESS',acct);
@@ -993,7 +1017,33 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       $('installBanner').classList.remove('show');
     }
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(error => console.info('PWA service worker unavailable.', error.message)));
+      /* ===== PWA Auto-update =====
+         Har load par + har ghante + tab wapas khulne par update check hota hai.
+         Naya SW install hote hi (skipWaiting) controller badal jata hai aur page
+         ek baar khud reload ho jata hai — installed PWA users ko naya code milta
+         rehta hai bina manual kuch kiye. */
+      let __bcaReloading=false;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{
+        if(__bcaReloading)return;
+        __bcaReloading=true;
+        try{sessionStorage.setItem('bca-auto-updated','true')}catch(e){}
+        location.reload();
+      });
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('./sw.js').then(reg=>{
+          const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
+          check();
+          setInterval(check,3600000); /* har 1 ghante */
+          document.addEventListener('visibilitychange',()=>{if(!document.hidden)check()});
+          reg.addEventListener('updatefound',()=>{
+            const nw=reg.installing;if(!nw)return;
+            nw.addEventListener('statechange',()=>{
+              if(nw.state==='installed'&&navigator.serviceWorker.controller)console.info('[BCAPrime] naya version install ho raha hai…');
+            });
+          });
+        }).catch(error => console.info('PWA service worker unavailable.', error.message));
+      });
+      try{if(sessionStorage.getItem('bca-auto-updated')==='true'){sessionStorage.removeItem('bca-auto-updated');setTimeout(()=>toast('App updated ✅'),1200)}}catch(e){}
     }
     setTimeout(() => {
       showOnboardingIfNeeded();
