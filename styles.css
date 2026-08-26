@@ -686,6 +686,7 @@
   .founder-avatar:hover{transform:scale(1.12) rotate(4deg);box-shadow:0 0 16px rgba(47,191,113,.55)}
   .footer-bottom{padding-right:84px}
   .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em;cursor:default;transition:filter .2s ease}
+  .founder-tag{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 8px;border-radius:999px;line-height:1.4}
   .founder-name:hover{filter:brightness(1.25)}
   .footer-heart{color:#ff5d73;display:inline-block;animation:fHeart 1.8s ease-in-out infinite}
   @keyframes fHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.28)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
