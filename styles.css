@@ -682,11 +682,12 @@
   .footer-feedback i{font-size:12px}
   .footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;width:100%;padding:0 4px;color:var(--muted);font-size:12.5px}
   .footer{position:relative}
-  .founder-avatar{position:absolute;right:22px;bottom:16px;width:46px;height:46px;border-radius:50%;object-fit:cover;display:block;border:2.5px solid color-mix(in srgb,var(--brand) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 15%,transparent),0 4px 14px rgba(0,0,0,.25);transition:transform .25s ease,box-shadow .25s ease;cursor:pointer}
+  .founder-corner{position:absolute;right:16px;bottom:12px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+  .founder-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;display:block;border:2.5px solid color-mix(in srgb,var(--brand) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 15%,transparent),0 4px 14px rgba(0,0,0,.25);transition:transform .25s ease,box-shadow .25s ease;cursor:pointer}
   .founder-avatar:hover{transform:scale(1.12) rotate(4deg);box-shadow:0 0 16px rgba(47,191,113,.55)}
-  .footer-bottom{padding-right:84px}
+  .footer-bottom{padding-right:96px}
+  .founder-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 9px;border-radius:999px;line-height:1.5;white-space:nowrap}
   .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em;cursor:default;transition:filter .2s ease}
-  .founder-tag{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 8px;border-radius:999px;line-height:1.4}
   .founder-name:hover{filter:brightness(1.25)}
   .footer-heart{color:#ff5d73;display:inline-block;animation:fHeart 1.8s ease-in-out infinite}
   @keyframes fHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.28)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
