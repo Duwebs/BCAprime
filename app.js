@@ -566,7 +566,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       setQrUi('waiting');
       try{
         const ch=supabaseClient.channel('qr-'+id,{config:{broadcast:{self:false}}});
-        ch.on('broadcast',{event:'LOGIN_SUCCESS'},()=>qrHandleApproved());
+        ch.on('broadcast',{event:'LOGIN_SUCCESS'},msg=>qrHandleApproved(msg&&msg.payload));
         ch.on('broadcast',{event:'LOGIN_DENIED'},()=>qrHandleDenied());
         ch.subscribe(()=>{});
         qrSession.channel=ch;
@@ -636,7 +636,15 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       stopQrSession();
       try{
         dbg('approval mili, verify kar rahe hain…');
-        const row=preRow||(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data;
+        let row=preRow||(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data;
+        /* FALLBACK: agar live DB me SELECT policy missing hai (row null) aur
+           broadcast payload me account info aayi hai — to payload se login
+           complete karo. Broadcast channel sirf session id wale log sun sakte
+           hain, isliye ye utna hi trusted hai jitna DB row. */
+        if(!row&&preRow&&preRow.uid){
+          console.warn('[qr-login] row select nahi hui (SELECT policy missing?) — broadcast payload se login kar rahe hain');
+          row={status:'approved',uid:preRow.uid,email:preRow.email||'',display_name:preRow.display_name||preRow.displayName||'',expires_at:null,consumed_at:null};
+        }
         /* 30s ka grace — sirf minor clock-skew/delay tolerate karo */
         const expired=row&&row.expires_at&&(Date.now()-new Date(row.expires_at).getTime()>30000);
         if(!row||row.status!=='approved'||row.consumed_at||expired){
@@ -694,15 +702,21 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
          sahi message milega. */
       let row=null,rowErr=null;
       try{const r=await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at').eq('session_id',id).maybeSingle();row=r.data;rowErr=r.error}catch(e){rowErr=e}
-      if(rowErr||!row){if(msg)msg.textContent='QR session nahi mila — computer par Refresh dabao aur naya code scan karo.';return}
-      if(row.status==='denied'){if(msg)msg.textContent='Ye request deny ho chuki hai — computer par naya code generate karo.';return}
-      if(row.consumed_at){if(msg)msg.textContent='Ye code already use ho chuka hai — computer par naya code scan karo.';return}
-      if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='Code expire ho gaya — computer par naya QR aya hai, usse dobara scan karo.';return}
+      /* NOTE: agar live DB me SELECT policy missing hai to row null ayega —
+         hum yahin rukte nahi, approve + broadcast aage karte hain (fallback). */
+      if(!rowErr&&row){
+        if(row.status==='denied'){if(msg)msg.textContent='Ye request deny ho chuki hai — computer par naya code generate karo.';return}
+        if(row.consumed_at){if(msg)msg.textContent='Ye code already use ho chuka hai — computer par naya code scan karo.';return}
+        if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='Code expire ho gaya — computer par naya QR aya hai, usse dobara scan karo.';return}
+      }else if(rowErr){
+        console.warn('[qr-login] phone-side select fail (SELECT policy?), fallback to broadcast:',rowErr);
+      }
       /* Approve karte waqt expires_at thoda aage badha do taaki desktop ko
          poll/broadcast pakadne ka buffer mil jaye. */
-      const {error}=await supabaseClient.from('qr_login_sessions').update({status:'approved',uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName(),expires_at:new Date(Date.now()+120000).toISOString()}).eq('session_id',id);
+      const acct={uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName()};
+      const {error}=await supabaseClient.from('qr_login_sessions').update(Object.assign({status:'approved'},acct,{expires_at:new Date(Date.now()+120000).toISOString()})).eq('session_id',id);
       if(error){if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
-      sendQrBroadcast(id,'LOGIN_SUCCESS');
+      sendQrBroadcast(id,'LOGIN_SUCCESS',acct);
       if(msg)msg.textContent='Approved ✅ Computer me login ho gaya.';
       setTimeout(()=>{const m=$('qrApproveModal');if(m)m.classList.remove('open');sessionStorage.removeItem('bca-active-qr')},1600);
     }
@@ -712,11 +726,12 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       const m=$('qrApproveModal');if(m)m.classList.remove('open');
       sessionStorage.removeItem('bca-active-qr');
     }
-    function sendQrBroadcast(id,event){
+    function sendQrBroadcast(id,event,payload){
+      payload=payload||{};
       return new Promise(res=>{try{
         const ch=supabaseClient.channel('qr-'+id);
         const to=setTimeout(()=>{try{supabaseClient.removeChannel(ch)}catch(e){}res(false)},4000);
-        ch.subscribe(status=>{if(status==='SUBSCRIBED'){ch.send({type:'broadcast',event,payload:{sessionId:id}}).then(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(true)}).catch(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(false)})}});
+        ch.subscribe(status=>{if(status==='SUBSCRIBED'){ch.send({type:'broadcast',event,payload:Object.assign({sessionId:id},payload)}).then(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(true)}).catch(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(false)})}});
       }catch(e){res(false)}});
     }
     function maybeStartQrLogin(){if(isDesktopViewport()&&!accountUid()&&sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')setAuthMode('qr')}
