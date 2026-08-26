@@ -18,6 +18,7 @@
     .app{max-width:1320px;padding-left:28px;padding-right:28px}
     .topbar{height:68px;position:sticky;top:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);z-index:5}
     .main-nav{display:flex;align-items:center;gap:5px;margin-right:auto}.main-nav a{padding:8px 12px;border-radius:7px;color:var(--muted);font-size:13px;font-weight:700}.main-nav a:first-child,.main-nav a:hover{background:var(--brand-2);color:var(--brand)}
+    .nav-actions{margin-left:auto}
     .hero{padding:34px 34px 30px;margin-top:28px;gap:26px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
     .hero h1{font-size:clamp(34px,4.4vw,56px);margin:11px 0 10px}.hero p{font-size:15px;margin-bottom:20px}.hero-search{background:var(--surface-2);box-shadow:none;padding:4px}.hero-note{gap:24px;margin-top:18px}.hero-note b{font-size:16px}.hero-panel{background:var(--surface-2);border-radius:11px;padding:18px}.hero-panel h3{font-size:17px;margin-bottom:13px}.hero-semester{display:block;grid-column:1/-1;font-size:clamp(15px,2.4vw,18px);font-weight:600;color:color-mix(in srgb,var(--muted) 78%,transparent);margin-top:6px;transition:color .18s ease}
     .section{margin-top:28px}.section-head h2{font-size:21px}.section-head p{font-size:13px;margin-top:3px}.finder{border-radius:12px;padding:16px}
