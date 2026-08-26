@@ -670,7 +670,7 @@
   /* ============================================================
      Footer — minimal single-row: brand | links, phir credit line
      ============================================================ */
-  .footer{flex-direction:column;gap:12px;padding-bottom:26px}
+  .footer{display:flex;flex-direction:column;gap:12px;padding-bottom:26px}
   .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
   .footer-brand-row{display:inline-flex;align-items:center;gap:8px;line-height:1}
   .footer-brand-row img{width:26px;height:26px;object-fit:contain;display:block}
@@ -694,10 +694,13 @@
   @keyframes fHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.28)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
   .founder-insta{padding:8px 15px!important;border-radius:999px!important;color:#fff!important;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
   .founder-insta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(225,48,108,.4)}
-  @media(max-width:640px){
+    @media(max-width:640px){
+    .footer{align-items:center;margin-top:0;padding-top:0;border-top:0}
     .footer-top{flex-direction:column;align-items:center;text-align:center}
     .footer-bottom{justify-content:center;text-align:center;flex-direction:column;gap:10px}
     .footer-right{flex-direction:column;gap:10px}
+    .footer-links{justify-content:center}
+    .footer-feedback{flex:1 1 auto;min-width:110px;padding:10px 10px;font-size:13px}
   }
   .qr-steps b{color:var(--ink);margin-right:6px}
 }
