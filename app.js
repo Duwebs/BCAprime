@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v26 loaded ✔');
+console.info('[BCAPrime] app.js v27 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -1092,7 +1092,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       event.preventDefault();
       deferredInstallPrompt = event;
       $('installButton').hidden = false;
-      $('footerInstallButton').hidden = false;
+      const fib=document.getElementById('footerInstallButton');if(fib)fib.hidden=false;
       setTimeout(() => {
         if (deferredInstallPrompt) $('installBanner').classList.add('show');
       }, 3000);
@@ -1100,7 +1100,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     window.addEventListener('appinstalled', () => {
       deferredInstallPrompt = null;
       $('installButton').hidden = true;
-      $('footerInstallButton').hidden = true;
+      const fib2=document.getElementById('footerInstallButton');if(fib2)fib2.hidden=true;
       $('installBanner').classList.remove('show');
       toast('BCAPrime installed');
     });
@@ -1111,7 +1111,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       await deferredInstallPrompt.userChoice;
       deferredInstallPrompt = null;
       $('installButton').hidden = true;
-      $('footerInstallButton').hidden = true;
+      const fib3=document.getElementById('footerInstallButton');if(fib3)fib3.hidden=true;
     }
     function dismissInstallBanner(){
       $('installBanner').classList.remove('show');
