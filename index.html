@@ -51,7 +51,7 @@
           <button class="linklike auth-alt-link" type="button" onclick="setAuthMode('form')">Log in with Email / Socials instead</button>
         </div>
         <div class="auth-form-wrap">
-        <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button mobile-qr-scan" type="button" onclick="openQrScanner()"><i class="fa-solid fa-camera"></i> Computer par login karna hai? QR Scan karo</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
+        <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Name<input id="gateAccountName" type="text" autocomplete="name"></label><label>Email<input id="gateAccountEmail" type="email" autocomplete="email" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple','gateAccountMessage')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
         <button class="linklike auth-qr-toggle" type="button" onclick="setAuthMode('qr')"><i class="fa-solid fa-qrcode"></i> Use QR code instead</button>
         </div>
       </div>
@@ -65,6 +65,7 @@
         <button class="college-btn" onclick="openProfile()" aria-label="Current college & semester. Change from Profile" title="Change preferences from Profile"><i class="fa-solid fa-building-columns"></i><span id="collegeLabel">All Colleges</span> <span id="navSemBadge" style="opacity:0.8;font-size:12px">&middot; Sem 3</span><i class="fa-solid fa-user-gear" style="font-size:10px"></i></button>
         <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
         <button class="icon-btn notify-bell" id="notifyBell" onclick="toggleNotifications(event,this)" aria-label="Toggle notifications" title="Notifications"><i id="bellIcon" class="fa-regular fa-bell"></i></button>
+        <button class="icon-btn mobile-qr-topbar" onclick="openQrScanner()" aria-label="Scan QR — computer login" title="Computer me login karo (QR scan)"><i class="fa-solid fa-camera"></i></button>
         <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
         <button class="topbar-avatar" id="topbarAvatarBtn" onclick="toggleProfileCard(event)" aria-label="Open profile card" title="Your profile"><img id="topbarAvatar" alt="Profile"></button>
       </nav>
@@ -152,7 +153,7 @@
   </aside>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=11"></script><script src="push-subscribe.js?v=3"></script>
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 </html>
 
