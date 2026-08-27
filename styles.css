@@ -671,6 +671,7 @@
      Footer — minimal single-row: brand | links, phir credit line
      ============================================================ */
   .footer{display:flex;flex-direction:column;gap:12px;padding-bottom:26px}
+}
 /* ================= NEW FEATURES ================= */
 /* Card top actions (bookmark + offline save) */
 .resource-top-actions{display:flex;gap:6px;align-items:center}
@@ -806,36 +807,101 @@
 
 .offline-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
 .offline-actions .primary,.offline-actions .secondary{min-height:42px;gap:8px}
-  .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
-  .footer-brand-row{display:inline-flex;align-items:center;gap:8px;line-height:1}
-  .footer-brand-row img{width:26px;height:26px;object-fit:contain;display:block}
-  .footer-brand-row strong{font-size:15.5px;font-weight:700;display:flex;align-items:center}
-  .footer-brand-row span{color:var(--brand)}
-  .footer-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .footer-feedback{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;padding:6px 4px;cursor:pointer;border-radius:8px;transition:color .18s ease}
-  .footer-feedback:hover{color:var(--brand)}
-  .footer-feedback i{font-size:12px}
-  .footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;width:100%;color:var(--muted);font-size:12.5px}
-  .footer-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
-  .footer-credit-line{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
-  .founder-corner{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
-  .founder-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;display:block;border:2.5px solid color-mix(in srgb,var(--brand) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 15%,transparent),0 2px 10px rgba(0,0,0,.18);transition:transform .25s ease,box-shadow .25s ease;cursor:pointer}
-  .founder-avatar:hover{transform:scale(1.08) rotate(3deg);box-shadow:0 0 16px rgba(47,191,113,.55)}
-  .footer-tag-node{display:contents}
-  .founder-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 9px;border-radius:999px;line-height:1.5;white-space:nowrap}
-  .founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em;cursor:default;transition:filter .2s ease}
-  .founder-name:hover{filter:brightness(1.25)}
-  .footer-heart{color:#ff5d73;display:inline-block;animation:fHeart 1.8s ease-in-out infinite}
-  @keyframes fHeart{0%,100%{transform:scale(1)}12%{transform:scale(1.28)}24%{transform:scale(1)}36%{transform:scale(1.18)}48%{transform:scale(1)}}
-  .founder-insta{padding:8px 15px!important;border-radius:999px!important;color:#fff!important;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
-  .founder-insta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(225,48,108,.4)}
-  @media(max-width:640px){
-    .footer{align-items:center;margin-top:0;padding-top:0;border-top:0}
-    .footer-top{display:none}
-    .footer-bottom{justify-content:center;text-align:center;flex-direction:column;gap:10px}
-    .footer-right{flex-direction:column;gap:10px}
-  }
-  .qr-steps b{color:var(--ink);margin-right:6px}
+
+/* ---- Footer — all screen sizes (was trapped inside desktop media query) ---- */
+.footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.footer-brand-row{display:inline-flex;align-items:center;gap:8px;line-height:1}
+.footer-brand-row img{width:26px;height:26px;object-fit:contain;display:block}
+.footer-brand-row strong{font-size:15.5px;font-weight:700;display:flex;align-items:center}
+.footer-brand-row span{color:var(--brand)}
+.footer-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.footer-feedback{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--muted);font-size:12.5px;font-weight:600;padding:6px 4px;cursor:pointer;border-radius:8px;transition:color .18s ease}
+.footer-feedback:hover{color:var(--brand)}
+.footer-feedback i{font-size:12px}
+.footer-bottom{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;width:100%;color:var(--muted);font-size:12.5px}
+.footer-right{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
+.footer-credit-line{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.founder-corner{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.founder-avatar{width:46px;height:46px;border-radius:50%;object-fit:cover;display:block;border:2.5px solid color-mix(in srgb,var(--brand) 60%,var(--line));box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 15%,transparent),0 2px 10px rgba(0,0,0,.18);transition:transform .25s ease,box-shadow .25s ease;cursor:pointer}
+.founder-avatar:hover{transform:scale(1.08) rotate(3deg);box-shadow:0 0 16px rgba(47,191,113,.55)}
+.footer-tag-node{display:contents}
+.founder-tag{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--brand);border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));background:color-mix(in srgb,var(--brand) 10%,transparent);padding:2px 9px;border-radius:999px;line-height:1.5;white-space:nowrap}
+.founder-name{font-weight:700;background:linear-gradient(92deg,#23808f,#2fbf71 55%,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;letter-spacing:.02em;cursor:default;transition:filter .2s ease}
+.founder-name:hover{filter:brightness(1.25)}
+.footer-heart{color:#ff5d73;display:inline-block;animation:fHeart 1.8s ease-in-out infinite}
+.founder-insta{padding:8px 15px!important;border-radius:999px!important;color:#fff!important;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
+.founder-insta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(225,48,108,.4)}
+.qr-steps b{color:var(--ink);margin-right:6px}
+
+/* ---- Mobile footer (replaces broken nested media query) ---- */
+@media(max-width:640px){
+  .footer{align-items:center;margin-top:0;padding-top:0;border-top:0}
+  .footer-top{display:none}
+  .footer-bottom{justify-content:center;text-align:center;flex-direction:column;gap:10px}
+  .footer-right{flex-direction:column;gap:10px}
+}
+
+/* ---- Mobile bottom-tabs: prevent text overflow on 320-430px ---- */
+@media(max-width:430px){
+  .bottom-tab span{font-size:9px;max-width:52px}
+  .bottom-tab i{font-size:16px}
+}
+@media(max-width:360px){
+  .bottom-tabs{gap:2px;padding:5px}
+  .bottom-tab span{font-size:8px;max-width:44px}
+  .bottom-tab i{font-size:15px}
+}
+
+/* ---- Mobile topbar: prevent brand overflow on narrow screens ---- */
+@media(max-width:390px){
+  .brand strong{font-size:16px}
+  .nav-actions{gap:5px}
+  .icon-btn{width:34px;height:34px}
+  .college-btn{padding:7px 8px;font-size:12px}
+  .college-btn #navSemBadge{display:none}
+}
+
+/* ---- Finder: single-column at medium breakpoint ---- */
+@media(max-width:768px){
+  .finder-grid{grid-template-columns:1fr 1fr}
+  .finder-action{grid-column:1/-1}
+  .resource-grid{grid-template-columns:repeat(2,1fr)}
+  .semester-grid{grid-template-columns:repeat(3,1fr)}
+  .hero-note{flex-wrap:wrap;gap:8px}
+  .hero-note>div{min-width:calc(50% - 6px);flex:1}
+  .subject-cards{grid-template-columns:repeat(auto-fill,minmax(145px,1fr))}
+}
+
+/* ---- Subject cards: tighter on very small screens ---- */
+@media(max-width:360px){
+  .subject-cards{grid-template-columns:1fr}
+  .subject-card{min-height:0;padding:14px 13px}
+  .desk-strip{flex-direction:column}
+  .desk-card{min-width:0;width:100%}
+}
+
+/* ---- Dialogs & modals: better small-screen handling ---- */
+@media(max-width:480px){
+  .dialog{border-radius:14px 14px 10px 10px;padding:16px}
+  .dialog h2{font-size:18px}
+  .onboarding-dialog{padding:18px;border-radius:14px 14px 10px 10px}
+  .subject-type-row{gap:10px}
+  .subject-type-btn{padding:18px 12px}
+  .sr-type{min-height:40px;padding:8px 6px;font-size:12px}
+  .device-gate-actions .primary,.device-gate-actions .secondary{min-width:0;padding:10px 14px}
+}
+
+/* ---- Help-juniors: action buttons wrap properly ---- */
+@media(max-width:360px){
+  .help-actions{flex-direction:column}
+  .help-actions .help-wa,.help-actions .secondary{flex-basis:100%}
+}
+
+/* ---- Safe-area-inset bottom padding for notch phones ---- */
+@supports(padding-bottom:env(safe-area-inset-bottom)){
+  .bottom-tabs{padding-bottom:calc(7px + env(safe-area-inset-bottom))}
+  .footer{padding-bottom:calc(26px + env(safe-area-inset-bottom))}
+  .app{padding-bottom:calc(100px + env(safe-area-inset-bottom))}
 }
 
 
