@@ -137,6 +137,9 @@
   <div class="modal" id="previewModal"><div class="dialog preview-dialog"><div class="dialog-head"><h2 id="previewTitle">Preview</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p class="preview-meta" id="previewMeta"></p><div class="preview-frame" id="previewBody"></div><a class="primary preview-open" id="previewOpenLink" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Open full file</a></div></div>
   <!-- Offline: file not saved on this device yet -->
   <div class="modal" id="offlineModal"><div class="dialog offline-dialog"><div class="dialog-head"><span></span><button class="close" aria-label="Close dialog" onclick="closeOfflineModal()">&times;</button></div><div class="offline-icon"><i class="fa-solid fa-wifi"></i></div><h2>You&#39;re offline</h2><p class="offline-msg">This file hasn&#39;t been saved on this device yet, so it can&#39;t open without internet. Files you&#39;ve opened before still work offline.</p><div class="offline-actions"><button class="secondary" type="button" onclick="openNetworkSettings()"><i class="fa-solid fa-gear"></i> Turn on WiFi / data</button><button class="primary" type="button" onclick="retryOfflineAction()"><i class="fa-solid fa-rotate-right"></i> Retry</button></div></div></div>
+  <!-- In-app PDF reader (full-screen, zoom + offline) -->
+  <div class="modal reader-modal" id="readerModal"><div class="reader-shell"><div class="reader-toolbar"><button class="reader-btn" onclick="closeReader()" aria-label="Close reader" title="Close"><i class="fa-solid fa-arrow-left"></i></button><div class="reader-title"><strong id="readerTitle">Reading</strong></div><div class="reader-zoom"><button class="reader-btn" onclick="readerZoomOut()" aria-label="Zoom out" title="Zoom out"><i class="fa-solid fa-minus"></i></button><span id="readerZoomVal">100%</span><button class="reader-btn" onclick="readerZoomIn()" aria-label="Zoom in" title="Zoom in"><i class="fa-solid fa-plus"></i></button></div><a class="reader-btn reader-open" id="readerOpen" target="_blank" rel="noopener" aria-label="Open in new tab" title="Open in new tab"><i class="fa-solid fa-up-right-from-square"></i></a></div><div class="reader-viewport"><iframe id="readerFrame" class="reader-frame" title="PDF viewer"></iframe></div></div></div>
+
 
   <div id="toastRoot" role="status" aria-live="polite"></div>
   <div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="Welcome tour"><button class="tour-skip" type="button" onclick="skipTour()">Skip</button><div class="tour-stage" id="tourStage"><div class="tour-icon-wrap"><i id="tourIcon" class="fa-solid fa-magnifying-glass"></i></div><div class="tour-dots" id="tourDots"></div><h2 id="tourTitle"></h2><p id="tourText"></p></div><div class="tour-actions"><button class="tour-back" id="tourBack" type="button" onclick="previousTourStep()" hidden aria-label="Previous"><i class="fa-solid fa-arrow-left"></i></button><button class="primary" id="tourNext" type="button" onclick="nextTourStep()">Next <i class="fa-solid fa-arrow-right"></i></button></div></div>
@@ -189,7 +192,7 @@
   </aside>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=12"></script><script src="push-subscribe.js?v=4"></script>
-  <script src="app.js?v=29"></script>
+  <script src="app.js?v=30"></script>
 </body>
 </html>
 

@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v29 loaded ✔');
+console.info('[BCAPrime] app.js v30 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -49,7 +49,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:accountSession&&accountSession.uid?accountSession.uid:'',user_email:accountSession&&accountSession.email?accountSession.email:'',user_name:accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||''),resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
-    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status}));const existing=new Set(resources.map(item=>item.title));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.info('Supabase resources unavailable until schema is added.',error.message)}}
     function init(){
       applyTheme(state.theme);
       $('yearFilter').value=state.year==='all'?'all':state.year;
@@ -63,6 +63,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       renderColleges();
       renderSubjectFilter();
       render();
+      if(!resources.length)showSkeleton();
       loadCloudResources();
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
     }
@@ -104,7 +105,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         +'You upload first, everyone studies next! 💪🚀';
       window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     }
-    function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span>${r.uploader?`<span><i class="fa-solid fa-user"></i>${r.uploader}</span>`:''}</div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button><button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
+    function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const off=isOfflineSaved(id);const up=didUpvote(id);return `<article class="resource"><div class="resource-top"><span class="badge">${r.type}</span><div class="resource-top-actions"><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button><button class="save offline ${off?'saved':''}" aria-label="Save for offline use" title="Save for offline" onclick="saveOfflineResource('${id}')"><i class="fa-solid fa-cloud-arrow-down"></i></button></div></div><h3>${r.title}</h3><p>${r.subject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${r.college==='all'?'All colleges':(colleges.find(c=>c[0]===r.college)||['','College'])[1]}</span></div><div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span><button class="upvote ${up?'voted':''}" aria-label="Upvote" onclick="toggleUpvote('${id}')"><i class="fa-solid fa-thumbs-up"></i> ${upvoteDisplay(r)}</button>${r.uploader?`<span><i class="fa-solid fa-user"></i>${r.uploader}</span>`:''}</div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button>${(/\.pdf(\?|$)/i.test((r.fileUrl||'')+(r.fileName||'')))?`<button class="readon" onclick="openReader(resources.find(x=>x.title.replace(/\\W/g,'')==='${id}'))"><i class="fa-solid fa-book-open"></i> Read</button>`:''}<button class="download" onclick="download('${r.title}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');render()}
     function applyFilters(){updateSemesterOptions();state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
     /* Year select hone par semester dropdown usi year ke sems tak simit hota hai */
@@ -857,7 +858,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const email=$('accountEmail').value.trim();const password=$('accountPassword').value;try{if(accountMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccountMode('login');$('accountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}catch(error){authSuppress=false;$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML=''}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank'}
     function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -1129,6 +1130,79 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       try{if(!accountSession)return;localStorage.setItem('bca-profile-cache',JSON.stringify({name:getUserName(accountSession),email:accountSession.email||'',photo:accountSession.photoURL||''}))}catch(e){}
     }
     function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
+    /* ===== NEW FEATURES =====
+       1) Save for offline (Netflix-style) — files device pe cache
+       2) Library skeleton loading — jaldi dikhe
+       3) Upvotes / ratings — community vote
+       4) In-app PDF reader — full-screen, zoom + offline */
+    const OFFLINE_CACHE='bcaprime-files-v1';
+    const OFFLINE_SAVED_KEY='bca-offline-saved';
+    const MY_UPVOTES_KEY='bca-my-upvotes';
+    function _jsonList(key){try{return JSON.parse(localStorage.getItem(key)||'[]')}catch(e){return[]}}
+    function _setJsonList(key,list){try{localStorage.setItem(key,JSON.stringify(list))}catch(e){}}
+    /* 1) Save for offline */
+    function isOfflineSaved(id){return _jsonList(OFFLINE_SAVED_KEY).includes(id)}
+    async function saveOfflineResource(id){
+      const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);
+      if(!resource)return;
+      const src=resource.fileUrl||resource.fileData;
+      const saved=_jsonList(OFFLINE_SAVED_KEY);
+      if(saved.includes(id)){
+        _setJsonList(OFFLINE_SAVED_KEY,saved.filter(x=>x!==id));
+        toast('Removed from offline');render();
+        return;
+      }
+      if(!src){toast('Nothing to save for this item');return}
+      if(isRemoteFile(src)){
+        if(!navigator.onLine){toast('Offline — connect once to save this file');return}
+        try{
+          const cache=await caches.open(OFFLINE_CACHE);
+          const res=await fetch(src);
+          if(!res.ok)throw new Error('bad');
+          await cache.put(src,res.clone());
+        }catch(e){toast('Could not save this file right now');return}
+      }
+      saved.push(id);
+      _setJsonList(OFFLINE_SAVED_KEY,saved);
+      toast('Saved for offline ✅');
+      render();
+    }
+    /* 2) Skeleton loading */
+    function showSkeleton(){
+      const g=$('resources');if(!g)return;
+      let s='';for(let i=0;i<6;i++){s+='<div class="resource skeleton-card"><div class="sk sk-line w55"></div><div class="sk sk-line w40"></div><div class="sk sk-line w75"></div><div class="sk sk-line w50"></div><div class="sk sk-line w90"></div></div>'}
+      g.innerHTML=s;
+      setTimeout(()=>{try{if(!resources.length)render()}catch(e){}},9000);
+    }
+    /* 3) Upvotes / ratings */
+    function didUpvote(id){return _jsonList(MY_UPVOTES_KEY).includes(id)}
+    function upvoteDisplay(r){const id=r.title.replace(/\W/g,'');const base=(typeof r.upvotes==='number')?r.upvotes:0;return base+(didUpvote(id)?1:0)}
+    async function toggleUpvote(id){
+      const list=_jsonList(MY_UPVOTES_KEY);
+      const liked=list.includes(id);
+      _setJsonList(MY_UPVOTES_KEY,liked?list.filter(x=>x!==id):[...list,id]);
+      render();
+      toast(liked?'Upvote removed':'Upvoted 👍');
+      try{if(supabaseClient){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(resource&&resource.upvotes!=null){await supabaseClient.from('resources').select('id').eq('title',resource.title)}}}catch(e){}
+    }
+    /* 4) In-app PDF reader */
+    let readerZoom=1;
+    function openReader(resource){
+      const src=resource.fileUrl||resource.fileData;if(!src)return;
+      readerZoom=1;
+      $('readerTitle').textContent=resource.title;
+      $('readerOpen').href=src;
+      $('readerOpen').setAttribute('download',resource.fileName||resource.title.replace(/\W+/g,'-')+'.pdf');
+      const frm=$('readerFrame');if(frm)frm.src=src;
+      $('readerModal').classList.add('open');
+      applyReaderZoom();
+    }
+    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');const f=$('readerFrame');if(f)f.src='about:blank'}
+    function applyReaderZoom(){const f=$('readerFrame');if(f)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%'}
+    function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
+    function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
+
+
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
     function renderOnboardingColleges(){const options=colleges.filter(c=>c[0]!=='other');$('onboardingList').innerHTML=options.map(c=>`<button class="onboarding-option ${state.onboardingCollege===c[0]?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.onboardingCollege===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
     function chooseOnboardingCollege(id){state.onboardingCollege=id;renderOnboardingColleges();state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));const track=$('obTrack');if(track)track.classList.add('step2')}

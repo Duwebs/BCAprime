@@ -671,6 +671,38 @@
      Footer — minimal single-row: brand | links, phir credit line
      ============================================================ */
   .footer{display:flex;flex-direction:column;gap:12px;padding-bottom:26px}
+/* ================= NEW FEATURES ================= */
+/* Card top actions (bookmark + offline save) */
+.resource-top-actions{display:flex;gap:6px;align-items:center}
+.save.offline{font-size:15px}
+.save.offline.saved{color:#2fbf71!important}
+/* Upvote button (community ratings) */
+.resource-submeta{flex-wrap:wrap;row-gap:6px}
+.resource-submeta .upvote{border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;padding:3px 9px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:5px;cursor:pointer;line-height:1}
+.resource-submeta .upvote:hover{border-color:var(--brand);color:var(--ink)}
+.resource-submeta .upvote.voted{border-color:var(--brand);background:color-mix(in srgb,var(--brand) 16%,transparent);color:var(--brand)}
+/* "Read" in-app button */
+.readon{border:1px solid var(--line);background:transparent;color:var(--ink)}
+.readon:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-2)}
+/* Skeleton loading shimmer */
+.skeleton-card{pointer-events:none}
+.sk{height:13px;border-radius:6px;background:color-mix(in srgb,var(--line,#222) 62%,transparent);overflow:hidden;position:relative;margin:0 0 10px}
+.sk::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:skShimmer 1.3s infinite}
+.sk.w40{width:40%}.sk.w50{width:50%}.sk.w55{width:55%}.sk.w75{width:75%}.sk.w90{width:90%}
+@keyframes skShimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+/* In-app PDF reader (full screen) */
+.reader-modal{padding:0!important;align-items:stretch;justify-items:stretch;inset:0;width:100vw;height:100vh}
+.reader-shell{width:100%;height:100%;display:flex;flex-direction:column;background:var(--surface)}
+.reader-toolbar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--surface-2);flex:none}
+.reader-title{flex:1;min-width:0}
+.reader-title strong{display:block;font:600 15px 'Geist';overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reader-zoom{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:700;white-space:nowrap}
+.reader-btn{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);display:grid;place-items:center;cursor:pointer;font-size:14px;text-decoration:none;flex:none}
+.reader-btn:hover{border-color:var(--brand);color:var(--brand)}
+.reader-open{color:var(--brand)}
+.reader-viewport{flex:1;overflow:auto;display:flex;justify-content:center;background:#111}
+.reader-frame{width:100%;height:100%;border:0;background:#fff;transform-origin:top center}
+
 /* ---- Offline top notification banner (dismissible, big-tech style) ---- */
 .offline-banner{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;z-index:1200;transform:translate(-50%,-140%) translateY(0) scale(.98);display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100% - 24px));padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--bg,#0a0a0a) 86%,#333);border:1px solid color-mix(in srgb,var(--brand,#67c9dc) 45%,transparent);box-shadow:0 14px 36px rgba(0,0,0,.45);color:var(--ink,#eee);font-size:13px;opacity:0;pointer-events:none;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
 .offline-banner.show{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)}
