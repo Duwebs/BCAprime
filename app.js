@@ -65,6 +65,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       render();
       if(!resources.length)showSkeleton();
       loadCloudResources();
+      setTimeout(()=>{try{loadSeniorRequests()}catch(e){}},600);
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
     }
     function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
@@ -90,6 +91,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         <div class="empty-actions">
           <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
           <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Request from friends</button>
+          ${canRequestSenior()?`<button class="sr-request" onclick="openSeniorRequest()"><i class="fa-solid fa-users"></i> Request senior</button>`:''}
         </div></div>`;
     }
     function requestMaterialOnWhatsApp(){
@@ -944,7 +946,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function startLibrarySync(){
       if(!supabaseClient)return;
       try{const channel=supabaseClient.channel('resources-live').on('postgres_changes',{event:'*',schema:'public',table:'resources'},()=>loadCloudResources());channel.subscribe()}catch(error){}
-      setInterval(()=>{if(document.visibilityState==='visible')loadCloudResources()},30000);
+      setInterval(()=>{if(document.visibilityState==='visible'){loadCloudResources();try{loadSeniorRequests()}catch(e){}}},30000);
     }
     async function submitUpload(event){
       try{
@@ -1202,6 +1204,97 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
     function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
 
+    /* ================= SENIOR HELP REQUESTS =================
+       Juniors (sem N) apne seniors (sem N+1..6) se notes/PYQ maangte hain.
+       Sem 6 = koi senior nahi -> option hidden.
+       ------------------------------------------------------ */
+    const SENIOR_TABLE='senior_requests';
+    const NOTIFY_SENIORS_URL=SUPABASE_URL+'/functions/v1/notify-seniors';
+    function mySemNumber(){const v=Number(state.sem);return(v>=1&&v<=6)?v:0}
+    function myCollegeKey(){return state.college||'all'}
+    function canRequestSenior(){return mySemNumber()>=1&&mySemNumber()<=5}
+    function openSeniorRequest(){
+      if(!accountSession){requireAccount('Log in to ask your seniors for notes/PYQs.','feedback');return}
+      if(!canRequestSenior()){toast('You\'re in the final semester — koi senior nahi. Aap juniors ko help kar sakte hain!');return}
+      const rg=$('srRange');if(rg)rg.textContent=String(mySemNumber()+1)+'–6';
+      $('srSubject').value='';$('srMessage').value='';
+      const t=document.querySelector('.sr-type.active');if(t){t.classList.remove('active')}
+      const def=document.querySelector('.sr-type[data-type="notes"]');if(def)def.classList.add('active');
+      $('seniorReqModal').classList.add('open');
+    }
+    function closeSeniorRequest(){const m=$('seniorReqModal');if(m)m.classList.remove('open')}
+    function setSrType(btn){document.querySelectorAll('.sr-type').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active')}
+    async function submitSeniorRequest(event){
+      event.preventDefault();
+      if(!accountSession){requireAccount('Log in to ask your seniors.','feedback');return}
+      const sem=mySemNumber();if(!canRequestSenior()){toast('Semester 6 wale senior nahi maang sakte');return}
+      const subject=$('srSubject').value.trim();
+      const message=$('srMessage').value.trim();
+      if(!subject){toast('Subject/notes name likho');return}
+      const typeBtn=document.querySelector('.sr-type.active')||document.querySelector('.sr-type');
+      const type=typeBtn?typeBtn.dataset.type:'notes';
+      const btn=$('srSubmit');if(btn){btn.disabled=true;btn.textContent='Sending…'}
+      try{
+        if(!supabaseClient)throw new Error('no-db');
+        const {data:inserted,error}=await supabaseClient.from(SENIOR_TABLE).insert({
+          requester_uid:accountUid(),requester_name:getUserName(accountSession)||'A student',
+          college:myCollegeKey(),semester:sem,subject:subject,type:type,message:message,status:'pending'
+        }).select('id').single();
+        if(error)throw error;
+        const rid=inserted&&inserted.id;
+        closeSeniorRequest();
+        toast('Request sent to your seniors 🔔');
+        if(rid){try{fetch(NOTIFY_SENIORS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:rid})}).catch(()=>{})}catch(e){}}
+        loadSeniorHelpDelayed();
+      }catch(e){toast('Could not send request right now')}
+      finally{if(btn){btn.disabled=false;btn.textContent='Send to seniors'}}
+    }
+
+
+
+
+
+    /* ---- Senior side: help juniors ---- */
+    let seniorHelpTimer=null;
+    function seniorHelpVisible(){return mySemNumber()>=2}
+    async function loadSeniorRequests(){
+      const host=$('helpJuniors');if(!host)return;
+      const mySem=mySemNumber();
+      if(!seniorHelpVisible()){host.hidden=true;return}
+      host.hidden=false;
+      const listEl=$('helpJuniorsList');if(!listEl)return;
+      listEl.innerHTML='<p class="help-loading">Checking for junior requests…</p>';
+      try{
+        if(!supabaseClient){listEl.innerHTML='<p class="help-empty">Setup needed.</p>';return}
+        const {data,error}=await supabaseClient.from(SENIOR_TABLE)
+          .select('*').lt('semester',mySem).in('status',['pending','notified'])
+          .order('created_at',{ascending:false}).limit(20);
+        if(error)throw error;
+        const mine=(data||[]).filter(r=>myCollegeKey()==='all'||r.college==='all'||r.college===myCollegeKey());
+        const countEl=$('helpJuniorsCount');
+        if(countEl)countEl.textContent=mine.length?`${mine.length} junior${mine.length===1?'':'s'}`:'';
+        if(!mine.length){listEl.innerHTML='<p class="help-empty">🎉 No junior requests right now. Jab koi junior material maangega to yahan aayega.</p>';return}
+        listEl.innerHTML=mine.map(r=>{
+          const semLabel='Semester '+r.semester;
+          const subject=String(r.subject||'notes/PYQ').replace(/[<>&"]/g,'');
+          const msg=String(r.message||'').replace(/[<>&"]/g,'');
+          const typeLabel=r.type==='pyq'?'PYQ':'Notes';
+          const waText=encodeURIComponent('Hi! I saw your BCAPrime request for '+typeLabel+' of "'+subject+'" ('+semLabel+'). I can help you 😊');
+          return `<div class="help-item">
+            <div class="help-item-head"><span class="badge">${typeLabel}</span><span class="help-sem">${semLabel}</span><span class="help-time">${timeAgo(r.created_at)}</span></div>
+            <strong class="help-subject">${subject}</strong>
+            ${msg?`<p class="help-msg">${msg}</p>`:''}
+            <div class="help-actions">
+              <a class="primary help-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${waText}"><i class="fa-brands fa-whatsapp"></i> Share with them</a>
+              <button class="secondary" onclick="markSeniorDone(${r.id},this)"><i class="fa-solid fa-check"></i> Done</button>
+            </div>
+          </div>`;
+        }).join('');
+      }catch(e){listEl.innerHTML='<p class="help-empty">Could not load requests.</p>'}
+    }
+    function loadSeniorHelpDelayed(){if(seniorHelpTimer)clearTimeout(seniorHelpTimer);seniorHelpTimer=setTimeout(loadSeniorRequests,900)}
+    function timeAgo(iso){try{const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
+    async function markSeniorDone(id,btn){if(btn){btn.disabled=true;btn.textContent='Saved'}try{if(supabaseClient)await supabaseClient.from(SENIOR_TABLE).update({status:'done'}).eq('id',id)}catch(e){}setTimeout(loadSeniorRequests,400)}
 
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
     function renderOnboardingColleges(){const options=colleges.filter(c=>c[0]!=='other');$('onboardingList').innerHTML=options.map(c=>`<button class="onboarding-option ${state.onboardingCollege===c[0]?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.onboardingCollege===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
