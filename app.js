@@ -1275,17 +1275,17 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         if(countEl)countEl.textContent=mine.length?`${mine.length} junior${mine.length===1?'':'s'}`:'';
         if(!mine.length){listEl.innerHTML='<p class="help-empty">🎉 No junior requests right now. Jab koi junior material maangega to yahan aayega.</p>';return}
         listEl.innerHTML=mine.map(r=>{
+          helpJuniorCache[r.id]=r;
           const semLabel='Semester '+r.semester;
           const subject=String(r.subject||'notes/PYQ').replace(/[<>&"]/g,'');
           const msg=String(r.message||'').replace(/[<>&"]/g,'');
           const typeLabel=r.type==='pyq'?'PYQ':'Notes';
-          const waText=encodeURIComponent('Hi! I saw your BCAPrime request for '+typeLabel+' of "'+subject+'" ('+semLabel+'). I can help you 😊');
           return `<div class="help-item">
             <div class="help-item-head"><span class="badge">${typeLabel}</span><span class="help-sem">${semLabel}</span><span class="help-time">${timeAgo(r.created_at)}</span></div>
             <strong class="help-subject">${subject}</strong>
             ${msg?`<p class="help-msg">${msg}</p>`:''}
             <div class="help-actions">
-              <a class="primary help-wa" target="_blank" rel="noopener" href="https://wa.me/?text=${waText}"><i class="fa-brands fa-whatsapp"></i> Share with them</a>
+              <button class="primary" onclick="openUploadForJunior(${r.id})"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
               <button class="secondary" onclick="markSeniorDone(${r.id},this)"><i class="fa-solid fa-check"></i> Done</button>
             </div>
           </div>`;
@@ -1295,6 +1295,29 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function loadSeniorHelpDelayed(){if(seniorHelpTimer)clearTimeout(seniorHelpTimer);seniorHelpTimer=setTimeout(loadSeniorRequests,900)}
     function timeAgo(iso){try{const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
     async function markSeniorDone(id,btn){if(btn){btn.disabled=true;btn.textContent='Saved'}try{if(supabaseClient)await supabaseClient.from(SENIOR_TABLE).update({status:'done'}).eq('id',id)}catch(e){}setTimeout(loadSeniorRequests,400)}
+    /* Junior ki request se direct upload modal pre-fill karke khulta hai */
+    const helpJuniorCache={};
+    function openUploadForJunior(id){
+      const r=helpJuniorCache[id];if(!r)return;
+      openUpload();
+      if(!$('uploadModal')||!$('uploadModal').classList.contains('open'))return; /* login needed */
+      try{
+        const subj=String(r.subject||'').trim();
+        const semSel=document.querySelector('#uploadModal select[name="semester"]');if(semSel)semSel.value=String(r.semester);
+        const typeSel=document.querySelector('#uploadModal select[name="type"]');if(typeSel)typeSel.value=(r.type==='pyq'?'pyq':'notes');
+        updateUploadSubjects();
+        const sub=$('uploadSubjectSelect');
+        if(sub){
+          let matched=false;
+          if(subj){[...sub.options].forEach(o=>{if(!matched&&o.value!=='__other'&&o.value.toLowerCase()===subj.toLowerCase()){sub.value=o.value;matched=true}});}
+          if(!matched)sub.value='__other';
+          onUploadSubjectChange(sub);
+          if(!matched){const custom=document.querySelector('#uploadModal input[name="customSubject"]');if(custom)custom.value=subj;}
+        }
+        const titleInput=document.querySelector('#uploadModal input[name="title"]');
+        if(titleInput&&!titleInput.value.trim())titleInput.value=subj?`${subj} — ${r.type==='pyq'?'PYQ':'Notes'} (Sem ${r.semester})`:'';
+      }catch(e){}
+    }
 
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
     function renderOnboardingColleges(){const options=colleges.filter(c=>c[0]!=='other');$('onboardingList').innerHTML=options.map(c=>`<button class="onboarding-option ${state.onboardingCollege===c[0]?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.onboardingCollege===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}

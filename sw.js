@@ -6,7 +6,7 @@
    3) Supabase REST (library list)     -> network-first w/ cache fallback
    4) Trusted CDNs (firebase, supabase, fonts, font-awesome) -> network-first
    --------------------------------------------------------------- */
-const CACHE_NAME = 'bcaprime-app-v16';
+const CACHE_NAME = 'bcaprime-app-v17';
 const FILE_CACHE = 'bcaprime-files-v1';
 const CDN_CACHE  = 'bcaprime-cdn-v1';
 const SUPABASE_HOST = 'kjesjaakjddfxykisssh.supabase.co';
@@ -148,9 +148,11 @@ self.addEventListener('push', event => {
     lang: 'en-IN',
     tag: payload.tag || 'bcaprime-update',          // replaces older notification of same tag
     renotify: true,                                 // buzz again even if tag matches
-    requireInteraction: false,
+    /* Senior-request wali alerts ko high-priority / heads-up treatment do
+       taaki lock screen par bhi clearly dikhein (Android) */
+    requireInteraction: payload.requireInteraction === true || String(payload.tag || '').startsWith('senior-request'),
     silent: false,                                  // let the OS play its alert sound
-    vibrate: [90, 50, 90, 50, 160],                 // premium double-tap pulse pattern
+    vibrate: [120, 60, 120, 60, 200],               // strong pattern = better lock-screen attention
     timestamp: Date.now(),
     data: { url: payload.url || './index.html' },
     actions: [
