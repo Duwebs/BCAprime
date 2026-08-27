@@ -671,14 +671,24 @@
      Footer — minimal single-row: brand | links, phir credit line
      ============================================================ */
   .footer{display:flex;flex-direction:column;gap:12px;padding-bottom:26px}
-/* ---- Offline indicator (offline-first PWA) ---- */
-.offline-banner{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:1200;display:flex;align-items:center;gap:10px;max-width:min(92vw,520px);padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--bg,#0a0a0a) 82%,#333);border:1px solid color-mix(in srgb,var(--brand,#67c9dc) 45%,transparent);box-shadow:0 8px 30px rgba(0,0,0,.45);color:var(--ink,#eee);font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease}
-.offline-banner.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
-.offline-banner.visible{opacity:1}
-.offline-banner.hide{opacity:0;transform:translate(-50%,20px)}
-.offline-banner i{color:var(--brand,#67c9dc);font-size:16px;flex:none}
-.offline-banner span{line-height:1.4}
-.offline-banner strong{display:block;font-weight:600}
+/* ---- Offline top notification banner (dismissible, big-tech style) ---- */
+.offline-banner{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;z-index:1200;transform:translate(-50%,-140%) translateY(0) scale(.98);display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100% - 24px));padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--bg,#0a0a0a) 86%,#333);border:1px solid color-mix(in srgb,var(--brand,#67c9dc) 45%,transparent);box-shadow:0 14px 36px rgba(0,0,0,.45);color:var(--ink,#eee);font-size:13px;opacity:0;pointer-events:none;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
+.offline-banner.show{opacity:1;pointer-events:auto;transform:translate(-50%,0) scale(1)}
+.offline-banner.hide{opacity:0;transform:translate(-50%,-140%) scale(.98)}
+.offline-banner i{color:var(--brand,#67c9dc);font-size:17px;flex:none}
+.offline-banner span{line-height:1.4;min-width:0}
+.offline-banner strong{font-weight:600}
+.offline-dismiss{flex:none;width:26px;height:26px;border:0;border-radius:7px;background:color-mix(in srgb,var(--ink,#eee) 10%,transparent);color:var(--muted,#9aa);cursor:pointer;display:grid;place-items:center;font-size:13px}
+.offline-dismiss:hover{color:var(--ink,#eee)}
+@media(max-width:700px){.offline-banner{top:8px;width:calc(100% - 16px);padding:9px 10px;font-size:12px}}
+
+/* ---- Offline dialog (file not saved on this device yet) ---- */
+.offline-dialog{text-align:center;padding:26px 22px 20px}
+.offline-icon{width:58px;height:58px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;font-size:24px;color:var(--brand,#67c9dc);background:color-mix(in srgb,var(--brand,#67c9dc) 16%,transparent)}
+.offline-dialog h2{margin:0 0 8px;font-size:20px}
+.offline-msg{color:var(--muted,#9aa);font-size:13.5px;line-height:1.6;max-width:360px;margin:0 auto}
+.offline-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
+.offline-actions .primary,.offline-actions .secondary{min-height:42px;gap:8px}
   .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
   .footer-brand-row{display:inline-flex;align-items:center;gap:8px;line-height:1}
   .footer-brand-row img{width:26px;height:26px;object-fit:contain;display:block}

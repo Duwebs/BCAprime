@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v28 loaded ✔');
+console.info('[BCAPrime] app.js v29 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -399,7 +399,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function requireAccount(message,action,title=''){if(accountSession)return true;restrictedAction={action,title};setAccessAuthMode('signup');$('accessAuthDescription').textContent=message;$('accessAuthMessage').textContent='';$('accessAuthModal').classList.add('open');return false}
     function resumeRestrictedAction(){if(!accountSession||!restrictedAction)return;const action=restrictedAction;restrictedAction=null;closeModals();if(action.action==='upload')openUpload();if(action.action==='download')download(action.title);if(action.action==='feedback')openFeedback()}
     async function submitAccessAuth(event){event.preventDefault();if(!firebaseApp){$('accessAuthMessage').textContent='Firebase is not configured.';return}$('accessAuthMessage').textContent='Working...';const email=$('accessAuthEmail').value.trim();const password=$('accessAuthPassword').value;try{if(accessAuthMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accessAuthName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccessAuthMode('login');$('accessAuthMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();resumeRestrictedAction()}catch(error){authSuppress=false;$('accessAuthMessage').textContent=error.message;return}}
-    function download(title){if(!requireAccount('Sign up or login to download this note.','download',title))return;const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){const a=document.createElement('a');a.href=resource.fileData||resource.fileUrl;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
+    async function download(title){if(!requireAccount('Sign up or login to download this note.','download',title))return;const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){if(!await ensureFileAvailable(resource,'download'))return;const a=document.createElement('a');a.href=resource.fileData||resource.fileUrl;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
     let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;
     function getUserName(user){user=user||accountSession;if(user&&user.displayName&&user.displayName.trim())return user.displayName.trim();if(user&&user.email){const local=user.email.split('@')[0]||'';const parts=local.split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1));if(parts.length)return parts.join(' ')}return 'there'}
     function getTimeBasedGreeting(name='there'){const hour=new Date().getHours();let prefix;if(hour>=4&&hour<12)prefix='Good Morning';else if(hour>=12&&hour<17)prefix='Good Afternoon';else if(hour>=17&&hour<21)prefix='Good Evening';else prefix='Good Night';return `${prefix}, ${name}!`}let greetingTimerId=null;function scheduleGreetingUpdate(){if(greetingTimerId)return;const now=new Date();const next=new Date(now);next.setHours(next.getHours()+1,0,0,0);const delay=Math.max(0,next-now);greetingTimerId=setTimeout(()=>{greetingTimerId=null;renderGreeting()},delay)}function renderGreeting(){const greeting=$('heroGreeting');const title=$('heroDefaultTitle');if(!greeting||!title)return;const isAuthed=accountSession||sessionStorage.getItem('bca-guest-mode')==='true';greeting.hidden=!isAuthed;title.hidden=!!isAuthed;$('heroGreetName').textContent=getTimeBasedGreeting(getUserName(accountSession)||'there');if(isAuthed)scheduleGreetingUpdate()}
@@ -409,7 +409,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     let gateMode='signup';
     function setGateMode(mode){gateMode=mode;$('gateAccountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('gateAccountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('gateAccountMessage').textContent='';$('gateNameLabel').hidden=mode!=='signup';if(mode==='signup')$('gateAccountName').setAttribute('required','');else $('gateAccountName').removeAttribute('required')}
     async function submitGateAccount(event){event.preventDefault();if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';return}$('gateAccountMessage').textContent='Working...';const email=$('gateAccountEmail').value.trim();const password=$('gateAccountPassword').value;try{if(gateMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('gateAccountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setGateMode('login');$('gateAccountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}catch(error){authSuppress=false;$('gateAccountMessage').textContent=error.message;return}}
-    function showAuthenticatedApp(){$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();renderAvatar();afterAccountAuth();setTimeout(showOnboardingIfNeeded,180)}
+    function showAuthenticatedApp(){$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();cacheProfile();renderAvatar();afterAccountAuth();setTimeout(showOnboardingIfNeeded,180)}
     function continueAsGuest(){sessionStorage.setItem('bca-guest-mode','true');showAuthenticatedApp();toast('Guest mode enabled')}
     function hideAuthenticatedApp(){$('authGate').hidden=false;$('appShell').hidden=true;$('appTabs').hidden=true;renderGreeting()}
     /* ================== Account-bound college & semester ==================
@@ -870,6 +870,9 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
     function showFile(input){if(input.files[0])$('fileName').textContent=input.files[0].name}
     function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
+      ensureFileAvailable(resource,'preview').then(ok=>{if(ok)showPreview(resource)});
+    }
+    function showPreview(resource){const src=resource.fileUrl||resource.fileData;
       $('previewTitle').textContent=resource.title;
       const kindLabel=resource.type==='pyq'?'Previous year paper':'Notes';
       $('previewMeta').textContent=`${kindLabel} · Semester ${resource.sem}${resource.fileName?' · '+resource.fileName:''}`;
@@ -1037,20 +1040,45 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m])}
     async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{const qrLinked=sessionStorage.getItem('bca-qr-linked')==='true';/* QR synthetic session ko Firebase ke null user se overwrite hone se bachao */accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
     document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();initOffline()});
-    /* ---- Offline indicator (offline-first PWA) ---- */
-    let __offlineEl=null;
-    function updateOfflineUI(){
-      const offline=!navigator.onLine;
-      document.documentElement.setAttribute('data-offline',offline?'true':'false');
-      if(!offline){if(__offlineEl){__offlineEl.classList.add('hide');setTimeout(()=>{if(__offlineEl)__offlineEl.remove();__offlineEl=null},350)}return}
+    /* ================= Offline / online UX (offline-first PWA) =================
+       Big-tech pattern (Google/Netflix ki tarah):
+       - Jab user offline ho -> top par dismissible notification banner (ek baar)
+       - Net wapas aaye -> ek hi baar "back online ✨" toast (bar-bar nag nahi)
+       - Jo file pehle kholi/download ki -> cache-first, offline bhi khulti hai
+       - Jo file cache nahi hai aur offline hai -> dialog + WiFi/data setting option
+       ================================================================= */
+    let __offlineEl=null, __wasOffline=false, __onlineToastAt=0, __pendingOfflineAction=null;
+
+    function showOfflineBanner(){
       if(__offlineEl)return;
       __offlineEl=document.createElement('aside');
       __offlineEl.className='offline-banner';
       __offlineEl.setAttribute('aria-live','polite');
-      __offlineEl.innerHTML='<i class="fa-solid fa-wifi"></i><span><strong>You\'re offline</strong> — showing your saved library. Files you opened before still work.</span>';
+      __offlineEl.innerHTML='<i class="fa-solid fa-wifi"></i><span><strong>You\'re offline</strong>&nbsp;·&nbsp;showing your saved library — files you opened before still work.</span><button type="button" class="offline-dismiss" aria-label="Dismiss" onclick="dismissOfflineBanner()"><i class="fa-solid fa-xmark"></i></button>';
       document.body.appendChild(__offlineEl);
-      __offlineEl.classList.add('show');
-      setTimeout(()=>__offlineEl.classList.add('visible'),30);
+      requestAnimationFrame(()=>{if(__offlineEl)__offlineEl.classList.add('show')});
+    }
+    function dismissOfflineBanner(){
+      if(!__offlineEl)return;
+      const el=__offlineEl;__offlineEl=null;
+      el.classList.add('hide');
+      setTimeout(()=>{try{el.remove()}catch(e){}},350);
+    }
+    function updateOfflineUI(){
+      const offline=!navigator.onLine;
+      document.documentElement.setAttribute('data-offline',offline?'true':'false');
+      if(offline){
+        __wasOffline=true;
+        showOfflineBanner();
+      }else{
+        const cameBack=__wasOffline;
+        __wasOffline=false;
+        dismissOfflineBanner();
+        if(cameBack&&Date.now()-__onlineToastAt>5000){
+          __onlineToastAt=Date.now();
+          toast('You\'re back online ✨');
+        }
+      }
     }
     function initOffline(){
       updateOfflineUI();
@@ -1058,6 +1086,47 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       window.addEventListener('online',updateOfflineUI);
       /* Offline reload ki case mein direct library render — navigator.onLine par bharosa */
       if(!navigator.onLine)setTimeout(()=>{try{render()}catch(e){}},300);
+    }
+
+    /* ---- Offline dialog: file is remote + uncached + offline ---- */
+    function isRemoteFile(src){return /^https?:\/\//i.test(src||'')}
+    async function isFileCached(url){
+      try{
+        if(!('caches' in window))return false;
+        const names=await caches.keys();
+        for(const name of names){
+          try{const cache=await caches.open(name);if(await cache.match(url,{ignoreSearch:true}))return true}catch(e){}
+        }
+      }catch(e){}
+      return false;
+    }
+    async function ensureFileAvailable(resource,action){
+      const src=resource&&(resource.fileUrl||resource.fileData);
+      if(!isRemoteFile(src))return true;               // data: URLs hamesha offline available
+      if(navigator.onLine)return true;                 // online hai to direct proceed
+      if(await isFileCached(src))return true;          // pehle khola/download kiya hai
+      __pendingOfflineAction={resource,action};        // nahi -> dialog + net ka option do
+      const m=$('offlineModal');if(m)m.classList.add('open');
+      return false;
+    }
+    function retryOfflineAction(){
+      if(!__pendingOfflineAction)return;
+      const {resource,action}=__pendingOfflineAction;__pendingOfflineAction=null;
+      const m=$('offlineModal');if(m)m.classList.remove('open');
+      if(navigator.onLine){try{if(action==='preview')previewResource(resource.title.replace(/\W/g,''));else download(resource.title)}catch(e){}}
+      else toast('Still offline — turn on WiFi or mobile data, then Retry.');
+    }
+    function openNetworkSettings(){
+      const m=$('offlineModal');if(m)m.classList.remove('open');
+      toast('Turn on WiFi or mobile data from your device settings, then press Retry.');
+    }
+    function closeOfflineModal(){
+      const m=$('offlineModal');if(m)m.classList.remove('open');
+    }
+
+    /* ---- User profile ko local cache karo taaki offline bhi dikhe ---- */
+    function cacheProfile(){
+      try{if(!accountSession)return;localStorage.setItem('bca-profile-cache',JSON.stringify({name:getUserName(accountSession),email:accountSession.email||'',photo:accountSession.photoURL||''}))}catch(e){}
     }
     function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
