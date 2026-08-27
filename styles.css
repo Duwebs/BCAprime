@@ -743,6 +743,67 @@
 .help-loading{color:var(--muted);font-size:13px;margin:6px 0}
 .help-empty{color:var(--muted);font-size:13px;margin:6px 0;text-align:center;padding:10px}
 
+/* ============================================================
+   MOBILE RESPONSIVENESS AUDIT FIXES (320px – 480px targets)
+   Desktop untouched — sab kuch media queries ke andar band hai
+   ============================================================ */
+
+/* ---- Requester name badge (senior help cards) ---- */
+.help-by{color:var(--muted);font-size:11px;display:inline-flex;align-items:center;gap:4px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.help-by i{color:var(--brand);font-size:10px}
+
+/* ---- Buttons & Spacing: har action-button mobile par poora fit ---- */
+@media(max-width:600px){
+  .empty-actions{gap:8px}
+  .empty-actions .primary,.empty-actions .wa-request,.empty-actions .sr-request{min-height:44px}
+}
+@media(max-width:480px){
+  /* NOTE: sr-request pehle is rule se MISSING tha — isliye 'Request senior'
+     button mobile par akela side me chhoot jata tha. Ab teeno stack honge. */
+  .empty-actions{flex-direction:column;width:100%}
+  .empty-actions .primary,.empty-actions .wa-request,.empty-actions .sr-request{width:100%;justify-content:center;text-align:center;padding-left:14px;padding-right:14px}
+}
+
+/* ---- Help-juniors cards: compact + tappable on small screens ---- */
+@media(max-width:600px){
+  .help-juniors{padding:13px;border-radius:12px}
+  .help-list{gap:8px}
+  .help-item{padding:11px;border-radius:10px}
+  .help-item-head{gap:6px;row-gap:5px}
+  .help-sem{font-size:11px}
+  .help-time{font-size:10px}
+  .help-subject{font-size:14px;margin-top:7px}
+  .help-msg{font-size:12.5px;margin-bottom:8px}
+  .help-actions{gap:7px}
+  .help-actions .help-wa,.help-actions .secondary{flex:1 1 calc(50% - 4px);justify-content:center;min-height:42px;padding:9px 8px;font-size:12px;text-align:center}
+}
+@media(max-width:360px){
+  /* bahut chhoti screens: upload button full width, done neeche */
+  .help-actions .help-wa,.help-actions .secondary{flex-basis:100%}
+}
+
+/* ---- In-app PDF reader: toolbar squeeze-proof ---- */
+@media(max-width:600px){
+  .reader-toolbar{gap:7px;padding:9px 10px}
+  .reader-title{min-width:0;flex:1 1 auto}
+  .reader-title strong{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:13px}
+  .reader-zoom{gap:6px}
+  .reader-zoom span{font-size:11px;min-width:34px;text-align:center}
+  .reader-btn{width:32px;height:32px;font-size:12.5px}
+}
+
+/* ---- Resource cards: submeta/icon rows chhoti screens par ---- */
+@media(max-width:390px){
+  .resource-submeta{row-gap:6px}
+  .help-by{max-width:110px}
+}
+
+/* ---- Footer safety: link chips wrap karke center rahein ---- */
+@media(max-width:400px){
+  .footer-links{gap:6px;justify-content:flex-start}
+  .footer-bottom{gap:10px}
+}
+
 .offline-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:18px}
 .offline-actions .primary,.offline-actions .secondary{min-height:42px;gap:8px}
   .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
