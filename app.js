@@ -860,7 +860,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const email=$('accountEmail').value.trim();const password=$('accountPassword').value;try{if(accountMode==='signup'){authSuppress=true;const credential=await firebase.auth().createUserWithEmailAndPassword(email,password);const name=$('accountName').value.trim();if(name)await credential.user.updateProfile({displayName:name});await credential.user.sendEmailVerification();await firebase.auth().signOut();authSuppress=false;setAccountMode('login');$('accountMessage').textContent='Account created. Check your email to verify, then login.';return}await firebase.auth().signInWithEmailAndPassword(email,password);accountSession=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}catch(error){authSuppress=false;$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel">Name<input id="accountName" type="text" autocomplete="name"></label><label>Email<input id="accountEmail" type="email" autocomplete="email" required></label><label>Password<input id="accountPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'apple\')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank'}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -991,6 +991,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
           render();
           showUploadSuccess(type);
           renderMyUploads();
+          /* Agar ye upload kisi junior ki request se tha -> request done + junior ko push */
+          if(pendingHelpRequest){fulfillJuniorRequest(pendingHelpRequest,'upload');pendingHelpRequest=null}
         } catch (error) {
           const localUpload=createLocalUploadRecord(file,{...payload,fileData:reader.result,status:'pending'});
           resources.unshift(localUpload);
@@ -1280,8 +1282,9 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
           const subject=String(r.subject||'notes/PYQ').replace(/[<>&"]/g,'');
           const msg=String(r.message||'').replace(/[<>&"]/g,'');
           const typeLabel=r.type==='pyq'?'PYQ':'Notes';
+          const rName=String(r.requester_name||'A student').replace(/[<>&"]/g,'');
           return `<div class="help-item">
-            <div class="help-item-head"><span class="badge">${typeLabel}</span><span class="help-sem">${semLabel}</span><span class="help-time">${timeAgo(r.created_at)}</span></div>
+            <div class="help-item-head"><span class="badge">${typeLabel}</span><span class="help-sem">${semLabel}</span><span class="help-by"><i class="fa-solid fa-user-graduate"></i> ${rName}</span><span class="help-time">${timeAgo(r.created_at)}</span></div>
             <strong class="help-subject">${subject}</strong>
             ${msg?`<p class="help-msg">${msg}</p>`:''}
             <div class="help-actions">
@@ -1294,11 +1297,27 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     }
     function loadSeniorHelpDelayed(){if(seniorHelpTimer)clearTimeout(seniorHelpTimer);seniorHelpTimer=setTimeout(loadSeniorRequests,900)}
     function timeAgo(iso){try{const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
-    async function markSeniorDone(id,btn){if(btn){btn.disabled=true;btn.textContent='Saved'}try{if(supabaseClient)await supabaseClient.from(SENIOR_TABLE).update({status:'done'}).eq('id',id)}catch(e){}setTimeout(loadSeniorRequests,400)}
+    async function markSeniorDone(id,btn){
+      if(btn){btn.disabled=true;btn.textContent='Saving…'}
+      try{if(supabaseClient)await supabaseClient.from(SENIOR_TABLE).update({status:'done'}).eq('id',id)}catch(e){}
+      fulfillJuniorRequest(helpJuniorCache[id],'done');
+      toast('Marked done — junior ko notification chali 🔔');
+      setTimeout(loadSeniorRequests,600);
+    }
+    /* Junior ko fulfillment push bhejo (best-effort — fail ho to chup rehna) */
+    function fulfillJuniorRequest(r,kind){
+      try{
+        if(!r||!r.id)return;
+        fetch(NOTIFY_SENIORS_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({mode:'fulfilled',request_id:r.id,kind:kind})}).catch(()=>{});
+      }catch(e){}
+    }
     /* Junior ki request se direct upload modal pre-fill karke khulta hai */
     const helpJuniorCache={};
+    let pendingHelpRequest=null; /* jab is flow se upload hoga to junior ko notification jayegi */
     function openUploadForJunior(id){
       const r=helpJuniorCache[id];if(!r)return;
+      pendingHelpRequest=r;
       openUpload();
       if(!$('uploadModal')||!$('uploadModal').classList.contains('open'))return; /* login needed */
       try{

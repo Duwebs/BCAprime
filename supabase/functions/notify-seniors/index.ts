@@ -55,18 +55,108 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   );
 
+  /* ============================================================
+     MODE 2 — "fulfilled": junior ko bataya jaata hai ki uski
+     request poori ho gayi (senior ne upload ki ya Done mark kiya).
+     Body: { mode:'fulfilled', request_id:123, kind:'upload'|'done' }
+     ============================================================ */
+  if (body.mode === 'fulfilled') {
+    const { data: rows, error: rErr } = await supabase
+      .from('senior_requests')
+      .select('*')
+      .eq('id', requestId)
+      .limit(1);
+    if (rErr || !rows || rows.length === 0) {
+      return new Response(JSON.stringify({ error: 'Request not found' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const req = rows[0];
+    // Guards: request done hui ho + junior ko pehle na bata chuke hon
+    if (req.status !== 'done') {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'not done yet' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (req.fulfilled_notified_at) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'already notified' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    // Mark FIRST — parallel retry spam se bachaav
+    await supabase.from('senior_requests')
+      .update({ fulfilled_notified_at: new Date().toISOString() })
+      .eq('id', requestId);
+
+    if (!req.requester_uid) {
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: 'no requester uid' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const vapidPrivateKey = (Deno.env.get('VAPID_PRIVATE_KEY') ?? '').trim();
+    const vapidSubject = (Deno.env.get('VAPID_SUBJECT') ?? '').trim();
+    const vapidPublicKey = (Deno.env.get('VAPID_PUBLIC_KEY') ?? '').trim();
+    try {
+      webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+    } catch {
+      return new Response(JSON.stringify({ error: 'VAPID misconfigured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const subjectText = req.subject || 'your material';
+    const kindLabel = body.kind === 'upload' ? 'upload kar diya gaya hai ✅' : 'poori kar di gayi hai 🤝';
+    const payload = JSON.stringify({
+      title: '🎓 Your request is ready!',
+      body: `"${subjectText}" ${kindLabel} Library mein check karo.`,
+      url: '/index.html',
+      tag: `junior-fulfilled-${requestId}`,
+      requireInteraction: true,
+      icon: '/assets/logo.png',
+      badge: '/assets/logo.png',
+    });
+    const { data: subs } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth')
+      .eq('uid', String(req.requester_uid));
+    let sent = 0, failed = 0;
+    const stale: string[] = [];
+    await Promise.all((subs ?? []).map(async (sub: any) => {
+      try {
+        await webpush.sendNotification(
+          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+          payload,
+          { TTL: 60 * 60 * 24 * 3 }, // 3 din tak valid — junior thodi der baad bhi dekh le
+        );
+        sent += 1;
+      } catch (err: any) {
+        failed += 1;
+        if (err?.statusCode === 404 || err?.statusCode === 410) stale.push(sub.endpoint);
+      }
+    }));
+    if (stale.length) {
+      await supabase.from('push_subscriptions').delete().in('endpoint', stale);
+    }
+    return new Response(JSON.stringify({ ok: true, fulfilled: true, sent, failed }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  /* ============================================================
+     MODE 1 — default "notify seniors" (original behavior)
+     ============================================================ */
+
   // --- Read the request row (with anti-replay anti-spam guards) ---
-  const { data: rows, error: reqErr } = await supabase
+  const { data: rows2, error: reqErr } = await supabase
     .from('senior_requests')
     .select('*')
     .eq('id', requestId)
     .limit(1);
-  if (reqErr || !rows || rows.length === 0) {
+  if (reqErr || !rows2 || rows2.length === 0) {
     return new Response(JSON.stringify({ error: 'Request not found' }), {
       status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-  const reqRow = rows[0];
+  const reqRow = rows2[0];
   // Anti-spam: sirf recently-created pending requests hi send kar sakte hain.
   const ageMs = Date.now() - new Date(reqRow.created_at).getTime();
   if (reqRow.status !== 'pending' || ageMs > 15 * 60 * 1000) {

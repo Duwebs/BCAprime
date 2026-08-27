@@ -296,6 +296,9 @@ create table if not exists public.senior_requests (
 
 alter table public.senior_requests enable row level security;
 
+-- Fulfillment notification guard (junior ko push ek hi baar jaaye)
+alter table public.senior_requests add column if not exists fulfilled_notified_at timestamptz;
+
 -- Sab logged-in see kar sakte hain taaki seniors apne college/junior
 -- requests dhundh sakein (data low-sensitivity: bas ek study request).
 drop policy if exists "Anyone can read senior requests" on public.senior_requests;
