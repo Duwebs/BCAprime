@@ -671,6 +671,14 @@
      Footer — minimal single-row: brand | links, phir credit line
      ============================================================ */
   .footer{display:flex;flex-direction:column;gap:12px;padding-bottom:26px}
+/* ---- Offline indicator (offline-first PWA) ---- */
+.offline-banner{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);z-index:1200;display:flex;align-items:center;gap:10px;max-width:min(92vw,520px);padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--bg,#0a0a0a) 82%,#333);border:1px solid color-mix(in srgb,var(--brand,#67c9dc) 45%,transparent);box-shadow:0 8px 30px rgba(0,0,0,.45);color:var(--ink,#eee);font-size:13px;opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease}
+.offline-banner.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+.offline-banner.visible{opacity:1}
+.offline-banner.hide{opacity:0;transform:translate(-50%,20px)}
+.offline-banner i{color:var(--brand,#67c9dc);font-size:16px;flex:none}
+.offline-banner span{line-height:1.4}
+.offline-banner strong{display:block;font-weight:600}
   .footer-top{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;width:100%;padding:13px 18px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
   .footer-brand-row{display:inline-flex;align-items:center;gap:8px;line-height:1}
   .footer-brand-row img{width:26px;height:26px;object-fit:contain;display:block}

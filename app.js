@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v27 loaded ✔');
+console.info('[BCAPrime] app.js v28 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -1036,7 +1036,29 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     }catch(e){}
     function escHtml(s){return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m])}
     async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true')showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{const qrLinked=sessionStorage.getItem('bca-qr-linked')==='true';/* QR synthetic session ko Firebase ke null user se overwrite hone se bachao */accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
-    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount()});
+    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();initOffline()});
+    /* ---- Offline indicator (offline-first PWA) ---- */
+    let __offlineEl=null;
+    function updateOfflineUI(){
+      const offline=!navigator.onLine;
+      document.documentElement.setAttribute('data-offline',offline?'true':'false');
+      if(!offline){if(__offlineEl){__offlineEl.classList.add('hide');setTimeout(()=>{if(__offlineEl)__offlineEl.remove();__offlineEl=null},350)}return}
+      if(__offlineEl)return;
+      __offlineEl=document.createElement('aside');
+      __offlineEl.className='offline-banner';
+      __offlineEl.setAttribute('aria-live','polite');
+      __offlineEl.innerHTML='<i class="fa-solid fa-wifi"></i><span><strong>You\'re offline</strong> — showing your saved library. Files you opened before still work.</span>';
+      document.body.appendChild(__offlineEl);
+      __offlineEl.classList.add('show');
+      setTimeout(()=>__offlineEl.classList.add('visible'),30);
+    }
+    function initOffline(){
+      updateOfflineUI();
+      window.addEventListener('offline',updateOfflineUI);
+      window.addEventListener('online',updateOfflineUI);
+      /* Offline reload ki case mein direct library render — navigator.onLine par bharosa */
+      if(!navigator.onLine)setTimeout(()=>{try{render()}catch(e){}},300);
+    }
     function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
     function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
     function renderOnboardingColleges(){const options=colleges.filter(c=>c[0]!=='other');$('onboardingList').innerHTML=options.map(c=>`<button class="onboarding-option ${state.onboardingCollege===c[0]?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.onboardingCollege===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
@@ -1131,7 +1153,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         location.reload();
       });
             window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=2').then(reg=>{
+        navigator.serviceWorker.register('./sw.js?v=3').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */
