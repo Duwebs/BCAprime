@@ -152,7 +152,6 @@ self.addEventListener('push', event => {
        taaki lock screen par bhi clearly dikhein (Android) */
     requireInteraction: payload.requireInteraction === true || String(payload.tag || '').startsWith('senior-request'),
     silent: false,                                  // let the OS play its alert sound
-    vibrate: [120, 60, 120, 60, 200],               // strong pattern = better lock-screen attention
     timestamp: Date.now(),
     data: { url: payload.url || './index.html' },
     actions: [

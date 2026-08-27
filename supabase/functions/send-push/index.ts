@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
   if (receivedSecret !== expectedSecret) {
     return new Response(JSON.stringify({
       error: 'Unauthorized',
-      hint: `Length mismatch -> server: ${expectedSecret.length} chars | browser sent: ${receivedSecret.length} chars`,
+      hint: 'Secret does not match.',
     }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
