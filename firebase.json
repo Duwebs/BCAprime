@@ -3,8 +3,19 @@
     "public": ".",
     "ignore": [
       "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+      ".firebaserc",
+      "**/.git/**",
+      "**/.git",
+      "**/.firebase/**",
+      "**/.agents/**",
+      "**/.claude/**",
+      "**/.vscode/**",
+      "**/supabase/**",
+      "**/node_modules/**",
+      "**/*.sql",
+      "**/*.secret.txt",
+      "vapid-keys-PRIVATE.txt",
+      "newsecret.txt"
     ]
   }
 }
