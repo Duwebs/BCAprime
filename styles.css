@@ -1147,3 +1147,52 @@
   .resource:hover{transform:none}
   .rc-icon:hover{background:transparent;color:var(--muted)}
 }
+
+/* ================= Mobile optimization — app shell hardening =================
+   Mobile pe full functionality: touch targets, safe-areas, overflow protection,
+   modals full-screen usable, inputs iOS zoom-proof (16px). */
+@media(max-width:640px){
+  /* Grids ek column — koi squeeze nahi (cascade-safe, file end me) */
+  .finder-grid{grid-template-columns:1fr;gap:10px}
+  .contribute{grid-template-columns:1fr}
+  .upload-form .row{grid-template-columns:1fr}
+  .semester-grid{grid-template-columns:repeat(2,1fr)}
+
+  /* App padding + bottom bar clearance */
+  .app{padding:0 14px 92px}
+  .bottom-tabs{padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+
+  /* Bottom nav: bade touch targets */
+  .bottom-tab{min-height:52px}
+  .bottom-tab i{font-size:18px}
+
+  /* Topbar compact — overflow na ho */
+  .topbar{gap:7px;padding:0 10px}
+  .topbar .brand strong{font-size:15px}
+
+  /* Desk cards: horizontal scroll instead of stacked squeeze */
+  .desk-strip{display:flex;flex-flow:row nowrap;overflow-x:auto;gap:9px;margin:12px -14px 0;padding:0 14px 3px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .desk-strip::-webkit-scrollbar{display:none}
+  .desk-card{min-width:215px;width:auto;flex:0 0 auto}
+
+  /* Modals: mobile pe full-width, thumb-friendly */
+  .modal{padding:12px;align-items:end}
+  .dialog{width:100%;max-height:88dvh;padding:18px 16px;border-radius:16px 16px 0 0}
+  .dialog .primary,.dialog .secondary,.dialog .danger-logout,.oauth-button{min-height:46px}
+
+  /* Inputs 46px + 16px font — iOS auto-zoom prevent */
+  .field select,.field input,.account-form input,.upload-form input,.upload-form select{height:46px;font-size:16px;border-radius:10px}
+
+  /* Reader: full-screen PDF/DOCX viewing */
+  .reader-shell{position:fixed;inset:0;z-index:60}
+  .reader-toolbar button{min-height:40px;min-width:40px}
+
+  /* College list & chips: easy tapping */
+  .college-option{min-height:48px}
+  .chip{min-height:40px}
+}
+@media(max-width:390px){
+  .semester-grid{grid-template-columns:repeat(2,1fr);gap:7px}
+  .app{padding:0 11px 92px}
+  .dialog{padding:16px 13px}
+}
