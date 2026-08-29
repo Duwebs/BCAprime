@@ -48,7 +48,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:accountSession&&accountSession.uid?accountSession.uid:'',user_email:accountSession&&accountSession.email?accountSession.email:'',user_name:accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||''),resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
-    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploader:item.uploader_name||'',uploaderEmail:item.uploader_email||''}));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploader:item.uploader_name||(item.uploader_email?item.uploader_email.split('@')[0].split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' '):''),uploaderEmail:item.uploader_email||'',date:item.created_at?String(item.created_at).slice(0,10):''}));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
     function init(){
       applyTheme(state.theme);
       updateSemesterOptions();
@@ -1188,16 +1188,39 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
          the PDF in-page instead of prompting a download dialog. data: URLs cannot
          carry fragment params, so they are used as-is. */
       const inlineSrc=src.startsWith('data:')?src:src+'#toolbar=0&navpanes=0&view=FitH';
+      const name=resource.fileName||'';
+      const isDocx=/\.docx$/i.test(name)||/\.docx(\?|#|$)/i.test(src);
+      const isOldDoc=/\.doc(\?|#|$)/i.test(name)||/\.doc(\?|#|$)/i.test(src);
+      const docxPane=$('readerDocx');const frm=$('readerFrame');
       readerZoom=1;
       $('readerTitle').textContent=resource.title;
       $('readerOpen').href=src;
       $('readerOpen').setAttribute('download',resource.fileName||resource.title.replace(/\W+/g,'-')+'.pdf');
-      const frm=$('readerFrame');if(frm)frm.src=inlineSrc;
+      if(isDocx&&window.mammoth){
+        /* DOCX: browsers can't render Word files inline, so convert to HTML
+           in-app with Mammoth and show it in the reader pane (no download). */
+        if(frm){frm.hidden=true;frm.src='about:blank'}
+        if(docxPane){
+          docxPane.hidden=false;
+          docxPane.innerHTML='<p class="docx-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading document…</p>';
+          fetch(src).then(r=>{if(!r.ok)throw new Error('fetch failed');return r.arrayBuffer()})
+            .then(buf=>window.mammoth.convertToHtml({arrayBuffer:buf}))
+            .then(res=>{docxPane.innerHTML=res.value||'<p class="docx-error">This document appears to be empty.</p>';applyReaderZoom()})
+            .catch(()=>{docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-triangle-exclamation"></i> Is document ko app ke andar khol nahi paye. Download karke dekhein.</p>'});
+        }
+      }else if(isOldDoc||isDocx){
+        /* Legacy .doc (or Mammoth unavailable): cannot render inline — guide to download. */
+        if(frm){frm.hidden=true;frm.src='about:blank'}
+        if(docxPane){docxPane.hidden=false;docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-file-word"></i> Purane .doc format ki file app ke andar nahi khulti. Download karke MS Word me dekhein.</p>'}
+      }else{
+        if(docxPane){docxPane.hidden=true;docxPane.innerHTML=''}
+        if(frm){frm.hidden=false;frm.src=inlineSrc}
+      }
       $('readerModal').classList.add('open');
       applyReaderZoom();
     }
-    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');const f=$('readerFrame');if(f)f.src='about:blank'}
-    function applyReaderZoom(){const f=$('readerFrame');if(f)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%'}
+    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=false}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}}
+    function applyReaderZoom(){const f=$('readerFrame');if(f&&!f.hidden)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%';const d=$('readerDocx');if(d&&!d.hidden)d.style.fontSize=Math.round(16*readerZoom)+'px'}
     function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
     function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
 

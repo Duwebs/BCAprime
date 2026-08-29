@@ -1072,3 +1072,14 @@
 .resource-actions .view:hover{border-color:var(--brand);background:var(--surface-2);color:var(--ink)}
 .resource-actions .download{border:1px solid var(--brand);background:var(--brand);color:#fff;font-weight:700}
 .resource-actions .download:hover{filter:brightness(1.08);background:var(--brand)}
+
+/* ================= In-app DOCX reader pane ================= */
+.reader-docx{display:block;overflow:auto;width:100%;height:100%;max-width:860px;margin:0 auto;padding:28px 24px;background:#fff;color:#111827;font-size:16px;line-height:1.7;font-family:'Geist',system-ui,sans-serif;border-radius:10px;box-sizing:border-box}
+.reader-docx h1,.reader-docx h2,.reader-docx h3{margin:.8em 0 .4em;line-height:1.3}
+.reader-docx p{margin:.55em 0}
+.reader-docx img{max-width:100%;height:auto}
+.reader-docx table{border-collapse:collapse;width:100%;margin:.8em 0}
+.reader-docx td,.reader-docx th{border:1px solid #d1d5db;padding:6px 9px}
+.reader-docx ul,.reader-docx ol{padding-left:1.4em;margin:.5em 0}
+.docx-loading,.docx-error{color:var(--muted);font-size:14px;display:flex;align-items:center;gap:8px;justify-content:center;padding:40px 10px;text-align:center}
+.docx-error{color:#d97706}
