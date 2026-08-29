@@ -59,6 +59,30 @@ on storage.objects for insert
 to anon, authenticated
 with check (bucket_id = 'resources');
 
+-- ============================================================
+-- DIRECT URL PROTECTION (opt-in migration)
+-- Currently the 'resources' storage bucket is PUBLIC, so anyone with a
+-- direct file URL can bypass the UI. To enforce authenticated-only file
+-- access, run the migration below. NOTE: after flipping the bucket to
+-- private, file URLs must be generated as SIGNED URLs (supabase.storage
+-- .from('resources').createSignedUrl(...)) using the logged-in user's
+-- JWT — update the upload/list flow in app.js before enabling this.
+-- ============================================================
+-- update storage.buckets set public = false where id = 'resources';
+--
+-- drop policy if exists "Anyone can read resource files" on storage.objects;
+-- create policy "Authenticated users can read resource files"
+-- on storage.objects for select
+-- to authenticated
+-- using (bucket_id = 'resources');
+--
+-- drop policy if exists "Anyone can upload resource files" on storage.objects;
+-- create policy "Authenticated users can upload resource files"
+-- on storage.objects for insert
+-- to authenticated
+-- with check (bucket_id = 'resources');
+
+
 drop policy if exists "Anyone can read resource files" on storage.objects;
 create policy "Anyone can read resource files"
 on storage.objects for select
