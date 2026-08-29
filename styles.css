@@ -1086,6 +1086,12 @@
 
 /* ================= Resource Card — mobile responsiveness ================= */
 @media(max-width:640px){
+  /* CRITICAL cascade fix: is file ke andar baad wala @media(max-width:768px)
+     rule (.resource-grid{repeat(2,1fr)}) 600px ke niche wale 1fr rule ko
+     override kar raha tha — jisse mobile par cards 2-column me SQUEEZE ho
+     rahe the. Ye rule file ke end me hone ki wajah se cascade jeet jata hai. */
+  .resource-grid{grid-template-columns:1fr;gap:12px}
+
   /* Card shell: kam padding, tight gaps — screen ka poora fayda */
   .resource{padding:14px 13px;border-radius:14px;gap:8px}
   .resource:hover{transform:none} /* touch devices pe hover-lift nahi */
