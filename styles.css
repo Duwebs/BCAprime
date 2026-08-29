@@ -1083,3 +1083,54 @@
 .reader-docx ul,.reader-docx ol{padding-left:1.4em;margin:.5em 0}
 .docx-loading,.docx-error{color:var(--muted);font-size:14px;display:flex;align-items:center;gap:8px;justify-content:center;padding:40px 10px;text-align:center}
 .docx-error{color:#d97706}
+
+/* ================= Resource Card — mobile responsiveness ================= */
+@media(max-width:640px){
+  /* Card shell: kam padding, tight gaps — screen ka poora fayda */
+  .resource{padding:14px 13px;border-radius:14px;gap:8px}
+  .resource:hover{transform:none} /* touch devices pe hover-lift nahi */
+
+  /* Title thoda chhota but readable */
+  .rc-title{font-size:15.5px;line-height:1.35}
+
+  /* Top bar: badges wrap hone dijiye, actions right me compact */
+  .rc-top{gap:8px}
+  .rc-top-left{min-width:0}
+  .rc-top-actions{flex-shrink:0}
+
+  /* Meta + subject rows compact */
+  .rc-subject{gap:6px}
+  .rc-meta{gap:6px 12px;font-size:11.5px}
+
+  /* Uploader row: naam ko jagah do, role badge chipke nahi */
+  .rc-uploader{gap:7px;padding-top:8px}
+  .rc-uploader-name{flex:1 1 auto;min-width:0;max-width:none}
+  .rc-role{flex-shrink:0}
+
+  /* Stats row: phone width me bhi ek-2 lines me clean fit */
+  .rc-stats{gap:5px 14px;padding:8px 0}
+  .rc-stat{font-size:11.5px}
+  .rc-stat i{font-size:11px}
+
+  /* Action buttons: bade, aasan tap targets (44px+ height) */
+  .resource-actions{gap:8px;margin-top:12px}
+  .resource-actions button{min-height:44px;padding:10px 8px;font-size:13px;border-radius:9px}
+}
+
+@media(max-width:390px){
+  /* Bahut narrow screens: stats 2 per line, naam ellipsis */
+  .rc-stats{gap:4px 10px}
+  .rc-stat{font-size:11px}
+  .rc-stat b{font-size:11px}
+  .rc-uploader-name{max-width:120px}
+  .rc-sem-badge,.rc-role{font-size:9px;padding:2px 6px}
+  .rc-file{font-size:9px;padding:2px 6px}
+  .rc-title{font-size:15px}
+  .resource{padding:12px 11px}
+}
+
+/* Touch devices: hover effects hatao (sticky-hover bug) */
+@media(hover:none){
+  .resource:hover{transform:none}
+  .rc-icon:hover{background:transparent;color:var(--muted)}
+}
