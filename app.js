@@ -21,11 +21,10 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     /* ---- PrimeFinder robust matching — har user scenario cover karta hai ----
        - Multi-word query: har word title/subject/college mein AND-hotá hai (order irrelevant)
        - Subject: exact + normalized containment (partial/near subjects bhi milte hain)
-       - Missing sem/year/college data: drop nahi karte, universal treat karte hain
+       - Missing sem/college data: drop nahi karte, universal treat karte hain
        - '__add' (Add-subject UI state) ko filter nahi maante */
     function collegeMatchesFilter(c){return state.college==='all'||c==='all'||(!c&&state.college==='all')||c===state.college}
     function semMatchesFilter(v){if(state.sem==='all')return true;if(v==null||String(v)==='')return false;return Number(v)===Number(state.sem)}
-    function yearMatchesFilter(v){if(state.year==='all')return true;if(v==null||String(v)==='')return false;return Number(v)===Number(state.year)}
     function queryTokens(q){return normSubject(q).split(' ').filter(Boolean)}
     function queryMatchesFilter(q,title,subject,collegeName){
       if(!q)return true;const tokens=queryTokens(q);if(!tokens.length)return true;
@@ -39,7 +38,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       return r===f||r.includes(f)||f.includes(r);
     }
     let resources=[...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
-    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',year:localStorage.getItem('bca-year')||'all',sem:localStorage.getItem('bca-sem')||'all',subject:localStorage.getItem('bca-subject')||'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
+    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',sem:localStorage.getItem('bca-sem')||'all',subject:'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
     const $=id=>document.getElementById(id);
     /* ---- Analytics tracking (fire-and-forget, UI kabhi block nahi karta) ---- */
     const visitorId=(()=>{try{let v=localStorage.getItem('bca-vid');if(!v){v='v-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);localStorage.setItem('bca-vid',v)}return v}catch(e){return 'anon'}})();
@@ -52,7 +51,6 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploader:item.uploader_name||'',uploaderEmail:item.uploader_email||''}));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
     function init(){
       applyTheme(state.theme);
-      $('yearFilter').value=state.year==='all'?'all':state.year;
       updateSemesterOptions();
       if(state.sem!=='all')$('semesterFilter').value=state.sem;
       const collegeName = (colleges.find(c=>c[0]===state.college)||colleges[0])[1];
@@ -75,7 +73,6 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         if(state.type!=='all'&&r.type!==state.type)return false;
         if(!collegeMatchesFilter(r.college))return false;
         if(!semMatchesFilter(r.sem))return false;
-        if(!yearMatchesFilter(r.year))return false;
         if(!queryMatchesFilter(state.query,r.title,r.subject,(colleges.find(c=>c[0]===r.college)||['',''])[1]))return false;
         if(!subjectMatchesFilter(r.subject,state.subject))return false;
         return true;
@@ -84,7 +81,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':buildEmptyState()}
     /* ---- Empty state: upload it yourself or request from friends on WhatsApp ---- */
     function buildEmptyState(){
-      const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.year!=='all'||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
+      const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
       return `<div class="empty"><i class="fa-regular fa-folder-open"></i><br>
         <strong>${searching?'This material isn\'t in the library yet':'The library is quiet — be the first!'}</strong><br>
         <small>${searching?'No Notes/PYQs match your filters right now. Be the first to upload it, or request it from your friends:':'You could be the first to share material here.'}</small>
@@ -96,12 +93,10 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     }
     function requestMaterialOnWhatsApp(){
       const semText=state.sem==='all'?'any semester':('Semester '+state.sem);
-      let yearText='';
-      if(state.year!=='all')yearText=' ('+(state.year==='1'?'1st':state.year==='2'?'2nd':'3rd')+' year)';
       const subjText=(!state.subject||state.subject==='all')?'':(' for '+state.subject);
       const typeText=state.type==='all'?'Notes or PYQs':(state.type==='notes'?'Notes':'PYQs');
       const msg='📚 *BCAPrime* — Study Material Request 🙏\n\n'
-        +'Hey! I need '+typeText+subjText+' for '+semText+yearText+', but it\'s not available in the library yet. 😅\n\n'
+        +'Hey! I need '+typeText+subjText+' for '+semText+', but it\'s not available in the library yet. 😅\n\n'
         +'If you have them, please take 2 minutes to upload here:\n'
         +'👉 https://bcaprime.vercel.app\n\n'
         +'You upload first, everyone studies next! 💪🚀';
@@ -110,38 +105,21 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function uploaderSmallAvatar(name){const n=(name||'Student').trim();const letter=n.charAt(0).toUpperCase()||'S';const hues=[142,200,280,320,40,170];let h=0;for(const ch of n)h=(h*31+ch.charCodeAt(0))%360;const hue=hues[h%hues.length];return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="14" fill="hsl(${hue},55%,42%)"/><text x="14" y="19" font-family="Arial,sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${letter}</text></svg>`)}`}
     function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const off=isOfflineSaved(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject);const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const sUploader=r.uploader?escHtml(r.uploader):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const uploaderAvatar=sUploader?`<img class="resource-uploader-avatar" src="${uploaderSmallAvatar(r.uploader)}" alt="${sUploader}" width="22" height="22">`:'';return `<article class="resource${isPending?' pending-resource':''}"><div class="resource-top"><span class="badge">${r.type}</span>${isPending?`<span class="badge pending-badge"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<div class="resource-top-actions"><button class="save ${saved?'saved':''}" aria-label="Save resource" onclick="toggleSave('${id}')"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button><button class="save offline ${off?'saved':''}" aria-label="Save for offline use" title="Save for offline" onclick="saveOfflineResource('${id}')"><i class="fa-solid fa-cloud-arrow-down"></i></button></div></div><h3>${sTitle}</h3><p>${sSubject}</p><div class="resource-meta"><span><i class="fa-solid fa-layer-group"></i>Semester ${r.sem}</span><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span></div>${sUploader?`<div class="resource-uploader"><span class="resource-uploader-info">${uploaderAvatar}<span class="resource-uploader-name">${sUploader}</span></span></div>`:''}<div class="resource-submeta"><span><i class="fa-regular fa-clock"></i>${r.date||'Updated recently'}</span><span><i class="fa-solid fa-download"></i>${r.downloads||'New'} downloads</span><button class="upvote ${up?'voted':''}" aria-label="Upvote" onclick="toggleUpvote('${id}')"><i class="fa-solid fa-thumbs-up"></i> ${upvoteDisplay(r)}</button></div><div class="resource-actions"><button class="view" onclick="previewResource('${id}')"><i class="fa-regular fa-eye"></i> Preview</button>${(/\.pdf(\?|$)/i.test((r.fileUrl||'')+(r.fileName||'')))?`<button class="readon" onclick="openReader(resources.find(x=>x.title.replace(/\\W/g,'')==='${id}'))"><i class="fa-solid fa-book-open"></i> Read</button>`:''}<button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');renderSubjectFilter();render()}
-    function applyFilters(){updateSemesterOptions();state.year=$('yearFilter').value;state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
-    /* Year select hone par semester dropdown usi year ke sems tak simit hota hai */
+    function applyFilters(){updateSemesterOptions();state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
+    /* Semester dropdown sabhi 6 semesters dikhata hai aur user ki
+       onboarded/selected semester ko preserve karta hai. */
     function updateSemesterOptions(){
-      const yearSel=$('yearFilter'),semSel=$('semesterFilter');
-      if(!yearSel||!semSel)return;
-      const year=yearSel.value;
-      /* Fix: user ki current selection ko preserve karo — warna har
-         applyFilters() par dropdown 'all' par reset ho jata tha */
+      const semSel=$('semesterFilter');
+      if(!semSel)return;
       const current=semSel.value;
-      if(year==='all'){
-        /* Fix: year "all" par semester dropdown disable mat karo —
-           saare 6 semesters available rakho taaki finder directly sem-wise kaam kare */
-        semSel.disabled=false;
-        const allOpts=['<option value="all">All semesters</option>'];
-        for(let s=1;s<=6;s++)allOpts.push('<option value="'+s+'">Semester '+s+'</option>');
-        semSel.innerHTML=allOpts.join('');
-        const keep=(current&&current!=='all'&&Number(current)>=1&&Number(current)<=6)?current:(state.sem!=='all'?String(state.sem):'all');
-        semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
-        return;
-      }
-      const start=(Number(year)-1)*2+1;
+      const opts=['<option value="all">All semesters</option>'];
+      for(let s=1;s<=6;s++)opts.push('<option value="'+s+'">Semester '+s+'</option>');
       semSel.disabled=false;
-      semSel.innerHTML='<option value="all">All semesters</option><option value="'+start+'">Semester '+start+'</option><option value="'+(start+1)+'">Semester '+(start+1)+'</option>';
-      const candidate=(current&&current!=='all')?current:String(state.sem);
-      if(candidate!=='all'&&Number(candidate)>=start&&Number(candidate)<=start+1){
-        semSel.value=candidate;
-      }else{
-        semSel.value='all';
-        if(state.sem!=='all'&&(!current||current==='all')){state.sem='all';localStorage.setItem('bca-sem','all')}
-      }
+      semSel.innerHTML=opts.join('');
+      const keep=(current&&current!=='all'&&Number(current)>=1&&Number(current)<=6)?current:(state.sem!=='all'?String(state.sem):'all');
+      semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
     }
-    function resetFinder(){$('yearFilter').value='all';updateSemesterOptions();$('semesterFilter').value='all';state.year='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-year','all');localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
+    function resetFinder(){updateSemesterOptions();$('semesterFilter').value='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
     let lastSearchTrack={query:'',ts:0};
     function searchResources(value){clearTimeout(__searchTimeout);__searchTimeout=setTimeout(()=>{state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count})}}catch(error){}},200)}
     /* ---- Subject filter engine ----
@@ -152,9 +130,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       return [...new Set(resources.filter(r=>{
         const matchCollege=collegeMatchesFilter(r.college);
         const matchSem=semMatchesFilter(r.sem);
-        const matchYear=yearMatchesFilter(r.year);
         const matchType=state.type==='all'||r.type===state.type;
-        return matchCollege&&matchSem&&matchYear&&matchType;
+        return matchCollege&&matchSem&&matchType;
       }).map(r=>String(r.subject||'').trim()).filter(Boolean))];
     }
     function renderSubjectFilter(){
@@ -179,7 +156,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       applyFilters();
     }
     function openFinderAddSubject(){
-      if(state.sem==='all'){toast('Select a year + semester first');$('subjectFilter').value='all';return}
+      if(state.sem==='all'){toast('Select a semester first');$('subjectFilter').value='all';return}
       const addRow=$('finderAddSubjectRow');
       if(addRow){addRow.hidden=false}
       const input=$('finderNewSubjectInput');if(input)input.focus();
@@ -429,10 +406,10 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         if(data){
           let changed=false;
           if(data.college&&data.college!=='all'){state.college=data.college;try{localStorage.setItem('bca-college',data.college)}catch(e){}changed=true}
-          if(data.semester!=null){state.sem=String(data.semester);state.year=data.semester>4?'3':(data.semester>2?'2':'1');try{localStorage.setItem('bca-sem',String(data.semester));localStorage.setItem('bca-year',state.year)}catch(e){}changed=true}
+          if(data.semester!=null){state.sem=String(data.semester);try{localStorage.setItem('bca-sem',String(data.semester))}catch(e){}changed=true}
           if(changed){
             const lbl=$('collegeLabel');if(lbl)lbl.textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];
-            try{$('yearFilter').value=state.year;updateSemesterOptions();const ss=$('semesterFilter');if(ss&&state.sem!=='all')ss.value=state.sem;}catch(e){}
+            try{updateSemesterOptions();const ss=$('semesterFilter');if(ss&&state.sem!=='all')ss.value=state.sem;}catch(e){}
             const ds=$('deskSemester');if(ds)ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;
             renderSubjectFilter();render();
           }
@@ -679,8 +656,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
             }
             if(row.profile.semester&&row.profile.semester!=='all'&&row.profile.semester!==''){
               state.sem=String(row.profile.semester);
-              state.year=Number(row.profile.semester)>4?'3':(Number(row.profile.semester)>2?'2':'1');
-              try{localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year)}catch(e){}
+              try{localStorage.setItem('bca-sem',state.sem)}catch(e){}
             }
           }
           if(row.avatar){try{localStorage.setItem('bca-avatar',row.avatar)}catch(e){}}
@@ -1027,7 +1003,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     window.closeUploadSuccess=closeUploadSuccess;
     function resetPreferences(){
       if(!confirm('Reset all preferences? This clears saved items, your uploads list, college and theme on this device.'))return;
-      const keys=['bca-onboarded','bca-tour-seen','bca-college','bca-sem','bca-year','bca-saved','bca-custom-colleges','bca-uploads','bca-theme'];
+      const keys=['bca-onboarded','bca-tour-seen','bca-college','bca-sem','bca-saved','bca-custom-colleges','bca-uploads','bca-theme'];
       keys.forEach(key=>localStorage.removeItem(key));
       location.reload();
     }
@@ -1347,7 +1323,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function backToOnboardingCollege(){state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2')}
     function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected');if(state.onboardingCollege&&!state.onboardingDone)setTimeout(()=>finishOnboarding(),400)}
     function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);const cf=$('collegeFilter');if(!college||!cf||cf.querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];cf.append(option)}
-    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';state.year=String(Math.ceil(Number(state.sem)/2)||1);try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-year',state.year);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{$('yearFilter').value=state.year;updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
+    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
     const tourSteps=[
