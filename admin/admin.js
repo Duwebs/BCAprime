@@ -109,7 +109,8 @@ async function load() {
       fileName: item.file_name,
       fileUrl: item.file_url,
       status: item.status,
-      uploader: item.uploader_email || '',
+      uploader: item.uploader_name || item.uploader_email || '',
+      uploaderEmail: item.uploader_email || '',
       date: item.created_at
     }));
   } catch (error) {
