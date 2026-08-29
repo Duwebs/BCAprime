@@ -25,6 +25,7 @@ alter table public.resources enable row level security;
 
 -- Track who uploaded each resource so users can see their own upload status.
 alter table public.resources add column if not exists uploader_email text not null default '';
+alter table public.resources add column if not exists uploader_name text not null default '';
 
 -- Community upvotes (ratings) so students can flag the most useful material.
 alter table public.resources add column if not exists upvotes integer not null default 0;
