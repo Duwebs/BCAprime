@@ -80,7 +80,8 @@
         <div class="profile-pop-head"><img id="popAvatar" alt="Profile photo"><div class="profile-pop-copy"><strong id="popName">Guest</strong><small id="popMail">Browsing as guest</small></div></div>
         <div class="profile-pop-meta"><span><i class="fa-solid fa-building-columns"></i>College<b id="popCollege">All Colleges</b></span><span><i class="fa-solid fa-layer-group"></i>Semester<b id="popSem">All</b></span></div>
         <button class="pop-scan" onclick="hideProfileCard();openQrScanner()"><i class="fa-solid fa-camera"></i> Computer login &mdash; scan QR</button>
-        <button class="danger-logout" onclick="logoutFromPop()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log out</button>
+        <button class="pop-login" id="popLoginBtn" hidden onclick="hideProfileCard();requireAccount('Sign up or login to save your library across devices.','feedback')"><i class="fa-solid fa-right-to-bracket"></i> Sign Up / Log In</button>
+        <button class="danger-logout" id="popLogoutBtn" hidden onclick="logoutFromPop()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log out</button>
       </div>
     </header>
 
