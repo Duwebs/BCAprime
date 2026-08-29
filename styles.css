@@ -759,13 +759,13 @@
   @media (max-width:1023.98px){
     .pop-scan{display:flex}
   }
-  .pop-scan{appearance:none;-webkit-appearance:none;outline:none;display:none;width:100%;align-items:center;justify-content:center;gap:9px;padding:10px 16px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--ink);font:500 13px/1.2 'Geist',sans-serif;cursor:pointer;transition:background .15s ease,border-color .15s ease;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+  .pop-scan{appearance:none;-webkit-appearance:none;-moz-appearance:none;outline:none;display:none;width:100%;align-items:center;justify-content:center;gap:9px;padding:10px 16px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--ink);font:500 13px/1.2 'Geist',sans-serif;cursor:pointer;transition:background .15s ease,border-color .15s ease;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
   .pop-scan:hover{border-color:color-mix(in srgb,var(--brand) 45%,var(--line));background:color-mix(in srgb,var(--brand) 10%,var(--surface-2))}
   .pop-scan i{color:var(--brand)}
   .pop-scan:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
-  .pop-login{appearance:none;-webkit-appearance:none;outline:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 16px;margin-bottom:8px;border:none;border-radius:12px;background:var(--brand);color:#fff;font:600 13px/1.2 'Geist',sans-serif;cursor:pointer;box-shadow:0 4px 12px -2px color-mix(in srgb,var(--brand) 45%,transparent);transition:background .15s ease,transform .15s ease,box-shadow .15s ease;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
-  .pop-login:hover{background:color-mix(in srgb,var(--brand) 88%,#000);box-shadow:0 6px 16px -2px color-mix(in srgb,var(--brand) 55%,transparent)}
-  .pop-login:active{transform:scale(.98)}
+  .pop-login{appearance:none;-webkit-appearance:none;-moz-appearance:none;outline:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 16px;margin-bottom:8px;border:none;border-radius:12px;background:var(--brand);color:#fff;font:600 13px/1.2 'Geist',sans-serif;cursor:pointer;box-shadow:none;transition:background .15s ease;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+  .pop-login:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+  .pop-login:active{background:color-mix(in srgb,var(--brand) 78%,#000)}
   .pop-login i{color:#fff}
   .pop-login:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   .pop-login[hidden],.danger-logout[hidden]{display:none}
@@ -1147,6 +1147,19 @@
   .resource:hover{transform:none}
   .rc-icon:hover{background:transparent;color:var(--muted)}
 }
+
+/* ================= Profile pop buttons — mobile cascade hardening =================
+   (0,2,0) specificity + file-end placement: koi bhi parent/mobile rule inhe
+   raw browser buttons me reset nahi kar sakta. appearance full reset + explicit
+   colors — spec: primary blue-600, secondary slate-100/800. */
+.profile-pop .pop-login{appearance:none;-webkit-appearance:none;-moz-appearance:none;outline:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:10px 16px;margin-bottom:8px;border:none;border-radius:12px;background:var(--brand);color:#fff;font:600 13px/1.2 'Geist',sans-serif;cursor:pointer;box-shadow:none;transition:background .15s ease;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+.profile-pop .pop-login:hover{background:color-mix(in srgb,var(--brand) 88%,#000)}
+.profile-pop .pop-login:active{background:color-mix(in srgb,var(--brand) 78%,#000)}
+.profile-pop .pop-login[hidden]{display:none}
+.profile-pop .pop-scan{appearance:none;-webkit-appearance:none;-moz-appearance:none;outline:none;display:flex;width:100%;align-items:center;justify-content:center;gap:9px;padding:10px 16px;margin-bottom:8px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--ink);font:500 13px/1.2 'Geist',sans-serif;cursor:pointer;box-shadow:none;transition:background .15s ease,border-color .15s ease;-webkit-tap-highlight-color:transparent;box-sizing:border-box}
+.profile-pop .pop-scan:hover{background:color-mix(in srgb,var(--brand) 10%,var(--surface-2));border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
+/* Desktop (>=1024px) pe scan button hidden rehta hai — upar wale media rules ke saath consistent */
+@media(min-width:1024px){.profile-pop .pop-scan{display:none}}
 
 /* ================= Mobile optimization — app shell hardening =================
    Mobile pe full functionality: touch targets, safe-areas, overflow protection,
