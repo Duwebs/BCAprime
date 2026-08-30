@@ -270,8 +270,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester — all its subjects will show up here 📚</div>';return}
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
       const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&semMatchesFilter(r.sem)).length;
-      /* Har subject ke semesters nikaalo: syllabus (BASE_SUBJECTS) + uploaded resources */
-      const semsOf=s=>{const n=normSubject(s);const set=new Set();Object.keys(BASE_SUBJECTS).forEach(sem=>{if(BASE_SUBJECTS[sem].some(x=>normSubject(x)===n))set.add(Number(sem))});resources.forEach(r=>{if(r.subject&&r.sem!=null&&subjectMatchesFilter(r.subject,s))set.add(Number(r.sem))});return [...set].sort((a,b)=>a-b)};
+      /* Har subject ke semesters nikaalo: syllabus (BASE_SUBJECTS) + cloud subject + uploaded resources */
+      const semsOf=s=>{const n=normSubject(s);const set=new Set();Object.keys(BASE_SUBJECTS).forEach(sem=>{if(BASE_SUBJECTS[sem].some(x=>normSubject(x)===n))set.add(Number(sem))});cloudSubjects.forEach(c=>{if(c.semester!=null&&normSubject(c.name)===n)set.add(Number(c.semester))});resources.forEach(r=>{if(r.subject&&r.sem!=null&&subjectMatchesFilter(r.subject,s))set.add(Number(r.sem))});return [...set].sort((a,b)=>a-b)};
       wrap.innerHTML=[...seen.values()].map((s,i)=>{
         const hue=subjectHue(s);const count=countFor(s);const sems=semsOf(s);
         const semBadge=sems.length?`<span class="subject-badge-sem"><i class="fa-solid fa-layer-group"></i>Semester ${sems.join(' &amp; ')}</span>`:'';
