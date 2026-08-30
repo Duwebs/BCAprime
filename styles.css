@@ -1,4 +1,6 @@
 /* BCAPrime stylesheet - extracted from index.html */
+/* App version label (footer ke neeche, chhota sa) */
+.app-version{text-align:center;margin:14px 0 0;color:var(--muted);opacity:.65;font-size:11px;font-weight:600;letter-spacing:.05em;font-variant-numeric:tabular-nums}
 /* ==== What's New Update Modal (premium, native app-like) ==== */
 .wn-modal{z-index:95;background:rgba(4,10,16,.78);backdrop-filter:blur(10px)}
 .wn-dialog{width:min(100%,440px);max-height:min(92dvh,720px);display:flex;flex-direction:column;padding:0;border-radius:24px;overflow:hidden;border:1px solid color-mix(in srgb,var(--brand) 28%,var(--line));box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04) inset;animation:wnIn .45s cubic-bezier(.2,.9,.3,1.15) both}

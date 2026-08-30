@@ -114,6 +114,23 @@ const LATEST_RELEASE = {
     }
   } catch (e) {}
 
+  /* Footer me live version dikhao (CURRENT_APP_VERSION se auto-sync) */
+  try {
+    const applyVersionLabel = function () {
+      const el = document.getElementById('appVersion');
+      if (el) el.textContent = 'Version ' + CURRENT_APP_VERSION;
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyVersionLabel);
+    else applyVersionLabel();
+  } catch (e) {}
+
+  /* Reliability fallback: auth flow se call miss ho jaye toh bhi check hoga */
+  try {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(function () { window.checkWhatsNew(); }, 1600);
+    });
+  } catch (e) {}
+
   /* ===== Version check — teen cases ===== */
   window.checkWhatsNew = function () {
     if (didCheck) return;
