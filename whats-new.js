@@ -11,16 +11,19 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "2.4.0";
+const CURRENT_APP_VERSION = "2.5.0";
 
 const LATEST_RELEASE = {
-  version: "2.4.0",
-  date: "August 2026",
-  title: "Major Upgrade: PDF Reader & Fast Telemetry",
+  version: "2.5.0",
+  date: "September 2026",
+  title: "Subject Manager, Safe Delete & Speed Upgrade",
   features: [
-    { type: "new",     title: "In-App PDF Viewer", desc: "Read notes directly inside the app without opening extra browser tabs." },
-    { type: "improved",title: "Faster Downloads",  desc: "Optimized server requests for instant notes download." },
-    { type: "fix",     title: "UI Polish",         desc: "Fixed button responsiveness and dark mode alignment bugs." }
+    { type: "new",     title: "College & Semester Subject Manager", desc: "Subjects ab college + semester ke hisaab se organize hote hain — sahi subject, sahi jagah." },
+    { type: "new",     title: "Student Subject Requests", desc: "Apna subject add karo — admin approval ke baad wo sabke liye public ho jayega." },
+    { type: "new",     title: "Safe Deletion Guard", desc: "Galti se delete hona ab impossible — har destructive action par PIN confirmation." },
+    { type: "improved",title: "Instant Login Experience", desc: "Refresh karne par ab login screen ka flash nahi — seedha app khulta hai." },
+    { type: "improved",title: "New Analytics Suite", desc: "Live visits, downloads, search intel aur conversion funnel — sab ek premium dashboard me." },
+    { type: "fix",     title: "UI Polish", desc: "Mobile responsiveness fixes, better cards, cleaner buttons aur dark mode alignment." }
   ]
 };
 
