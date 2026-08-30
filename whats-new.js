@@ -51,6 +51,17 @@ const LATEST_RELEASE = {
         '</div>';
     }).join('');
 
+    /* Personalized greeting: login name → email part → guest */
+    let who = 'there';
+    try {
+      const cached = JSON.parse(localStorage.getItem('bca-profile-cache') || 'null');
+      const n = cached && (cached.name || '').trim();
+      const e = cached && (cached.email || '').split('@')[0].trim();
+      who = n || e || 'there';
+    } catch (err) {}
+    const greeting = 'Hi ' + who + ' \uD83D\uDC4B';
+    const subtitle = who === 'there' ? 'We\'ve got something new for you' : 'We\'ve got an update for you';
+
     const overlay = document.createElement('div');
     overlay.className = 'modal wn-modal';
     overlay.id = 'whatsNewModal';
@@ -58,12 +69,10 @@ const LATEST_RELEASE = {
       '<div class="dialog wn-dialog">' +
         '<div class="wn-hero">' +
           '<span class="wn-orb wn-orb1"></span><span class="wn-orb wn-orb2"></span>' +
-          '<i class="fa-solid fa-wand-magic-sparkles wn-spark wn-spark1"></i>' +
-          '<i class="fa-solid fa-star wn-spark wn-spark2"></i>' +
-          '<i class="fa-solid fa-star wn-spark wn-spark3"></i>' +
           '<img class="wn-logo" src="assets/logo.png" alt="">' +
-          '<span class="wn-badge"><i class="fa-solid fa-gift"></i> What\'s New</span>' +
-          '<span class="wn-meta"><span class="wn-version">v' + LATEST_RELEASE.version + '</span></span>' +
+          '<h2 class="wn-greet">' + greeting + '</h2>' +
+          '<p class="wn-subtitle">' + subtitle + '</p>' +
+          '<span class="wn-pill"><i class="fa-solid fa-gift"></i> What\'s New<span class="wn-pill-sep"></span>v' + LATEST_RELEASE.version + '</span>' +
         '</div>' +
         '<div class="wn-list">' + items + '</div>' +
         '<div class="wn-foot">' +
