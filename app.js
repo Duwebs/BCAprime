@@ -15,8 +15,32 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       5:['Artificial Intelligence','Cloud Computing','Computer Graphics','Mobile Application Development','Elective-I'],
       6:['Cyber Security & Ethical Hacking','Machine Learning','Big Data Analytics','E-Commerce','Major Project / Elective-II']
     };
-    function getCustomSubjects(sem){try{return JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}')[String(sem)]||[]}catch(error){return[]}}
-    function addCustomSubject(sem,name){try{const all=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}');const key=String(sem);all[key]=[...new Set([...(all[key]||[]),name])];localStorage.setItem('bca-custom-subjects',JSON.stringify(all))}catch(error){}}
+    /* Cloud-approved subjects so the whole app shares them across devices. */
+    let cloudSubjects=[];
+    async function loadCloudSubjects(){
+      if(typeof supabaseClient==='undefined'||!supabaseClient)return;
+      try{
+        const uid=accountSession&&accountSession.uid?accountSession.uid:'';
+        let query=supabaseClient.from('subjects').select('*');
+        query=uid?query.or(`is_public.eq.true,created_by.eq.${uid}`):query.eq('is_public',true);
+        const {data,error}=await query;
+        if(error)throw error;
+        cloudSubjects=data||[];
+        renderSubjectFilter();renderSubjectCards();
+        try{updateUploadSubjects()}catch(e){}
+      }catch(error){console.warn('Could not load cloud subjects.',error.message)}
+    }
+    function submitSubjectToCloud(sem,name){
+      if(typeof supabaseClient==='undefined'||!supabaseClient)return;
+      const uid=accountSession&&accountSession.uid?accountSession.uid:'';
+      const key=typeof state!=='undefined'&&state.college?String(state.college):'all';
+      const exists=cloudSubjects.some(s=>String(s.semester)===String(sem)&&((s.created_by&&s.created_by===uid)||s.is_public)&&normSubject(s.name)===normSubject(name));
+      if(exists||!name||!uid)return;
+      supabaseClient.from('subjects').insert({name:String(name).trim(),code:'',semester:Number(sem),college:key,status:'pending',is_public:false,created_by:uid})
+        .then(()=>loadCloudSubjects(),()=>{});
+    }
+    function getCustomSubjects(sem){try{const local=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}')[String(sem)]||[];const cloud=cloudSubjects.filter(s=>String(s.semester)===String(sem)).map(s=>s.name);return [...new Set([...local,...cloud])]}catch(error){return[]}}
+    function addCustomSubject(sem,name){try{const all=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}');const key=String(sem);all[key]=[...new Set([...(all[key]||[]),name])];localStorage.setItem('bca-custom-subjects',JSON.stringify(all));submitSubjectToCloud(sem,name)}catch(error){}}
     const normSubject=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
     /* ---- PrimeFinder robust matching — har user scenario cover karta hai ----
        - Multi-word query: har word title/subject/college mein AND-hotá hai (order irrelevant)
@@ -63,6 +87,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       render();
       bindCardViews();if(!resources.length)showSkeleton();
       loadCloudResources();
+      try{loadCloudSubjects()}catch(e){}
       setTimeout(()=>{try{loadSeniorRequests()}catch(e){}},600);
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
     }

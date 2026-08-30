@@ -61,6 +61,7 @@ async function showAdmin(session) {
   $('adminShell').hidden = false;
   $('logoutButton').style.display = 'inline-block';
   load();
+  loadSubjects();
 }
 
 async function logout() {
@@ -251,16 +252,17 @@ async function bulkUpdateStatus(status) {
 
 async function bulkDelete() {
   if (!selectedIds.size) return;
-  if (!confirm(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`)) return;
-  const cloudIds = [...selectedIds].filter(id => !id.startsWith('demo-') && !id.startsWith('local-'));
-  if (supabaseClient && cloudIds.length) {
-    const { error } = await supabaseClient.from('resources').delete().in('id', cloudIds);
-    if (error) { alert('Delete failed: ' + error.message); return; }
-  }
-  uploads = uploads.filter(item => !selectedIds.has(String(item.id)));
-  saveLocalMirror();
-  selectedIds.clear();
-  render();
+  openSafeDelete(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`, async () => {
+    const cloudIds = [...selectedIds].filter(id => !id.startsWith('demo-') && !id.startsWith('local-'));
+    if (supabaseClient && cloudIds.length) {
+      const { error } = await supabaseClient.from('resources').delete().in('id', cloudIds);
+      if (error) { alert('Delete failed: ' + error.message); return; }
+    }
+    uploads = uploads.filter(item => !selectedIds.has(String(item.id)));
+    saveLocalMirror();
+    selectedIds.clear();
+    render();
+  });
 }
 
 /* ---- Auto refresh while the dashboard is visible ---- */
@@ -366,12 +368,233 @@ async function resolveFeedback(id){
   loadFeedback();
 }
 async function deleteFeedback(id){
-  if(!confirm('Delete this feedback?'))return;
+  openSafeDelete('This feedback entry will be permanently removed. This cannot be undone.', async () => doDeleteFeedback(id));
+}
+async function doDeleteFeedback(id){
   if(typeof supabaseClient==='undefined'||!supabaseClient)return;
   await supabaseClient.from('feedback').delete().eq('id',id);
   loadFeedback();
 }
 
+/* ============================================================
+   Admin Tabs
+   ============================================================ */
+function switchTab(tab){
+  document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  ['material','subjects','pending'].forEach(id => {
+    const el = $('tab-' + id);
+    if (el) el.hidden = (id !== tab);
+  });
+  if (tab === 'subjects') { if (!$('subjectCollege').options.length) populateSubjectFilters(); renderSubjects(); }
+  if (tab === 'pending') loadPendingSubjects();
+}
+
+/* ============================================================
+   Subject Manager (college + semester filters, card grid)
+   ============================================================ */
+const subjectColleges = [
+  ['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],
+  ['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],
+  ['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],
+  ['bangalore','Bangalore University'],['other','Other University']
+];
+const subjectCollegesMap = Object.fromEntries(subjectColleges);
+let subjects = [];
+
+function populateSubjectFilters(){
+  const collegeSel = $('subjectCollege');
+  collegeSel.innerHTML = subjectColleges.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+  const collegePick = $('subjectCollegePick');
+  collegePick.innerHTML = subjectColleges.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+  const semSel = $('subjectSemester');
+  semSel.innerHTML = '<option value="all">All Semesters</option>' + [1,2,3,4,5,6,7,8].map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+  const semPick = $('subjectSem');
+  semPick.innerHTML = [1,2,3,4,5,6,7,8].map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+}
+
+function findSubject(id){ return subjects.find(s => String(s.id) === String(id)) || null; }
+
+async function loadSubjects(){
+  const grid = $('subjectGrid'); if (grid) grid.innerHTML = '<p class="note">Loading&hellip;</p>';
+  subjects = [];
+  if (!supabaseClient) { $('subjectGrid').innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  if (!$('subjectCollege').options.length) populateSubjectFilters();
+  try {
+    const { data, error } = await supabaseClient.from('subjects').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    subjects = data || [];
+  } catch (error) {
+    console.warn('Could not load subjects.', error.message);
+    $('subjectGrid').innerHTML = '<p class="note">Load failed: ' + escapeHtml(error.message) + '</p>';
+  }
+  renderSubjects();
+  loadPendingSubjects();
+}
+
+function renderSubjects(){
+  const college = $('subjectCollege').value;
+  const sem = $('subjectSemester').value;
+  let list = subjects;
+  if (college !== 'all') list = list.filter(s => s.college === college);
+  if (sem !== 'all') list = list.filter(s => String(s.semester) === String(sem));
+  $('subjectCountBadge').textContent = `Found ${list.length} Subject${list.length === 1 ? '' : 's'}`;
+  const grid = $('subjectGrid');
+  if (!list.length) { grid.innerHTML = '<p class="note">No subjects found for this filter.</p>'; return; }
+  grid.innerHTML = list.map(s => {
+    const isPublic = s.is_public === true || s.status === 'approved';
+    const badge = isPublic ? 'pub' : 'pend';
+    const label = isPublic ? 'Public' : 'Pending';
+    return `<div class="subject-card">
+      <div class="sc-badge-row"><span class="sc-badge ${badge}">${label}</span></div>
+      <strong class="sc-name">${escapeHtml(s.name)}</strong>
+      <span class="sc-code">${s.code ? escapeHtml(s.code) : '<i>No code</i>'}</span>
+      <span class="sc-meta">Semester ${s.semester} &middot; ${escapeHtml(subjectCollegesMap[s.college] || s.college || 'All colleges')}</span>
+      <div class="row-actions sc-actions">
+        <button class="button" onclick="openSubjectModal(findSubject(${s.id}))"><i class="fa-solid fa-pen"></i> Edit</button>
+        <button class="button danger" onclick="deleteSubject(${s.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+/* ---- Add / Edit modal ---- */
+let populatedSubjectsOnce = false;
+
+function openSubjectModal(subject){
+  $('subjectModalTitle').textContent = subject ? 'Edit Subject' : 'Add Subject';
+  $('subjectId').value = subject ? String(subject.id) : '';
+  $('subjectName').value = subject ? subject.name : '';
+  $('subjectCode').value = subject ? (subject.code || '') : '';
+  if (!populatedSubjectsOnce) populateSubjectFilters();
+  populatedSubjectsOnce = true;
+  $('subjectSem').value = subject ? String(subject.semester) : '1';
+  $('subjectCollegePick').value = subject ? (subject.college || 'all') : 'all';
+  $('subjectModal').hidden = false;
+  $('subjectName').focus();
+}
+
+function closeSubjectModal(){
+  $('subjectModal').hidden = true;
+  $('subjectForm').reset();
+  $('subjectId').value = '';
+}
+
+async function saveSubject(event){
+  event.preventDefault();
+  const id = $('subjectId').value;
+  const name = $('subjectName').value.trim();
+  const code = $('subjectCode').value.trim();
+  const semester = Number($('subjectSem').value);
+  const college = $('subjectCollegePick').value;
+  if (!name) { alert('Subject name is required.'); return; }
+  const payload = { name, code, semester, college, status: 'approved', is_public: true };
+  const btn = $('subjectSaveBtn'); btn.disabled = true;
+  try {
+    if (!supabaseClient) throw new Error('Supabase is not configured.');
+    if (id) await supabaseClient.from('subjects').update(payload).eq('id', id);
+    else await supabaseClient.from('subjects').insert(payload);
+    closeSubjectModal();
+    await loadSubjects();
+  } catch (error) {
+    alert('Save failed: ' + error.message);
+  }
+  btn.disabled = false;
+}
+if ($('subjectForm')) $('subjectForm').addEventListener('submit', saveSubject);
+
+/* ---- Subject delete via safe-delete guard ---- */
+function deleteSubject(id){
+  const s = findSubject(id);
+  openSafeDelete(`Subject "${s ? s.name : '#' + id}" will be permanently deleted from all students. This cannot be undone.`, async () => {
+    if (supabaseClient) await supabaseClient.from('subjects').delete().eq('id', id);
+    await loadSubjects();
+  });
+}
+/* ============================================================
+   Pending Subject Moderation Queue
+   ============================================================ */
+function updatePendingBadge(){
+  const badge = $('pendingBadge'); if (badge) badge.textContent = subjects.filter(s => s.status === 'pending').length;
+}
+
+async function loadPendingSubjects(){
+  const queue = $('pendingQueue'); if (queue) queue.innerHTML = '<p class="note">Loading&hellip;</p>';
+  updatePendingBadge();
+  if (!supabaseClient) { if (queue) queue.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  let pending = subjects.filter(s => s.status === 'pending');
+  if (!subjects.length) {
+    const { data, error } = await supabaseClient.from('subjects').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    if (error) { if (queue) queue.innerHTML = '<p class="note">Load failed: ' + escapeHtml(error.message) + '</p>'; return; }
+    pending = data || [];
+  }
+  if (!pending.length) { if (queue) queue.innerHTML = '<p class="note">No pending subject requests. 🎉</p>'; return; }
+  queue.innerHTML = pending.map(s => `
+    <div class="pending-row">
+      <div class="pr-main">
+        <strong>${escapeHtml(s.name)}</strong>
+        ${s.code ? `<span class="pr-code">${escapeHtml(s.code)}</span>` : ''}
+        <span class="pr-meta">Semester ${s.semester} &middot; ${escapeHtml(subjectCollegesMap[s.college] || s.college || 'All colleges')}</span>
+        ${s.created_by ? `<span class="pr-by"><i class="fa-solid fa-user"></i> ${escapeHtml(s.created_by)}</span>` : ''}
+      </div>
+      <div class="row-actions pr-actions">
+        <button class="button primary" onclick="approvePendingSubject(${s.id})"><i class="fa-solid fa-check"></i> Approve &amp; Make Public</button>
+        <button class="button danger" onclick="rejectPendingSubject(${s.id})"><i class="fa-solid fa-trash"></i> Reject</button>
+      </div>
+    </div>`).join('');
+}
+
+async function approvePendingSubject(id){
+  if (!supabaseClient) return;
+  await supabaseClient.from('subjects').update({ status: 'approved', is_public: true }).eq('id', id);
+  await loadSubjects();
+}
+
+function rejectPendingSubject(id){
+  const s = subjects.find(sub => String(sub.id) === String(id));
+  openSafeDelete(`Pending subject request "${s ? s.name : '#' + id}" will be fully deleted (rejected). This cannot be undone.`, async () => {
+    if (supabaseClient) await supabaseClient.from('subjects').delete().eq('id', id);
+    await loadSubjects();
+  });
+}
+
+/* ============================================================
+   Reusable Safe Delete Guard (Random 4-digit PIN confirmation)
+   ============================================================ */
+let safeDeleteFn = null;
+let safeDeletePin = '';
+
+function openSafeDelete(desc, actionFn){
+  safeDeleteFn = actionFn;
+  safeDeletePin = String(Math.floor(1000 + Math.random() * 9000)); // 1000–9999
+  $('safeDeleteDesc').textContent = desc;
+  $('safeDeletePin').textContent = safeDeletePin;
+  $('safeDeleteInput').value = '';
+  $('safeDeleteError').textContent = '';
+  $('safeDeleteInput').disabled = false;
+  $('safeDeleteConfirm').disabled = true;
+  $('safeDeleteModal').hidden = false;
+  $('safeDeleteInput').focus();
+}
+
+function closeSafeDelete(){
+  $('safeDeleteModal').hidden = true;
+  safeDeleteFn = null;
+}
+
+function onSafeDeleteInput(){
+  const input = $('safeDeleteInput');
+  const val = input.value.replace(/\D/g, '').slice(0, 4);
+  input.value = val;
+  const match = val === safeDeletePin;
+  $('safeDeleteConfirm').disabled = !match;
+  $('safeDeleteError').textContent = (val && !match) ? 'PIN does not match. Try again.' : '';
+}
+
+async function confirmSafeDelete(){
+  if ($('safeDeleteConfirm').disabled || !safeDeleteFn) return;
+  const fn = safeDeleteFn;
+  closeSafeDelete();
+  await fn();
+}
 /* ---- Boot ---- */
 document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'dark';
 $('authForm').addEventListener('submit', submitAuth);

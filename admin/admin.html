@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="admin.css?v=4">
+  <link rel="stylesheet" href="admin.css?v=5">
 </head>
 <body>
 
@@ -62,6 +62,16 @@
       <h1>Keep the library useful.</h1>
       <p>Review shared material, manage colleges, and keep student resources tidy.</p>
     </section>
+
+    <!-- Admin tabs -->
+    <nav class="admin-tabs" aria-label="Admin sections">
+      <button class="tab active" data-tab="material" onclick="switchTab('material')"><i class="fa-solid fa-box-archive"></i> Material</button>
+      <button class="tab" data-tab="subjects" onclick="switchTab('subjects')"><i class="fa-solid fa-book"></i> Subjects</button>
+      <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
+    </nav>
+
+    <!-- ============ TAB: Material ============ -->
+    <section class="tab-panel" id="tab-material">
 
     <!-- Stats -->
     <section class="stats">
@@ -175,7 +185,107 @@
       </div>
       <div id="feedbackList" class="feedback-list"><p class="note">Loading&hellip;</p></div>
     </section>
+
+    </section><!-- /tab-material -->
+
+    <!-- ============ TAB: Subjects ============ -->
+    <section class="tab-panel" id="tab-subjects" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Subject Management</h2>
+          <button class="button primary" onclick="openSubjectModal()"><i class="fa-solid fa-plus"></i> Add Subject</button>
+        </div>
+
+        <div class="subject-filters">
+          <label>College
+            <select class="select" id="subjectCollege" onchange="renderSubjects()"></select>
+          </label>
+          <label>Semester
+            <select class="select" id="subjectSemester" onchange="renderSubjects()">
+              <option value="all">All Semesters</option>
+            </select>
+          </label>
+          <button class="button" onclick="loadSubjects()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          <span class="count-badge" id="subjectCountBadge">Found 0 Subjects</span>
+        </div>
+
+        <div class="subject-grid" id="subjectGrid"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Filter by college + semester to review the exact subject list. Public subjects appear for all students; Pending subjects are still waiting for approval.</div>
+      </section>
+
+    </section>
+
+    <!-- ============ TAB: Pending Subjects (Moderation Queue) ============ -->
+    <section class="tab-panel" id="tab-pending" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Pending Subject Requests</h2>
+          <button class="button" onclick="loadPendingSubjects()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="pendingQueue" class="pending-queue"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Approve a request to publish it for every student in that college &amp; semester. Reject uses the safe-delete confirmation (type the PIN) so you don't remove anything by accident.</div>
+      </section>
+
+    </section>
+
   </main>
+
+  <!-- ================= Subject edit / add modal ================= -->
+  <div class="modal-overlay" id="subjectModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="subjectModalTitle">Add Subject</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeSubjectModal()">&times;</button>
+      </div>
+      <form class="modal-form" id="subjectForm">
+        <input type="hidden" id="subjectId" value="">
+        <label>Subject Name
+          <input class="search" id="subjectName" required maxlength="80" placeholder="e.g. Database Management Systems">
+        </label>
+        <label>Subject Code <small>(optional)</small>
+          <input class="search" id="subjectCode" maxlength="20" placeholder="e.g. BCA-304">
+        </label>
+        <div class="modal-grid-2">
+          <label>Semester
+            <select class="select" id="subjectSem"></select>
+          </label>
+          <label>College
+            <select class="select" id="subjectCollegePick"></select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button" onclick="closeSubjectModal()">Cancel</button>
+          <button type="submit" class="button primary" id="subjectSaveBtn">Save Subject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= Reusable Safe Delete Modal (Random PIN guard) ================= -->
+  <div class="modal-overlay" id="safeDeleteModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm deletion</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeSafeDelete()">&times;</button>
+      </div>
+      <p class="sd-desc" id="safeDeleteDesc">This action cannot be undone.</p>
+      <div class="sd-pin-box">
+        Type <strong id="safeDeletePin">0000</strong> to confirm deletion
+      </div>
+      <div class="modal-form">
+        <label>Enter PIN
+          <input class="search sd-input" id="safeDeleteInput" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Enter the 4-digit PIN" oninput="onSafeDeleteInput()">
+        </label>
+        <p class="sd-error" id="safeDeleteError"></p>
+        <div class="modal-actions">
+          <button class="button" onclick="closeSafeDelete()">Cancel</button>
+          <button class="button danger" id="safeDeleteConfirm" disabled onclick="confirmSafeDelete()">Confirm Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ================= Scripts ================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
