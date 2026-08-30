@@ -80,82 +80,16 @@
       </div>
     </section>
 
-    <!-- Analytics -->
-    <section class="panel" id="analyticsPanel">
-      <div class="toolbar">
-        <h2>Analytics</h2>
-        <div class="filters">
-          <select class="select" id="anRange" onchange="loadAnalytics()">
-            <option value="7">Last 7 days</option>
-            <option value="30" selected>Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="0">All time</option>
-          </select>
-          <button class="button" onclick="loadAnalytics()">Refresh</button>
+    <!-- Quick Stats -->
+    <section class="quick-stats">
+      <a class="analytics-cta" href="../analytics/">
+        <div class="cta-icon"><i class="fa-solid fa-chart-pie"></i></div>
+        <div class="cta-text">
+          <strong>Analytics Suite</strong>
+          <span>Live feeds, conversion funnels, search intel & more</span>
         </div>
-      </div>
-
-      <div class="stats an-stats">
-        <div class="stat"><strong id="anUsers">0</strong><span>Total users (devices)</span></div>
-        <div class="stat"><strong id="anSignedUp">0</strong><span>Signed-up users</span></div>
-        <div class="stat"><strong id="anGuests">0</strong><span>Guest users</span></div>
-        <div class="stat"><strong id="anDownloads">0</strong><span>Total downloads</span></div>
-        <div class="stat"><strong id="anViews">0</strong><span>Notes/PYQs opened</span></div>
-        <div class="stat"><strong id="anUploads">0</strong><span>User uploads</span></div>
-        <div class="stat"><strong id="anSessions">0</strong><span>Sessions</span></div>
-        <div class="stat"><strong id="anAvgTime">0m</strong><span>Avg time / session</span></div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Daily activity <small class="an-legend"><i class="dot dot-v"></i>Visits <i class="dot dot-d"></i>Downloads</small></h3>
-        <div class="an-chart" id="anChart"></div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Devices &amp; platforms</h3>
-        <div class="an-chips" id="anDevices"></div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Top resources</h3>
-        <div class="table-wrap">
-          <table class="table">
-            <thead><tr><th>Resource</th><th>Type</th><th>Opened</th><th>Downloads</th></tr></thead>
-            <tbody id="anTopRows"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Users</h3>
-        <div class="table-wrap">
-          <table class="table">
-            <thead><tr><th>User</th><th>Device</th><th>Opened</th><th>Downloads</th><th>Time spent</th><th>Last seen</th></tr></thead>
-            <tbody id="anUserRows"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Top searches</h3>
-        <div class="an-chips" id="anSearches"></div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Failed searches</h3>
-        <div class="table-wrap">
-          <table class="table">
-            <thead><tr><th>Query</th><th>Searched</th></tr></thead>
-            <tbody id="anFailRows"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="an-section">
-        <h3 class="an-heading">Live activity feed</h3>
-        <div id="anFeed" class="feedback-list"><p class="note">Loading&hellip;</p></div>
-        <div class="note">Tracking: visits, opens, downloads, uploads, time spent, device/OS/browser. Anonymous users bhi visitor ID se count hote hain.</div>
-      </div>
+        <i class="fa-solid fa-arrow-right cta-arrow"></i>
+      </a>
     </section>
 
     <!-- Review panel -->
