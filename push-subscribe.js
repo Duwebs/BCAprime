@@ -28,7 +28,7 @@
 
   async function getRegistration() {
     if (!support.sw) return null;
-    return (await navigator.serviceWorker.getRegistration()) || navigator.serviceWorker.register('./sw.js?v=20');
+    return (await navigator.serviceWorker.getRegistration()) || navigator.serviceWorker.register('./sw.js?v=21');
   }
 
   /* ---------- Supabase subscription storage ---------- */

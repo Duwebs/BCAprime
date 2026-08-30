@@ -91,12 +91,22 @@ const LATEST_RELEASE = {
         document.getElementById('whatsNewModal').classList.contains('open')) window.closeWhatsNew();
   });
 
+  /* Preview/debug: window.showWhatsNewModal() console se bhi chalega */
+  window.showWhatsNewModal = showWhatsNewModal;
+
+  /* Preview mode: ?whatsnew=1 — script load hote hi modal force dikhega (testing / release preview) */
+  try {
+    if (location.search.indexOf('whatsnew') !== -1) {
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', showWhatsNewModal);
+      } else {
+        showWhatsNewModal();
+      }
+    }
+  } catch (e) {}
+
   /* ===== Version check — teen cases ===== */
   window.checkWhatsNew = function () {
-    /* Preview mode: ?whatsnew=1 — modal force dikhega (testing / release preview) */
-    try {
-      if (location.search.indexOf('whatsnew=1') !== -1) { showWhatsNewModal(); return; }
-    } catch (e) {}
     if (didCheck) return;
     didCheck = true;
     const last = getVersion();
