@@ -11,17 +11,16 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "2.6.0";
+const CURRENT_APP_VERSION = "2.7.0";
 
 const LATEST_RELEASE = {
-  version: "2.6.0",
+  version: "2.7.0",
   date: "September 2026",
-  title: "Meet the new What's New Experience",
-  subtitle: "Release updates now arrive in style — and you'll always know which version you're running.",
+  title: "Polished to Perfection",
+  subtitle: "A cleaner update experience, rebuilt for your phone.",
   features: [
-    { type: "new",     title: "What's New Updates", desc: "Every major update now greets you with a beautiful changelog — you'll never miss what's new." },
-    { type: "new",     title: "Version at a Glance", desc: "Check exactly which version of BCAPrime you're running, right from the footer." },
-    { type: "improved",title: "Cleaner Footer", desc: "A refined footer layout with subtle version tagging for a more professional feel." }
+    { type: "improved",title: "Redesigned Update Screen", desc: "Update popups are now cleaner and distraction-free — just what matters, nothing else." },
+    { type: "improved",title: "Better on Mobile", desc: "Updates now slide in as a smooth bottom sheet, perfectly sized for your screen." }
   ]
 };
 
