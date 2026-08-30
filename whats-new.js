@@ -11,16 +11,16 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "2.7.0";
+const CURRENT_APP_VERSION = "2.8.0";
 
 const LATEST_RELEASE = {
-  version: "2.7.0",
+  version: "2.8.0",
   date: "September 2026",
-  title: "Polished to Perfection",
-  subtitle: "A cleaner update experience, rebuilt for your phone.",
+  title: "Updates That Greet You",
+  subtitle: "Your name, your update — release notes just got personal.",
   features: [
-    { type: "improved",title: "Redesigned Update Screen", desc: "Update popups are now cleaner and distraction-free — just what matters, nothing else." },
-    { type: "improved",title: "Better on Mobile", desc: "Updates now slide in as a smooth bottom sheet, perfectly sized for your screen." }
+    { type: "new",     title: "Personalized Greetings", desc: "Updates now greet you by name — a warmer way to see what's changed." },
+    { type: "improved",title: "Cleaner Update Design", desc: "The update screen is tidier and easier to read, with nothing in the way." }
   ]
 };
 
