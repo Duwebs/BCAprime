@@ -14,8 +14,8 @@ let charts = {};
 
 /* ---- Chart.js defaults ---- */
 if (typeof Chart !== 'undefined') {
-  Chart.defaults.color = '#94a3b8';
-  Chart.defaults.borderColor = 'rgba(148, 163, 184, .1)';
+  Chart.defaults.color = '#9cafba';
+  Chart.defaults.borderColor = 'rgba(156, 175, 186, .1)';
   Chart.defaults.font.family = "'DM Sans', sans-serif";
   Chart.defaults.font.size = 12;
   Chart.defaults.plugins.legend.display = false;
@@ -460,8 +460,8 @@ function renderContentTrendChart(data) {
         {
           label: 'Views',
           data: data.map(d => d.views || 0),
-          borderColor: '#60a5fa',
-          backgroundColor: 'rgba(96, 165, 250, .1)',
+          borderColor: '#67c9dc',
+          backgroundColor: 'rgba(103, 201, 220, .1)',
           fill: true,
           tension: .4,
           borderWidth: 2,
@@ -471,8 +471,8 @@ function renderContentTrendChart(data) {
         {
           label: 'Downloads',
           data: data.map(d => d.downloads || 0),
-          borderColor: '#34d399',
-          backgroundColor: 'rgba(52, 211, 153, .1)',
+          borderColor: '#70d1a9',
+          backgroundColor: 'rgba(112, 209, 169, .1)',
           fill: true,
           tension: .4,
           borderWidth: 2,
@@ -718,8 +718,8 @@ function renderTrendChart(data) {
         {
           label: 'Visits',
           data: data.map(d => d.visits || 0),
-          borderColor: '#60a5fa',
-          backgroundColor: 'rgba(96, 165, 250, .08)',
+          borderColor: '#67c9dc',
+          backgroundColor: 'rgba(103, 201, 220, .08)',
           fill: true,
           tension: .4,
           borderWidth: 2,
@@ -729,8 +729,8 @@ function renderTrendChart(data) {
         {
           label: 'Views',
           data: data.map(d => d.views || 0),
-          borderColor: '#34d399',
-          backgroundColor: 'rgba(52, 211, 153, .08)',
+          borderColor: '#70d1a9',
+          backgroundColor: 'rgba(112, 209, 169, .08)',
           fill: true,
           tension: .4,
           borderWidth: 2,
@@ -781,7 +781,7 @@ function renderDeviceChips(devices, browsers, osList) {
   if (!ctx || !devices.length) return;
   if (charts.device) charts.device.destroy();
 
-  const colors = ['#60a5fa', '#34d399', '#f59e0b', '#f87171', '#a78bfa', '#fb923c'];
+  const colors = ['#67c9dc', '#70d1a9', '#f5a623', '#ff8c98', '#a78bfa', '#fb923c'];
   charts.device = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -811,7 +811,7 @@ function renderEventDistChart(summary) {
 
   const labels = ['Visits', 'Views', 'Downloads', 'Uploads', 'Saves', 'Searches', 'Sessions'];
   const values = [summary.visits || 0, summary.views || 0, summary.downloads || 0, summary.uploads || 0, summary.saves || 0, summary.searches || 0, summary.sessions || 0];
-  const colors = ['#60a5fa', '#34d399', '#f59e0b', '#a78bfa', '#f87171', '#fb923c', '#38bdf8'];
+  const colors = ['#67c9dc', '#70d1a9', '#f5a623', '#a78bfa', '#ff8c98', '#fb923c', '#5eead4'];
 
   charts.eventDist = new Chart(ctx, {
     type: 'bar',

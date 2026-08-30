@@ -3,58 +3,83 @@
    Modern glassmorphic dark dashboard
    ============================================================ */
 
-/* ---- Theme Variables ---- */
+/* ---- Theme Variables (per admin/design.md) ---- */
 :root {
-  --bg:          #0f172a;
-  --bg-deep:     #0b1120;
-  --surface:     rgba(30, 41, 59, .6);
-  --surface-solid: #1e293b;
-  --surface2:    rgba(51, 65, 85, .35);
-  --glass:       rgba(30, 41, 59, .5);
-  --glass-border:rgba(148, 163, 184, .1);
-  --ink:         #f1f5f9;
-  --ink-dim:     #cbd5e1;
-  --muted:       #94a3b8;
-  --muted-dim:   #64748b;
-  --line:        rgba(148, 163, 184, .08);
-  --brand:       #60a5fa;
-  --brand-glow:  rgba(96, 165, 250, .2);
-  --good:        #34d399;
-  --good-glow:   rgba(52, 211, 153, .15);
-  --danger:      #f87171;
-  --danger-glow: rgba(248, 113, 113, .12);
-  --warn:        #fbbf24;
-  --radius:      14px;
-  --radius-sm:   10px;
-  --radius-xs:   6px;
-  --shadow:      0 8px 32px rgba(0, 0, 0, .35);
-  --shadow-sm:   0 2px 12px rgba(0, 0, 0, .2);
+  --bg:          #05080b;
+  --bg-deep:     #05080b;
+  --surface:     #0d141a;
+  --surface-solid: #0d141a;
+  --surface2:    #141d24;
+  --glass:       rgba(13, 20, 26, .82);
+  --glass-border:#263640;
+  --ink:         #eef5f7;
+  --ink-dim:     #cfe0e6;
+  --muted:       #9cafba;
+  --muted-dim:   #687789;
+  --line:        #263640;
+  --brand:       #67c9dc;
+  --brand-glow:  rgba(103, 201, 220, .18);
+  --good:        #70d1a9;
+  --good-glow:   rgba(112, 209, 169, .14);
+  --danger:      #ff8c98;
+  --danger-glow: rgba(255, 140, 152, .12);
+  --warn:        #f5a623;
+  --radius:      12px;
+  --radius-sm:   9px;
+  --radius-xs:   8px;
+  --shadow:      0 14px 34px rgba(0, 0, 0, .3);
+  --shadow-sm:   0 4px 16px rgba(0, 0, 0, .22);
   --font-sans:   'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-display:'Space Grotesk', var(--font-sans);
   --font-mono:   'JetBrains Mono', ui-monospace, monospace;
 }
 
+/* ---- Light theme (per admin/design.md) ---- */
+[data-theme="light"] {
+  --bg:          #f5f7fa;
+  --bg-deep:     #eef2f6;
+  --surface:     #ffffff;
+  --surface-solid: #ffffff;
+  --surface2:    #eef2f6;
+  --glass:       rgba(255, 255, 255, .92);
+  --glass-border:#dce4ec;
+  --ink:         #172230;
+  --ink-dim:     #33475a;
+  --muted:       #687789;
+  --muted-dim:   #8a98a6;
+  --line:        #dce4ec;
+  --brand:       #0d7892;
+  --brand-glow:  rgba(13, 120, 146, .14);
+  --good:        #167653;
+  --good-glow:   rgba(22, 118, 83, .1);
+  --danger:      #b83d4b;
+  --danger-glow: rgba(184, 61, 75, .1);
+  --warn:        #ab570a;
+  --shadow:      0 14px 32px rgba(25, 45, 65, .08);
+  --shadow-sm:   0 2px 10px rgba(25, 45, 65, .06);
+}
+
 /* ---- Reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font: 14.5px/1.55 var(--font-sans);
-  overflow-x: hidden;
-  min-height: 100vh;
-}
-
-/* Background atmosphere */
+/* Background atmosphere (teal wash per design.md) */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 15% 0%, rgba(96, 165, 250, .07) 0%, transparent 50%),
-    radial-gradient(ellipse at 85% 100%, rgba(52, 211, 153, .04) 0%, transparent 50%);
+    radial-gradient(ellipse at 15% 0%, rgba(103, 201, 220, .07) 0%, transparent 50%),
+    radial-gradient(ellipse at 85% 100%, rgba(112, 209, 169, .04) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 var(--font-sans);
+  overflow-x: hidden;
+  min-height: 100vh;
 }
 
 /* ============================================================
@@ -168,7 +193,7 @@ body::before {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(15, 23, 42, .85);
+  background: var(--glass);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
 }
@@ -191,7 +216,7 @@ body::before {
   background: linear-gradient(135deg, var(--brand), #818cf8);
   color: #fff;
   font-size: 16px;
-  box-shadow: 0 4px 16px rgba(96, 165, 250, .3);
+  box-shadow: 0 4px 16px rgba(103, 201, 220, .3);
 }
 
 .brand span { color: var(--ink); }
@@ -208,13 +233,11 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  border: 1px solid var(--glass-border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  border-radius: 9px;
   background: var(--surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: var(--ink-dim);
-  padding: 9px 16px;
+  color: var(--ink);
+  padding: 9px 14px;
   font: 600 13px var(--font-sans);
   cursor: pointer;
   transition: all .18s ease;
@@ -222,9 +245,8 @@ body::before {
 }
 
 .button:hover {
+  filter: brightness(1.06);
   transform: translateY(-1px);
-  background: var(--surface2);
-  box-shadow: var(--shadow-sm);
 }
 
 .button:active { transform: translateY(0); }
@@ -240,23 +262,22 @@ body::before {
 .button.primary {
   background: var(--brand);
   border-color: var(--brand);
-  color: #0f172a;
+  color: #fff;
+  font-weight: 700;
 }
 
 .button.primary:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 4px 20px rgba(96, 165, 250, .3);
+  filter: brightness(1.06);
 }
 
 .button.danger {
   color: var(--danger);
-  border-color: rgba(248, 113, 113, .3);
+  border-color: var(--danger);
   background: transparent;
 }
 
 .button.danger:hover {
   background: var(--danger-glow);
-  border-color: var(--danger);
 }
 
 /* ============================================================
@@ -367,13 +388,13 @@ body::before {
    ============================================================ */
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin-bottom: 28px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .stat {
-  padding: 20px 16px;
+  padding: 17px;
   text-align: center;
   transition: transform .2s, box-shadow .2s;
   animation: fadeUp .5s ease both;
@@ -390,11 +411,8 @@ body::before {
 
 .stat strong {
   display: block;
-  font: 700 30px var(--font-display);
-  background: linear-gradient(135deg, var(--ink), var(--brand));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font: 600 27px var(--font-display);
+  color: var(--brand);
 }
 
 .stat span {
@@ -413,7 +431,7 @@ body::before {
   margin-bottom: 15px;
   padding: 11px 16px;
   background: var(--brand-glow);
-  border: 1px solid rgba(96, 165, 250, .2);
+  border: 1px solid rgba(103, 201, 220, .2);
   border-radius: var(--radius-sm);
   flex-wrap: wrap;
   animation: fadeUp .3s ease;
@@ -453,12 +471,12 @@ body::before {
 }
 
 .table th {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .05em;
-  background: rgba(30, 41, 59, .3);
+  background: var(--surface2);
   position: sticky;
   top: 0;
 }
@@ -592,7 +610,7 @@ body::before {
 }
 
 .feedback-item:hover {
-  border-color: rgba(148, 163, 184, .18);
+  border-color: var(--glass-border);
 }
 
 .feedback-item.resolved {
@@ -686,7 +704,7 @@ body::before {
 /* ============================================================
    Responsive
    ============================================================ */
-@media (max-width: 800px) {
+@media (max-width: 700px) {
   .shell { padding: 0 16px 40px }
   .topbar { min-height: 62px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px }
   .brand { font-size: 18px }
@@ -701,22 +719,22 @@ body::before {
   .toolbar { flex-direction: column; align-items: stretch }
   .filters { display: grid; grid-template-columns: 1fr 1fr }
   .search { min-width: 0; grid-column: 1/-1 }
-  .panel { padding: 16px }
+  .panel { padding: 13px }
   .table-wrap { -webkit-overflow-scrolling: touch }
   .notify-targets { grid-template-columns: 1fr 1fr }
 }
 
 @media (max-width: 600px) {
   .auth-screen { padding: 16px }
-  .auth-card { padding: 24px 18px }
+  .auth-card { padding: 22px 18px }
   .auth-card h1 { font-size: 22px }
-  .shell { padding-left: 12px; padding-right: 12px; padding-bottom: 32px }
+  .shell { padding-left: 16px; padding-right: 16px; padding-bottom: 32px }
   .topbar { gap: 8px }
   .brand { font-size: 16px }
   .brand-mark { width: 30px; height: 30px; font-size: 14px }
   .actions { gap: 6px }
   .actions .button { padding: 8px 10px; font-size: 11.5px; flex: 1 1 45% }
-  .stats { grid-template-columns: 1fr; gap: 8px; margin-bottom: 20px }
+  .stats { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px }
   .intro { padding: 22px 0 18px }
   .intro h1 { font-size: clamp(24px, 7vw, 30px) }
   .intro p { font-size: 13.5px }
@@ -725,16 +743,19 @@ body::before {
   .filters { flex-direction: column; gap: 8px }
   .search { min-width: 0; width: 100% }
   .select { width: 100% }
-  .panel { padding: 14px 12px; border-radius: 12px }
-  .table th, .table td { padding: 10px 10px; font-size: 13px }
-  .table { min-width: 560px }
+  .table { min-width: auto }
+  .table th, .table td { padding: 10px; font-size: 13px }
   .bulk-actions { padding: 10px 12px; gap: 6px }
   .bulk-actions .button { flex: 1 1 45%; padding: 8px 10px; font-size: 12px }
-  .notify-targets { grid-template-columns: 1fr }
-  #notifySend { justify-self: stretch; width: 100% }
   .row-actions { flex-wrap: wrap }
   .fi-shot { max-height: 160px }
   .feedback-item { padding: 13px }
+}
+
+@media (max-width: 520px) {
+  .stats { grid-template-columns: 1fr }
+  .notify-targets { grid-template-columns: 1fr }
+  #notifySend { justify-self: stretch; width: 100% }
 }
 
 
