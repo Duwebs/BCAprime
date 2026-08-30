@@ -82,6 +82,7 @@ function toggleTheme() {
   const root = document.documentElement;
   root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
   localStorage.setItem('bca-theme', root.dataset.theme);
+  try { localStorage.setItem('bca-theme-manual', '1'); } catch (e) {}
 }
 
 function escapeHtml(value) {
