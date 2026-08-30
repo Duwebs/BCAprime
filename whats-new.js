@@ -64,13 +64,11 @@ const LATEST_RELEASE = {
           '<i class="fa-solid fa-star wn-spark wn-spark3"></i>' +
           '<img class="wn-logo" src="assets/logo.png" alt="">' +
           '<span class="wn-badge"><i class="fa-solid fa-gift"></i> What\'s New</span>' +
-          '<h2 class="wn-title">' + LATEST_RELEASE.title + '</h2>' +
-          '<p class="wn-subtitle">' + (LATEST_RELEASE.subtitle || '') + '</p>' +
-          '<span class="wn-meta"><span class="wn-version">v' + LATEST_RELEASE.version + '</span><span class="wn-dot"></span><span class="wn-date">' + LATEST_RELEASE.date + '</span></span>' +
+          '<span class="wn-meta"><span class="wn-version">v' + LATEST_RELEASE.version + '</span></span>' +
         '</div>' +
         '<div class="wn-list">' + items + '</div>' +
         '<div class="wn-foot">' +
-          '<button class="primary wn-gotit" onclick="closeWhatsNew()"><i class="fa-solid fa-check"></i> Continue</button>' +
+          '<button class="primary wn-gotit" onclick="closeWhatsNew()"><i class="fa-solid fa-check"></i> Got it</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(overlay);

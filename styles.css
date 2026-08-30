@@ -6,7 +6,7 @@
 .wn-dialog{width:min(100%,440px);max-height:min(92dvh,720px);display:flex;flex-direction:column;padding:0;border-radius:24px;overflow:hidden;border:1px solid color-mix(in srgb,var(--brand) 28%,var(--line));box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04) inset;animation:wnIn .45s cubic-bezier(.2,.9,.3,1.15) both}
 @keyframes wnIn{from{opacity:0;transform:translateY(26px) scale(.92)}to{opacity:1;transform:none}}
 /* Hero header — gradient bg + glow orbs + sparkles */
-.wn-hero{position:relative;overflow:hidden;padding:30px 24px 22px;text-align:center;background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 22%,#070d12) 0%,#0a1220 55%,color-mix(in srgb,#7c5cff 16%,#070d12) 100%)}
+.wn-hero{position:relative;overflow:hidden;padding:26px 24px 20px;text-align:center;background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 22%,#070d12) 0%,#0a1220 55%,color-mix(in srgb,#7c5cff 16%,#070d12) 100%)}
 .wn-orb{position:absolute;border-radius:50%;filter:blur(34px);opacity:.5;pointer-events:none}
 .wn-orb1{width:190px;height:190px;top:-70px;left:-50px;background:var(--brand)}
 .wn-orb2{width:160px;height:160px;bottom:-70px;right:-40px;background:#7c5cff}
@@ -15,15 +15,11 @@
 .wn-spark2{top:52px;left:24px;font-size:10px;animation-delay:.8s}
 .wn-spark3{bottom:26px;right:58px;font-size:11px;animation-delay:1.5s}
 @keyframes wnTwinkle{0%,100%{opacity:.15;transform:scale(.7) rotate(0deg)}50%{opacity:.9;transform:scale(1.15) rotate(18deg)}}
-.wn-logo{width:64px;height:64px;object-fit:contain;border-radius:18px;box-shadow:0 8px 30px color-mix(in srgb,var(--brand) 45%,transparent),0 0 0 1px rgba(255,255,255,.12);margin-bottom:12px;animation:wnFloat 3.4s ease-in-out infinite}
+.wn-logo{width:60px;height:60px;object-fit:contain;border-radius:17px;box-shadow:0 8px 30px color-mix(in srgb,var(--brand) 45%,transparent),0 0 0 1px rgba(255,255,255,.12);margin-bottom:12px;animation:wnFloat 3.4s ease-in-out infinite}
 @keyframes wnFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 .wn-badge{position:relative;display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;backdrop-filter:blur(6px);margin-bottom:10px}
-.wn-title{position:relative;margin:0;font:700 24px/1.2 'Geist';letter-spacing:-.02em;color:#fff;text-wrap:balance}
-.wn-subtitle{position:relative;margin:8px 0 0;color:rgba(255,255,255,.72);font-size:13px;line-height:1.5;text-wrap:balance}
-.wn-meta{position:relative;display:inline-flex;align-items:center;gap:8px;margin-top:12px}
-.wn-version{padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
-.wn-dot{width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.4)}
-.wn-date{color:rgba(255,255,255,.65);font-size:11.5px;font-weight:600}
+.wn-meta{position:relative;display:inline-flex;align-items:center;gap:8px;margin-top:2px}
+.wn-version{padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
 /* Feature list */
 .wn-list{display:grid;gap:9px;overflow:auto;flex:1;min-height:0;padding:18px 20px;background:var(--surface)}
 .wn-item{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);transition:transform .16s ease,border-color .16s ease}
@@ -42,8 +38,13 @@
   .wn-modal{padding:0;align-items:end;place-items:end}
   .wn-dialog{width:100%;max-width:100%;max-height:calc(100dvh - 34px);border-radius:26px 26px 0 0;border:0;border-top:1px solid color-mix(in srgb,var(--brand) 30%,var(--line));animation:wnInMobile .45s cubic-bezier(.2,.9,.3,1.1) both}
   @keyframes wnInMobile{from{opacity:0;transform:translateY(80px)}to{opacity:1;transform:none}}
-  .wn-hero{padding:26px 20px 20px;border-radius:26px 26px 0 0}
-  .wn-title{font-size:22px}
+  .wn-hero{padding:20px 16px 16px;border-radius:26px 26px 0 0}
+  .wn-logo{width:50px;height:50px;border-radius:14px;margin-bottom:9px}
+  .wn-badge{padding:5px 11px;font-size:9.5px;margin-bottom:7px}
+  .wn-list{padding:13px 13px}
+  .wn-item{padding:11px 12px;gap:10px}
+  .wn-item-icon{width:36px;height:36px;border-radius:10px;font-size:14px}
+  .wn-foot{padding:11px 14px calc(13px + env(safe-area-inset-bottom,0px))}
 }
 /* Anti-flash boot state: known session par login gate pehli paint me hi chhupa rehta hai */
 html.auth-known #authGate{display:none!important}
