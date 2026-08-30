@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="admin.css?v=6">
+  <link rel="stylesheet" href="admin.css?v=7">
 </head>
 <body>
 
@@ -194,7 +194,6 @@
       <section class="panel">
         <div class="toolbar">
           <h2>Subject Management</h2>
-          <button class="button primary" onclick="openSubjectModal()"><i class="fa-solid fa-plus"></i> Add Subject</button>
         </div>
 
         <div class="subject-filters">
@@ -236,7 +235,7 @@
   <div class="modal-overlay" id="subjectModal" hidden>
     <div class="modal-card">
       <div class="modal-head">
-        <h3 id="subjectModalTitle">Add Subject</h3>
+        <h3 id="subjectModalTitle">Edit Subject</h3>
         <button class="modal-close" aria-label="Close" onclick="closeSubjectModal()">&times;</button>
       </div>
       <form class="modal-form" id="subjectForm">

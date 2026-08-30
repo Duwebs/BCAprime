@@ -460,7 +460,7 @@ function renderSubjects(){
 let populatedSubjectsOnce = false;
 
 function openSubjectModal(subject){
-  $('subjectModalTitle').textContent = subject ? 'Edit Subject' : 'Add Subject';
+  $('subjectModalTitle').textContent = 'Edit Subject';
   $('subjectId').value = subject ? String(subject.id) : '';
   $('subjectName').value = subject ? subject.name : '';
   $('subjectCode').value = subject ? (subject.code || '') : '';
@@ -486,12 +486,15 @@ async function saveSubject(event){
   const semester = Number($('subjectSem').value);
   const college = $('subjectCollegePick').value;
   if (!name) { alert('Subject name is required.'); return; }
-  const payload = { name, code, semester, college, status: 'approved', is_public: true };
+  if (!id) { alert('Subjects are only created by students. You can only edit existing ones.'); return; }
+  // Edit only: name/code/semester/college update hoti hai,
+  // status & is_public PRESERVE hota hai (pending wala pending hi rehta hai
+  // — public sirf "Approve & Make Public" se hota hai).
+  const payload = { name, code, semester, college };
   const btn = $('subjectSaveBtn'); btn.disabled = true;
   try {
     if (!supabaseClient) throw new Error('Supabase is not configured.');
-    if (id) await supabaseClient.from('subjects').update(payload).eq('id', id);
-    else await supabaseClient.from('subjects').insert(payload);
+    await supabaseClient.from('subjects').update(payload).eq('id', id);
     closeSubjectModal();
     await loadSubjects();
   } catch (error) {
