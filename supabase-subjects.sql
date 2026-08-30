@@ -35,7 +35,7 @@ on public.subjects for select
 to anon, authenticated
 using (
   is_public = true
-  or (created_by <> '' and created_by = (auth.jwt() -> 'sub'))
+  or (created_by <> '' and created_by = (auth.jwt() ->> 'sub'))
 );
 
 drop policy if exists "Admins can read all subjects" on public.subjects;
