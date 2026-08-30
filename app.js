@@ -15,15 +15,14 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       5:['Artificial Intelligence','Cloud Computing','Computer Graphics','Mobile Application Development','Elective-I'],
       6:['Cyber Security & Ethical Hacking','Machine Learning','Big Data Analytics','E-Commerce','Major Project / Elective-II']
     };
-    /* Cloud-approved subjects so the whole app shares them across devices. */
+    /* Cloud-approved subjects so the whole app shares them across devices.
+       NOTE: student ke pending subjects screen par NAHI dikhte — sirf admin
+       approve karne ke baad public ho kar sabko dikhta hai. */
     let cloudSubjects=[];
     async function loadCloudSubjects(){
       if(typeof supabaseClient==='undefined'||!supabaseClient)return;
       try{
-        const uid=accountSession&&accountSession.uid?accountSession.uid:'';
-        let query=supabaseClient.from('subjects').select('*');
-        query=uid?query.or(`is_public.eq.true,created_by.eq.${uid}`):query.eq('is_public',true);
-        const {data,error}=await query;
+        const {data,error}=await supabaseClient.from('subjects').select('*').eq('is_public',true);
         if(error)throw error;
         cloudSubjects=data||[];
         renderSubjectFilter();renderSubjectCards();
@@ -31,16 +30,21 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       }catch(error){console.warn('Could not load cloud subjects.',error.message)}
     }
     function submitSubjectToCloud(sem,name){
-      if(typeof supabaseClient==='undefined'||!supabaseClient)return;
+      if(typeof supabaseClient==='undefined'||!supabaseClient)return false;
       const uid=accountSession&&accountSession.uid?accountSession.uid:'';
       const key=typeof state!=='undefined'&&state.college?String(state.college):'all';
-      const exists=cloudSubjects.some(s=>String(s.semester)===String(sem)&&((s.created_by&&s.created_by===uid)||s.is_public)&&normSubject(s.name)===normSubject(name));
-      if(exists||!name||!uid)return;
-      supabaseClient.from('subjects').insert({name:String(name).trim(),code:'',semester:Number(sem),college:key,status:'pending',is_public:false,created_by:uid})
-        .then(()=>loadCloudSubjects(),()=>{});
+      const exists=cloudSubjects.some(s=>String(s.semester)===String(sem)&&s.is_public&&normSubject(s.name)===normSubject(name));
+      if(exists||!name)return false;
+      const insertPromise=supabaseClient.from('subjects').insert({name:String(name).trim(),code:'',semester:Number(sem),college:key,status:'pending',is_public:false,created_by:uid});
+      if(insertPromise&&insertPromise.then){insertPromise.then(()=>loadCloudSubjects(),()=>{})}
+      return true;
     }
-    function getCustomSubjects(sem){try{const local=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}')[String(sem)]||[];const cloud=cloudSubjects.filter(s=>String(s.semester)===String(sem)).map(s=>s.name);return [...new Set([...local,...cloud])]}catch(error){return[]}}
-    function addCustomSubject(sem,name){try{const all=JSON.parse(localStorage.getItem('bca-custom-subjects')||'{}');const key=String(sem);all[key]=[...new Set([...(all[key]||[]),name])];localStorage.setItem('bca-custom-subjects',JSON.stringify(all));submitSubjectToCloud(sem,name)}catch(error){}}
+    function getCustomSubjects(sem){try{return [...new Set(cloudSubjects.filter(s=>String(s.semester)===String(sem)).map(s=>s.name))]}catch(error){return[]}}
+    function addCustomSubject(sem,name){
+      const clean=String(name||'').trim().replace(/\s+/g,' ');
+      if(!clean)return false;
+      try{return submitSubjectToCloud(sem,clean)}catch(error){return false}
+    }
     const normSubject=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
     /* ---- PrimeFinder robust matching — har user scenario cover karta hai ----
        - Multi-word query: har word title/subject/college mein AND-hotá hai (order irrelevant)
@@ -204,15 +208,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!name){toast('Type a subject name');if(input)input.focus();return}
       if(name.length<2){toast('Enter a slightly longer name');return}
       if(state.sem==='all'){toast('Select a semester first');return}
-      addCustomSubject(Number(state.sem),name);
+      const ok=addCustomSubject(Number(state.sem),name);
       if(input)input.value='';
-      state.subject=name;
-      localStorage.setItem('bca-subject',name);
+      state.subject='all';
+      localStorage.setItem('bca-subject','all');
       renderSubjectFilter();
-      $('subjectFilter').value=name;
+      $('subjectFilter').value='all';
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
       applyFilters();
-      toast('"'+name+'" added ✅ You can upload material to it now');
+      toast(ok?('"'+name+'" submitted ⏳ Admin approval ke baad dikhega'):('Could not submit "'+name+'". Please try again.'));
     }
     function cancelFinderAddSubject(){
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
@@ -285,11 +289,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!name){toast('Type a subject name');if(input)input.focus();return}
       if(name.length<2){toast('Please use a slightly longer name');return}
       if(state.sem==='all'){toast('Select a semester first, then add subjects');return}
-      addCustomSubject(Number(state.sem),name);
+      const ok=addCustomSubject(Number(state.sem),name);
       if(input){input.value='';input.blur()}
       renderSubjectFilter();
       render();
-      toast('"'+name+'" added — Semester '+state.sem+' ✅');
+      toast(ok?('"'+name+'" submitted ✉️ Admin approve karega tab ye yahan dikhega'):('Could not submit "'+name+'". Please try again.'));
     }
     let pendingSubject='';
     function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
