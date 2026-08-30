@@ -93,6 +93,10 @@ const LATEST_RELEASE = {
 
   /* ===== Version check — teen cases ===== */
   window.checkWhatsNew = function () {
+    /* Preview mode: ?whatsnew=1 — modal force dikhega (testing / release preview) */
+    try {
+      if (location.search.indexOf('whatsnew=1') !== -1) { showWhatsNewModal(); return; }
+    } catch (e) {}
     if (didCheck) return;
     didCheck = true;
     const last = getVersion();
