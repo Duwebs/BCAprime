@@ -4,17 +4,9 @@ console.info('[BCAPrime] app.js v30 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
-       Base subjects per semester (common BCA syllabus). Colleges with extra
-       subjects are handled dynamically: any subject uploaded by users shows up
-       in the subject filter automatically once approved. */
-    const BASE_SUBJECTS={
-      1:['Programming Principles & C','Mathematics-I','Computer Fundamentals & Office Automation','PC Software','Communication Skills'],
-      2:['Data Structures Using C','Mathematics-II','Digital Electronics','Computer Architecture','Environmental Studies'],
-      3:['Database Management Systems','Operating Systems','Web Technologies','Object Oriented Programming using C++','Python Programming'],
-      4:['Java Programming','Computer Networks','Software Engineering','Design & Analysis of Algorithms','Data Communication'],
-      5:['Artificial Intelligence','Cloud Computing','Computer Graphics','Mobile Application Development','Elective-I'],
-      6:['Cyber Security & Ethical Hacking','Machine Learning','Big Data Analytics','E-Commerce','Major Project / Elective-II']
-    };
+       Subjects ab sirf database se aate hain (admin-approved / public).
+       Koi bhi hard-coded subject list nahi — college + semester ki
+       subjects admin approval ke baad hi dikhti hai. */
     /* Cloud-approved subjects so the whole app shares them across devices.
        NOTE: student ke pending subjects screen par NAHI dikhte — sirf admin
        approve karne ke baad public ho kar sabko dikhta hai. */
@@ -39,7 +31,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       if(insertPromise&&insertPromise.then){insertPromise.then(()=>loadCloudSubjects(),()=>{})}
       return true;
     }
-    function getCustomSubjects(sem){try{return [...new Set(cloudSubjects.filter(s=>String(s.semester)===String(sem)).map(s=>s.name))]}catch(error){return[]}}
+    function getCustomSubjects(sem){try{return [...new Set(cloudSubjects.filter(s=>sem==null||sem===''||sem==='all'||String(s.semester)===String(sem)).map(s=>s.name))]}catch(error){return[]}}
     function addCustomSubject(sem,name){
       const clean=String(name||'').trim().replace(/\s+/g,' ');
       if(!clean)return false;
@@ -178,11 +170,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function renderSubjectFilter(){
       const sel=$('subjectFilter');if(!sel)return;
       const preferred=(typeof state.subject==='string'&&state.subject)||sel.value;
-      const semNumber=Number(state.sem);
-      const base=state.sem!=='all'&&BASE_SUBJECTS[semNumber]?BASE_SUBJECTS[semNumber]:[];
-      const customs=state.sem!=='all'?getCustomSubjects(state.sem):[];
+      const customs=getCustomSubjects(state.sem);
       const seen=new Map();
-      [...base,...getAvailableSubjects(),...customs].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
+      [...getAvailableSubjects(),...customs].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
       const merged=[...seen.values()].sort((a,b)=>a.localeCompare(b));
       sel.innerHTML='<option value="all">All subjects</option>'+merged.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${escHtml(s)}</option>`).join('')+'<option value="__add">+ Add new subject&#8230;</option>';
       const values=[...sel.options].map(option=>option.value);
@@ -228,8 +218,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const semSel=document.querySelector('#uploadModal select[name="semester"]');
       const sem=semSel&&semSel.value?Number(semSel.value):(Number(state.sem)||1);
       const seen=new Map();
-      [...(BASE_SUBJECTS[sem]||[]),
-       ...resources.filter(r=>r.sem===sem).map(r=>String(r.subject||'').trim()).filter(Boolean),
+      [...resources.filter(r=>r.sem===sem).map(r=>String(r.subject||'').trim()).filter(Boolean),
        ...getCustomSubjects(sem)
       ].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
       const sorted=[...seen.values()].sort((a,b)=>a.localeCompare(b));
@@ -264,14 +253,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function subjectHue(name){let h=0;for(const ch of String(name))h=(h*31+ch.charCodeAt(0))%360;return h}
     function renderSubjectCards(){
       const wrap=$('subjectCards');if(!wrap)return;
-      let subjects=[];
-      if(state.sem!=='all'&&BASE_SUBJECTS[Number(state.sem)])subjects=[...BASE_SUBJECTS[Number(state.sem)],...getCustomSubjects(state.sem)];
+      let subjects=[].concat(getCustomSubjects(state.sem));
       getAvailableSubjects().forEach(s=>{if(!subjects.some(x=>normSubject(x)===normSubject(s)))subjects.push(s)});
       if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester — all its subjects will show up here 📚</div>';return}
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
       const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&semMatchesFilter(r.sem)).length;
-      /* Har subject ke semesters nikaalo: syllabus (BASE_SUBJECTS) + cloud subject + uploaded resources */
-      const semsOf=s=>{const n=normSubject(s);const set=new Set();Object.keys(BASE_SUBJECTS).forEach(sem=>{if(BASE_SUBJECTS[sem].some(x=>normSubject(x)===n))set.add(Number(sem))});cloudSubjects.forEach(c=>{if(c.semester!=null&&normSubject(c.name)===n)set.add(Number(c.semester))});resources.forEach(r=>{if(r.subject&&r.sem!=null&&subjectMatchesFilter(r.subject,s))set.add(Number(r.sem))});return [...set].sort((a,b)=>a-b)};
+      /* Har subject ke semesters: cloud subject + uploaded resources */
+      const semsOf=s=>{const n=normSubject(s);const set=new Set();cloudSubjects.forEach(c=>{if(c.semester!=null&&normSubject(c.name)===n)set.add(Number(c.semester))});resources.forEach(r=>{if(r.subject&&r.sem!=null&&subjectMatchesFilter(r.subject,s))set.add(Number(r.sem))});return [...set].sort((a,b)=>a-b)};
       wrap.innerHTML=[...seen.values()].map((s,i)=>{
         const hue=subjectHue(s);const count=countFor(s);const sems=semsOf(s);
         const semBadge=sems.length?`<span class="subject-badge-sem"><i class="fa-solid fa-layer-group"></i>Semester ${sems.join(' &amp; ')}</span>`:'';
