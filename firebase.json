@@ -16,6 +16,16 @@
       "**/*.secret.txt",
       "vapid-keys-PRIVATE.txt",
       "newsecret.txt"
+    ],
+    "rewrites": [
+      {
+        "source": "/analytics",
+        "destination": "/analytics/index.html"
+      },
+      {
+        "source": "/analytics/**",
+        "destination": "/analytics/index.html"
+      }
     ]
   }
 }
