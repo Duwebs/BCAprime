@@ -70,6 +70,14 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploader:item.uploader_name||(item.uploader_email?item.uploader_email.split('@')[0].split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' '):''),uploaderEmail:item.uploader_email||'',date:item.created_at?String(item.created_at).slice(0,10):''}));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
     function init(){
+      /* Time-based default theme (initial load only): 6AM-5:59PM light, baaki dark.
+         User ki manual choice (bca-theme-manual) hamesha override karti hai. */
+      try{
+        if(!localStorage.getItem('bca-theme-manual')){
+          const __h=new Date().getHours();
+          state.theme=(__h>=6&&__h<18)?'light':'dark';
+        }
+      }catch(__e){}
       applyTheme(state.theme);
       updateSemesterOptions();
       if(state.sem!=='all')$('semesterFilter').value=state.sem;
@@ -88,7 +96,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
     }
     function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
-    function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark')}
+    function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark');try{localStorage.setItem('bca-theme-manual','1')}catch(e){}}
     function render(){const list=resources.filter(r=>{
         if(state.savedOnly&&!state.saved.includes(r.title.replace(/\W/g,'')))return false;
         if(state.type!=='all'&&r.type!==state.type)return false;
@@ -1032,7 +1040,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     window.closeUploadSuccess=closeUploadSuccess;
     function resetPreferences(){
       if(!confirm('Reset all preferences? This clears saved items, your uploads list, college and theme on this device.'))return;
-      const keys=['bca-onboarded','bca-tour-seen','bca-college','bca-sem','bca-saved','bca-custom-colleges','bca-uploads','bca-theme'];
+      const keys=['bca-onboarded','bca-tour-seen','bca-college','bca-sem','bca-saved','bca-custom-colleges','bca-uploads','bca-theme','bca-theme-manual'];
       keys.forEach(key=>localStorage.removeItem(key));
       location.reload();
     }

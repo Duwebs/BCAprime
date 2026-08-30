@@ -1,8 +1,9 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-  <script>/* Anti-flash: pehli paint se pehle hi known-session par auth gate chhupao */
-  try{if(localStorage.getItem('bca-auth-known')==='1'||sessionStorage.getItem('bca-guest-mode')==='true'){document.documentElement.classList.add('auth-known')}}catch(e){}</script>
+  <script>/* Anti-flash: pehli paint se pehle hi known-session par auth gate chhupao + time-based theme */
+  try{if(localStorage.getItem('bca-auth-known')==='1'||sessionStorage.getItem('bca-guest-mode')==='true'){document.documentElement.classList.add('auth-known')}}catch(e){}
+  try{if(!localStorage.getItem('bca-theme-manual')){var __h=new Date().getHours(),__t=(__h>=6&&__h<18)?'light':'dark';document.documentElement.dataset.theme=__t;var __mc=document.querySelector('meta[name="theme-color"]');if(__mc)__mc.content=__t==='dark'?'#0a0a0a':'#fafafa'}}catch(e){}</script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BCAPrime | BCA study library</title>
@@ -206,7 +207,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=12"></script><script src="push-subscribe.js?v=4"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
   <script src="whats-new.js?v=11"></script>
-  <script src="app.js?v=38"></script>
+  <script src="app.js?v=39"></script>
 </body>
 </html>
 
