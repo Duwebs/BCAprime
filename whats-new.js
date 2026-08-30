@@ -11,18 +11,17 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "2.5.0";
+const CURRENT_APP_VERSION = "2.6.0";
 
 const LATEST_RELEASE = {
-  version: "2.5.0",
+  version: "2.6.0",
   date: "September 2026",
-  title: "A Smarter Way to Study",
-  subtitle: "Subjects are now organized, deletions are safer, and the app feels faster than ever.",
+  title: "Meet the new What's New Experience",
+  subtitle: "Release updates now arrive in style — and you'll always know which version you're running.",
   features: [
-    { type: "new",     title: "Smarter Subject Browse", desc: "Every subject now lives in the right college and semester — find your notes in seconds." },
-    { type: "new",     title: "Request a Subject", desc: "Missing a subject? Add it yourself — once approved, it becomes available to everyone." },
-    { type: "improved",title: "Instant App Startup", desc: "No more login flashes on refresh — the app opens exactly where you left it." },
-    { type: "fix",     title: "Smoother Experience", desc: "Slicker buttons, better dark mode and a fully polished mobile layout." }
+    { type: "new",     title: "What's New Updates", desc: "Every major update now greets you with a beautiful changelog — you'll never miss what's new." },
+    { type: "new",     title: "Version at a Glance", desc: "Check exactly which version of BCAPrime you're running, right from the footer." },
+    { type: "improved",title: "Cleaner Footer", desc: "A refined footer layout with subtle version tagging for a more professional feel." }
   ]
 };
 
