@@ -16,14 +16,13 @@ const CURRENT_APP_VERSION = "2.5.0";
 const LATEST_RELEASE = {
   version: "2.5.0",
   date: "September 2026",
-  title: "Subject Manager, Safe Delete & Speed Upgrade",
+  title: "A Smarter Way to Study",
+  subtitle: "Subjects are now organized, deletions are safer, and the app feels faster than ever.",
   features: [
-    { type: "new",     title: "College & Semester Subject Manager", desc: "Subjects ab college + semester ke hisaab se organize hote hain — sahi subject, sahi jagah." },
-    { type: "new",     title: "Student Subject Requests", desc: "Apna subject add karo — admin approval ke baad wo sabke liye public ho jayega." },
-    { type: "new",     title: "Safe Deletion Guard", desc: "Galti se delete hona ab impossible — har destructive action par PIN confirmation." },
-    { type: "improved",title: "Instant Login Experience", desc: "Refresh karne par ab login screen ka flash nahi — seedha app khulta hai." },
-    { type: "improved",title: "New Analytics Suite", desc: "Live visits, downloads, search intel aur conversion funnel — sab ek premium dashboard me." },
-    { type: "fix",     title: "UI Polish", desc: "Mobile responsiveness fixes, better cards, cleaner buttons aur dark mode alignment." }
+    { type: "new",     title: "Smarter Subject Browse", desc: "Every subject now lives in the right college and semester — find your notes in seconds." },
+    { type: "new",     title: "Request a Subject", desc: "Missing a subject? Add it yourself — once approved, it becomes available to everyone." },
+    { type: "improved",title: "Instant App Startup", desc: "No more login flashes on refresh — the app opens exactly where you left it." },
+    { type: "fix",     title: "Smoother Experience", desc: "Slicker buttons, better dark mode and a fully polished mobile layout." }
   ]
 };
 
@@ -59,14 +58,21 @@ const LATEST_RELEASE = {
     overlay.id = 'whatsNewModal';
     overlay.innerHTML =
       '<div class="dialog wn-dialog">' +
-        '<div class="wn-head">' +
+        '<div class="wn-hero">' +
+          '<span class="wn-orb wn-orb1"></span><span class="wn-orb wn-orb2"></span>' +
+          '<i class="fa-solid fa-wand-magic-sparkles wn-spark wn-spark1"></i>' +
+          '<i class="fa-solid fa-star wn-spark wn-spark2"></i>' +
+          '<i class="fa-solid fa-star wn-spark wn-spark3"></i>' +
+          '<img class="wn-logo" src="assets/logo.png" alt="">' +
           '<span class="wn-badge"><i class="fa-solid fa-gift"></i> What\'s New</span>' +
-          '<span class="wn-version">v' + LATEST_RELEASE.version + '</span>' +
-          '<span class="wn-date">' + LATEST_RELEASE.date + '</span>' +
+          '<h2 class="wn-title">' + LATEST_RELEASE.title + '</h2>' +
+          '<p class="wn-subtitle">' + (LATEST_RELEASE.subtitle || '') + '</p>' +
+          '<span class="wn-meta"><span class="wn-version">v' + LATEST_RELEASE.version + '</span><span class="wn-dot"></span><span class="wn-date">' + LATEST_RELEASE.date + '</span></span>' +
         '</div>' +
-        '<h2 class="wn-title">' + LATEST_RELEASE.title + '</h2>' +
         '<div class="wn-list">' + items + '</div>' +
-        '<button class="primary wn-gotit" onclick="closeWhatsNew()"><i class="fa-solid fa-check"></i> Got it</button>' +
+        '<div class="wn-foot">' +
+          '<button class="primary wn-gotit" onclick="closeWhatsNew()"><i class="fa-solid fa-check"></i> Continue</button>' +
+        '</div>' +
       '</div>';
     document.body.appendChild(overlay);
   }
