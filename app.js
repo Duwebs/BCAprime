@@ -94,6 +94,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       try{loadCloudSubjects()}catch(e){}
       setTimeout(()=>{try{loadSeniorRequests()}catch(e){}},600);
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
+      bindUploadDropzone();
     }
     function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark');try{localStorage.setItem('bca-theme-manual','1')}catch(e){}}
@@ -884,17 +885,93 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].sort((a,b)=>{if(a[0]==='all')return -1;if(b[0]==='all')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
     function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
+    let uploadFiles=[]; /* client-side managed File list (enables reorder/delete) */
     function showFile(input){
-      const files=input.files;if(!files||!files.length){$('fileName').textContent='Choose files (PDF, DOCX, PPTX, images, ZIP)';$('uploadFileBadges').hidden=true;return}
+      refreshUploadFiles(input&&input.files?input.files:null);
+    }
+    /* Rebuild uploadFiles from a FileList (or null to clear), then re-render UI */
+    function refreshUploadFiles(fileList){
+      if(!fileList||!fileList.length){uploadFiles=[];$('fileName').textContent='Choose files or drag & drop — PDF, DOCX, PPTX, images';$('uploadFileBadges').hidden=true;renderPhotoGrid();return}
+      const files=Array.from(fileList);
       const MAX_BATCH_BYTES=15*1024*1024;let totalSize=0;for(let i=0;i<files.length;i++)totalSize+=files[i].size;
-      if(totalSize>MAX_BATCH_BYTES){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');input.value='';$('fileName').textContent='Choose files (PDF, DOCX, PPTX, images, ZIP)';$('uploadFileBadges').hidden=true;return}
+      if(totalSize>MAX_BATCH_BYTES){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');return}
+      uploadFiles=files;
       let imgCount=0,docCount=0,otherCount=0;
       for(let i=0;i<files.length;i++){const n=files[i].name.toLowerCase();if(/\.(jpe?g|png|webp|heic)$/i.test(n))imgCount++;else if(/\.(pdf|docx?|pptx?)$/i.test(n))docCount++;else otherCount++}
       if(files.length===1){$('fileName').textContent=files[0].name}else{$('fileName').textContent=files.length+' files selected'}
       const badgesEl=$('uploadFileBadges');badgesEl.innerHTML='';badgesEl.hidden=false;
-      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>'+imgCount+' Photo'+(imgCount>1?'s':'')+(imgCount>0?' → Auto-converting to 1 PDF':'')+'</span>';
+      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>📸 '+imgCount+' Photo'+(imgCount>1?'s':'')+' selected <span class="upt">→</span> Will be auto-merged into 1 clean PDF</span>';
       if(docCount>0)badgesEl.innerHTML+='<span class="upload-badge doc"><i class="fa-solid fa-file-lines"></i>'+docCount+' Document'+(docCount>1?'s':'')+'</span>';
       if(otherCount>0)badgesEl.innerHTML+='<span class="upload-badge other"><i class="fa-solid fa-file-zipper"></i>'+otherCount+' file'+(otherCount>1?'s':'')+'</span>';
+      renderPhotoGrid();
+    }
+    /* Thumbnail grid of selected photos with reorder (page order) + delete */
+    function renderPhotoGrid(){
+      const wrap=$('uploadPhotoWrap');if(!wrap)return;
+      const imgs=uploadFiles.filter(f=>window.isImageFile?window.isImageFile(f):/\.(jpe?g|png|webp|heic)$/i.test(f.name.toLowerCase()));
+      if(!imgs.length){wrap.hidden=true;wrap.innerHTML='';return}
+      wrap.hidden=false;
+      const header='<div class="photo-grid-head"><span>📸 '+imgs.length+' photo'+(imgs.length>1?'s':'')+'</span><small>Reorder so Page 1, 2, 3 stays in order</small></div>';
+      const cards=imgs.map((f,idx)=>`
+        <div class="photo-card" data-idx="${idx}">
+          <div class="photo-thumb"><img alt="photo ${idx+1}" data-fileidx="${uploadFiles.indexOf(f)}"></div>
+          <span class="photo-num">${idx+1}</span>
+          <div class="photo-actions">
+            <button type="button" class="photo-btn" title="Move up" onclick="moveUploadPhoto(${idx},-1)" ${idx===0?'disabled':''}>&#9650;</button>
+            <button type="button" class="photo-btn" title="Move down" onclick="moveUploadPhoto(${idx},1)" ${idx===imgs.length-1?'disabled':''}>&#9660;</button>
+            <button type="button" class="photo-btn del" title="Remove" onclick="removeUploadPhoto(${idx})">&times;</button>
+          </div>
+        </div>`).join('');
+      wrap.innerHTML=header+'<div class="photo-grid">'+cards+'</div>';
+      /* lazy fill thumbnails */
+      imgs.forEach((f,idx)=>{
+        const fileIdx=uploadFiles.indexOf(f);
+        const imgEl=wrap.querySelector('img[data-fileidx="'+fileIdx+'"]');
+        if(imgEl){
+          const url=URL.createObjectURL(f);
+          imgEl.onload=()=>{try{URL.revokeObjectURL(url)}catch(e){}};
+          imgEl.onerror=()=>{imgEl.onerror=null;imgEl.outerHTML='<div class="photo-thumb ph-fallback"><i class="fa-solid fa-image"></i></div>';try{URL.revokeObjectURL(url)}catch(e){}};
+          imgEl.src=url;
+        }
+      });
+    }
+    function removeUploadPhoto(idx){
+      const imgs=uploadFiles.filter(f=>window.isImageFile?window.isImageFile(f):/\.(jpe?g|png|webp|heic)$/i.test(f.name.toLowerCase()));
+      const f=imgs[idx];if(!f)return;
+      uploadFiles=uploadFiles.filter(x=>x!==f);
+      refreshUploadFiles(uploadFiles);
+    }
+    function moveUploadPhoto(idx,dir){
+      const imgs=uploadFiles.filter(f=>window.isImageFile?window.isImageFile(f):/\.(jpe?g|png|webp|heic)$/i.test(f.name.toLowerCase()));
+      const to=idx+dir;
+      if(!imgs[idx]||to<0||to>=imgs.length)return;
+      const ordered=uploadFiles.slice();
+      const srcIdxs=imgs.map(f=>ordered.indexOf(f));
+      const a=srcIdxs[idx],b=srcIdxs[to];
+      const tmp=ordered[a];ordered[a]=ordered[b];ordered[b]=tmp;
+      uploadFiles=ordered;
+      renderPhotoGrid();
+    }
+    function clearUploadFiles(){
+      refreshUploadFiles(null);
+      const input=document.getElementById('file');if(input)input.value='';
+    }
+    /* Expose for inline onclick handlers in the photo grid */
+    window.removeUploadPhoto=removeUploadPhoto;
+    window.moveUploadPhoto=moveUploadPhoto;
+    window.clearUploadFiles=clearUploadFiles;
+    /* ---- Drag & drop support for the upload dropzone ---- */
+    function bindUploadDropzone(){
+      const box=document.getElementById('fileBox');
+      if(!box)return;
+      ['dragenter','dragover'].forEach(ev=>box.addEventListener(ev,function(e){e.preventDefault();e.stopPropagation();box.classList.add('drag-over')}));
+      ['dragleave','dragend','mouseout'].forEach(ev=>box.addEventListener(ev,function(e){e.preventDefault?e.preventDefault():0;box.classList.remove('drag-over')}));
+      box.addEventListener('drop',function(e){
+        e.preventDefault();e.stopPropagation();box.classList.remove('drag-over');
+        const files=e.dataTransfer&&e.dataTransfer.files;
+        if(files&&files.length){showFile({files:files})}
+        else{toast('That doesn\'t look like a file — drag a PDF/photo here')}
+      });
     }
     function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
       ensureFileAvailable(resource,'preview').then(ok=>{if(ok)showPreview(resource)});
@@ -991,9 +1068,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{
       event.preventDefault();
       const form=event.target;
-      const rawFiles=$('file').files;
-      if(!rawFiles||!rawFiles.length){toast('Choose a file first');return;}
-      const allFiles=Array.from(rawFiles);
+      /* Client-managed list is the source of truth (allows reorder/delete). Fall back to the native input. */
+      const allFiles=uploadFiles.length?uploadFiles.slice():Array.from($('file').files||[]);
+      if(!allFiles.length){toast('Choose a file first');return;}
       /* ---- 15MB batch size guard ---- */
       let totalSize=0;for(const f of allFiles)totalSize+=f.size;
       if(totalSize>15*1024*1024){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');return}
@@ -1036,10 +1113,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{
         /* ---- If images present: auto-convert to single PDF ---- */
         if(imageFiles.length>0&&window.convertImagesToPdf){
-          showUploadProgress(true,'Processing '+(imageFiles.length)+' photo'+(imageFiles.length>1?'s':'')+'…',5);
+          showUploadProgress(true,'Merging '+imageFiles.length+' photo'+(imageFiles.length>1?'s':'')+' into PDF…',5);
           let convResult;
           try{
-            convResult=await window.convertImagesToPdf(imageFiles,(pct,msg)=>{showUploadProgress(true,msg,pct*0.6)});
+            convResult=await window.convertImagesToPdf(imageFiles,(pct,msg)=>{showUploadProgress(true,msg,10+pct*0.5)},{subject:subject});
           }catch(convErr){
             console.error('[BCAPrime] Image conversion failed:',convErr);
             toast('Image conversion failed. Uploading images as-is…');
@@ -1047,23 +1124,24 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             convResult=null;
           }
           if(convResult&&convResult.blob){
-            showUploadProgress(true,'Uploading converted PDF…',65);
+            showUploadProgress(true,'Uploading notes to BCAPrime…',65);
             const convFile=new File([convResult.blob],convResult.filename,{type:'application/pdf'});
             await uploadSingleFile(convFile);
           }
         }
         /* ---- Upload non-image files ---- */
-        for(const f of otherFiles){
-          showUploadProgress(true,'Uploading '+f.name+'…',80);
-          await uploadSingleFile(f);
+        if(otherFiles.length){
+          showUploadProgress(true,'Uploading notes to BCAPrime…',80);
+          for(const f of otherFiles){
+            showUploadProgress(true,'Uploading '+f.name+'…',80);
+            await uploadSingleFile(f);
+          }
         }
-        showUploadProgress(true,'Done!',100);
-        setTimeout(()=>{hideUploadProgress();closeModals();form.reset();
-          $('fileName').textContent='Choose files (PDF, DOCX, PPTX, images, ZIP)';
-          $('uploadFileBadges').hidden=true;
+        showUploadProgress(true,'Submitted successfully! Pending admin approval.',100);
+        setTimeout(()=>{hideUploadProgress();closeModals();form.reset();clearUploadFiles();
           render();showUploadSuccess(type);renderMyUploads();
           if(pendingHelpRequest){fulfillJuniorRequest(pendingHelpRequest,'upload');pendingHelpRequest=null}
-        },400);
+        },700);
       }catch(error){
         console.error('[BCAPrime] Upload error:',error);
         hideUploadProgress();
