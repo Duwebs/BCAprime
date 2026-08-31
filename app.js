@@ -884,7 +884,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].sort((a,b)=>{if(a[0]==='all')return -1;if(b[0]==='all')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
     function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
-    function showFile(input){if(input.files[0])$('fileName').textContent=input.files[0].name}
+    function showFile(input){
+      const files=input.files;if(!files||!files.length){$('fileName').textContent='Choose files (PDF, DOCX, PPTX, images, ZIP)';$('uploadFileBadges').hidden=true;return}
+      const MAX_BATCH_BYTES=15*1024*1024;let totalSize=0;for(let i=0;i<files.length;i++)totalSize+=files[i].size;
+      if(totalSize>MAX_BATCH_BYTES){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');input.value='';$('fileName').textContent='Choose files (PDF, DOCX, PPTX, images, ZIP)';$('uploadFileBadges').hidden=true;return}
+      let imgCount=0,docCount=0,otherCount=0;
+      for(let i=0;i<files.length;i++){const n=files[i].name.toLowerCase();if(/\.(jpe?g|png|webp|heic)$/i.test(n))imgCount++;else if(/\.(pdf|docx?|pptx?)$/i.test(n))docCount++;else otherCount++}
+      if(files.length===1){$('fileName').textContent=files[0].name}else{$('fileName').textContent=files.length+' files selected'}
+      const badgesEl=$('uploadFileBadges');badgesEl.innerHTML='';badgesEl.hidden=false;
+      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>'+imgCount+' Photo'+(imgCount>1?'s':'')+(imgCount>0?' → Auto-converting to 1 PDF':'')+'</span>';
+      if(docCount>0)badgesEl.innerHTML+='<span class="upload-badge doc"><i class="fa-solid fa-file-lines"></i>'+docCount+' Document'+(docCount>1?'s':'')+'</span>';
+      if(otherCount>0)badgesEl.innerHTML+='<span class="upload-badge other"><i class="fa-solid fa-file-zipper"></i>'+otherCount+' file'+(otherCount>1?'s':'')+'</span>';
+    }
     function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
       ensureFileAvailable(resource,'preview').then(ok=>{if(ok)showPreview(resource)});
     }
@@ -894,10 +905,17 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       $('previewMeta').textContent=`${kindLabel} · Semester ${resource.sem}${resource.fileName?' · '+resource.fileName:''}`;
       const body=$('previewBody');body.innerHTML='';
       const lower=((resource.fileName||'')+' '+src.split('?')[0].split('#')[0]).toLowerCase();
+      const isDocx=/\.docx(\?|$)/.test(lower);
+      const isPptx=/\.pptx(\?|$)/.test(lower);
+      const isOffice=isDocx||isPptx;
       if(src.startsWith('data:image')||/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/.test(lower)){
         const img=document.createElement('img');img.className='preview-image';img.src=src;img.alt=resource.title;body.appendChild(img);
       }else if(src.startsWith('data:application/pdf')||/\.pdf(\?|$)/.test(lower)){
         const frame=document.createElement('iframe');frame.className='preview-embed';frame.src=src;frame.setAttribute('title',resource.title);body.appendChild(frame);
+      }else if(isOffice&&!src.startsWith('data:')){
+        /* Office docs: embed via Google Docs Viewer */
+        const gurl='https://docs.google.com/gview?url='+encodeURIComponent(src)+'&embedded=true';
+        const frame=document.createElement('iframe');frame.className='preview-embed';frame.src=gurl;frame.setAttribute('title',resource.title);frame.style.minHeight='500px';body.appendChild(frame);
       }else{
         body.innerHTML='<div class="preview-fallback"><i class="fa-solid fa-file-circle-question"></i><strong>Inline preview is not available for this format</strong><small>Use the Open full file button below to view or download it.</small></div>';
       }
@@ -961,16 +979,27 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{const channel=supabaseClient.channel('resources-live').on('postgres_changes',{event:'*',schema:'public',table:'resources'},()=>loadCloudResources());channel.subscribe()}catch(error){}
       setInterval(()=>{if(document.visibilityState==='visible'){loadCloudResources();try{loadSeniorRequests()}catch(e){}}},30000);
     }
+    /* ---- Upload progress helpers ---- */
+    function showUploadProgress(show,msg,pct){
+      const wrap=$('uploadProgress');const fill=$('uploadProgressFill');const txt=$('uploadProgressText');
+      if(wrap)wrap.hidden=!show;
+      if(fill)fill.style.width=(pct||0)+'%';
+      if(txt)txt.textContent=msg||'';
+    }
+    function hideUploadProgress(){showUploadProgress(false,'',0)}
     async function submitUpload(event){
       try{
       event.preventDefault();
       const form=event.target;
-      const file=$('file').files[0];
-      if(!file){toast('Choose a file first');return;}
+      const rawFiles=$('file').files;
+      if(!rawFiles||!rawFiles.length){toast('Choose a file first');return;}
+      const allFiles=Array.from(rawFiles);
+      /* ---- 15MB batch size guard ---- */
+      let totalSize=0;for(const f of allFiles)totalSize+=f.size;
+      if(totalSize>15*1024*1024){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');return}
       const title=form.querySelector('input[name="title"]').value.trim();
       const sem=Number(form.querySelector('select[name="semester"]').value);
       const type=form.querySelector('select[name="type"]').value.toLowerCase();
-      // Subject: pick from list, or take the custom name when "__other" is chosen
       const subjectSel=form.querySelector('select[name="subjectSelect"]');
       let subject=subjectSel&&subjectSel.value&&subjectSel.value!=='__other'?subjectSel.value:'';
       if(subjectSel&&subjectSel.value==='__other'){
@@ -979,47 +1008,67 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(subject)addCustomSubject(sem,subject);
       }
       subject=subject||'Community upload';
-      // Backwards compatibility: purane cached HTML mein link field ho sakta hai
       if(subject==='Community upload'){const linkInput=form.querySelector('input[name="link"]');if(linkInput&&linkInput.value.trim())subject=linkInput.value.trim();}
       const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploader:accountSession?getUserName(accountSession):'Anonymous',uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
-      // Duplicate guard: same title + semester + college pehle se hai to rok do
       let existing=null;
       try{existing=await findExistingUpload(payload)}catch(error){}
       if(existing){toast('Duplicate! Ye material pehle se upload ho chuka hai ('+existing.status+')');return}
       if(isLocalDuplicate(payload)){toast('Duplicate! Ye material aapne pehle hi submit kiya hai — review mein hai');return}
-      const reader=new FileReader();
-      reader.onload=async ()=>{
-        try {
-          const fileData = reader.result;
-          const cloudUpload=await uploadResourceToSupabase(file,{...payload,fileData});
-          const uploadRecord={...cloudUpload,title:cloudUpload.title,type:cloudUpload.type,sem:cloudUpload.sem,year:cloudUpload.year,subject:cloudUpload.subject,college:cloudUpload.college,date:'Just now',downloads:0,fileName:file.name,fileData:fileData,status:'pending',uploader:payload.uploader};
-          resources.unshift(uploadRecord);
-          trackEvent('upload',{title:uploadRecord.title,type:uploadRecord.type,subject:uploadRecord.subject,sem:uploadRecord.sem});
-          const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(resource=>resource.type==='notes'||resource.type==='pyq');
-          uploads.unshift(uploadRecord);
-          localStorage.setItem('bca-uploads',JSON.stringify(uploads));
-          closeModals();
-          form.reset();
-          $('fileName').textContent='Choose a PDF, DOCX or ZIP file';
-          render();
-          showUploadSuccess(type);
-          renderMyUploads();
-          /* Agar ye upload kisi junior ki request se tha -> request done + junior ko push */
-          if(pendingHelpRequest){fulfillJuniorRequest(pendingHelpRequest,'upload');pendingHelpRequest=null}
-        } catch (error) {
-          const localUpload=createLocalUploadRecord(file,{...payload,fileData:reader.result,status:'pending'});
-          resources.unshift(localUpload);
-          const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(resource=>resource.type==='notes'||resource.type==='pyq');
-          uploads.unshift(localUpload);
-          localStorage.setItem('bca-uploads',JSON.stringify(uploads));
-          closeModals();
-          form.reset();
-          $('fileName').textContent='Choose a PDF, DOCX or ZIP file';
-          render();
-          showUploadSuccess(type);
+      /* ---- Classify files: images vs other ---- */
+      const classified=window.classifyUploadFiles?window.classifyUploadFiles(allFiles):{images:[],others:allFiles};
+      const imageFiles=classified.images;
+      const otherFiles=classified.others;
+      /* ---- Helper: upload a single file and record ---- */
+      async function uploadSingleFile(file,opts){
+        const reader2=new FileReader();
+        const fileData=await new Promise((res,rej)=>{reader2.onload=()=>res(reader2.result);reader2.onerror=rej;reader2.readAsDataURL(file)});
+        const cloudUp=await uploadResourceToSupabase(file,{...payload,fileData,...(opts||{})});
+        const rec={...cloudUp,title:cloudUp.title,type:cloudUp.type,sem:cloudUp.sem,year:cloudUp.year,subject:cloudUp.subject,college:cloudUp.college,date:'Just now',downloads:0,fileName:file.name,fileData:fileData,status:'pending',uploader:payload.uploader};
+        resources.unshift(rec);
+        const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(r=>r.type==='notes'||r.type==='pyq');
+        uploads.unshift(rec);localStorage.setItem('bca-uploads',JSON.stringify(uploads));
+        trackEvent('upload',{title:rec.title,type:rec.type,subject:rec.subject,sem:rec.sem});
+        return rec;
+      }
+      showUploadProgress(true,'Preparing files…',0);
+      const submitBtn=form.querySelector('button[type="submit"]');
+      if(submitBtn)submitBtn.disabled=true;
+      try{
+        /* ---- If images present: auto-convert to single PDF ---- */
+        if(imageFiles.length>0&&window.convertImagesToPdf){
+          showUploadProgress(true,'Processing '+(imageFiles.length)+' photo'+(imageFiles.length>1?'s':'')+'…',5);
+          let convResult;
+          try{
+            convResult=await window.convertImagesToPdf(imageFiles,(pct,msg)=>{showUploadProgress(true,msg,pct*0.6)});
+          }catch(convErr){
+            console.error('[BCAPrime] Image conversion failed:',convErr);
+            toast('Image conversion failed. Uploading images as-is…');
+            for(const imgF of imageFiles){await uploadSingleFile(imgF)}
+            convResult=null;
+          }
+          if(convResult&&convResult.blob){
+            showUploadProgress(true,'Uploading converted PDF…',65);
+            const convFile=new File([convResult.blob],convResult.filename,{type:'application/pdf'});
+            await uploadSingleFile(convFile);
+          }
         }
-      };
-      reader.readAsDataURL(file);
+        /* ---- Upload non-image files ---- */
+        for(const f of otherFiles){
+          showUploadProgress(true,'Uploading '+f.name+'…',80);
+          await uploadSingleFile(f);
+        }
+        showUploadProgress(true,'Done!',100);
+        setTimeout(()=>{hideUploadProgress();closeModals();form.reset();
+          $('fileName').textContent='Choose files (PDF, DOCX, PPTX, images, ZIP)';
+          $('uploadFileBadges').hidden=true;
+          render();showUploadSuccess(type);renderMyUploads();
+          if(pendingHelpRequest){fulfillJuniorRequest(pendingHelpRequest,'upload');pendingHelpRequest=null}
+        },400);
+      }catch(error){
+        console.error('[BCAPrime] Upload error:',error);
+        hideUploadProgress();
+        toast('Upload problem: '+(error&&error.message||error));
+      }finally{if(submitBtn)submitBtn.disabled=false}
       }catch(error){
         console.error('[BCAPrime] Upload error:',error);
         toast('Upload problem: '+(error&&error.message||error));
@@ -1216,12 +1265,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const name=resource.fileName||'';
       const isDocx=/\.docx$/i.test(name)||/\.docx(\?|#|$)/i.test(src);
       const isOldDoc=/\.doc(\?|#|$)/i.test(name)||/\.doc(\?|#|$)/i.test(src);
+      const isPptx=/\.pptx$/i.test(name)||/\.pptx(\?|#|$)/i.test(src);
       const docxPane=$('readerDocx');const frm=$('readerFrame');
       readerZoom=1;
       $('readerTitle').textContent=resource.title;
       $('readerOpen').href=src;
       $('readerOpen').setAttribute('download',resource.fileName||resource.title.replace(/\W+/g,'-')+'.pdf');
-      if(isDocx&&window.mammoth){
+      if(isPptx&&!src.startsWith('data:')){
+        /* PPTX: use Google Docs Viewer for inline preview */
+        if(frm){frm.hidden=true;frm.src='about:blank'}
+        if(docxPane){
+          docxPane.hidden=false;
+          var gurl='https://docs.google.com/gview?url='+encodeURIComponent(src)+'&embedded=true';
+          docxPane.innerHTML='<iframe class="gdocs-embed" src="'+gurl+'" title="'+resource.title+'" style="width:100%;height:100%;min-height:500px;border:none"></iframe>';
+        }
+      }else if(isDocx&&window.mammoth){
         /* DOCX: browsers can't render Word files inline, so convert to HTML
            in-app with Mammoth and show it in the reader pane (no download). */
         if(frm){frm.hidden=true;frm.src='about:blank'}
