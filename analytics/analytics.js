@@ -12,6 +12,19 @@ let refreshTimer = null;
 let livePollTimer = null;
 let charts = {};
 
+function safeSupabaseState(message) {
+  const authMsg = $('authMsg');
+  if (authMsg && message) authMsg.textContent = message;
+  if (typeof toast === 'function' && message) toast(message);
+  return false;
+}
+
+function ensureSupabaseReady(showMessage = false) {
+  if (supabaseClient) return true;
+  if (showMessage) safeSupabaseState('Supabase is not configured.');
+  return false;
+}
+
 /* ---- Chart.js defaults ---- */
 if (typeof Chart !== 'undefined') {
   Chart.defaults.color = '#9cafba';
@@ -131,6 +144,13 @@ async function refreshAll() {
   const btn = $('refreshBtn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>'; }
 
+  if (!ensureSupabaseReady(true)) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Refresh'; }
+    const lastRefresh = $('lastRefresh');
+    if (lastRefresh) lastRefresh.textContent = 'Offline';
+    return;
+  }
+
   try {
     await Promise.all([
       loadOverview(),
@@ -164,6 +184,8 @@ function stopPolling() {
    A. OVERVIEW — KPI Cards + Charts
    ============================================================ */
 async function loadOverview() {
+  if (!ensureSupabaseReady()) return;
+
   const { start, end } = getDateRange();
 
   try {
@@ -285,6 +307,8 @@ async function loadOverviewFallback() {
    B. LIVE FEED
    ============================================================ */
 async function loadActiveUsers() {
+  if (!ensureSupabaseReady()) return;
+
   try {
     const { data } = await supabaseClient.rpc('get_active_users', { p_minutes: 5 });
     if (data) {
@@ -306,6 +330,8 @@ async function loadActiveUsers() {
 }
 
 async function loadLiveFeed() {
+  if (!ensureSupabaseReady()) return;
+
   const stream = $('liveStream');
   if (!stream) return;
 
@@ -368,6 +394,8 @@ function renderLiveEvent(ev) {
 let allContentData = [];
 
 async function loadContentMatrix() {
+  if (!ensureSupabaseReady()) return;
+
   try {
     const { data } = await supabaseClient.rpc('get_top_resources', { p_limit: 50 });
     allContentData = data || [];
@@ -500,6 +528,8 @@ function renderContentTrendChart(data) {
 let allSearchData = [];
 
 async function loadSearchIntel() {
+  if (!ensureSupabaseReady()) return;
+
   try {
     const { data } = await supabaseClient.rpc('get_search_trends', { p_limit: 60 });
     allSearchData = data || [];
@@ -580,6 +610,8 @@ function renderDemandGaps() {
    E. CONVERSION FUNNEL
    ============================================================ */
 async function loadFunnel() {
+  if (!ensureSupabaseReady()) return;
+
   try {
     const { start, end } = getDateRange();
     const { data } = await supabaseClient.rpc('get_conversion_funnel', { p_start: start, p_end: end });
@@ -660,6 +692,8 @@ async function loadFunnelFallback() {
    F. SYSTEM HEALTH
    ============================================================ */
 async function loadSystemHealth() {
+  if (!ensureSupabaseReady()) return;
+
   try {
     const { data: summary } = await supabaseClient.rpc('get_analytics_summary', { p_start: null, p_end: null });
     if (summary) {
