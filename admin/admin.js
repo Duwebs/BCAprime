@@ -786,7 +786,14 @@ async function adminSubscribeToPush() {
     await saveAdminSubscription(subscription, uid);
     localStorage.setItem(ADMIN_ALERT_PREF_KEY, 'on');
     setAdminNotifyButton();
-    new Notification('BCAPrime Admin', { body: 'Admin alerts are now ON. You will be notified of new uploads.' });
+    try {
+      await reg.showNotification('BCAPrime Admin', {
+        body: 'Admin alerts are now ON. You will be notified of new uploads.',
+        icon: '/assets/logo.png',
+        badge: '/assets/logo.png',
+        tag: 'admin-alert'
+      });
+    } catch (e) { /* notification test optional */ }
   } catch (error) {
     console.info('Admin push subscribe failed.', error.message);
     alert('Could not enable admin alerts: ' + error.message);
