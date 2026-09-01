@@ -1,43 +1,66 @@
-const ADMIN_CACHE = 'bcaprime-admin-v2';
-const ADMIN_SHELL = [
-  './',
-  './admin.html',
-  './admin.css',
-  './admin.js',
-  '../supabase-config.js',
-  './admin-manifest.webmanifest',
-  '../assets/logo.png',
-  '../assets/icon-192.png',
-  '../assets/icon-512.png'
-];
+/* ============================================================
+   BCAPrime Admin — admin-sw.js
+   Minimal service worker for the admin panel.
+   Handles push notifications (admin alerts: new uploads, new signups)
+   and caches the app shell for offline use.
+   ============================================================ */
+const CACHE_NAME = 'bcaprime-admin-v1';
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(ADMIN_CACHE).then(cache => cache.addAll(ADMIN_SHELL)));
+  event.waitUntil(caches.open(CACHE_NAME));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
-      keys.filter(key => key !== ADMIN_CACHE).map(key => caches.delete(key))
+      keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
     ))
   );
   self.clients.claim();
 });
 
-/* Network-first with cache fallback — admin data hamesha fresh mile, offline pe cached UI */
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return; // Supabase/CDN requests ko bypass karo
+/* ---- Web Push: admin new-upload / new-signup alerts ---- */
+self.addEventListener('push', event => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (error) {
+    payload = {
+      title: 'BCAPrime Admin',
+      body: event.data ? event.data.text() : 'New activity'
+    };
+  }
 
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const copy = response.clone();
-        caches.open(ADMIN_CACHE).then(cache => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then(response => response || caches.match('./admin.html')))
+  const title = payload.title || 'BCAPrime Admin';
+  const options = {
+    body: payload.body || '',
+    icon: '/assets/logo.png',
+    badge: '/assets/logo.png',
+    tag: payload.tag || 'admin-alert',
+    renotify: true,
+    requireInteraction: true,   /* admin alert stays until dismissed */
+    data: {
+      url: payload.url || './admin.html',
+      resourceId: payload.resourceId || null,
+      type: payload.alertType || 'upload'
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetUrl = (event.notification.data && event.notification.data.url) || './admin.html';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (const client of clientList) {
+        if (client.url.includes('admin.html') && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
   );
 });

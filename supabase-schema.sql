@@ -101,6 +101,7 @@ create table if not exists public.push_subscriptions (
   college text not null default 'all',
   semester integer,
   uid text,
+  role text not null default 'user',
   created_at timestamptz not null default now()
 );
 
@@ -110,6 +111,7 @@ alter table public.push_subscriptions enable row level security;
 alter table public.push_subscriptions add column if not exists college text not null default 'all';
 alter table public.push_subscriptions add column if not exists semester integer;
 alter table public.push_subscriptions add column if not exists uid text;
+alter table public.push_subscriptions add column if not exists role text not null default 'user';
 
 drop policy if exists "Anyone can register a push subscription" on public.push_subscriptions;
 create policy "Anyone can register a push subscription"

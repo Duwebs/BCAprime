@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
   const targetCollege = typeof body.college === 'string' && body.college.trim() ? body.college.trim() : null;
   const targetSemester = body.semester == null || body.semester === '' ? null : Number(body.semester);
   const targetUid = typeof body.uid === 'string' && body.uid.trim() ? body.uid.trim() : null;
+  const targetRole = typeof body.role === 'string' && body.role.trim() ? body.role.trim() : null;
 
   // Subscription ki enrolled college/semester/uid target se match karni chahiye.
   // - 'all' college walon ko (jinhone college choose nahi kiya) kisi bhi college ki news milti hai.
@@ -93,6 +94,11 @@ Deno.serve(async (req) => {
   function matchUid(subUid: any) {
     if (!targetUid) return true;
     return subUid != null && String(subUid) === targetUid;
+  }
+  function matchRole(subRole: any) {
+    if (!targetRole) return true; // no role filter = broadcast to everyone
+    if (subRole == null || subRole === '') return targetRole === 'user' || targetRole === 'all';
+    return String(subRole) === targetRole;
   }
   function matchCollege(subCollege: any) {
     if (!targetCollege || targetCollege === 'all') return true;
@@ -110,7 +116,7 @@ Deno.serve(async (req) => {
   );
   const { data: subs, error } = await supabase
     .from('push_subscriptions')
-    .select('endpoint, p256dh, auth, college, semester, uid');
+    .select('endpoint, p256dh, auth, college, semester, uid, role');
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
@@ -119,7 +125,7 @@ Deno.serve(async (req) => {
   }
 
   // Sirf un subscriptions ko push karo jo targeting match karti hon.
-  const targets = (subs ?? []).filter((sub: any) => matchUid(sub.uid) && matchCollege(sub.college) && matchSemester(sub.semester));
+  const targets = (subs ?? []).filter((sub: any) => matchUid(sub.uid) && matchCollege(sub.college) && matchSemester(sub.semester) && matchRole(sub.role));
 
   const payload = JSON.stringify({
     title: typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 80) : 'BCAPrime',

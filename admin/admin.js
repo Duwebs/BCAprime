@@ -29,6 +29,78 @@ const selectedIds = new Set();
 
 const $ = id => document.getElementById(id);
 
+/* ---- Admin alert helpers (new-upload / new-signup detection) ---- */
+let lastPendingCount = 0;
+let adminBellInitialized = false;
+
+// Play a subtle beep when admin is on the panel and something new arrives
+function playAdminAlertSound() {
+  if (!window.AudioContext && !window.webkitAudioContext) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(560, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(320, ctx.currentTime + 0.25);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+  } catch (e) { /* audio not available — skip */ }
+}
+
+// Show the new-upload banner at the top of the Material tab
+function showUploadBanner(count, label) {
+  const banner = $('uploadBanner');
+  if (!banner) return;
+  const text = $('uploadBannerText');
+  if (text) text.textContent = `${count} new ${label} pending review`;
+  banner.hidden = false;
+  banner.classList.add('show');
+  // Update title to show unread count
+  const pending = uploads.filter(u => u.status === 'pending' && !u._notified);
+  const unread = pending.length;
+  if (unread > 0) {
+    document.title = `(${unread}) BCA Admin`;
+  }
+}
+
+function dismissUploadBanner() {
+  const banner = $('uploadBanner');
+  if (banner) {
+    banner.classList.remove('show');
+    banner.hidden = true;
+  }
+  // Mark all pending as notified so title resets
+  uploads.forEach(u => { if (u.status === 'pending') u._notified = true; });
+  document.title = 'BCA Admin';
+}
+
+// Focus the Material tab and scroll to pending items
+function focusPending() {
+  const matTab = document.querySelector('.tab[data-tab="material"]');
+  if (matTab) matTab.click();
+  const firstPending = document.querySelector('.new-pending');
+  if (firstPending) {
+    firstPending.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    firstPending.classList.add('scanned');
+  }
+  dismissUploadBanner();
+}
+
+// Check if a date string is within the last ~10 minutes (recently added)
+function isRecentlyAdded(dateStr) {
+  try {
+    const d = new Date(dateStr);
+    const now = Date.now();
+    const diffMin = (now - d.getTime()) / 60000;
+    return diffMin >= 0 && diffMin <= 10;
+  } catch (e) { return false; }
+}
+
 function setAuthMessage(message) {
   $('authMessage').textContent = message;
 }
@@ -156,15 +228,20 @@ function render() {
 
   const tbody = $('rows');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div class="empty">No material found for this filter.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No material found for this filter.</div></td></tr>';
     return;
   }
   tbody.innerHTML = list.map(item => {
     const id = String(item.id);
     const badgeClass = item.status === 'approved' ? '' : 'archived';
-    return `<tr>
+    const typeLabel = item.type === 'pyq' ? 'PYQ' : 'Notes';
+    const typeClass = item.type === 'pyq' ? 'type-pyq' : 'type-notes';
+    const isNewPending = item.status === 'pending' && item.date && isRecentlyAdded(item.date);
+    const rowClass = isNewPending ? 'new-pending' : '';
+    return `<tr class="${rowClass}">
           <td><input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)"></td>
-          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject || '')} &middot; ${item.type === 'pyq' ? 'PYQ' : 'Notes'}${item.fileName ? ` &middot; ${escapeHtml(item.fileName)}` : ''}</small>${item.fileUrl ? `<small><a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Open file</a></small>` : ''}</td>
+          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject || '')}${item.fileName ? ` &middot; ${escapeHtml(item.fileName)}` : ''}</small>${item.fileUrl ? `<small><a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Open file</a></small>` : ''}</td>
+          <td><span class="type-badge ${typeClass}">${typeLabel === 'PYQ' ? '📝 PYQ' : '📚 Notes'}</span></td>
           <td>${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}${item.uploader ? `<small>by ${escapeHtml(item.uploader)}</small>` : ''}</td>
           <td>Semester ${item.sem}${item.year ? `<small>Year ${item.year}</small>` : ''}</td>
           <td><span class="badge ${badgeClass}">${item.status}</span></td>
@@ -618,5 +695,105 @@ if ('serviceWorker' in navigator) {
       .catch(error => console.info('Admin PWA service worker unavailable.', error.message))
   );
 }
+
+/* ---- Admin Alerts: web-push subscription (role='admin') ---- */
+const ADMIN_ALERT_PREF_KEY = 'bca-admin-alerts'; // 'on' | null
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function setAdminNotifyButton() {
+  const btn = $('adminNotifyBtn');
+  if (!btn) return;
+  const enabled = localStorage.getItem(ADMIN_ALERT_PREF_KEY) === 'on';
+  btn.classList.toggle('active', enabled);
+  btn.innerHTML = enabled
+    ? '<i class="fa-solid fa-bell-slash"></i> Alerts On'
+    : '<i class="fa-solid fa-bell"></i> Admin Alerts';
+}
+
+async function saveAdminSubscription(subscription, uid) {
+  if (!supabaseClient) return;
+  const json = subscription.toJSON();
+  const row = {
+    endpoint: json.endpoint,
+    p256dh: json.keys && json.keys.p256dh,
+    auth: json.keys && json.keys.auth,
+    college: 'all',
+    semester: null,
+    uid: uid || null,
+    role: 'admin'
+  };
+  const { error } = await supabaseClient
+    .from('push_subscriptions')
+    .upsert(row, { onConflict: 'endpoint' });
+  if (error) console.info('Admin subscription save failed:', error.message);
+}
+
+async function adminSubscribeToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported in this browser.');
+    return;
+  }
+  if (!supabaseClient) {
+    alert('Supabase is not configured — cannot save admin alerts.');
+    return;
+  }
+
+  // Toggle off: unsubscribe + remove stored row
+  if (localStorage.getItem(ADMIN_ALERT_PREF_KEY) === 'on') {
+    try {
+      const reg = await navigator.serviceWorker.getRegistration('./admin-sw.js?q=2');
+      const sub = reg && await reg.pushManager.getSubscription();
+      if (sub) {
+        const endpoint = sub.endpoint;
+        await sub.unsubscribe();
+        await supabaseClient.from('push_subscriptions').delete().eq('endpoint', endpoint);
+      }
+    } catch (e) { /* best effort */ }
+    localStorage.removeItem(ADMIN_ALERT_PREF_KEY);
+    setAdminNotifyButton();
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    alert('Notification permission was denied. Enable it in browser settings to get admin alerts.');
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.register('./admin-sw.js?q=2');
+    await navigator.serviceWorker.ready;
+    let subscription = await reg.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    let uid = null;
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      uid = data && data.session ? data.session.user.id : null;
+    } catch (e) { /* uid optional */ }
+    await saveAdminSubscription(subscription, uid);
+    localStorage.setItem(ADMIN_ALERT_PREF_KEY, 'on');
+    setAdminNotifyButton();
+    new Notification('BCAPrime Admin', { body: 'Admin alerts are now ON. You will be notified of new uploads.' });
+  } catch (error) {
+    console.info('Admin push subscribe failed.', error.message);
+    alert('Could not enable admin alerts: ' + error.message);
+  }
+}
+
+setAdminNotifyButton();
+
 
 

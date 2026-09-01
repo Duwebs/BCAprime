@@ -49,8 +49,11 @@
         <span class="brand-mark">B</span>
         <span>BCA<span>Prime</span> Admin</span>
       </a>
-      <div class="actions">
+            <div class="actions">
         <button class="button" onclick="toggleTheme()">Theme</button>
+        <button class="button" id="adminNotifyBtn" onclick="adminSubscribeToPush()" title="Get push notifications for new uploads and signups">
+          <i class="fa-solid fa-bell"></i> Admin Alerts
+        </button>
         <a class="button primary" href="../index.html">Open library</a>
         <button class="button logout-button" id="logoutButton" onclick="logout()">Log out</button>
       </div>
@@ -70,8 +73,16 @@
       <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
     </nav>
 
-    <!-- ============ TAB: Material ============ -->
+        <!-- ============ TAB: Material ============ -->
     <section class="tab-panel" id="tab-material">
+
+    <!-- New upload banner (shown when new pending resources arrive) -->
+    <div class="upload-banner" id="uploadBanner" hidden>
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="uploadBannerText">New material pending review</span>
+      <button class="button primary" id="uploadBannerAction" onclick="focusPending()">Review now</button>
+      <button class="button" id="uploadBannerDismiss" onclick="dismissUploadBanner()">Dismiss</button>
+    </div>
 
     <!-- Stats -->
     <section class="stats">
@@ -120,6 +131,7 @@
             <tr>
               <th class="col-check"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th>
               <th>Material</th>
+              <th>Type</th>
               <th>College</th>
               <th>Semester</th>
               <th>Status</th>
