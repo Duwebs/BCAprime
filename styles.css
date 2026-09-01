@@ -1284,3 +1284,23 @@ html.auth-known #appTabs{display:grid!important}
     .photo-btn.del:hover{background:#e5484d;border-color:#e5484d;color:#fff}
 /* ---- Reader: Google Docs viewer for office files ---- */
 .reader-docx iframe.gdocs-embed{width:100%;height:100%;border:none;min-height:500px}
+/* ---- Search fallback note (results outside current filters) ---- */
+.search-fallback-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 0 0 14px;
+  border: 1px solid var(--brand, #4f8cff);
+  border-radius: 12px;
+  background: rgba(79, 140, 255, 0.08);
+  font-size: 13.5px;
+  color: var(--text);
+}
+.search-fallback-note i { color: var(--brand, #4f8cff); }
+.search-fallback-note .secondary {
+  padding: 5px 12px;
+  font-size: 12.5px;
+  margin-inline-start: auto;
+}

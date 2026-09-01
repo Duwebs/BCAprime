@@ -46,9 +46,9 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function collegeMatchesFilter(c){return state.college==='all'||c==='all'||(!c&&state.college==='all')||c===state.college}
     function semMatchesFilter(v){if(state.sem==='all')return true;if(v==null||String(v)==='')return false;return Number(v)===Number(state.sem)}
     function queryTokens(q){return normSubject(q).split(' ').filter(Boolean)}
-    function queryMatchesFilter(q,title,subject,collegeName){
+    function queryMatchesFilter(q,title,subject,collegeName,fileName,type){
       if(!q)return true;const tokens=queryTokens(q);if(!tokens.length)return true;
-      const hay=normSubject(title)+' '+normSubject(subject)+' '+normSubject(collegeName);
+      const hay=normSubject(title)+' '+normSubject(subject)+' '+normSubject(collegeName)+' '+normSubject(fileName)+' '+normSubject(type);
       return tokens.every(t=>hay.includes(t));
     }
     function subjectMatchesFilter(resourceSubject,filter){
@@ -98,17 +98,26 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     }
     function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark');try{localStorage.setItem('bca-theme-manual','1')}catch(e){}}
-    function render(){const list=resources.filter(r=>{
+    function render(){const q=String(state.query||'');const match=r=>{
         if(state.savedOnly&&!state.saved.includes(r.title.replace(/\W/g,'')))return false;
         if(state.type!=='all'&&r.type!==state.type)return false;
         if(!collegeMatchesFilter(r.college))return false;
         if(!semMatchesFilter(r.sem))return false;
-        if(!queryMatchesFilter(state.query,r.title,r.subject,(colleges.find(c=>c[0]===r.college)||['',''])[1]))return false;
+        if(!queryMatchesFilter(q,r.title,r.subject,(colleges.find(c=>c[0]===r.college)||['',''])[1],r.fileName,r.type))return false;
         if(!subjectMatchesFilter(r.subject,state.subject))return false;
-        return true;
-      });
-      $('count').textContent=`${list.length} result${list.length===1?'':'s'}`;
-      $('resources').innerHTML=list.length?list.map(card).join(''):state.savedOnly?'<div class="empty"><i class="fa-regular fa-bookmark"></i><br><br>No saved resources yet.<br><button class="secondary" style="margin-top:12px" onclick="selectTab(\'library\',document.querySelector(\'.bottom-tab\'))">Browse the library</button></div>':buildEmptyState()}
+        return true;};
+      let list=resources.filter(match);
+      /* Search fallback: query active ho aur filters ke saath 0 results aayein
+         to college/semester/subject/type filters relax karke dobara dhoondo —
+         warna user ko search broken lagta hai jab material exist karta hai. */
+      let fallback=false;
+      if(!list.length&&q.trim()){
+        list=resources.filter(r=>queryMatchesFilter(q,r.title,r.subject,(colleges.find(c=>c[0]===r.college)||['',''])[1],r.fileName,r.type));
+        fallback=list.length>0;
+      }
+      $('count').textContent=`${list.length} result${list.length===1?'':'s'}${fallback?' (from all semesters & colleges)':''}`;
+      const notice=fallback?`<div class="search-fallback-note"><i class="fa-solid fa-circle-info"></i> No match in your current filters — showing results from <b>all semesters &amp; colleges</b>. <button class="secondary" onclick="clearSearchFilters()">Clear filters</button></div>`:'';
+      $('resources').innerHTML=(fallback?notice:'')+(list.length?list.map(card).join(''):buildEmptyState())}
     /* ---- Empty state: upload it yourself or request from friends on WhatsApp ---- */
     function buildEmptyState(){
       const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
@@ -119,6 +128,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
           <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
           <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Request from friends</button>
           ${canRequestSenior()?`<button class="sr-request" onclick="openSeniorRequest()"><i class="fa-solid fa-users"></i> Request senior</button>`:''}
+          ${searching?`<button class="secondary" onclick="clearSearchFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear search &amp; filters</button>`:''}
         </div></div>`;
     }
     function requestMaterialOnWhatsApp(){
@@ -162,6 +172,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
     }
     function resetFinder(){updateSemesterOptions();$('semesterFilter').value='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
+    /* Search results aane ke baad filters reset (search query khud rehti hai) */
+    function clearSearchFilters(){resetFinder();closeSuggestions()}
     let lastSearchTrack={query:'',ts:0};
     function searchResources(value){clearTimeout(__searchTimeout);__searchTimeout=setTimeout(()=>{state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count})}}catch(error){}},200)}
     /* ---- Subject filter engine ----
@@ -1629,7 +1641,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         location.reload();
       });
             window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=21').then(reg=>{
+        navigator.serviceWorker.register('./sw.js?v=22').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */
