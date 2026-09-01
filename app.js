@@ -1011,6 +1011,25 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const row={title:upload.title,type:upload.type,subject:upload.subject,college:upload.college,semester:upload.sem,year:upload.year,file_name:file.name,file_url:publicData.publicUrl,status:'pending',downloads:0,uploader_email:upload.uploaderEmail||'',uploader_name:upload.uploader||''};
       const {error:insertError}=await supabaseClient.from('resources').insert(row);
       if(insertError) throw insertError;
+      // Fire-and-forget: admin ko naye upload ka push alert (role='admin' targeting)
+      try{
+        if(typeof SEND_PUSH_FUNCTION_URL!=='undefined'&&typeof SUPABASE_PUBLISHABLE_KEY!=='undefined'){
+          const typeLabel=upload.type==='pyq'?'PYQ':'Notes';
+          await fetch(SEND_PUSH_FUNCTION_URL,{
+            method:'POST',
+            headers:{'Content-Type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY},
+            body:JSON.stringify({
+              title:'New '+typeLabel+' uploaded 📥',
+              body:(upload.title||'Untitled')+' — '+(upload.uploader||'Anonymous')+' | Sem '+upload.sem+' | waiting for review',
+              url:'/admin/admin.html',
+              tag:'admin-new-upload',
+              alertType:'upload',
+              role:'admin',
+              secret:'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz'
+            })
+          });
+        }
+      }catch(e){/* alert fail ho to upload fail na ho */}
       return {...row,title:row.title,type:row.type,sem:row.semester,fileUrl:row.file_url,downloads:0,status:row.status,fileName:file.name,subject:row.subject,college:row.college,uploader:row.uploader_name||''};
     }
     function getUploaderEmail(){return accountSession&&accountSession.email?accountSession.email:''}
