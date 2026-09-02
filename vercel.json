@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/analytics", "destination": "/analytics/index.html" },
+    { "source": "/analytics/(.*)", "destination": "/analytics/index.html" }
+  ],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 30
+    }
+  }
+}

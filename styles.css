@@ -1315,3 +1315,24 @@ html.auth-known #appTabs{display:grid!important}
 .verify-continue{width:100%;margin-top:18px;min-height:46px}
 .verify-actions{display:flex;gap:9px;margin-top:10px}
 .verify-actions .secondary{flex:1;min-height:44px}
+/* Toggle between link & OTP verification on the same screen */
+.verify-alt{margin-top:16px;padding-top:14px;border-top:1px solid var(--line,#e7edf1);display:flex;flex-direction:column;gap:4px}
+.verify-alt span{font-size:12.5px;color:var(--muted)}
+@media(min-width:520px){.verify-alt{flex-direction:row;align-items:center;justify-content:space-between}}
+/* ---- Modern OTP popup ---- */
+.otp-dialog{width:min(100%,440px);text-align:center}
+.otp-dialog .dialog-head{justify-content:flex-end;margin-bottom:0}
+.otp-boxes{display:flex;gap:10px;justify-content:center;margin:20px 0 6px}
+.otp-digit{width:50px;height:58px;text-align:center;font:600 24px 'Geist',monospace;color:var(--ink);background:var(--card,#fff);border:2px solid var(--line,#dde6ec);border-radius:12px;outline:none;transition:border-color .15s,box-shadow .15s,transform .1s}
+.otp-digit:focus{border-color:var(--brand,#0f7b8f);box-shadow:0 0 0 3px rgba(15,123,143,.18);transform:translateY(-1px)}
+.otp-digit.has-value{border-color:var(--brand,#0f7b8f);background:var(--brand-soft,rgba(15,123,143,.06))}
+.otp-boxes.is-error .otp-digit{border-color:#e5484d;animation:otpShake .3s ease}
+.otp-boxes.is-error .otp-digit.has-value{background:rgba(229,72,77,.06)}
+@keyframes otpShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.otp-status{min-height:18px;margin:0;font-size:13px;color:var(--muted)}
+.otp-status.is-error{color:#e5484d;font-weight:600}
+.otp-status.is-ok{color:#2f9e60}
+.otp-resend{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.otp-resend .linklike{font-size:13px}
+.otp-uses-link{margin-top:12px;font-size:13px}
+.otp-uses-link i,.verify-alt i{color:var(--brand,#0f7b8f)}

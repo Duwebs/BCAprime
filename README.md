@@ -69,6 +69,82 @@ Students can opt in from the bell icon (or the "Never miss an update" banner) an
 ### Sending notifications
 
 - **Manual broadcast**: open `admin.html` → *Send notification* panel → title + message, aur (optional) college + semester choose karo → **Send notification**. College/semester chhoda to sabko jaata hai.
+## Authentication & transactional email (modern UX + anti-spam)
+
+BCAPrime now uses **Vercel serverless functions** (Node.js, in `api/`) for everything that
+must stay server-side — generating & emailing temporary passwords, issuing and verifying
+6-digit OTPs, and sending **branded** verification / welcome / reset emails. Email is sent
+through **Resend** so messages arrive in the inbox with the official BCAPrime logo instead of
+the plain, generic Firebase template that was landing in Spam.
+
+### What's covered
+
+1. **Confirm Password** — all sign-up forms (landing gate, "sign up to continue" modal, and
+   profile modal) now require re-typing the password and validate a match before submitting.
+2. **Google sign-in automation** — after "Continue with Google", the backend verifies the
+   account is Google-federated, generates a secure temporary password, sets it with the Admin
+   SDK, and emails it (with the user's Name + Email and a prominent **"Set your own password"**
+   reset button). This is idempotent and never re-emails returning users.
+3. **Branded, inbox-safe emails** — one shared HTML template: clean table layout, `BCAPrime Team`
+   sender name, absolute HTTPS logo URL, plain-text fallback, and a full footer.
+4. **Dual verification — link AND 6-digit OTP** — the verification screen offers both. Codes are
+   numeric, hashed server-side, expire in 12 minutes, and are one-time-use.
+5. **Modern OTP popup** — on sign-up the user stays signed in and a sleek modal pops up instantly
+   with 6 auto-focusing digit boxes (backspace navigation, paste-to-split, and auto-submit on the
+   last digit), a resend countdown, and a fallback "use the link instead" option.
+
+### New files
+
+- `api/_lib/cors.js` — CORS helper + JSON responder + `withCors` wrapper.
+- `api/_lib/firebaseAdmin.js` — lazily initialised Firebase Admin (service-account JSON).
+- `api/_lib/resend.js` — thin Resend client wrapper.
+- `api/_lib/email.js` — the single branded HTML email template + sender helper.
+- `api/_lib/otp.js` — numeric OTP generation, HMAC hashing, store + constant-time verify.
+- `api/google-welcome.js` — temp-password + welcome/reset email for Google sign-in.
+- `api/send-otp.js` — issue + email a hashed 6-digit OTP.
+- `api/verify-otp.js` — validate OTP; server-side only flips `emailVerified`.
+- `api/forgot-password.js` — branded password-reset link email.
+
+### Deployment (Vercel)
+
+1. Add a **verified sending domain** in your email provider (see DNS below) and add a route-less
+   `<domain>` for tests, or simply use `no-reply@` on a verified domain.
+2. Deploy the functions with your static site (the `api/` folder is auto-detected):
+   ```
+   npx vercel --prod
+   ```
+3. Set these **project environment variables** in Vercel (Project → Settings → Environment Variables):
+   ```
+   RESEND_API_KEY                  = <Resend API key>
+   BCAPRIME_FROM_EMAIL             = no-reply@bcaprime.com
+   BCAPRIME_FROM_NAME              = BCAPrime Team
+   BCAPRIME_APP_URL                = https://bcaprime.vercel.app
+   FIREBASE_SERVICE_ACCOUNT_JSON   = <full contents of your Firebase service-account key JSON>
+   SUPABASE_URL                    = https://kjesjaakjddfxykisssh.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY       = <Supabase service role key (server only — never in browser)>
+   OTP_PEPPER                      = <any long random string used to HMAC the OTP>
+   ```
+4. Create the OTP table in Supabase (SQL Editor → run the `email_otps` section of
+   `supabase-schema.sql`).
+
+### Email deliverability — fixing the Spam folder (IMPORTANT)
+
+Code alone can't keep mail out of Spam. For Gmail/Outlook to trust BCAPrime you must verify the
+sending domain in **Resend → Domains** and add the DNS records it gives you. Typical additions
+(example for `bcaprime.com`, adapt to your domain):
+
+| Type | Name | Value (example) |
+|------|------|-----------------|
+| TXT  | `bcaprime.com` | `v=spf1 include:amazonses.com include:_spf.google.com ~all` (SPF — allow Resend + Firebase) |
+| TXT  | `resend._domainkey` | DKIM: `k=rsa; p=<Resend public key>` |
+| TXT  | `_dmarc` | `v=DMARC1; p=quarantine; rua=mailto:report@bcaprime.com` |
+
+After the records propagate, verify the domain in Resend. Also consider:
+- Keep a **consistently branded From name/domain** (don't switch random senders).
+- Add a `mailto:` reply-to and a real contact address in the footer (already in the template).
+- Warm up the domain with a small send volume first if it's brand new.
+
+Once the domain is verified, the green "verified sender" state is what pulls emails out of Spam.
 - **Targeted auto-notify**: approving a resource sends the notification **sirf us college + semester ke subscribed users ko** — e.g. Avviare sem 1 ka upload sirf Avviare sem 1 wale students ko jaata hai. (`push_subscriptions` mein user ki enrolled `college` + `semester` subscribe time par save hoti hai; `send-push` Edge Function usi se filter karta hai.)
 - **Bulk approve**: jitne resources approve kiye, agar sab same college + semester ke hain tabhi usi ko target karta hai; otherwise sabko.
 - **Automatic**: approving one or many resources in the review table sends "New notes/PYQ available 📚" automatically (toggle in the same panel).
