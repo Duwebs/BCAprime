@@ -477,7 +477,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        signed in and an OTP modal pops up instantly. The 6-digit code is
        issued + verified server-side only (api/send-otp, api/verify-otp). */
     let pendingOtpApproval=false,otpResendTimer=null,otpCountdownEnd=0,otpSubmitting=false;
-    function getAuthApiUrl(name){try{return window.AUTH_API&&AUTH_API[name]?AUTH_API[name]:''}catch(e){return''}}
+    function getAuthApiUrl(name){try{return (typeof AUTH_API!=='undefined'&&AUTH_API&&AUTH_API[name])?AUTH_API[name]:''}catch(e){return''}}
     async function firebaseIdToken(){try{const u=firebase.auth().currentUser;return u?await u.getIdToken():''}catch(e){return''}}
     function checkPasswordMatch(password,confirmEl,msgEl){const value=confirmEl&&typeof confirmEl.value==='string'?confirmEl.value:'';if(!value){if(msgEl)msgEl.textContent='Please confirm your password.';return false}if(password!==value){if(msgEl)msgEl.textContent='Passwords do not match. Please re-enter your confirmation.';return false}return true}
     async function startPasswordSignup({name,email,password,messageId}){pendingOtpApproval=true;stopVerifyPolling();let credential;try{credential=await firebase.auth().createUserWithEmailAndPassword(email,password)}catch(error){pendingOtpApproval=false;if(messageId)$(messageId).textContent=error.message;return}if(name)try{await credential.user.updateProfile({displayName:name})}catch(e){}const fresh=firebase.auth().currentUser;await sendOtpAndOpen((fresh&&fresh.email)||email,messageId)}

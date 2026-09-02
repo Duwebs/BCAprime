@@ -3,20 +3,19 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_ZZ-StuiDnSwyJ9xNRjbY7A_eoyZF7Fl
 const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
 
 /* ---- Auth / email functions (Vercel serverless) ----
-   In production these live at https://bcaprime.vercel.app/api/* .
-   Locally (vercel dev) the same paths run on http://localhost:3000. */
+   The functions ONLY live on Vercel. So the API origin always points at the
+   Vercel domain — even when this static site is served from Firebase Hosting
+   (bcaprimeweb.firebaseapp.com) or a preview domain. Locally (vercel dev) it
+   runs on http://localhost:3000. */
 const AUTH_API_ORIGIN = (function () {
   try {
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-      const port = location.port || '3000';
-      return location.protocol + '//' + location.hostname + ':' + port;
+    var host = location.hostname || '';
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return location.protocol + '//' + location.hostname + ':' + (location.port || '3000');
     }
-    if (location.protocol === 'https:' && location.hostname === 'bcaprime.vercel.app') {
-      return 'https://bcaprime.vercel.app';
-    }
-    // Fallback: use the same origin (works on any preview/domain where the
-    // function is deployed alongside the static site).
-    return location.protocol + '//' + location.host;
+    // Everything else (vercel.app, firebaseapp.com, custom domain, preview) ->
+    // call the functions on the Vercel deployment where they actually live.
+    return 'https://bcaprime.vercel.app';
   } catch (e) {
     return 'https://bcaprime.vercel.app';
   }
