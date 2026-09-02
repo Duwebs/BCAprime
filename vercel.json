@@ -1,5 +1,8 @@
 {
   "version": 2,
+  "framework": null,
+  "buildCommand": "echo 'Static site - no build step required'",
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/analytics", "destination": "/analytics/index.html" },
     { "source": "/analytics/(.*)", "destination": "/analytics/index.html" }
