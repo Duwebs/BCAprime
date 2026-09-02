@@ -37,6 +37,14 @@ module.exports = withCors(async (req, res) => {
   const idToken = body.idToken;
   if (!idToken) return send(res, 400, { error: 'Missing idToken' });
 
+  // Optional Google-first signup fields: the username + password the user
+  // chose BEFORE the Google account picker opened. If present, we set THAT
+  // password (instead of a generated temp one) and store the username.
+  const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
+  const chosenPassword = typeof body.password === 'string' ? body.password : '';
+  const validUsername = /^[a-z0-9_]{3,20}$/.test(username);
+  const validPassword = chosenPassword.length >= 6 && chosenPassword.length <= 128;
+
   const auth = getAuth();
   let decoded;
   try {
@@ -62,49 +70,107 @@ module.exports = withCors(async (req, res) => {
     return send(res, 200, { ok: true, alreadySent: true });
   }
 
-  // 1) Set a secure temporary password so they can use Email/Password later.
-  const tempPassword = generateTempPassword();
+  // 1) Set the account password so they can use Email/Password later.
+  //    Google-first signup: use the user's OWN chosen password (they typed it
+  //    in the signup form). Plain "Continue with Google" logins (no pending
+  //    signup) get the secure temporary password + reset link email.
+  const usingChosen = validPassword;
+  const tempPassword = usingChosen ? chosenPassword : generateTempPassword();
   await auth.updateUser(decoded.uid, { password: tempPassword });
+  if (validUsername) {
+    try { await auth.updateUser(decoded.uid, { displayName: username }); } catch (e) {}
+  }
 
   // 2) A Firebase reset link = the prominent "Set your own password" button.
   const resetUrl = await auth.generatePasswordResetLink(email, { url: APP_URL + '/' });
 
-  const name = (user.displayName || body.name || '').trim();
+  const name = (user.displayName || body.name || username || '').trim();
   const first = name.split(/\s+/)[0] || 'there';
 
-  // 3) Branded welcome email with Name + Email + temp password + reset button.
+  // 3) Branded welcome email. When the user chose their own password we do
+  //    NOT print it — we just confirm the account and offer the reset link.
+  const credRows = usingChosen
+    ? `
+      <tr><td width="150" style="padding:6px 0;color:#7a8c98;font-size:13px;">Username</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${username || '—'}</td></tr>
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${email}</td></tr>
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Password</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">The one you chose at sign-up ✓ (never shared, stored securely)</td></tr>`
+    : `
+      <tr><td width="150" style="padding:6px 0;color:#7a8c98;font-size:13px;">Name</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${name || '—'}</td></tr>
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${email}</td></tr>
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Temporary password</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-family:Menlo,Consolas,monospace;font-weight:600;">${tempPassword}</td></tr>`;
   await sendEmail({
     to: email,
-    subject: 'Your BCAPrime account is ready — set your password',
-    preheader: 'Welcome to BCAPrime! Here is a secure temporary password and a link to make it your own.',
+    subject: 'Your BCAPrime account is ready' + (usingChosen ? '' : ' — set your password'),
+    preheader: usingChosen
+      ? 'Welcome to BCAPrime! Your account is ready — here are your login details.'
+      : 'Welcome to BCAPrime! Here is a secure temporary password and a link to make it your own.',
     eyebrow: 'Welcome',
     title: 'Welcome, ' + first + '!',
     bodyHtml: `
-      <p style="margin:0 0 12px;">You're all set — your BCA study library is ready. You signed up with <strong>Google</strong>, but you can also log in later with email &amp; password using the credentials below.</p>
+      <p style="margin:0 0 12px;">You're all set — your BCA study library is ready. You signed up with <strong>Google</strong>, but you can also log in later with your username or email &amp; password using the details below.</p>
       <table role="presentation" cellpadding="0" cellspacing="0" style="background:#f2f7f9;border:1px solid #e2eaee;border-radius:10px;padding:14px 20px;margin:16px 0;width:100%;">
-        <tr><td width="150" style="padding:6px 0;color:#7a8c98;font-size:13px;">Name</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${name || '—'}</td></tr>
-        <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${email}</td></tr>
-        <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Temporary password</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-family:Menlo,Consolas,monospace;font-weight:600;">${tempPassword}</td></tr>
+        ${credRows}
       </table>
-      <p style="margin:0 0 6px;">Set your own password now — the temporary one stops working the moment you choose your own.</p>`,
-    ctaLabel: 'Set your own password',
+      ${usingChosen
+        ? '<p style="margin:0 0 6px;">Want to change your password anytime? Use the secure button below.</p>'
+        : '<p style="margin:0 0 6px;">Set your own password now — the temporary one stops working the moment you choose your own.</p>'}`,
+    ctaLabel: usingChosen ? 'Change your password' : 'Set your own password',
     ctaUrl: resetUrl,
-    ctaNote: 'This link expires shortly. It opens a secure page to choose your personal password.',
-    plainText: [
-      'Welcome to BCAPrime!',
-      '',
-      'You signed up with Google. If you ever want to log in with email & password, use:',
-      '',
-      '  Name:            ' + (name || '—'),
-      '  Email:           ' + email,
-      '  Temp password:   ' + tempPassword,
-      '',
-      'Set your own password here (the temp one stops working once you do):',
-      resetUrl,
-      '',
-      'Store the temporary password somewhere safe until then.',
-    ].join('\n'),
+    ctaNote: 'This link expires shortly. It opens a secure page to manage your password.',
+    plainText: usingChosen
+      ? [
+          'Welcome to BCAPrime!',
+          '',
+          'You signed up with Google. You can also log in with:',
+          '',
+          '  Username:        ' + (username || '—'),
+          '  Email:           ' + email,
+          '  Password:        the one you chose at sign-up',
+          '',
+          'Change your password here:',
+          resetUrl,
+        ].join('\n')
+      : [
+          'Welcome to BCAPrime!',
+          '',
+          'You signed up with Google. If you ever want to log in with email & password, use:',
+          '',
+          '  Name:            ' + (name || '—'),
+          '  Email:           ' + email,
+          '  Temp password:   ' + tempPassword,
+          '',
+          'Set your own password here (the temp one stops working once you do):',
+          resetUrl,
+          '',
+          'Store the temporary password somewhere safe until then.',
+        ].join('\n'),
   });
+
+  // 4) Save username/email/name in Supabase (server-side, service role).
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && serviceKey) {
+      await fetch(supabaseUrl.replace(/\/$/, '') + '/rest/v1/user_profiles', {
+        method: 'POST',
+        headers: {
+          apikey: serviceKey,
+          Authorization: 'Bearer ' + serviceKey,
+          'Content-Type': 'application/json',
+          Prefer: 'resolution=merge-duplicates,return=minimal',
+        },
+        body: JSON.stringify({
+          uid: decoded.uid,
+          email,
+          name: username || name,
+          ...(validUsername ? { username } : {}),
+          updated_at: new Date().toISOString(),
+        }),
+      });
+    }
+  } catch (e) {
+    // Non-fatal: profile sync is best-effort here; client also upserts.
+  }
 
   // Mark as done AFTER a successful send so failures are retried later.
   await auth.setCustomUserClaims(decoded.uid, { ...claims, bcaWelcomeSent: true });

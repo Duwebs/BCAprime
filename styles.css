@@ -1336,3 +1336,7 @@ html.auth-known #appTabs{display:grid!important}
 .otp-resend .linklike{font-size:13px}
 .otp-uses-link{margin-top:12px;font-size:13px}
 .otp-uses-link i,.verify-alt i{color:var(--brand,#0f7b8f)}
+/* Username availability hint (Google-first signup) */
+.field-hint{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
+.field-hint.good{color:#2f9e60;font-weight:600}
+.field-hint.bad{color:#e5484d;font-weight:600}

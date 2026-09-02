@@ -153,6 +153,12 @@ create table if not exists public.user_profiles (
 -- Migration for already-deployed DBs (safe, idempotent):
 alter table public.user_profiles add column if not exists is_email_verified boolean not null default false;
 
+-- Username signup/login (Google-first flow). Username login ke liye
+-- user_profiles.username se email lookup hota hai. Stored lowercase.
+alter table public.user_profiles add column if not exists name text not null default '';
+alter table public.user_profiles add column if not exists username text;
+create unique index if not exists user_profiles_username_key on public.user_profiles (lower(username));
+
 alter table public.user_profiles enable row level security;
 
 drop policy if exists "Anyone can read user profiles" on public.user_profiles;
