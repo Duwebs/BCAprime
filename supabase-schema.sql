@@ -146,8 +146,12 @@ create table if not exists public.user_profiles (
   email text not null default '',
   college text not null default 'all',
   semester integer,
+  is_email_verified boolean not null default false,
   updated_at timestamptz not null default now()
 );
+
+-- Migration for already-deployed DBs (safe, idempotent):
+alter table public.user_profiles add column if not exists is_email_verified boolean not null default false;
 
 alter table public.user_profiles enable row level security;
 

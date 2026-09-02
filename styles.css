@@ -1304,3 +1304,14 @@ html.auth-known #appTabs{display:grid!important}
   font-size: 12.5px;
   margin-inline-start: auto;
 }
+/* ---- Verify Your Email (strict verification gate) ---- */
+.verify-dialog{width:min(100%,460px);text-align:center}
+.verify-dialog .dialog-head{justify-content:flex-end;margin-bottom:0}
+.verify-icon{width:74px;height:74px;margin:6px auto 0;display:grid;place-items:center;border-radius:22px;font-size:34px;color:#fff;background:linear-gradient(135deg,#0070f3,#7928ca);box-shadow:0 14px 34px rgba(0,112,243,.35);animation:verifyPop .4s ease both}
+@keyframes verifyPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+.verify-title{margin:16px 0 6px;font:600 22px 'Geist';color:var(--ink)}
+.verify-sub{margin:0;color:var(--muted);font-size:14px;line-height:1.55}
+.verify-sub strong{color:var(--ink)}
+.verify-continue{width:100%;margin-top:18px;min-height:46px}
+.verify-actions{display:flex;gap:9px;margin-top:10px}
+.verify-actions .secondary{flex:1;min-height:44px}
