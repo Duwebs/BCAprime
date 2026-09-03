@@ -88,33 +88,6 @@ Deno.serve(async (req) => {
   const targetUid = typeof body.uid === 'string' && body.uid.trim() ? body.uid.trim() : null;
   const targetRole = typeof body.role === 'string' && body.role.trim() ? body.role.trim() : null;
 
-  // --- Strict resource-upload routing (kind: 'resource-upload') ---
-  // Zero data leakage mode for student uploads:
-  //   - college (NOT 'all') AND semester (1-6) are REQUIRED.
-  //   - Filtering happens at the DB level (WHERE college = X AND semester = Y).
-  //   - Missing/invalid target => NO notification is sent (never a broadcast).
-  const isStrictUpload = body.kind === 'resource-upload';
-  if (
-    isStrictUpload &&
-    (
-      !targetCollege || targetCollege === 'all' ||
-      targetSemester == null || Number.isNaN(targetSemester) ||
-      targetSemester < 1 || targetSemester > 6
-    )
-  ) {
-    // Fail closed: skip notification instead of falling back to a global broadcast.
-    console.warn('[send-push] resource-upload skipped: missing or invalid college/semester target.');
-    return new Response(JSON.stringify({
-      ok: true,
-      skipped: true,
-      reason: 'missing-or-invalid-target',
-      hint: 'Upload pushes require a specific college and semester (1-6).',
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
   // Subscription ki enrolled college/semester/uid target se match karni chahiye.
   // - 'all' college walon ko (jinhone college choose nahi kiya) kisi bhi college ki news milti hai.
   // - Koi filter nahi -> sab match (broadcast).
@@ -141,37 +114,18 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
   );
-  let targets: any[] = [];
-  if (isStrictUpload) {
-    // DB-level strict routing: only rows whose enrolled college AND semester
-    // exactly match the upload's target. Rows never enter this function unless
-    // they match, so students of other colleges/semesters cannot be reached.
-    const { data, error } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('college', targetCollege)
-      .eq('semester', targetSemester);
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    targets = data ?? [];
-  } else {
-    const { data: subs, error } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth, college, semester, uid, role');
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Sirf un subscriptions ko push karo jo targeting match karti hon.
-    targets = (subs ?? []).filter((sub: any) => matchUid(sub.uid) && matchCollege(sub.college) && matchSemester(sub.semester) && matchRole(sub.role));
+  const { data: subs, error } = await supabase
+    .from('push_subscriptions')
+    .select('endpoint, p256dh, auth, college, semester, uid, role');
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
+
+  // Sirf un subscriptions ko push karo jo targeting match karti hon.
+  const targets = (subs ?? []).filter((sub: any) => matchUid(sub.uid) && matchCollege(sub.college) && matchSemester(sub.semester) && matchRole(sub.role));
 
   const payload = JSON.stringify({
     title: typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 80) : 'BCAPrime',

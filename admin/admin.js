@@ -311,10 +311,19 @@ async function bulkUpdateStatus(status) {
     if (newlyApproved.length === 1) {
       notifyResourceApproved(newlyApproved[0]);
     } else {
-      // Strict targeted routing: send one targeted push PER approved resource.
-      // Each push reaches only that resource's college + semester subscribers.
-      // Items missing a specific college/semester are skipped — never broadcast.
-      newlyApproved.forEach(item => notifyResourceApproved(item));
+            // Bulk: if all share the same college + semester, target only those; otherwise broadcast to all.
+      const colleges = [...new Set(newlyApproved.map(i => i.college ? String(i.college) : 'all'))];
+      const sems = [...new Set(newlyApproved.map(i => i.sem != null ? Number(i.sem) : null))];
+      const target = {
+        college: colleges.length === 1 ? colleges[0] : null,
+        semester: sems.length === 1 ? sems[0] : null
+      };
+      sendPushBroadcast(
+        `${newlyApproved.length} new materials available! 📚`,
+        'Fresh notes & PYQs were just approved on BCAPrime — open the library to grab them.',
+        'resource-approved',
+        target
+      );
     }
   }
 }
@@ -350,10 +359,9 @@ async function sendPushBroadcast(title, body, tag, target) {
   }
   try {
     const payload = { title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET };
-        // Optional targeting (college + semester + kind) — when provided, only matching users get the push.
+        // Optional targeting (college + semester) — when provided, only matching users get the push.
     if (target && target.college) payload.college = target.college;
     if (target && target.semester != null) payload.semester = Number(target.semester);
-    if (target && target.kind) payload.kind = target.kind;
     const response = await fetch(SEND_PUSH_FUNCTION_URL, {
       method: 'POST',
       headers: {
@@ -377,20 +385,11 @@ async function sendPushBroadcast(title, body, tag, target) {
 }
 
 function notifyResourceApproved(item) {
-  /* Strict targeted routing for upload notifications:
-     Only subscribed students of the SAME college AND the SAME semester receive
-     this push. If the upload is missing a specific college or semester, the
-     notification is skipped — it must NEVER fall back to a global broadcast. */
-  const college = item.college && item.college !== 'all' ? String(item.college) : null;
-  const sem = item.sem != null && !Number.isNaN(Number(item.sem)) && Number(item.sem) >= 1 && Number(item.sem) <= 6 ? Number(item.sem) : null;
-  if (!college || !sem) {
-    console.warn('[notify] Skipped push for "' + (item.title || 'resource') + '": no specific college/semester target (broadcast not allowed).');
-    return Promise.resolve(false);
-  }
-  const collegeLabel = collegeNames[college] || college;
+  const college = collegeNames[item.college] || item.college || 'all colleges';
   const title = item.type === 'pyq' ? 'New PYQ available! 📝' : 'New notes available! 📚';
-  const body = `${item.title} — Semester ${sem}, ${collegeLabel}. Open BCAPrime to download.`;
-  return sendPushBroadcast(title, body, 'resource-approved', { college, semester: sem, kind: 'resource-upload' });
+  const body = `${item.title} — Semester ${item.sem}, ${college}. Open BCAPrime to download.`;
+    // Targeting: only subscribed users matching this college + semester receive it.
+  return sendPushBroadcast(title, body, 'resource-approved', { college: item.college || 'all', semester: item.sem != null ? Number(item.sem) : null });
 }
 
 async function handleNotifyFormSubmit(event) {
