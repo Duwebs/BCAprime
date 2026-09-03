@@ -104,10 +104,10 @@ Deno.serve(async (req) => {
       });
     }
     const subjectText = req.subject || 'your material';
-    const kindLabel = body.kind === 'upload' ? 'upload kar diya gaya hai ✅' : 'poori kar di gayi hai 🤝';
+    const kindLabel = body.kind === 'upload' ? 'has been uploaded ✅' : 'has been fulfilled 🤝';
     const payload = JSON.stringify({
       title: '🎓 Your request is ready!',
-      body: `"${subjectText}" ${kindLabel} Library mein check karo.`,
+      body: `"${subjectText}" ${kindLabel} Check the Library.`,
       url: '/index.html',
       tag: `junior-fulfilled-${requestId}`,
       requireInteraction: true,
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
   const semLabel = `Semester ${reqRow.semester}`;
   const payload = JSON.stringify({
     title: `📩 ${reqRow.requester_name || 'A junior'} needs ${typeLabel}`,
-    body: `${semLabel} — "${subjectText}". 1 min laga ke help kar do. Tap to help 🤝`,
+    body: `${semLabel} — "${subjectText}". Take a minute to help out. Tap to help 🤝`,
     url: '/index.html',
     tag: `senior-request-${requestId}`,
     icon: '/assets/logo.png',

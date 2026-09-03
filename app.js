@@ -302,7 +302,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(input){input.value='';input.blur()}
       renderSubjectFilter();
       render();
-      toast(ok?('"'+name+'" submitted ✉️ Admin approve karega tab ye yahan dikhega'):('Could not submit "'+name+'". Please try again.'));
+      toast(ok?('"'+name+'" submitted ✉️ It will appear here once an admin approves it'):('Could not submit "'+name+'". Please try again.'));
     }
     let pendingSubject='';
     function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
@@ -364,17 +364,17 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function updateFbCount(value){const counter=$('fbCount');if(counter)counter.textContent=String(value.length)+'/1000'}
     async function submitFeedback(event){
       event.preventDefault();
-      if(!accountSession){toast('Feedback bhejne ke liye login karo');return}
+      if(!accountSession){toast('Please log in to send feedback');return}
       const form=event.target;
       const message=form.querySelector('textarea[name="message"]').value.trim();
-      if(message.length<5){toast('Thoda detail likho please');return}
+      if(message.length<5){toast('Please add a little more detail');return}
       const btn=form.querySelector('button[type="submit"]');
       btn.disabled=true;btn.textContent='Sending…';
       try{
         let screenshotUrl=null;
         const file=$('feedbackFile').files[0];
         if(file){
-          if(file.size>5*1024*1024)throw new Error('Screenshot 5MB se chota hona chahiye');
+          if(file.size>5*1024*1024)throw new Error('The screenshot must be smaller than 5 MB');
           const ext=(file.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
           const path='fb-'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
           const {error:upErr}=await supabaseClient.storage.from('feedback').upload(path,file);
@@ -601,8 +601,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       devicePollTimer=setInterval(async()=>{
         try{
           const {data}=await supabaseClient.from('device_sessions').select('status').eq('uid',uid).eq('device_id',devId).maybeSingle();
-          if(data&&data.status==='approved'){stopDevicePolling();modal.classList.remove('open');toast('Is device ka login approve ho gaya ✓')}
-          else if(data&&data.status==='denied'){stopDevicePolling();modal.classList.remove('open');toast('Device request deny ho gaya')}
+          if(data&&data.status==='approved'){stopDevicePolling();modal.classList.remove('open');toast('This device has been approved ✓')}
+          else if(data&&data.status==='denied'){stopDevicePolling();modal.classList.remove('open');toast('Device request denied')}
         }catch(e){}
       },3000);
     }
@@ -626,7 +626,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           const req=data[0];
           if(currentRequestId!==String(req.id)){
             currentRequestId=String(req.id);
-            const nm=$('deviceReqName');if(nm)nm.textContent=req.device_name||'naya device';
+            const nm=$('deviceReqName');if(nm)nm.textContent=req.device_name||'a new device';
             const cd=$('deviceReqCode');if(cd)cd.textContent=req.link_code||'----';
             const bd=$('deviceReqId');if(bd)bd.value=String(req.id);
             const b=$('deviceRequestBanner');if(b)b.classList.add('show');
@@ -638,7 +638,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function approveDeviceReq(){
       const id=$('deviceReqId');if(!id||!id.value)return;
       try{await supabaseClient.from('device_sessions').update({status:'approved',approved_at:new Date().toISOString()}).eq('id',id.value)}catch(e){}
-      hideDeviceRequestBanner();currentRequestId=null;toast('Naya device approve ho gaya ✅');
+      hideDeviceRequestBanner();currentRequestId=null;toast('New device approved ✅');
     }
     async function denyDeviceReq(){
       const id=$('deviceReqId');if(!id||!id.value)return;
@@ -668,7 +668,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     async function startQrSession(){
       stopQrSession();
-      if(!supabaseClient){const st0=$('qrStatus');if(st0)st0.textContent='QR login ke liye connection nahi ban paya.';return}
+      if(!supabaseClient){const st0=$('qrStatus');if(st0)st0.textContent='Could not connect for QR login.';return}
       try{supabaseClient.from('qr_login_sessions').delete().lt('expires_at',new Date().toISOString()).then(()=>{},()=>{})}catch(e){}
       const id=newQrId();
       try{await supabaseClient.from('qr_login_sessions').insert({session_id:id,status:'pending',expires_at:new Date(Date.now()+QR_TTL_MS).toISOString()})}catch(e){}
@@ -678,7 +678,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const box=$('qrBox');if(box)box.innerHTML='';
       const okLib=await loadQrLib();
       if(okLib&&window.QRCode&&box){try{new window.QRCode(box,{text:payload,width:188,height:188,colorDark:'#101216',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M})}catch(e){console.error('QRCode render error:',e);if(box)box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">QR code error — phone par ye link kholo: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}}
-      else if(box){box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">QR library load nahi hua — phone par ye link kholo: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}
+      else if(box){box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">The QR library failed to load — open this link on your phone: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}
       setQrUi('waiting');
       try{
         const ch=supabaseClient.channel('qr-'+id,{config:{broadcast:{self:false}}});
@@ -716,7 +716,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const p=document.querySelector('.auth-qr-panel');
       if(p){p.classList.remove('is-waiting','is-expired','is-success','is-denied');p.classList.add('is-'+state)}
       const st=$('qrStatus');
-      if(st)st.textContent=state==='waiting'?'Phone se scan karo — login turant ho jayega':state==='success'?'Login approved! Desk khul raha hai…':state==='expired'?'Code expire ho gaya — Refresh dabao':state==='denied'?'Request deny ho gayi':'';
+      if(st)st.textContent=state==='waiting'?'Scan with your phone — you will be signed in instantly':state==='success'?'Login approved! Opening your dashboard…':state==='expired'?'Code expired — tap Refresh':state==='denied'?'Request denied':'';
       const rf=$('qrRefresh');if(rf)rf.hidden=state!=='expired';
     }
     function qrExpire(){setQrUi('expired')}
@@ -828,7 +828,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const m=$('qrApproveModal');if(m)m.classList.add('open');
       }else{
         sessionStorage.setItem('bca-pending-qr',id);
-        const g=$('gateAccountMessage');if(g)g.textContent='Computer login approve karne ke liye pehle is phone par login karo.';
+        const g=$('gateAccountMessage');if(g)g.textContent='Please log in on this phone first to approve the computer login.';
       }
     }
     async function confirmQrLogin(){
@@ -843,9 +843,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       /* NOTE: agar live DB me SELECT policy missing hai to row null ayega —
          hum yahin rukte nahi, approve + broadcast aage karte hain (fallback). */
       if(!rowErr&&row){
-        if(row.status==='denied'){if(msg)msg.textContent='Ye request deny ho chuki hai — computer par naya code generate karo.';return}
-        if(row.consumed_at){if(msg)msg.textContent='Ye code already use ho chuka hai — computer par naya code scan karo.';return}
-        if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='Code expire ho gaya — computer par naya QR aya hai, usse dobara scan karo.';return}
+        if(row.status==='denied'){if(msg)msg.textContent='This request was denied — generate a new code on the computer.';return}
+        if(row.consumed_at){if(msg)msg.textContent='This code has already been used — scan the new code shown on the computer.';return}
+        if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='The code has expired — a new QR code is shown on the computer, please scan it again.';return}
       }else if(rowErr){
         console.warn('[qr-login] phone-side select fail (SELECT policy?), fallback to broadcast:',rowErr);
       }
@@ -861,9 +861,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(av&&av.length<=150000)acct.avatar=av; /* chhota avatar hi bhejo (payload limit) */
       }catch(e){}
       const {error}=await supabaseClient.from('qr_login_sessions').update(dbUpdate).eq('session_id',id);
-      if(error){console.error('[qr-login] approve update fail:',error);if(msg)msg.textContent='Approve nahi ho paya — shayad computer band ho gaya.';return}
+      if(error){console.error('[qr-login] approve update fail:',error);if(msg)msg.textContent='Could not approve — the computer may have gone offline.';return}
       sendQrBroadcast(id,'LOGIN_SUCCESS',acct);
-      if(msg)msg.textContent='Approved ✅ Computer me login ho gaya.';
+      if(msg)msg.textContent='Approved ✅ The computer has been signed in.';
       setTimeout(()=>{const m=$('qrApproveModal');if(m)m.classList.remove('open');sessionStorage.removeItem('bca-active-qr')},1600);
     }
     async function denyQrLogin(){
@@ -916,19 +916,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       hideProfileCard();
       closeModals();
       modal.classList.add('open');
-      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(msg)msg.textContent='Is browser me camera support nahi hai — phone ka default camera app use karo.';return}
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(msg)msg.textContent='This browser does not support the camera — please use your phone\'s default camera app instead.';return}
       try{
         qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
       }catch(err){
         console.warn('[qr-scan] camera error:',err);
-        if(msg)msg.textContent='Camera nahi khul paya — permission do ya phone ke camera app se scan karo.';
+        if(msg)msg.textContent='Could not open the camera — please grant permission, or scan using your phone\'s camera app.';
         return;
       }
       const video=document.getElementById('qrScanVideo');
       if(!video){stopQrScannerCamera();return}
       video.srcObject=qrScanStream;
       try{await video.play()}catch(e){}
-      if(msg)msg.textContent='QR code camera me dikhao…';
+      if(msg)msg.textContent='Point the camera at the QR code…';
       /* Native BarcodeDetector pehle (fast), warna jsQR canvas par */
       let detector=null;
       try{if('BarcodeDetector' in window){detector=new window.BarcodeDetector({formats:['qr_code']})}}catch(e){}
@@ -956,7 +956,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
               done=true;
               stopQrScannerCamera();
               modal.classList.remove('open');
-              toast('QR scan ho gaya ✓');
+              toast('QR code scanned ✓');
               maybePromptQrApproval(id);
             }
           }
@@ -1205,7 +1205,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploader:accountSession?getUserName(accountSession):'Anonymous',uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
       let existing=null;
       try{existing=await findExistingUpload(payload)}catch(error){}
-      if(existing){toast('Duplicate! Ye material pehle se upload ho chuka hai ('+existing.status+')');return}
+      if(existing){toast('Duplicate! This material has already been uploaded ('+existing.status+')');return}
       if(isLocalDuplicate(payload)){toast('Duplicate! Ye material aapne pehle hi submit kiya hai — review mein hai');return}
       /* ---- Classify files: images vs other ---- */
       const classified=window.classifyUploadFiles?window.classifyUploadFiles(allFiles):{images:[],others:allFiles};
@@ -1273,7 +1273,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const overlay=$('uploadSuccess');
       if(!overlay){toast('Uploaded for review');return}
       const text=$('uploadSuccessText');
-      if(text)text.textContent=(kind==='pyq'?'Aapka PYQ':'Aapke notes')+' successfully upload ho gaye hain!';
+      if(text)text.textContent=kind==='pyq'?'Your PYQ has been uploaded successfully!':'Your notes have been uploaded successfully!';
       // Restart animations on every upload
       overlay.classList.remove('open');
       void overlay.offsetWidth;
@@ -1483,12 +1483,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           fetch(src).then(r=>{if(!r.ok)throw new Error('fetch failed');return r.arrayBuffer()})
             .then(buf=>window.mammoth.convertToHtml({arrayBuffer:buf}))
             .then(res=>{docxPane.innerHTML=res.value||'<p class="docx-error">This document appears to be empty.</p>';applyReaderZoom()})
-            .catch(()=>{docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-triangle-exclamation"></i> Is document ko app ke andar khol nahi paye. Download karke dekhein.</p>'});
+            .catch(()=>{docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-triangle-exclamation"></i> This document could not be opened in the app. Download it to view it.</p>'});
         }
       }else if(isOldDoc||isDocx){
         /* Legacy .doc (or Mammoth unavailable): cannot render inline — guide to download. */
         if(frm){frm.hidden=true;frm.src='about:blank'}
-        if(docxPane){docxPane.hidden=false;docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-file-word"></i> Purane .doc format ki file app ke andar nahi khulti. Download karke MS Word me dekhein.</p>'}
+        if(docxPane){docxPane.hidden=false;docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-file-word"></i> Files in the older .doc format cannot be opened in the app. Download the file and open it in MS Word.</p>'}
       }else{
         if(docxPane){docxPane.hidden=true;docxPane.innerHTML=''}
         if(frm){frm.hidden=false;frm.src=inlineSrc}
@@ -1512,7 +1512,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function canRequestSenior(){return mySemNumber()>=1&&mySemNumber()<=5}
     function openSeniorRequest(){
       if(!accountSession){requireAccount('Log in to ask your seniors for notes/PYQs.','feedback');return}
-      if(!canRequestSenior()){toast('You\'re in the final semester — koi senior nahi. Aap juniors ko help kar sakte hain!');return}
+      if(!canRequestSenior()){toast('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');return}
       const rg=$('srRange');if(rg)rg.textContent=String(mySemNumber()+1)+'–6';
       $('srSubject').value='';$('srMessage').value='';
       const t=document.querySelector('.sr-type.active');if(t){t.classList.remove('active')}
@@ -1524,10 +1524,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function submitSeniorRequest(event){
       event.preventDefault();
       if(!accountSession){requireAccount('Log in to ask your seniors.','feedback');return}
-      const sem=mySemNumber();if(!canRequestSenior()){toast('Semester 6 wale senior nahi maang sakte');return}
+      const sem=mySemNumber();if(!canRequestSenior()){toast('Final-semester students cannot request material from seniors');return}
       const subject=$('srSubject').value.trim();
       const message=$('srMessage').value.trim();
-      if(!subject){toast('Subject/notes name likho');return}
+      if(!subject){toast('Please enter the subject or notes name');return}
       const typeBtn=document.querySelector('.sr-type.active')||document.querySelector('.sr-type');
       const type=typeBtn?typeBtn.dataset.type:'notes';
       const btn=$('srSubmit');if(btn){btn.disabled=true;btn.textContent='Sending…'}
@@ -1570,7 +1570,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const mine=(data||[]).filter(r=>myCollegeKey()==='all'||r.college==='all'||r.college===myCollegeKey());
         const countEl=$('helpJuniorsCount');
         if(countEl)countEl.textContent=mine.length?`${mine.length} junior${mine.length===1?'':'s'}`:'';
-        if(!mine.length){listEl.innerHTML='<p class="help-empty">🎉 No junior requests right now. Jab koi junior material maangega to yahan aayega.</p>';return}
+        if(!mine.length){listEl.innerHTML='<p class="help-empty">🎉 No junior requests right now. When a junior asks for material, it will appear here.</p>';return}
         listEl.innerHTML=mine.map(r=>{
           helpJuniorCache[r.id]=r;
           const semLabel='Semester '+r.semester;
