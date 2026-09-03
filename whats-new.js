@@ -11,16 +11,17 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "2.8.0";
+const CURRENT_APP_VERSION = "2.9.0";
 
 const LATEST_RELEASE = {
-  version: "2.8.0",
+  version: "2.9.0",
   date: "September 2026",
-  title: "Updates That Greet You",
-  subtitle: "Your name, your update — release notes just got personal.",
+  title: "A Cleaner, Clearer Experience",
+  subtitle: "Every message is now in polished English — plus a signup safety fix.",
   features: [
-    { type: "new",     title: "Personalized Greetings", desc: "Updates now greet you by name — a warmer way to see what's changed." },
-    { type: "improved",title: "Cleaner Update Design", desc: "The update screen is tidier and easier to read, with nothing in the way." }
+    { type: "improved", title: "Fully Professional English UI", desc: "All toasts, alerts, and notifications across the app — including QR login, uploads, and senior help — now use clear, professional English." },
+    { type: "improved", title: "Clearer Push Notifications", desc: "Notifications for senior requests and fulfilled material have been rewritten in friendly, easy-to-read English." },
+    { type: "fix",     title: "Duplicate Usernames Blocked", desc: "Usernames are now checked when you sign up, so two students can no longer claim the same one." }
   ]
 };
 
