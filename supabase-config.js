@@ -41,6 +41,6 @@ const SEND_PUSH_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-push';
    3. Credentials -> OAuth Client ID (Web) -> authorized JS origins:
       https://bcaprime.vercel.app, http://localhost:3000
    Dono values fill karo, phir "Import from Google Drive" button kaam karega. */
-const GOOGLE_CLIENT_ID = ''; // e.g. '1234567890-abc.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = '704120025863-2h9f2stg4k9makenvqvv6fq8sufj6tju.apps.googleusercontent.com';
 const GOOGLE_API_KEY = '';   // e.g. 'AIzaSy...'
 
