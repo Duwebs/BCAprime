@@ -27,7 +27,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       loadCloudResources();
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
     }
-    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#05080b':'#f6f4f0'}
+    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark')}
     function render(){const q=state.query.toLowerCase();const list=resources.filter(r=>{
         const matchSaved = !state.savedOnly || state.saved.includes(r.title.replace(/\W/g,''));
