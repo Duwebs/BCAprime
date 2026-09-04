@@ -1340,3 +1340,26 @@ html.auth-known #appTabs{display:grid!important}
 .field-hint{display:block;margin-top:4px;font-size:12px;color:var(--muted)}
 .field-hint.good{color:#2f9e60;font-weight:600}
 .field-hint.bad{color:#e5484d;font-weight:600}
+
+.field-hint.bad{color:#e5484d;font-weight:600}
+
+/* ============================================================
+   BCAPrime — Native app (APK-like) feel
+   ============================================================ */
+/* 1. No browser rubber-band / pull-to-refresh bounce */
+html,body{overscroll-behavior:none;-webkit-overflow-scrolling:touch}
+/* 2. App chrome behaves like native: no accidental text selection,
+      content stays selectable */
+body{user-select:none;-webkit-user-select:none}
+input,textarea,select,.resource-card p,.preview-fallback,.wn-item-copy span,pre,code,.field-hint{user-select:text;-webkit-user-select:text}
+/* 3. Instant, native-like tap feedback (press scale) on interactive elements */
+button,a,.chip,.semester,.bottom-tabs a,.topbar-avatar,.close,.college-option{transition:transform .12s ease,opacity .12s ease}
+button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topbar-avatar:active,.close:active,.college-option:active{transform:scale(.96);opacity:.85}
+/* 4. Keyboard: inputs never zoom (16px min on small screens) */
+@media(max-width:600px){input,select,textarea{font-size:16px}}
+/* 5. Momentum smooth scrolling inside app scroll areas */
+.dialog,.onboarding-dialog,.preview-frame,.profile-pop,.wn-list{scroll-behavior:smooth}
+/* 6. Standalone (installed app) polish: full-bleed topbar under status bar */
+@media(display-mode:standalone),(display-mode:fullscreen){
+  .topbar{padding-top:env(safe-area-inset-top,0px)}
+}

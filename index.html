@@ -5,7 +5,12 @@
   try{if(localStorage.getItem('bca-auth-known')==='1'||sessionStorage.getItem('bca-guest-mode')==='true'){document.documentElement.classList.add('auth-known')}}catch(e){}
   try{if(!localStorage.getItem('bca-theme-manual')){var __h=new Date().getHours(),__t=(__h>=6&&__h<18)?'light':'dark';document.documentElement.dataset.theme=__t;var __mc=document.querySelector('meta[name="theme-color"]');if(__mc)__mc.content=__t==='dark'?'#0a0a0a':'#fafafa'}}catch(e){}</script>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BCAPrime">
+  <meta name="application-name" content="BCAPrime">
   <title>BCAPrime | BCA study library</title>
   <meta name="description" content="Find BCA notes and previous year papers by college and semester. Free BCA study material — notes, PYQs, PrimeFinder and more.">
   <link rel="canonical" href="https://bcaprime.vercel.app/">
@@ -25,7 +30,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="styles.css?v=42">
+  <link rel="stylesheet" href="tailwind.css?v=1">
+  <link rel="stylesheet" href="styles.css?v=43">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
