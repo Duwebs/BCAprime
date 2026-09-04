@@ -27,7 +27,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       loadCloudResources();
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
     }
-    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon'}
+    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#05080b':'#f6f4f0'}
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark')}
     function render(){const q=state.query.toLowerCase();const list=resources.filter(r=>{
         const matchSaved = !state.savedOnly || state.saved.includes(r.title.replace(/\W/g,''));
@@ -165,6 +165,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       reader.readAsDataURL(file);
     }
     function resetPreferences(){
+      if(!confirm('Reset all preferences? This clears saved items, your uploads list, college and theme on this device.'))return;
       const keys=['bca-onboarded','bca-tour-seen','bca-college','bca-sem','bca-year','bca-saved','bca-custom-colleges','bca-uploads','bca-theme'];
       keys.forEach(key=>localStorage.removeItem(key));
       location.reload();
