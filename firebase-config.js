@@ -7,6 +7,12 @@
 // 3. Enable Email/Password (and optionally Google, Apple) under Authentication > Sign-in method.
 // 4. Add your site domain (e.g. bcaprime.vercel.app) under Authentication > Authorized domains.
 // 5. Save, reload index.html, and login/signup will use Firebase.
+//
+// Troubleshooting: "This domain is not authorized for OAuth operations"
+// (auth/unauthorized-domain) means the hostname the page is opened on is not
+// in the Authorized domains list. Open the app at http://localhost:PORT rather
+// than http://127.0.0.1:PORT or a LAN IP, and for any custom/preview domain
+// add its bare hostname in Authentication > Settings > Authorized domains.
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyCFYgD5VBIw0YEAkMhRcIV2VVQQGSN7xWs',

@@ -13,8 +13,10 @@ The student app, `index.html`, uses **Firebase Authentication** for login/signup
 2. Go to **Project settings > Your apps > Web app**, register the web app, and copy the `firebaseConfig` values.
 3. Paste those values into `firebase-config.js` (replace the `YOUR_...` placeholders for `apiKey`, `authDomain`, `projectId`, `storageBucket`, `messagingSenderId`, and `appId`).
 4. In **Authentication > Sign-in method**, enable **Email/Password**, and optionally **Google** and **Apple**.
-5. In **Authentication > Settings > Authorized domains**, add the domain your app runs on (e.g. `bcaprime.vercel.app` or `localhost`).
+5. In **Authentication > Settings > Authorized domains**, add the domain your app runs on (e.g. `bcaprime.vercel.app` or `localhost`). Entries are bare hostnames (no scheme, no port). The list is pre-populated with `localhost`, so during local development always open the app as `http://localhost:5501` — do **not** use `http://127.0.0.1:5501` or a LAN IP like `192.168.x.x`, because IP addresses are not reliably accepted for OAuth operations.
 6. Reload `index.html` — login/signup now uses Firebase. While the placeholders are unfilled, the app shows “Firebase is not configured.”
+
+> **If you see “This domain is not authorized for OAuth operations” when using Google/Apple sign-in (`auth/unauthorized-domain`):** the hostname in the address bar is missing from the Authorized domains list. Fix it by (a) switching to `http://localhost:5501` when testing locally, or (b) adding your custom/preview hostname under *Authentication → Settings → Authorized domains*, or (c) using an HTTPS tunnel (e.g. ngrok/cloudflared) with its hostname added when you must test from another device.
 
 Note: The admin page (`admin.html`) keeps using Supabase auth with an admin role — it is separate from the student account.
 
