@@ -40,20 +40,6 @@
         <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" placeholder="Search notes, subjects or PYQs" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
         <div class="hero-note"><b>6</b> Semesters <i class="fa-solid fa-circle"></i> <b>2</b> Resource types <i class="fa-solid fa-circle"></i> <b>24/7</b> Study access</div>
       </div>
-      <aside class="hero-panel">
-        <div class="path-head">
-          <div><span class="path-label">Active desk</span><h3 id="pathTitle">Your Progress</h3></div>
-          <i class="fa-solid fa-bolt-lightning"></i>
-        </div>
-        <div class="progress-card">
-          <div class="progress-ring"><b>62%</b></div>
-          <div class="progress-copy"><strong>Study Readiness</strong><small id="pathCollege">Pick college & semester</small></div>
-        </div>
-        <div class="dash-actions">
-          <div class="dash-item"><i class="fa-solid fa-clock-rotate-left"></i><div><strong>Recent Activity</strong><small>Continue where you left off</small></div></div>
-          <div class="dash-item"><i class="fa-solid fa-graduation-cap"></i><div><strong>Exam Readiness</strong><small>Most relevant PYQs</small></div></div>
-        </div>
-      </aside>
     </section>
     <section class="desk-strip" aria-label="Your study desk" style="grid-template-columns:1fr 1fr"><button class="desk-card primary-desk" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[2])"><span class="desk-icon"><i class="fa-solid fa-bookmark"></i></span><span><strong>Your saved resources</strong><small id="savedSummary">Keep important notes close</small></span></button><button class="desk-card" onclick="openUpload()"><span class="desk-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span><strong>Share with students</strong><small>Upload notes or a PYQ</small></span></button></section>
 
