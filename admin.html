@@ -15,12 +15,12 @@
   </style>
 </head>
 <body>
-  <section class="auth-screen" id="authScreen"><div class="auth-card"><div class="eyebrow">BCAPrime admin</div><h1 id="authTitle">Admin login</h1><p id="authDescription">Sign in to review and publish student uploads.</p><form class="auth-form" id="authForm"><label>Email<input id="authEmail" type="email" autocomplete="email" required></label><label>Password<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="button primary" id="authSubmit" type="submit">Login</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('apple')"><i class="fa-brands fa-apple"></i> Continue with Apple</button></div><p class="auth-message" id="authMessage" aria-live="polite"></p><button class="auth-switch" id="authSwitch" type="button">Need an account? Sign up</button></div></section>
+  <section class="auth-screen" id="authScreen"><div class="auth-card"><div class="eyebrow">BCAPrime admin</div><h1 id="authTitle">Admin portal</h1><p id="authDescription">Sign in with authorized administrator credentials.</p><form class="auth-form" id="authForm"><label>Admin Email<input id="authEmail" type="email" autocomplete="email" required></label><label>Password<input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label><button class="button primary" id="authSubmit" type="submit">Secure Login</button></form><p class="auth-message" id="authMessage" aria-live="polite"></p></div></section>
   <main class="shell" id="adminShell" hidden>
     <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">B</span><span>BCA<span style="color:var(--brand)">Prime</span> Admin</span></a><div class="actions"><button class="button" onclick="toggleTheme()">Theme</button><a class="button primary" href="index.html">Open library</a><button class="button logout-button" id="logoutButton" onclick="logout()">Log out</button></div></header>
     <section class="intro"><div class="eyebrow">Content control</div><h1>Keep the library useful.</h1><p>Review shared material, manage colleges, and keep student resources tidy.</p></section>
     <section class="stats"><div class="stat"><strong id="totalCount">0</strong><span>Total uploads</span></div><div class="stat"><strong id="collegeCount">0</strong><span>Colleges represented</span></div><div class="stat"><strong id="activeCount">0</strong><span>Active resources</span></div></section>
-    <section class="panel"><div class="toolbar"><h2>Shared material</h2><div class="filters"><input class="search" id="search" placeholder="Search title or college" oninput="render()"><select class="select" id="statusFilter" onchange="render()"><option value="all">All status</option><option value="pending">Needs review</option><option value="approved">Active</option><option value="rejected">Rejected</option><option value="archived">Archived</option></select></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Material</th><th>College</th><th>Semester</th><th>Status</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div><div class="note">Review pending uploads before approving them. Only approved resources appear in the student library.</div></section>
+    <section class="panel"><div class="toolbar"><h2>Shared material</h2><div class="filters"><input class="search" id="search" placeholder="Search title or college" oninput="render()"><select class="select" id="statusFilter" onchange="render()"><option value="all">All status</option><option value="pending">Needs review</option><option value="approved">Active</option><option value="rejected">Rejected</option><option value="archived">Archived</option></select></div></div><div id="bulkActions" style="display:none; gap:8px; align-items:center; margin-bottom:15px; padding:10px 14px; background:var(--surface2); border-radius:8px; border:1px solid var(--line); flex-wrap:wrap;"><span id="bulkCount" style="font-weight:700; margin-right:10px; color:var(--ink);">0 selected</span><button class="button primary" onclick="bulkUpdateStatus('approved')">Approve Selected</button><button class="button danger" onclick="bulkUpdateStatus('rejected')">Reject Selected</button><button class="button danger" onclick="bulkDelete()">Delete Selected</button></div><div class="table-wrap"><table class="table"><thead><tr><th style="width: 40px;"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th><th>Material</th><th>College</th><th>Semester</th><th>Status</th><th>Action</th></tr></thead><tbody id="rows"></tbody></table></div><div class="note">Review pending uploads before approving them. Only approved resources appear in the student library.</div></section>
   </main>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script>
     const key='bca-uploads';
@@ -31,27 +31,65 @@
     ];
     const collegeNames={all:'All colleges',ccsu:'CCSU Meerut',ipu:'GGSIPU Delhi',du:'Delhi University',aktu:'AKTU / UPTU',ignou:'IGNOU',pune:'Pune University',bangalore:'Bangalore University',other:'Other University'};
     let uploads=[];
-    let authMode='login';
+    const selectedIds=new Set();
     const $=id=>document.getElementById(id);
     function setAuthMessage(message){$('authMessage').textContent=message}
-    function setAuthMode(mode){authMode=mode;$('authTitle').textContent=mode==='login'?'Admin login':'Create admin account';$('authDescription').textContent=mode==='login'?'Sign in to review and publish student uploads.':'Create your Supabase account, then ask the project owner to assign admin access.';$('authSubmit').textContent=mode==='login'?'Login':'Sign up';$('authSwitch').textContent=mode==='login'?'Need an account? Sign up':'Already have an account? Login';setAuthMessage('')}
-    async function signInWithProvider(provider){if(!supabaseClient){setAuthMessage('Supabase is not configured.');return}const {error}=await supabaseClient.auth.signInWithOAuth({provider,options:{redirectTo:`${location.origin}${location.pathname}`}});if(error)setAuthMessage(error.message)}
-    async function submitAuth(event){event.preventDefault();setAuthMessage('Working...');const email=$('authEmail').value.trim();const password=$('authPassword').value;const result=authMode==='login'?await supabaseClient.auth.signInWithPassword({email,password}):await supabaseClient.auth.signUp({email,password});if(result.error){setAuthMessage(result.error.message);return}if(authMode==='signup'){setAuthMode('login');setAuthMessage('Account created. Confirm your email, then login.');return}await showAdmin(result.data.session)}
-    async function showAdmin(session){const role=session?.user?.app_metadata?.role;if(role!=='admin'){await supabaseClient.auth.signOut();setAuthMessage('This account is not an admin account yet. Set app_metadata.role to admin in Supabase, then login again.');return}$('authScreen').hidden=true;$('adminShell').hidden=false;$('logoutButton').style.display='inline-block';load()}
-    async function logout(){await supabaseClient.auth.signOut();$('adminShell').hidden=true;$('authScreen').hidden=false;$('logoutButton').style.display='none';setAuthMessage('Logged out');setAuthMode('login')}
-    function normalizeItem(item){return {id:item.id||item.fileName||item.title, title:item.title, type:item.type, sem:item.sem || item.semester || 1, year:item.year || 1, subject:item.subject || 'Community upload', college:item.college || 'all', fileName:item.fileName || item.file_name || 'resource', fileUrl:item.fileUrl || item.file_url || item.fileData || '', status:item.status || 'approved'}}
-    function seedDemoUploads(){const stored=JSON.parse(localStorage.getItem(key)||'[]');if(!stored.length){localStorage.setItem(key,JSON.stringify(demoUploads));}}
-    async function load(){seedDemoUploads();uploads=JSON.parse(localStorage.getItem(key)||'[]').filter(item=>item.type==='notes'||item.type==='pyq').map(normalizeItem);if(!supabaseClient){console.info('Supabase admin data unavailable until schema is added.');render();return;}try{const {data,error}=await supabaseClient.from('resources').select('*').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>normalizeItem({id:item.id,title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,status:item.status}));const existing=new Set(uploads.map(item=>`${item.title}-${item.college}-${item.sem}`));uploads=[...uploads,...cloud.filter(item=>!existing.has(`${item.title}-${item.college}-${item.sem}`))]}catch(error){console.info('Supabase admin data unavailable until schema is added.',error.message)}render()}
-    function render(){const query=$('search').value.trim().toLowerCase();const status=$('statusFilter').value;const visible=uploads.filter(item=>(status==='all'||(item.status||'approved')===status)&&(`${item.title} ${collegeNames[item.college]||item.college||''}`.toLowerCase().includes(query)));$('totalCount').textContent=uploads.length;$('collegeCount').textContent=new Set(uploads.map(item=>item.college||'all')).size;$('activeCount').textContent=uploads.filter(item=>(item.status||'approved')==='approved').length;$('rows').innerHTML=visible.length?visible.map(row).join(''):`<tr><td colspan="5"><div class="empty">No uploads match this filter.</div></td></tr>`}
-    function row(item){const status=item.status||'pending';const itemId=item.id;const label={pending:'Needs review',approved:'Active',rejected:'Rejected',archived:'Archived'}[status]||status;const actions=status==='pending'?`<button class="button primary" onclick="updateStatus('${itemId}','approved')">Approve</button><button class="button danger" onclick="updateStatus('${itemId}','rejected')">Reject</button>`:status==='approved'?`<button class="button" onclick="updateStatus('${itemId}','archived')">Archive</button>`:status==='rejected'||status==='archived'?`<button class="button" onclick="updateStatus('${itemId}','approved')">Restore</button>`:'';const fileAction=item.fileUrl?`<a class="button" href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Review file</a>`:'';return `<tr><td><strong>${escapeHtml(item.title)}</strong><small>${item.type==='pyq'?'Past paper':'Notes'} · ${escapeHtml(item.fileName||'No file')}</small></td><td>${escapeHtml(collegeNames[item.college]||item.college||'All colleges')}</td><td>Semester ${item.sem}</td><td><span class="badge ${status!=='approved'?'archived':''}">${label}</span></td><td><div class="row-actions">${fileAction}${actions}<button class="button danger" onclick="removeUpload('${itemId}')">Delete</button></div></td></tr>`}
-    function escapeHtml(value){return String(value).replace(/[&<>"']/g,character=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[character]))}
-    function save(){localStorage.setItem(key,JSON.stringify(uploads));render()}
-    async function updateStatus(id,status){const item=uploads.find(upload=>String(upload.id)===String(id));if(!item){return;}if(supabaseClient && typeof item.id === 'number'){try{const {error}=await supabaseClient.from('resources').update({status}).eq('id',item.id);if(error)throw error;item.status=status;save();return;}catch(error){console.info('Cloud status update failed',error.message)}}item.status=status;save();}
-    async function removeUpload(id){const item=uploads.find(upload=>String(upload.id)===String(id));if(!item){return;}if(!confirm('Delete this upload?'))return;if(supabaseClient && typeof item.id === 'number'){try{await supabaseClient.from('resources').delete().eq('id', item.id);}catch(error){console.info('Cloud delete failed',error.message)}}uploads=uploads.filter(upload=>String(upload.id)!==String(id));save();}
-    function toggleTheme(){const root=document.documentElement;root.dataset.theme=root.dataset.theme==='dark'?'light':'dark';localStorage.setItem('bca-theme',root.dataset.theme)}
+    async function submitAuth(event){
+      event.preventDefault();
+      setAuthMessage('Authenticating...');
+      const email=$('authEmail').value.trim();
+      const password=$('authPassword').value;
+      
+      // Temporary direct admin bypass
+      if(email === 'admin@bcaprime' && password === '8662863787dsDS*#@bcaprime'){
+        sessionStorage.setItem('bca-direct-admin', 'true');
+        showDirectAdmin();
+        return;
+      }
+
+      if(!supabaseClient){setAuthMessage('Supabase is not configured.');return}
+      const result=await supabaseClient.auth.signInWithPassword({email,password});
+      if(result.error){setAuthMessage(result.error.message);return}
+      await showAdmin(result.data.session)
+    }
+
+    function showDirectAdmin(){
+      $('authScreen').hidden=true;
+      $('adminShell').hidden=false;
+      $('logoutButton').style.display='inline-block';
+      load();
+    }
+    async function showAdmin(session){const role=session?.user?.app_metadata?.role;if(role!=='admin'){await supabaseClient.auth.signOut();setAuthMessage('Access denied: This account does not have admin privileges.');return}$('authScreen').hidden=true;$('adminShell').hidden=false;$('logoutButton').style.display='inline-block';load()}
+    async function logout(){
+      if(sessionStorage.getItem('bca-direct-admin')==='true'){
+        sessionStorage.removeItem('bca-direct-admin');
+        $('adminShell').hidden=true;
+        $('authScreen').hidden=false;
+        $('logoutButton').style.display='none';
+        setAuthMessage('Logged out');
+        $('authForm').reset();
+        return;
+      }
+      if(supabaseClient) await supabaseClient.auth.signOut();
+      $('adminShell').hidden=true;
+      $('authScreen').hidden=false;
+      $('logoutButton').style.display='none';
+      setAuthMessage('Logged out');
+      $('authForm').reset()
+    }
+    
+    // ...existing code...
     document.documentElement.dataset.theme=localStorage.getItem('bca-theme')||'dark';
-    $('authForm').addEventListener('submit',submitAuth);$('authSwitch').addEventListener('click',()=>setAuthMode(authMode==='login'?'signup':'login'));
-    async function initAuth(){if(!supabaseClient){setAuthMessage('Supabase is not configured.');return}const {data}=await supabaseClient.auth.getSession();if(data.session)await showAdmin(data.session)}
+    $('authForm').addEventListener('submit',submitAuth);
+    async function initAuth(){
+      if(sessionStorage.getItem('bca-direct-admin')==='true'){
+        showDirectAdmin();
+        return;
+      }
+      if(!supabaseClient){setAuthMessage('Supabase is not configured.');return}
+      const {data}=await supabaseClient.auth.getSession();
+      if(data.session)await showAdmin(data.session)
+    }
     initAuth();
   </script>
 </body>
