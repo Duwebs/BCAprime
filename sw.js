@@ -2,8 +2,11 @@ const CACHE_NAME = 'bcaprime-v1';
 const APP_SHELL = [
   './',
   './index.html',
+  './styles.css',
+  './app.js',
   './manifest.webmanifest',
   './firebase-config.js',
+  './supabase-config.js',
   './assets/logo.png'
 ];
 
