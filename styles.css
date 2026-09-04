@@ -424,7 +424,7 @@ html.auth-known #appTabs{display:grid!important}
       .chip{flex:1 1 auto;text-align:center}
       .eyebrow,.onboarding-kicker,.tour-kicker{font-size:11px}
       .section-head h2{font-size:21px}
-      .resource h3{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .resource h3{display:-webkit-box;line-clamp:2;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
       .close{width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center}
       .preview-open{justify-content:center}
       .footer{font-size:12px}
