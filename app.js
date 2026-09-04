@@ -55,7 +55,7 @@ const colleges=[['all','All Colleges'],['ccsu','CCSU Meerut'],['du','Delhi Unive
       if(button) button.classList.add('active');
       if(tab==='profile'){state.savedOnly=false;openProfile();return}
       state.savedOnly=tab==='saved';
-      if(tab==='semesters')$('semesterGrid').scrollIntoView({behavior:'smooth',block:'start'});
+      if(tab==='semesters'){const grid=$('semesterGrid');if(grid)grid.scrollIntoView({behavior:'smooth',block:'start'});else $('library').scrollIntoView({behavior:'smooth',block:'start'});}
       else if(tab==='saved')$('resources').scrollIntoView({behavior:'smooth',block:'start'});
       else $('library').scrollIntoView({behavior:'smooth',block:'start'});
       render();
