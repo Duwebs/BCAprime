@@ -29,7 +29,13 @@
         <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
         <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
         <button class="primary" onclick="openUpload()"><i class="fa-solid fa-plus"></i> Upload</button>
+        <button class="topbar-avatar" id="topbarAvatarBtn" onclick="toggleProfileCard(event)" aria-label="Open profile card" title="Your profile"><img id="topbarAvatar" alt="Profile"></button>
       </nav>
+      <div class="profile-pop" id="profilePop" hidden>
+        <div class="profile-pop-head"><img id="popAvatar" alt="Profile photo"><div class="profile-pop-copy"><strong id="popName">Guest</strong><small id="popMail">Browsing as guest</small></div></div>
+        <div class="profile-pop-meta"><span><i class="fa-solid fa-building-columns"></i>College<b id="popCollege">All Colleges</b></span><span><i class="fa-solid fa-layer-group"></i>Semester<b id="popSem">All</b></span></div>
+        <button class="danger-logout" onclick="logoutFromPop()"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log out</button>
+      </div>
     </header>
 
     <section class="hero" id="top">
