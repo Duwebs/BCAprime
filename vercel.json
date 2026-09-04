@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "echo 'Static site - no build step required'",
+  "buildCommand": "npm run build:css",
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/analytics", "destination": "/analytics/index.html" },

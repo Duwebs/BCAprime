@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>404 — Page Not Found | BCAPrime</title>
+  <title>500 — Something went wrong | BCAPrime</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,7 +16,7 @@
     body{min-height:100dvh;display:grid;place-items:center;background:radial-gradient(circle at 82% 0%,rgba(0,112,243,.10),transparent 34%),var(--bg);color:var(--ink);font-family:'Geist',system-ui,sans-serif;padding:20px}
     .card{max-width:460px;width:100%;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:40px 32px;text-align:center;box-shadow:0 8px 16px -4px rgba(0,0,0,.08)}
     .logo{width:64px;height:64px;object-fit:contain;border-radius:17px;box-shadow:0 8px 30px rgba(0,112,243,.30);margin-bottom:18px}
-    .code{font-size:64px;font-weight:700;letter-spacing:-.04em;line-height:1;background:linear-gradient(120deg,var(--brand),#7928ca);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .code{font-size:64px;font-weight:700;letter-spacing:-.04em;line-height:1;background:linear-gradient(120deg,#f5a623,#ef7d3b);-webkit-background-clip:text;background-clip:text;color:transparent}
     h1{font-size:22px;font-weight:600;margin:14px 0 8px}
     p{color:var(--muted);font-size:14px;line-height:1.65;margin-bottom:24px}
     .btns{display:grid;gap:10px}
@@ -29,15 +29,14 @@
 <body>
   <main class="card">
     <img class="logo" src="/assets/logo.png" alt="BCAPrime">
-    <div class="code">404</div>
-    <h1>Yeh page library mein nahi mila</h1>
-    <p>The page you're looking for doesn't exist, was moved, or the link is broken. Let's get you back to your notes.</p>
+    <div class="code">500</div>
+    <h1>Arre! Kuch technical dikkat aa gayi</h1>
+    <p>Our servers hit a snag — it's us, not you. Please refresh the page or try again in a few moments.</p>
     <div class="btns">
-      <a class="btn primary" href="/"><i>🏠</i> Go to Home</a>
-      <a class="btn" href="/#library">📚 Browse library</a>
+      <a class="btn primary" href="javascript:location.reload()">🔄 Refresh page</a>
+      <a class="btn" href="/">🏠 Go to Home</a>
     </div>
-    <p class="hint">bcaprime.vercel.app — free BCA notes &amp; PYQs</p>
+    <p class="hint">Problem bani rahe to support@bcaprime.com par likho</p>
   </main>
 </body>
 </html>
-
