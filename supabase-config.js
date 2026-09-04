@@ -34,3 +34,13 @@ const AUTH_API = {
 const VAPID_PUBLIC_KEY = 'BOp0K96ECGm8PnrQQL3aFNQoQAAgbeaEnUJSx16jT4D_WSkAk95OqTYn48RpxwId3tieyHC1w_JN2SYccQKyWfQ';
 const SEND_PUSH_FUNCTION_URL = SUPABASE_URL + '/functions/v1/send-push';
 
+/* ---- Google Drive Picker (upload import) ----
+   Setup (Google Cloud Console):
+   1. Enable "Google Drive API" + create an API Key (restricted to your domain).
+   2. OAuth consent screen -> add scope drive.readonly.
+   3. Credentials -> OAuth Client ID (Web) -> authorized JS origins:
+      https://bcaprime.vercel.app, http://localhost:3000
+   Dono values fill karo, phir "Import from Google Drive" button kaam karega. */
+const GOOGLE_CLIENT_ID = ''; // e.g. '1234567890-abc.apps.googleusercontent.com'
+const GOOGLE_API_KEY = '';   // e.g. 'AIzaSy...'
+

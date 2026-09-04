@@ -1343,6 +1343,11 @@ html.auth-known #appTabs{display:grid!important}
 
 .field-hint.bad{color:#e5484d;font-weight:600}
 
+/* ---- Google Drive import button (upload modal) ---- */
+.drive-import-row{margin-top:-6px}
+.drive-import-btn{width:100%;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.drive-import-btn i{color:#34a853}
+
 /* ============================================================
    BCAPrime — Native app (APK-like) feel
    ============================================================ */

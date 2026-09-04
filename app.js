@@ -1057,6 +1057,119 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     window.removeUploadPhoto=removeUploadPhoto;
     window.moveUploadPhoto=moveUploadPhoto;
     window.clearUploadFiles=clearUploadFiles;
+    /* ---- Google Drive import (Picker API + drive.readonly OAuth) ----
+       User apni Drive se notes/PYQ select karta hai; file bytes Drive API
+       se fetch hoti hain aur existing upload batch (uploadFiles) mein add
+       ho jaati hain — uske baad normal submit flow (pending approval) chalta hai. */
+    const DRIVE_MIME_TYPES='application/pdf,image/jpeg,image/png,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation';
+    let driveTokenClient=null,driveAccessToken='',drivePickerLoaded=false;
+    function loadScriptOnce(src){
+      return new Promise((resolve,reject)=>{
+        const ex=document.querySelector('script[src="'+src+'"]');
+        if(ex){if(ex.dataset.loaded==='1')resolve();else ex.addEventListener('load',()=>resolve(),{once:true});return}
+        const s=document.createElement('script');s.src=src;s.async=true;
+        s.onload=()=>{s.dataset.loaded='1';resolve()};
+        s.onerror=()=>reject(new Error('Could not load '+src));
+        document.head.appendChild(s);
+      });
+    }
+    async function openDrivePicker(){
+      const clientId=(typeof GOOGLE_CLIENT_ID!=='undefined')?GOOGLE_CLIENT_ID:'';
+      const apiKey=(typeof GOOGLE_API_KEY!=='undefined')?GOOGLE_API_KEY:'';
+      if(!clientId||!apiKey){toast('Drive import abhi configured nahi hai — supabase-config.js mein GOOGLE_CLIENT_ID & GOOGLE_API_KEY bharo');return}
+      try{
+        toast('Connecting to Google Drive…');
+        await loadScriptOnce('https://apis.google.com/js/api.js');
+        if(!drivePickerLoaded){
+          await new Promise((resolve,reject)=>{gapi.load('picker',{callback:resolve,onerror:reject})});
+          drivePickerLoaded=true;
+        }
+        if(!driveTokenClient){
+          await loadScriptOnce('https://accounts.google.com/gsi/client');
+          driveTokenClient=google.accounts.oauth2.initTokenClient({
+            client_id:clientId,
+            scope:'https://www.googleapis.com/auth/drive.readonly',
+            callback:function(resp){
+              if(resp&&resp.error){toast('Google Drive permission denied ('+resp.error+')');return}
+              driveAccessToken=resp.access_token;
+              showDrivePicker(apiKey);
+            }
+          });
+        }
+        /* prompt:'' = repeated opens silently reuse the granted consent */
+        driveTokenClient.requestAccessToken({prompt:''});
+      }catch(e){
+        console.error('[BCAPrime] Drive picker error:',e);
+        toast('Google Drive import could not start. Check your connection.');
+      }
+    }
+    function showDrivePicker(apiKey){
+      const docsView=new google.picker.DocsView()
+        .setMimeTypes(DRIVE_MIME_TYPES)
+        .setIncludeFolders(true);
+      new google.picker.PickerBuilder()
+        .addView(docsView)
+        .addView(new google.picker.DocsUploadView())
+        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+        .setOAuthToken(driveAccessToken)
+        .setDeveloperKey(apiKey)
+        .setTitle('Import notes/PYQ from your Drive')
+        .setCallback(onDrivePicked)
+        .build().setVisible(true);
+    }
+    window.openDrivePicker=openDrivePicker;
+    async function onDrivePicked(data){
+      if(!data||data.action!==google.picker.Action.PICKED||!data.docs||!data.docs.length)return;
+      let imported=0;
+      showUploadProgress(true,'Importing from Google Drive…',10);
+      try{
+        for(const doc of data.docs){
+          try{
+            if(doc.mimeType&&doc.mimeType.indexOf('application/vnd.google-apps')===0){
+              toast(doc.name+' is a Google Docs file — Drive se PDF/DOCX export karke import karo');
+              continue;
+            }
+            showUploadProgress(true,'Importing '+doc.name+'…',40);
+            const res=await fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(doc.id)+'?alt=media',{
+              headers:{'Authorization':'Bearer '+driveAccessToken}
+            });
+            if(!res.ok)throw new Error('Drive fetch failed (HTTP '+res.status+') — file permission check karo');
+            const blob=await res.blob();
+            const file=new File([blob],doc.name||'drive-file',{type:doc.mimeType||blob.type||'application/octet-stream'});
+            if(addFilesToUploadBatch([file]))imported++;
+          }catch(fileErr){
+            console.error('[BCAPrime] Drive file import failed:',doc.name,fileErr);
+            toast((doc.name||'File')+' import nahi hui: '+fileErr.message);
+          }
+        }
+      }finally{
+        showUploadProgress(false,'',0);
+        toast(imported?('Imported '+imported+' file'+(imported>1?'s':'')+' from Drive ✅'):'No files imported');
+      }
+    }
+    /* Merge Drive files into the existing client-managed upload batch with the
+       same 15MB guard + badge/photo-grid rendering used by refreshUploadFiles */
+    function addFilesToUploadBatch(newFiles){
+      const MAX=15*1024*1024;
+      const existing=uploadFiles.slice();
+      let total=existing.reduce((s,f)=>s+f.size,0);
+      let addedCount=0;
+      for(const f of newFiles){
+        if(total+f.size>MAX){toast(f.name+' skipped — 15MB batch limit');continue}
+        existing.push(f);total+=f.size;addedCount++;
+      }
+      if(!addedCount)return false;
+      uploadFiles=existing;
+      let imgCount=0,docCount=0,otherCount=0;
+      for(const f of uploadFiles){const n=f.name.toLowerCase();if(/\.(jpe?g|png|webp|heic)$/i.test(n))imgCount++;else if(/\.(pdf|docx?|pptx?)$/i.test(n))docCount++;else otherCount++}
+      if(uploadFiles.length===1){$('fileName').textContent=uploadFiles[0].name}else{$('fileName').textContent=uploadFiles.length+' files selected'}
+      const badgesEl=$('uploadFileBadges');badgesEl.innerHTML='';badgesEl.hidden=false;
+      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>📸 '+imgCount+' Photo'+(imgCount>1?'s':'')+' selected <span class="upt">→</span> Will be auto-merged into 1 clean PDF</span>';
+      if(docCount>0)badgesEl.innerHTML+='<span class="upload-badge doc"><i class="fa-solid fa-file-lines"></i>'+docCount+' Document'+(docCount>1?'s':'')+'</span>';
+      if(otherCount>0)badgesEl.innerHTML+='<span class="upload-badge other"><i class="fa-solid fa-file-zipper"></i>'+otherCount+' file'+(otherCount>1?'s':'')+'</span>';
+      renderPhotoGrid();
+      return true;
+    }
     /* ---- Drag & drop support for the upload dropzone ---- */
     function bindUploadDropzone(){
       const box=document.getElementById('fileBox');
@@ -1450,6 +1563,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     /* 4) In-app PDF reader */
     let readerZoom=1;
+    let currentReaderResource=null;
     function openReader(resource){
       const src=resource.fileUrl||resource.fileData;if(!src)return;
       /* Inline-only rendering: PDF fragment params force desktop browsers to render
@@ -1462,6 +1576,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const isPptx=/\.pptx$/i.test(name)||/\.pptx(\?|#|$)/i.test(src);
       const docxPane=$('readerDocx');const frm=$('readerFrame');
       readerZoom=1;
+      currentReaderResource=resource;
       $('readerTitle').textContent=resource.title;
       $('readerOpen').href=src;
       $('readerOpen').setAttribute('download',resource.fileName||resource.title.replace(/\W+/g,'-')+'.pdf');
@@ -1500,6 +1615,35 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function applyReaderZoom(){const f=$('readerFrame');if(f&&!f.hidden)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%';const d=$('readerDocx');if(d&&!d.hidden)d.style.fontSize=Math.round(16*readerZoom)+'px'}
     function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
     function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
+    /* In-reader direct download: blob fetch + object URL, koi naya tab/redirect nahi */
+    async function downloadCurrentReaderFile(){
+      const resource=currentReaderResource;if(!resource)return;
+      const src=resource.fileUrl||resource.fileData;if(!src){toast('Download not available for this item');return}
+      const btn=$('readerDownload');if(btn)btn.disabled=true;
+      try{
+        let blob;
+        if(src.startsWith('data:')){
+          blob=await (await fetch(src)).blob();
+        }else{
+          const res=await fetch(src,{cache:'no-store'});
+          if(!res.ok)throw new Error('HTTP '+res.status);
+          blob=await res.blob();
+        }
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url;
+        a.download=resource.fileName||resource.title.replace(/[^\w]+/g,'-')+'.pdf';
+        document.body.appendChild(a);a.click();a.remove();
+        setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(e){}},4000);
+        bumpDownload(resource.title.replace(/\W/g,''));
+        toast('Download started ✅');
+      }catch(e){
+        console.error('[BCAPrime] Reader download failed:',e);
+        toast('Download failed — "Open in new tab" se try karo');
+      }finally{
+        if(btn)btn.disabled=false;
+      }
+    }
 
     /* ================= SENIOR HELP REQUESTS =================
        Juniors (sem N) apne seniors (sem N+1..6) se notes/PYQ maangte hain.
