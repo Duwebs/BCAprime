@@ -172,8 +172,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
     }
     function resetFinder(){updateSemesterOptions();$('semesterFilter').value='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
-    /* Search results aane ke baad filters reset (search query khud rehti hai) */
-    function clearSearchFilters(){resetFinder();closeSuggestions()}
+    /* Search results aane ke baad filters aur search query dono reset karo. */
+    function clearSearchFilters(){
+      const __search=$('search');
+      if(__search)__search.value='';
+      state.query='';
+      resetFinder();
+      closeSuggestions();
+    }
     let lastSearchTrack={query:'',ts:0};
     function searchResources(value){clearTimeout(__searchTimeout);__searchTimeout=setTimeout(()=>{state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count})}}catch(error){}},200)}
     /* ---- Subject filter engine ----

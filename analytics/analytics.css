@@ -156,6 +156,8 @@ body::before {
   z-index: 1;
 }
 
+.dashboard[hidden] { display: none; }
+
 /* ---- Sidebar ---- */
 .sidebar {
   width: var(--sidebar-w);
