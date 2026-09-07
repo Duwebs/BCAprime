@@ -52,7 +52,7 @@ html.auth-known #appTabs{display:grid!important}
 :root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f2f2f2;--ink:#171717;--muted:#4d4d4d;--line:#ebebeb;--brand:#0070f3;--brand-2:#d3e5ff;--good:#0070f3;--shadow:0 1px 1px rgba(0,0,0,.04);--shadow-float:0 2px 2px rgba(0,0,0,.04),0 8px 16px -4px rgba(0,0,0,.08)}
     [data-theme=dark]{--bg:#0a0a0a;--surface:#141414;--surface-2:#1c1c1c;--ink:#ededed;--muted:#a1a1a1;--line:#2e2e2e;--brand:#3291ff;--brand-2:#12233d;--good:#3291ff;--shadow:0 1px 1px rgba(0,0,0,.4);--shadow-float:0 2px 2px rgba(0,0,0,.4),0 8px 16px -4px rgba(0,0,0,.55)}
     *{box-sizing:border-box}[hidden]{display:none!important}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'Geist',sans-serif}button,input,select{font:inherit}button{cursor:pointer}a{color:inherit;text-decoration:none}
-    .app{max-width:1240px;margin:auto;padding:0 22px 48px}.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px}.brand-mark{width:35px;height:35px;display:grid;place-items:center;border-radius:10px;background:var(--brand);color:#fff;font:700 17px 'Geist'}.brand strong{font:700 20px 'Geist'}.brand em{color:var(--brand);font-style:normal}.nav-actions{display:flex;align-items:center;gap:10px}.icon-btn,.college-btn,.primary,.secondary{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px}.icon-btn{width:38px;height:38px}.college-btn{padding:9px 13px;display:flex;gap:8px;align-items:center}.college-btn i{color:var(--brand)}.primary{border-color:var(--ink);background:var(--ink);color:#fff;padding:10px 18px;font-weight:500;border-radius:9999px;box-shadow:none}.secondary{padding:10px 15px;font-weight:600;background:var(--surface-2);border-color:var(--line)}.primary:hover,.secondary:hover,.college-btn:hover,.icon-btn:hover{filter:brightness(1.06);transform:translateY(-1px)}.primary,.secondary,.college-btn,.icon-btn{transition:transform .18s ease,filter .18s ease,border-color .18s ease,box-shadow .18s ease}
+    .app{max-width:1240px;margin:auto;padding:0 22px 48px}.topbar{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}.brand{display:flex;align-items:center;gap:10px}.brand-mark{width:35px;height:35px;display:grid;place-items:center;border-radius:10px;background:var(--brand);color:#fff;font:700 17px 'Geist'}.brand strong{font:700 20px 'Geist'}.brand em{color:var(--brand);font-style:normal}.nav-actions{display:flex;align-items:center;gap:10px}.icon-btn,.college-btn,.primary,.secondary{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px}.icon-btn{width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1}.college-btn{padding:9px 13px;display:flex;gap:8px;align-items:center}.college-btn i{color:var(--brand)}.primary{border-color:var(--ink);background:var(--ink);color:#fff;padding:10px 18px;font-weight:500;border-radius:9999px;box-shadow:none}.secondary{padding:10px 15px;font-weight:600;background:var(--surface-2);border-color:var(--line)}.primary:hover,.secondary:hover,.college-btn:hover,.icon-btn:hover{filter:brightness(1.06);transform:translateY(-1px)}.primary,.secondary,.college-btn,.icon-btn{transition:transform .18s ease,filter .18s ease,border-color .18s ease,box-shadow .18s ease}
     .splash{position:fixed;inset:0;display:grid;place-items:center;background:#05080b;z-index:50;transition:opacity .45s ease,visibility .45s ease}.splash.hidden{opacity:0;visibility:hidden;pointer-events:none}.splash-inner{text-align:center;animation:splashIn .7s ease both}.splash-logo{width:92px;height:92px;object-fit:contain;border-radius:22px;box-shadow:0 0 35px rgba(0,112,243,.25)}.splash-name{margin-top:14px;color:#eef5f7;font:600 24px 'Geist'}.splash-name span{color:#0070f3}@keyframes splashIn{from{opacity:0;transform:translateY(10px) scale(.94)}to{opacity:1;transform:none}}
     .brand-logo{width:35px;height:35px;object-fit:contain;border-radius:9px}.brand-mark{display:none}
     .hero{display:grid;grid-template-columns:minmax(0,1fr);gap:34px;padding:64px 0 46px;align-items:start}.eyebrow{display:inline-flex;gap:8px;align-items:center;color:var(--brand);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}.hero h1{max-width:720px;margin:13px 0 14px;font:700 clamp(38px,5.4vw,68px)/1.02 'Geist';letter-spacing:-.04em}.hero h1 .accent{color:var(--brand)}.hero p{max-width:630px;color:var(--muted);font-size:17px;margin:0 0 24px}.hero-search{display:flex;max-width:620px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:5px;box-shadow:var(--shadow)}.hero-search i{padding:12px 10px;color:var(--brand)}.hero-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--ink);padding:0 8px}.hero-search button{border:0;border-radius:7px;background:var(--brand);color:#fff;padding:10px 15px;font-weight:700}.hero-note{display:flex;gap:18px;margin-top:22px;color:var(--muted);font-size:13px}.hero-note b{color:var(--ink);display:block;font-size:17px}.hero-panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}.hero-panel h3{margin:0 0 16px;font:600 20px 'Geist'}.mini-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-top:1px solid var(--line)}.mini-row:first-of-type{border-top:0}.mini-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:8px;background:var(--brand-2);color:var(--brand)}.mini-row small{display:block;color:var(--muted)}
@@ -118,6 +118,20 @@ html.auth-known #appTabs{display:grid!important}
     html{color-scheme:light}[data-theme=dark]{color-scheme:dark}
     body{-webkit-tap-highlight-color:transparent}
     button,a,input,select,label{touch-action:manipulation}
+
+    /* QR scanner: keep the camera surface compact on every supported viewport. */
+    .icon-btn.mobile-qr-topbar{display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1}
+    .icon-btn.mobile-qr-topbar i{display:block;line-height:1}
+    .qr-scan-dialog{width:min(100%,380px);max-width:380px;padding:18px 18px 16px;text-align:center}
+    .qr-scan-dialog .dialog-head{display:flex;align-items:center;justify-content:space-between}
+    .qr-scan-dialog h2{margin:4px 0 6px;font-size:19px}
+    .qr-scan-frame{position:relative;width:min(72vw,280px);height:min(72vw,280px);aspect-ratio:1;margin:12px auto;border-radius:16px;overflow:hidden;background:#0b0e11;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08),0 12px 28px rgba(0,0,0,.2)}
+    #qrScanVideo{width:100%;height:100%;object-fit:cover;display:block}
+    #qrScanMsg{min-height:20px;margin:0 auto 12px;max-width:32ch;font-size:13px;line-height:1.4}
+    @media(max-width:700px){
+      .qr-scan-dialog{width:min(calc(100vw - 28px),360px);max-height:calc(100dvh - 28px);padding:16px 14px 14px;border-radius:18px;overflow:auto}
+      .qr-scan-frame{width:min(72vw,270px);height:min(72vw,270px);margin:10px auto 12px}
+    }
     :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
     .hero-search input:focus-visible,.field select:focus-visible,.field input:focus-visible,.account-form input:focus-visible,.onboarding-custom input:focus-visible{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 25%,transparent)}
     .dialog,.onboarding-dialog,.preview-frame,.profile-pop{overscroll-behavior:contain}
@@ -819,14 +833,19 @@ html.auth-known #appTabs{display:grid!important}
   .pop-login i{color:#fff}
   .pop-login:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
   .pop-login[hidden],.danger-logout[hidden]{display:none}
-  .qr-scan-dialog{text-align:center;max-width:420px;width:100%}
+  .qr-scan-dialog{text-align:center;width:min(100%,380px);max-width:380px;padding:18px 18px 16px}
   .qr-scan-dialog .dialog-head{display:flex;justify-content:space-between;align-items:center}
-  .qr-scan-dialog h2{margin:6px 0 8px;font-size:19px}
-  .qr-scan-frame{position:relative;width:min(78vw,300px);aspect-ratio:1;margin:14px auto;border-radius:18px;overflow:hidden;background:#0b0e11;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08)}
+  .qr-scan-dialog h2{margin:4px 0 6px;font-size:19px}
+  .qr-scan-frame{position:relative;width:min(72vw,280px);aspect-ratio:1;margin:12px auto;border-radius:16px;overflow:hidden;background:#0b0e11;box-shadow:inset 0 0 0 3px rgba(255,255,255,.08),0 12px 28px rgba(0,0,0,.2)}
   #qrScanVideo{width:100%;height:100%;object-fit:cover;display:block}
   .qr-scan-laser{position:absolute;left:10%;right:10%;top:12%;height:2px;background:linear-gradient(90deg,transparent,#2fbf71,transparent);box-shadow:0 0 12px rgba(47,191,113,.9);animation:qrLaser 2.2s ease-in-out infinite alternate;pointer-events:none}
   @keyframes qrLaser{from{top:12%}to{top:86%}}
-  #qrScanMsg{min-height:20px}
+  #qrScanMsg{min-height:20px;margin:0 auto 12px;max-width:32ch;font-size:13px;line-height:1.4}
+
+  @media(max-width:700px){
+    .qr-scan-dialog{width:min(calc(100vw - 28px),360px);max-height:calc(100dvh - 28px);padding:16px 14px 14px;border-radius:18px;overflow:auto}
+    .qr-scan-frame{width:min(72vw,270px);margin:10px auto 12px}
+  }
 
   /* ============================================================
      Footer — minimal single-row: brand | links, phir credit line
