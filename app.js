@@ -128,7 +128,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         <div class="empty-actions">
           <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
           <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Request from friends</button>
-          ${canRequestSenior()?`<button class="sr-request" onclick="openSeniorRequest()"><i class="fa-solid fa-users"></i> Request senior</button>`:''}
+          ${canRequestSenior()?`<button class="sr-request" onclick="openSeniorRequest()"><i class="fa-solid fa-users"></i> Request from seniors</button>`:''}
           ${searching?`<button class="secondary" onclick="clearSearchFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear search &amp; filters</button>`:''}
         </div></div>`;
     }
@@ -438,7 +438,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function submitAccessAuth(event){event.preventDefault();if(!firebaseApp){$('accessAuthMessage').textContent='Firebase is not configured.';return}const password=$('accessAuthPassword').value;const msgEl=$('accessAuthMessage');if(accessAuthMode==='signup'){const username=$('accessAuthName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accessAuthConfirm'),msgEl))return;const usernameAvail=await checkUsernameAvailable(username);if(usernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accessAuthMessage');return}const loginEmail=await resolveLoginEmail($('accessAuthEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{await firebase.auth().signInWithEmailAndPassword(loginEmail,password);accountSession=firebase.auth().currentUser;if(await ensureVerified(accountSession)){resumeRestrictedAction()}}catch(error){$('accessAuthMessage').textContent=error.message;return}}
 
     async function download(title){/* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */if(!accountSession){requireAccount('Sign up or login to download this note.','download',title);return}bumpDownload(rcId(title));const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){if(!await ensureFileAvailable(resource,'download'))return;const a=document.createElement('a');a.href=resource.fileData||resource.fileUrl;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
-    let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;
+    let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;let profileRealtimeChannel=null;
     /* ============ Strict Email Verification gate ============
        Email/password users MUST verify before entering the app.
        Google / Apple (OAuth) users are already verified -> they bypass.
@@ -552,8 +552,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function syncProfileToAccount(){
       if(!supabaseClient||!accountUid())return;
       try{
-        const {data}=await supabaseClient.from('user_profiles').select('college,semester').eq('uid',accountUid()).maybeSingle();
+        const {data}=await supabaseClient.from('user_profiles').select('college,semester,avatar_url').eq('uid',accountUid()).maybeSingle();
         if(data){
+          if(data.avatar_url){
+            setCachedAvatar(data.avatar_url);
+            if(accountSession)accountSession.photoURL=data.avatar_url;
+            renderAvatar();
+          }else if(accountSession&&accountSession.photoURL){
+            setCachedAvatar(accountSession.photoURL);
+          }
           let changed=false;
           if(data.college&&data.college!=='all'){state.college=data.college;try{localStorage.setItem('bca-college',data.college)}catch(e){}changed=true}
           if(data.semester!=null){state.sem=String(data.semester);try{localStorage.setItem('bca-sem',String(data.semester))}catch(e){}changed=true}
@@ -566,12 +573,31 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       }catch(e){}
     }
+    function avatarStorageKey(){return accountUid()?'bca-avatar-'+accountUid():'bca-avatar'}
+    function setCachedAvatar(url){if(!url)return;try{localStorage.setItem(avatarStorageKey(),url);localStorage.setItem('bca-avatar',url)}catch(e){}}
+    function clearProfileRealtime(){if(!profileRealtimeChannel||!supabaseClient)return;try{supabaseClient.removeChannel(profileRealtimeChannel)}catch(e){}profileRealtimeChannel=null}
+    function startProfileRealtime(){
+      clearProfileRealtime();
+      if(!supabaseClient||!accountUid())return;
+      try{
+        profileRealtimeChannel=supabaseClient.channel('profile-live-'+accountUid()).on('postgres_changes',{event:'*',schema:'public',table:'user_profiles',filter:'uid=eq.'+accountUid()},payload=>{
+          const profile=payload&&payload.new;
+          if(!profile||profile.uid!==accountUid()||!profile.avatar_url)return;
+          if(accountSession)accountSession.photoURL=profile.avatar_url;
+          setCachedAvatar(profile.avatar_url);
+          renderAvatar();
+        });
+        profileRealtimeChannel.subscribe();
+      }catch(e){console.warn('[BCAPrime] profile realtime unavailable.',e)}
+    }
     async function saveProfileToAccount(){
       if(!supabaseClient||!accountUid())return;
       const uid=accountUid();
       const sem=(state.sem&&state.sem!=='all')?Number(state.sem):null;
       const email=(accountSession&&accountSession.email)?accountSession.email:'';let storedUsername='';try{storedUsername=localStorage.getItem('bca-username')||''}catch(e){}const profileName=(accountSession&&accountSession.displayName)||storedUsername;
-      try{await supabaseClient.from('user_profiles').upsert({uid,email,name:profileName,...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:state.college||'all',semester:sem,is_email_verified:!!(accountSession&&isVerifiedUser(accountSession)),updated_at:new Date().toISOString()},{onConflict:'uid'})}catch(e){}
+      let avatar='';try{avatar=localStorage.getItem(avatarStorageKey())||localStorage.getItem('bca-avatar')||''}catch(e){}
+      if(!avatar&&accountSession&&accountSession.photoURL)avatar=accountSession.photoURL;
+      try{await supabaseClient.from('user_profiles').upsert({uid,email,name:profileName,...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:state.college||'all',semester:sem,...(avatar?{avatar_url:avatar}:{}),is_email_verified:!!(accountSession&&isVerifiedUser(accountSession)),updated_at:new Date().toISOString()},{onConflict:'uid'})}catch(e){}
     }
     /* ================== WhatsApp-style new-device approval ==================
        Har device ka ek stable device_id (localStorage). Pehla device auto-
@@ -584,6 +610,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!supabaseClient||!accountUid())return;
       try{await syncProfileToAccount()}catch(e){}
       try{await saveProfileToAccount()}catch(e){}
+      startProfileRealtime();
       try{await ensureDeviceApproved()}catch(e){}
       startDeviceRequestWatch();
     }
@@ -809,7 +836,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
               try{localStorage.setItem('bca-sem',state.sem)}catch(e){}
             }
           }
-          if(row.avatar){try{localStorage.setItem('bca-avatar',row.avatar)}catch(e){}}
+          if(row.avatar){accountSession.photoURL=row.avatar;setCachedAvatar(row.avatar)}
         }catch(e){}
         setQrUi('success');
         setTimeout(()=>{
@@ -989,13 +1016,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const m=$('qrScanModal');if(m)m.classList.remove('open');
     }
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{await firebase.auth().signInWithEmailAndPassword(loginEmail,password);accountSession=firebase.auth().currentUser;if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=error.message;return}}
-    async function signOutAccount(){await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
+    async function signOutAccount(){clearProfileRealtime();await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
     function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{pendingHelpRequest=null}catch(e){}}
-    function getAvatar(){const saved=localStorage.getItem('bca-avatar');if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
+    function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||localStorage.getItem('bca-avatar')||''}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
-    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=()=>{localStorage.setItem('bca-avatar',reader.result);renderAvatar();toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
+    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated across devices')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
     function toggleProfileCard(event){if(event)event.stopPropagation();const pop=$('profilePop');if(!pop)return;const willShow=pop.hidden;if(willShow){const av=$('popAvatar');if(av)av.src=getAvatar();const n=$('popName');if(n)n.textContent=accountSession?getUserName(accountSession):'Guest';const m=$('popMail');if(m)m.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const c=$('popCollege');if(c)c.textContent=(colleges.find(cc=>cc[0]===state.college)||colleges[0])[1];const s=$('popSem');if(s)s.textContent=state.sem==='all'?'All semesters':'Semester '+state.sem;}const lo=$('popLogoutBtn');if(lo)lo.hidden=!accountSession;const lb=$('popLoginBtn');if(lb)lb.hidden=!!accountSession;const sc=$('popScanBtn');if(sc)sc.hidden=isGuestMode();pop.hidden=!willShow}
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
     function logoutFromPop(){hideProfileCard();if(firebaseApp&&accountSession){signOutAccount();return}sessionStorage.removeItem('bca-guest-mode');accountSession=null;hideAuthenticatedApp();toast('Logged out')}

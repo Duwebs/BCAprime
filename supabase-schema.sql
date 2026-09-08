@@ -152,6 +152,20 @@ create table if not exists public.user_profiles (
 
 -- Migration for already-deployed DBs (safe, idempotent):
 alter table public.user_profiles add column if not exists is_email_verified boolean not null default false;
+alter table public.user_profiles add column if not exists avatar_url text;
+
+-- Keep profile avatar changes available to every active device immediately.
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'user_profiles'
+  ) then
+    alter publication supabase_realtime add table public.user_profiles;
+  end if;
+end $$;
 
 -- Username signup/login (Google-first flow). Username login ke liye
 -- user_profiles.username se email lookup hota hai. Stored lowercase.
