@@ -11,17 +11,18 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "2.9.0";
+const CURRENT_APP_VERSION = "3.0.0";
 
 const LATEST_RELEASE = {
-  version: "2.9.0",
+  version: "3.0.0",
   date: "September 2026",
-  title: "A Cleaner, Clearer Experience",
-  subtitle: "Every message is now in polished English — plus a signup safety fix.",
+  title: "Lost & Found is Here!",
+  subtitle: "Report lost or found items on campus — and get instant alerts.",
   features: [
-    { type: "improved", title: "Fully Professional English UI", desc: "All toasts, alerts, and notifications across the app — including QR login, uploads, and senior help — now use clear, professional English." },
-    { type: "improved", title: "Clearer Push Notifications", desc: "Notifications for senior requests and fulfilled material have been rewritten in friendly, easy-to-read English." },
-    { type: "fix",     title: "Duplicate Usernames Blocked", desc: "Usernames are now checked when you sign up, so two students can no longer claim the same one." }
+    { type: "new",      title: "Lost & Found Board", desc: "Lost your phone? Found someone's wallet? Post it on campus Lost & Found — with photos, location and your contact." },
+    { type: "new",      title: "Instant Alerts", desc: "New posts send a push notification to students of the same college. Tap it to open the exact post." },
+    { type: "improved", title: "Faster Reporting", desc: "Quick-post buttons for Phone, Wallet, Bottle, Keys and Bag — two taps and you're done." },
+    { type: "improved", title: "Safe & Moderated", desc: "Contact details stay hidden until someone claims. Every post is reviewed before it goes live." }
   ]
 };
 
