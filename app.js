@@ -2076,7 +2076,10 @@ async function submitLostFoundPost(event){
       image_url=(pub&&pub.publicUrl)?pub.publicUrl:'';
     }
     const row={type:lfPostMode,category:cat,custom_category:custom,description:desc,location:location,image_url:image_url,college:lfCurrentCollege(),poster_uid:accountUid(),poster_name:getUserName(accountSession)||'A student',poster_avatar:(accountSession.photoURL||''),contact:contact,status:'pending'};
-    const {data:inserted,error}=await supabaseClient.from(LOST_FOUND_TABLE).insert(row).select().single();
+    /* NOTE: .select() ka use nahi karte — pending rows anon ko select
+       policy se visible nahi hain, isliye RETURNING fail hota hai.
+       Insert silent success hi kaafi hai (push admin approve par hoga). */
+    const {error}=await supabaseClient.from(LOST_FOUND_TABLE).insert(row);
     if(error)throw error;
     closeLostFoundModal();
     toast('Post sent for review — approve hone par sabko alert jayega ✅');
