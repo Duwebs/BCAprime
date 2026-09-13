@@ -1991,7 +1991,7 @@ function renderLostFoundFeed(){
   const host=$('lostFoundFeed');const empty=$('lostFoundEmpty');if(!host)return;
   const q=($('lfSearch')?String($('lfSearch').value||''):'').toLowerCase().trim();
   const fsel=$('lfCategoryFilter');const fcat=fsel?String(fsel.value||'all'):'all';
-  let items=lfCache.filter(p=>lfVisibleCollege(p)&&(lfType==='all'||p.type===lfType)&&(fcat==='all'||p.category===fcat));
+  let items=lfCache.filter(p=>lfVisibleCollege(p)&&p.status!=='pending'&&(lfType==='all'||p.type===lfType)&&(fcat==='all'||p.category===fcat));
   if(q){items=items.filter(p=>{const hay=(lfItemName(p)+' '+(p.description||'')+' '+(p.location||'')+' '+(p.category==='other'?p.custom_category:'')).toLowerCase();return hay.indexOf(q)!==-1})}
   if(!items.length){host.innerHTML='';if(empty)empty.hidden=false;return}
   if(empty)empty.hidden=true;
@@ -2075,14 +2075,13 @@ async function submitLostFoundPost(event){
       const {data:pub}=supabaseClient.storage.from('lossfound').getPublicUrl(path);
       image_url=(pub&&pub.publicUrl)?pub.publicUrl:'';
     }
-    const row={type:lfPostMode,category:cat,custom_category:custom,description:desc,location:location,image_url:image_url,college:lfCurrentCollege(),poster_uid:accountUid(),poster_name:getUserName(accountSession)||'A student',poster_avatar:(accountSession.photoURL||''),contact:contact,status:'active'};
+    const row={type:lfPostMode,category:cat,custom_category:custom,description:desc,location:location,image_url:image_url,college:lfCurrentCollege(),poster_uid:accountUid(),poster_name:getUserName(accountSession)||'A student',poster_avatar:(accountSession.photoURL||''),contact:contact,status:'pending'};
     const {data:inserted,error}=await supabaseClient.from(LOST_FOUND_TABLE).insert(row).select().single();
     if(error)throw error;
     closeLostFoundModal();
-    toast((lfPostMode==='lost'?'Your lost item is posted \uD83E\uDDF1':'Your found item is posted \uD83E\uDDF1'));
+    toast('Post sent for review — approve hone par sabko alert jayega ✅');
     loadLostFound(true);
-    const pid=inserted&&inserted.id;
-    if(pid){try{fetch(LF_NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id:pid,secret:LF_NOTIFY_SECRET})}).catch(()=>{})}catch(e){}}
+    /* Push admin APPROVE karne par jaata hai (notify-lostfound) — yahan nahi */
   }catch(e){
     if(msg)msg.textContent='Could not post right now.';
     if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}

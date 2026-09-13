@@ -695,15 +695,53 @@ async function loadLostFoundAdmin(){
     const college=(collegeNames&&collegeNames[r.college])||r.college||'all';
     const who=(r.poster_name||'').replace(/[<>&"']/g,'');
     const time=r.created_at?new Date(r.created_at).toLocaleString():'';
-    return '<div class="lf-admin-item '+r.status+'">'+
-      '<div class="lf-adm-head"><span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+'<small>'+time+'</small></div>'+
-      '<div class="lf-adm-body"><b>'+escapeHtml(item)+'</b> &mdash; '+escapeHtml(r.description||'')+'</div>'+
-      '<div class="lf-adm-meta"><span>&#128205; '+escapeHtml(r.location||'')+'</span><span>&#127979; '+college+'</span>'+(r.poster_avatar?'<img src="'+escapeHtml(r.poster_avatar)+'" alt="" width="18" height="18" style="border-radius:50%;object-fit:cover">':'')+'<span>'+(who||'Student')+'</span></div>'+
-      (r.status!=='removed'
-        ?'<div class="row-actions"><button class="button danger" onclick="openSafeDelete(\'Remove this Lost &amp; Found post from the public feed? (campus-post #'+r.id+')\',()=>removeLostFoundPost('+r.id+'))"><i class="fa-solid fa-trash"></i> Remove</button></div>'
-        :'<div class="note">Archived (removed from public feed).</div>')+
-    '</div>';
+    const img=r.image_url
+      ?'<a href="'+escapeHtml(r.image_url)+'" target="_blank" rel="noopener" title="Open full image"><img class="lf-adm-thumb" src="'+escapeHtml(r.image_url)+'" alt="Item photo"></a>'
+      :'<span class="lf-adm-noimg"><i class="fa-solid fa-image"></i> No photo</span>';
+    let actions='';
+    if(r.status==='pending'){
+      actions='<div class="row-actions">'
+        +'<button class="button primary" onclick="approveLostFoundPost('+r.id+')"><i class="fa-solid fa-check"></i> Approve</button>'
+        +'<button class="button danger" onclick="openSafeDelete(\'Reject this Lost &amp; Found post? (campus-post #'+r.id+')\',()=>removeLostFoundPost('+r.id+'))"><i class="fa-solid fa-xmark"></i> Reject</button>'
+        +'</div>';
+    } else if(r.status==='removed'){
+      actions='<div class="note">Rejected / archived (removed from public feed).</div>';
+    } else {
+      actions='<div class="row-actions"><button class="button danger" onclick="openSafeDelete(\'Remove this Lost &amp; Found post from the public feed? (campus-post #'+r.id+')\',()=>removeLostFoundPost('+r.id+'))"><i class="fa-solid fa-trash"></i> Remove</button></div>';
+    }
+    return '<div class="lf-admin-item '+r.status+'">'
+      +'<div class="lf-adm-head"><span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+'<small>'+time+'</small></div>'
+      +'<div class="lf-adm-withimg">'+img
+      +'<div class="lf-adm-info"><div class="lf-adm-body"><b>'+escapeHtml(item)+'</b> &mdash; '+escapeHtml(r.description||'')+'</div>'
+      +'<div class="lf-adm-meta"><span>&#128205; '+escapeHtml(r.location||'')+'</span><span>&#127979; '+escapeHtml(college)+'</span>'
+      +(r.poster_avatar?'<img src="'+escapeHtml(r.poster_avatar)+'" alt="" width="18" height="18" style="border-radius:50%;object-fit:cover">':'')
+      +'<span>'+(who||'Student')+'</span></div></div></div>'
+      +actions
+      +'</div>';
   }).join('');
+}
+async function approveLostFoundPost(id){
+  if(!supabaseClient)return;
+  const {error}=await supabaseClient.from('lost_found').update({status:'active'}).eq('id',id);
+  if(error){ alert('Approve failed: ' + error.message); return; }
+  /* Approve hote hi college ko push (notify-lostfound Edge Function) */
+  try{
+    const res = await fetch(SUPABASE_URL + '/functions/v1/notify-lostfound', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: id, secret: ADMIN_NOTIFY_SECRET })
+    });
+    const result = await res.json();
+    if (!res.ok && result.blocked === 'daily-limit') {
+      alert('Notification blocked: daily post limit reached for this user.');
+    } else if (!res.ok) {
+      const detail = [result.error, result.hint].filter(Boolean).join(' | ');
+      alert('Notification failed: ' + (detail || res.status));
+    } else {
+      console.info('[LostFound] push sent:', result.sent, 'failed:', result.failed);
+    }
+  }catch(e){ console.warn('LostFound notify failed:', e.message); }
+  loadLostFoundAdmin();
 }
 async function removeLostFoundPost(id){
   if(!supabaseClient)return;

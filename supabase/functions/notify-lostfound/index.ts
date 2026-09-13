@@ -66,6 +66,11 @@ Deno.serve(async (req) => {
   if (rErr || !rows || rows.length === 0) return jsonRes({ error: 'Post not found' }, 404);
   const post = rows[0];
 
+  // Sirf ACTIVE (admin-approved) posts par push bhejo.
+  if (post.status !== 'active') {
+    return jsonRes({ ok: true, skipped: true, reason: 'not active yet (pending/approval required)' });
+  }
+
   // --- Anti-spam: max LF_MAX_DAILY per user per day (server authority) ---
   const uid = String(post.poster_uid || '');
   if (uid) {

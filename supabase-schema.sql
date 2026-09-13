@@ -434,8 +434,8 @@ create table if not exists public.lost_found (
   poster_name text not null default '',
   poster_avatar text not null default '',
   contact text not null default '',         -- claim tak hidden (client side)
-  status text not null default 'active'
-    check (status in ('active','claimed','resolved','removed')),
+  status text not null default 'pending'
+    check (status in ('pending','active','claimed','resolved','removed')),
   notified_at timestamptz,
   created_at timestamptz not null default now(),
   resolved_at timestamptz
@@ -450,12 +450,19 @@ create index if not exists lost_found_poster_idx
 
 alter table public.lost_found enable row level security;
 
--- Anyone (anon + authenticated) can read non-removed posts for browsing.
+-- Anyone (anon + authenticated) can read published posts for browsing.
+-- 'pending' (review me) sirf admins dikhte hain.
 drop policy if exists "Anyone can read lost_found" on public.lost_found;
 create policy "Anyone can read lost_found"
   on public.lost_found for select
   to anon, authenticated
-  using (status <> 'removed');
+  using (status in ('active','claimed','resolved'));
+
+drop policy if exists "Admins can read all lost_found" on public.lost_found;
+create policy "Admins can read all lost_found"
+  on public.lost_found for select
+  to authenticated
+  using (auth.jwt() -> 'app_metadata' ->> 'role' = 'admin');
 
 -- Students post items; poster identity is client-set (Firebase uid).
 drop policy if exists "Authenticated can post lost_found" on public.lost_found;
