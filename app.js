@@ -1935,3 +1935,223 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     setTimeout(() => {
       showOnboardingIfNeeded();
     }, 1200);
+/* ============================================================
+   LOST & FOUND (campus lost/found board)
+   ============================================================ */
+const LOST_FOUND_TABLE='lost_found';
+const LOST_FOUND_CLAIMS_TABLE='lost_found_claims';
+const LF_MAX_DAILY=3;
+const LF_NOTIFY_SECRET=(typeof window!=='undefined'&&window.__lfSecret?window.__lfSecret:'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz');
+const LF_NOTIFY_URL=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'')+'/functions/v1/notify-lostfound';
+const LOST_FOUND_CATEGORIES=[
+  {value:'phone',label:'Phone',icon:'fa-mobile-screen'},
+  {value:'wallet',label:'Wallet',icon:'fa-wallet'},
+  {value:'bottle',label:'Water Bottle',icon:'fa-bottle-water'},
+  {value:'bag',label:'Bag / Backpack',icon:'fa-bag-shopping'},
+  {value:'keys',label:'Keys',icon:'fa-key'},
+  {value:'laptop',label:'Laptop',icon:'fa-laptop'},
+  {value:'books',label:'Books / Notes',icon:'fa-book'},
+  {value:'idcard',label:'ID / Library Card',icon:'fa-id-card'},
+  {value:'earphones',label:'Earphones / Headphones',icon:'fa-headphones'},
+  {value:'spectacles',label:'Spectacles',icon:'fa-glasses'},
+  {value:'watch',label:'Watch',icon:'fa-clock'},
+  {value:'stationery',label:'Stationery',icon:'fa-pen'},
+  {value:'other',label:'Other',icon:'fa-circle-question'}
+];
+let lfCache=[];
+let lfLoaded=false;
+let lfType='all';
+let lfPostMode='lost';
+let lfImageFile=null;
+let lfClaimed=new Set();
+function lfEscape(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function lfCatMeta(value){const c=LOST_FOUND_CATEGORIES.find(x=>x.value===value);return c||LOST_FOUND_CATEGORIES[LOST_FOUND_CATEGORIES.length-1]}
+function lfItemName(p){if(p.category==='other'&&(p.custom_category||'').trim())return p.custom_category;return lfCatMeta(p.category).label}
+function lfTimeAgo(iso){if(!iso)return '';try{const d=new Date(iso);const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
+function lfCurrentCollege(){return (typeof myCollegeKey==='function')?myCollegeKey():('all')}
+function scrollToLostFound(){const sec=$('lostFound');if(!sec)return;sec.scrollIntoView({behavior:'smooth',block:'start'});loadLostFoundIfNeeded()}
+function loadLostFoundIfNeeded(){if(lfLoaded){renderLostFoundFeed();return}loadLostFound(false)}
+async function loadLostFound(force){
+  if(!supabaseClient)return;
+  if(!force&&lfLoaded){renderLostFoundFeed();return}
+  try{
+    const {data,error}=await supabaseClient.from(LOST_FOUND_TABLE).select('*').neq('status','removed').order('id',{ascending:false}).limit(100);
+    if(error)throw error;
+    lfCache=data||[];
+    lfLoaded=true;
+    const fsel=$('lfCategoryFilter');
+    if(fsel&&fsel.options.length===1){LOST_FOUND_CATEGORIES.forEach(c=>{const o=document.createElement('option');o.value=c.value;o.textContent=c.label;fsel.appendChild(o)})}
+    renderLostFoundFeed();
+  }catch(error){console.warn('Lost & Found load failed.',error.message)}
+}
+function lfVisibleCollege(post){const c=String(post.college||'all');const mine=lfCurrentCollege();return c==='all'||mine==='all'||c===mine}
+function applyLostFoundFilters(){renderLostFoundFeed()}
+function setLostFoundType(type,btn){document.querySelectorAll('.lf-tabs .lf-tab').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');lfType=type;renderLostFoundFeed()}
+function renderLostFoundFeed(){
+  const host=$('lostFoundFeed');const empty=$('lostFoundEmpty');if(!host)return;
+  const q=($('lfSearch')?String($('lfSearch').value||''):'').toLowerCase().trim();
+  const fsel=$('lfCategoryFilter');const fcat=fsel?String(fsel.value||'all'):'all';
+  let items=lfCache.filter(p=>lfVisibleCollege(p)&&(lfType==='all'||p.type===lfType)&&(fcat==='all'||p.category===fcat));
+  if(q){items=items.filter(p=>{const hay=(lfItemName(p)+' '+(p.description||'')+' '+(p.location||'')+' '+(p.category==='other'?p.custom_category:'')).toLowerCase();return hay.indexOf(q)!==-1})}
+  if(!items.length){host.innerHTML='';if(empty)empty.hidden=false;return}
+  if(empty)empty.hidden=true;
+  host.innerHTML=items.map(p=>lfCardHtml(p)).join('');
+}
+function lfCardHtml(p){
+  const meta=lfCatMeta(p.category);const itemName=lfItemName(p);
+  const thumb=p.image_url?('<img src="'+lfEscape(p.image_url)+'" alt="" loading="lazy">'):('<i class="fa-solid '+meta.icon+'"></i>');
+  const who=p.poster_avatar?('<img src="'+lfEscape(p.poster_avatar)+'" alt="">'):('<i class="fa-solid fa-user-graduate"></i>');
+  const badgeCls=p.type==='lost'?'lf-lost':'lf-found';
+  const label=p.type==='lost'?'LOST':'FOUND';
+  return '<div class="lf-card" onclick="openLostFoundDetail('+p.id+')" role="button" tabindex="0" aria-label="'+label+' '+lfEscape(itemName)+'">'+
+    '<div class="lf-card-thumb">'+thumb+'</div>'+
+    '<div class="lf-card-body">'+
+      '<div class="lf-card-top"><span class="lf-badge '+badgeCls+'">'+label+'</span><span class="lf-cat-chip"><i class="fa-solid '+meta.icon+'"></i> '+lfEscape(meta.label)+'</span></div>'+
+      '<span class="lf-card-title">'+lfEscape(itemName)+'</span>'+
+      '<span class="lf-card-desc">'+lfEscape(p.description)+'</span>'+
+      '<div class="lf-card-meta">'+
+        '<span><i class="fa-solid fa-location-dot"></i>'+lfEscape(p.location)+'</span>'+
+        '<span><i class="fa-solid fa-clock"></i>'+lfTimeAgo(p.created_at)+'</span>'+
+        '<span class="lf-who">'+who+lfEscape(p.poster_name||'Student')+'</span>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+function openLostFoundPost(type){
+  if(!requireAccount('Log in to post in Lost & Found.','lostfound'))return;
+  if(typeof accountSession!=='undefined'&&accountSession&&accountSession.emailVerified===false){toast('Verify your email before posting');return}
+  reopenLfForm(type);
+  const m=$('lostFoundModal');if(m)m.classList.add('open');
+  loadLostFoundIfNeeded();
+}
+function quickLostFound(type,category){openLostFoundPost(type);const catSel=$('lfCategory');if(catSel&&category)catSel.value=category;onLfCategoryChange(catSel)}
+function reopenLfForm(type){
+  setLfModeUI(type||'lost');
+  const catSel=$('lfCategory');if(catSel)catSel.value='';onLfCategoryChange(catSel);
+  const desc=$('lfDesc');if(desc)desc.value='';
+  const loc=$('lfLocation');if(loc)loc.value='';
+  const when=$('lfWhen');if(when){try{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());when.value=d.toISOString().slice(0,16)}catch(e){}}
+  const contact=$('lfContact');if(contact)contact.value=(accountSession&&accountSession.email)?accountSession.email:'';
+  clearLfImage();
+  const msg=$('lfMessage');if(msg)msg.textContent='';
+  const sb=$('lfSubmitBtn');if(sb){sb.disabled=false;sb.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}
+}
+function setLfModeUI(type){lfPostMode=type;document.querySelectorAll('.lf-type-btn').forEach(b=>b.classList.remove('active'));const btn=document.querySelector('.lf-type-btn[data-type="'+type+'"]');if(btn)btn.classList.add('active')}
+function setPostType(btn){if(btn)setLfModeUI(btn.dataset.type)}
+function onLfCategoryChange(sel){const custom=sel&&sel.value==='other';const inp=$('lfCustomCategory');const lab=document.querySelector('.lf-custom-label');if(inp)inp.hidden=!custom;if(lab)lab.hidden=!custom;if(custom&&inp)inp.setAttribute('required','');else if(inp)inp.removeAttribute('required')}
+function showLfImage(input){const f=input&&input.files&&input.files[0];if(!f)return;lfImageFile=f;const name=$('lfImageName');if(name)name.textContent=f.name;const r=new FileReader();r.onloadend=()=>{const thumb=$('lfThumb');if(thumb)thumb.src=r.result;const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=false};r.readAsDataURL(f)}
+function removeLfImage(e){if(e)try{e.preventDefault()}catch(x){}clearLfImage()}
+function clearLfImage(){lfImageFile=null;const inp=$('lfImage');if(inp)inp.value='';const name=$('lfImageName');if(name)name.textContent='Attach a photo';const thumb=$('lfThumb');if(thumb)thumb.src='';const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=true}
+function closeLostFoundModal(){closeModals()}
+async function lfPostsToday(){
+  if(!supabaseClient)return 0;
+  try{const {data,error}=await supabaseClient.rpc('lost_found_posts_today',{p_uid:accountUid()});if(error)throw error;return Number(data)||0}
+  catch(e){try{const {count,error}=await supabaseClient.from(LOST_FOUND_TABLE).select('*',{count:'exact',head:true}).eq('poster_uid',accountUid()).gte('created_at',new Date(Date.now()-29*60*60*1000).toISOString());if(!error&&typeof count==='number')return count}catch(x){}return 0}
+}
+async function submitLostFoundPost(event){
+  event.preventDefault();
+  if(!accountSession){toast('Please log in to post');return}
+  if(accountSession.emailVerified===false){toast('Verify your email before posting');return}
+  const btn=$('lfSubmitBtn');const msg=$('lfMessage');
+  const catSel=$('lfCategory');const cat=catSel?String(catSel.value||''):'';
+  const custom=cat==='other'?(($('lfCustomCategory')&&$('lfCustomCategory').value)||'').trim():'';
+  if(!cat){if(msg)msg.textContent='Please choose a category.';return}
+  if(cat==='other'&&!custom){if(msg)msg.textContent='Please type the item name.';return}
+  const desc=($('lfDesc').value||'').trim();
+  const location=($('lfLocation').value||'').trim();
+  if(!desc){if(msg)msg.textContent='Please add a short description.';return}
+  if(!location){if(msg)msg.textContent='Please add the location.';return}
+  const contact=($('lfContact').value||'').trim()||(accountSession.email||'');
+  if(btn){btn.disabled=true;btn.textContent='Posting\u2026'}
+  try{
+    const todayCount=await lfPostsToday();
+    if(todayCount>=LF_MAX_DAILY){toast('Daily limit reached (max '+LF_MAX_DAILY+' posts/day)');if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}return}
+    let image_url='';
+    if(lfImageFile){
+      const ext=(lfImageFile.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+      const path='lost/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+      const {error:upErr}=await supabaseClient.storage.from('lossfound').upload(path,lfImageFile,{contentType:lfImageFile.type||'image/'+ext});
+      if(upErr)throw upErr;
+      const {data:pub}=supabaseClient.storage.from('lossfound').getPublicUrl(path);
+      image_url=(pub&&pub.publicUrl)?pub.publicUrl:'';
+    }
+    const row={type:lfPostMode,category:cat,custom_category:custom,description:desc,location:location,image_url:image_url,college:lfCurrentCollege(),poster_uid:accountUid(),poster_name:getUserName(accountSession)||'A student',poster_avatar:(accountSession.photoURL||''),contact:contact,status:'active'};
+    const {data:inserted,error}=await supabaseClient.from(LOST_FOUND_TABLE).insert(row).select().single();
+    if(error)throw error;
+    closeLostFoundModal();
+    toast((lfPostMode==='lost'?'Your lost item is posted \uD83E\uDDF1':'Your found item is posted \uD83E\uDDF1'));
+    loadLostFound(true);
+    const pid=inserted&&inserted.id;
+    if(pid){try{fetch(LF_NOTIFY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({post_id:pid,secret:LF_NOTIFY_SECRET})}).catch(()=>{})}catch(e){}}
+  }catch(e){
+    if(msg)msg.textContent='Could not post right now.';
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}
+  }
+}
+async function openLostFoundDetail(id){
+  if(!supabaseClient)return;
+  let p=lfCache.find(x=>String(x.id)===String(id));
+  if(!p){try{const {data,error}=await supabaseClient.from(LOST_FOUND_TABLE).select('*').eq('id',id).maybeSingle();if(error)throw error;if(!data){toast('Post not found');return}p=data}catch(e){toast('Could not load post');return}}
+  const mine=String(p.poster_uid||'')===accountUid();
+  const meta=lfCatMeta(p.category);const itemName=lfItemName(p);
+  const label=p.type==='lost'?'LOST':'FOUND';const badgeCls=p.type==='lost'?'lf-lost':'lf-found';
+  const canSee=p.status==='resolved'||mine||lfClaimed.has(String(p.id));
+  let contactHtml='';
+  if(p.contact){contactHtml=mine
+    ? ('<span class="lf-contact-note"><i class="fa-solid fa-envelope"></i> Contact: '+lfEscape(p.contact)+' <small>(you posted this)</small></span>')
+    : (canSee?('<span class="lf-contact-note"><i class="fa-solid fa-envelope"></i> Contact: '+lfEscape(p.contact)+'</span>'):('<span class="lf-contact-note">Contact info is shown after you claim \u270B</span>'));}
+  const statusHtml=p.status==='resolved'?('<span class="lf-badge lf-done">Resolved \u2705</span>'):(p.status==='claimed'?('<span class="lf-badge lf-claimed">Claimed</span>'):'');
+  let actions='';
+  if(p.status==='active'){
+    if(p.type==='found'&&!mine)actions+='<button class="primary" onclick="claimLostFound('+p.id+',\'mine\')"><i class="fa-solid fa-hand"></i> This is Mine!</button>';
+    if(p.type==='lost'&&!mine)actions+='<button class="primary" onclick="claimLostFound('+p.id+',\'found\')"><i class="fa-solid fa-hand-holding-heart"></i> I Found It!</button>';
+    if(mine)actions+='<button class="secondary lf-resolve" onclick="resolveLostFound('+p.id+')"><i class="fa-solid fa-circle-check"></i> Mark as Resolved</button>';
+  } else if(p.status==='resolved'){actions='<span class="lf-contact-note"><i class="fa-solid fa-shield-halved"></i> This has been resolved.</span>'}
+  const who=p.poster_avatar?('<img src="'+lfEscape(p.poster_avatar)+'" alt="" style="width:26px;height:26px;border-radius:50%;object-fit:cover">'):('<i class="fa-solid fa-user-graduate"></i>');
+  const head=$('lfDetailHead');if(head)head.textContent=(p.type==='lost'?'Lost item':'Found item')+' \u2014 '+itemName;
+  const body=$('lfDetailBody');if(!body)return;
+  body.innerHTML=
+    '<div class="lf-detail-top"><span class="lf-badge '+badgeCls+'">'+label+'</span>'+statusHtml+'</div>'+
+    (p.image_url?('<img class="lf-detail-thumb" src="'+lfEscape(p.image_url)+'" alt="">'):'')+
+    '<p class="lf-detail-desc"><b>'+lfEscape(itemName)+'</b> \u2014 '+lfEscape(p.description||'')+'</p>'+
+    '<div class="lf-card-meta">'+
+      '<span><i class="fa-solid fa-location-dot"></i>'+lfEscape(p.location)+'</span>'+
+      '<span><i class="fa-solid fa-clock"></i>'+lfTimeAgo(p.created_at)+'</span>'+
+      '<span class="lf-who">'+who+lfEscape(p.poster_name||'Student')+'</span>'+
+    '</div>'+
+    contactHtml+
+    '<div class="lf-detail-actions">'+actions+'</div>';
+  const m=$('lostFoundDetailModal');if(m)m.classList.add('open');
+}
+function closeLostFoundDetail(){closeModals()}
+async function claimLostFound(id,kind){
+  if(!requireAccount('Log in to claim an item.','lostfound'))return;
+  if(!supabaseClient)return;
+  const claimBtn=[].slice.call(document.querySelectorAll('.lf-detail-actions .primary'))[0];
+  if(claimBtn){claimBtn.disabled=true;claimBtn.textContent='Sending\u2026'}
+  try{
+    const {error}=await supabaseClient.from(LOST_FOUND_CLAIMS_TABLE).insert({post_id:id,claimant_uid:accountUid(),claimant_name:getUserName(accountSession)||'A student',kind:kind}).select().single();
+    if(error){
+      if(error.code==='23505'||String(error.message||'').indexOf('duplicate')!==-1){toast('You already claimed this item');}
+      else throw error;
+      return;
+    }
+    await supabaseClient.from(LOST_FOUND_TABLE).update({status:'claimed'}).eq('id',id).eq('status','active');
+    lfClaimed.add(String(id));
+    closeLostFoundDetail();
+    toast('Claim sent! Contact info is now revealed to you.');
+    const p=lfCache.find(x=>String(x.id)===String(id));
+    if(p&&String(p.poster_uid||'')&&typeof SEND_PUSH_FUNCTION_URL!=='undefined'){
+      const k=kind==='mine'?'claims it is theirs':'says they found it';
+      try{fetch(SEND_PUSH_FUNCTION_URL,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY},body:JSON.stringify({title:(kind==='mine'?'\u{1F6A8} ':'\u{1F7E2} ')+'Someone '+k,body:lfItemName(p)+' \u2014 '+(p.location||''),tag:'lostfound-claim-'+id,url:'/index.html#lostfound-'+id,uid:String(p.poster_uid),secret:LF_NOTIFY_SECRET})}).catch(()=>{})}catch(e){}
+    }
+  }catch(e){toast('Could not send claim right now')}
+}
+async function resolveLostFound(id){
+  if(!accountSession)return;
+  if(!supabaseClient)return;
+  try{await supabaseClient.from(LOST_FOUND_TABLE).update({status:'resolved',resolved_at:new Date().toISOString()}).eq('id',id).eq('poster_uid',accountUid());toast('Marked as resolved \u2705');closeLostFoundDetail();loadLostFound(true)}catch(e){toast('Could not resolve right now')}
+}
+function handleLostFoundHash(){try{const h=location.hash||'';const m=h.match(/^#lostfound-(\d+)$/);if(m)openLostFoundDetail(Number(m[1]))}catch(e){}}
+window.addEventListener('hashchange',handleLostFoundHash);
+setTimeout(handleLostFoundHash,1100);

@@ -1071,3 +1071,21 @@ tr.new-pending td:first-child {
   border-color: var(--accent, #f59e0b);
   color: var(--accent, #f59e0b);
 }
+/* ============================================================
+   Lost & Found moderation
+   ============================================================ */
+.lf-admin-queue{display:grid;gap:12px}
+.lf-admin-item{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.lf-admin-item.removed{opacity:.62}
+.lf-adm-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lf-adm-head small{color:var(--muted);font-size:11px;margin-left:auto}
+.lf-adm-badge{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 9px;border-radius:999px}
+.lf-adm-badge.lf-adm-lost{background:color-mix(in srgb,#e5484d 16%,var(--surface));color:#e5484d}
+.lf-adm-badge.lf-adm-found{background:color-mix(in srgb,#2fbf71 16%,var(--surface));color:#2fbf71}
+.lf-adm-status{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;color:var(--muted)}
+.lf-adm-status[data-st="active"]{background:color-mix(in srgb,#2fbf71 14%,var(--surface));color:#2fbf71}
+.lf-adm-status[data-st="claimed"]{background:color-mix(in srgb,#f5a623 14%,var(--surface));color:#f5a623}
+.lf-adm-status[data-st="resolved"]{background:color-mix(in srgb,#7c5cff 14%,var(--surface));color:#a78bfa}
+.lf-adm-status[data-st="removed"]{background:color-mix(in srgb,#e5484d 14%,var(--surface));color:#e5484d}
+.lf-adm-body{font:14px var(--font-sans);color:var(--ink);line-height:1.5;margin-top:7px}
+.lf-adm-meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:11.5px;margin-top:7px;align-items:center}

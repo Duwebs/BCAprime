@@ -102,7 +102,7 @@
         <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" aria-label="Search notes, subjects or PYQs" placeholder="Search notes, subjects or PYQs&#8230;" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
       </div>
     </section>
-    <section class="desk-strip" aria-label="Your study desk" style="grid-template-columns:1fr 1fr 1fr 1fr"><button class="desk-card" onclick="selectTab('semesters',document.querySelectorAll('.bottom-tab')[1])"><span class="desk-icon"><i class="fa-solid fa-layer-group"></i></span><span><strong>Semesters</strong><small>Browse by semester</small></span></button><button class="desk-card primary-desk" onclick="openUpload()"><span class="desk-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span><strong>Share with students</strong><small>Upload notes or a PYQ</small></span></button><button class="desk-card" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[3])"><span class="desk-icon"><i class="fa-solid fa-bookmark"></i></span><span><strong>Your saved resources</strong><small id="savedSummary">Keep important notes close</small></span></button><button class="desk-card" onclick="openSeniorRequest()"><span class="desk-icon"><i class="fa-solid fa-users"></i></span><span><strong>Ask seniors</strong><small>Request notes &amp; PYQs</small></span></button></section>
+    <section class="desk-strip" aria-label="Your study desk" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr"><button class="desk-card" onclick="selectTab('semesters',document.querySelectorAll('.bottom-tab')[1])"><span class="desk-icon"><i class="fa-solid fa-layer-group"></i></span><span><strong>Semesters</strong><small>Browse by semester</small></span></button><button class="desk-card primary-desk" onclick="openUpload()"><span class="desk-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span><strong>Share with students</strong><small>Upload notes or a PYQ</small></span></button><button class="desk-card" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[3])"><span class="desk-icon"><i class="fa-solid fa-bookmark"></i></span><span><strong>Your saved resources</strong><small id="savedSummary">Keep important notes close</small></span></button><button class="desk-card" onclick="openSeniorRequest()"><span class="desk-icon"><i class="fa-solid fa-users"></i></span><span><strong>Ask seniors</strong><small>Request notes &amp; PYQs</small></span></button><button class="desk-card" onclick="scrollToLostFound()"><span class="desk-icon"><i class="fa-solid fa-circle-question"></i></span><span><strong>Lost &amp; Found</strong><small>Report lost items</small></span></button></section>
 
     <section class="section" id="library"><div class="section-head"><div><h2>PrimeFinder</h2></div></div><div class="finder prime-finder" id="bca-prime-finder"><div class="finder-top"><span class="finder-badge"><i class="fa-solid fa-wand-magic-sparkles"></i>Smart Finder</span><span class="finder-hint"><i class="fa-solid fa-lightbulb"></i>Match College + Semester + Subject — perfect material found</span></div><div class="finder-grid"><div class="field"><label for="semesterFilter">Semester</label><select id="semesterFilter" onchange="applyFilters()"><option value="all">All semesters</option><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label for="subjectFilter">Subject</label><select id="subjectFilter" onchange="onSubjectFilterChange(this)"><option value="all">All subjects</option></select></div><button class="primary finder-action" onclick="applyFilters()"><i class="fa-solid fa-magnifying-glass"></i> Find</button><button class="secondary finder-reset" onclick="resetFinder()"><i class="fa-solid fa-rotate-left"></i> Reset</button></div><div class="chips" id="typeChips"><button class="chip active" onclick="setType('all',this)">All</button><button class="chip" onclick="setType('notes',this)">Notes</button><button class="chip" onclick="setType('pyq',this)">PYQs</button></div><div class="add-subject-row finder-add-row" id="finderAddSubjectRow" hidden><input id="finderNewSubjectInput" type="text" maxlength="80" placeholder="Type a new subject&#8230;" onkeydown="if(event.key==='Enter')confirmFinderAddSubject()"><button class="primary" onclick="confirmFinderAddSubject()">Add</button><button class="secondary" onclick="cancelFinderAddSubject()" aria-label="Cancel">&times;</button></div></div>
       <div class="section-head" style="margin-top:20px"><div><h2>Your subjects</h2></div><span class="count">Tap a subject - choose Notes or PYQ</span></div>
@@ -110,6 +110,39 @@
       <div class="subject-cards" id="subjectCards"></div></section>
 
         <section class="section"><div class="resource-toolbar"><div class="section-head" style="margin:0"><div><h2>Latest resources</h2></div></div><span class="count" id="count"></span></div><div class="resource-grid" id="resources"></div></section>
+
+    <section class="section" id="lostFound">
+      <div class="section-head"><div><h2><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</h2></div><span class="count">Lost something? Found something? Post it here</span></div>
+
+      <div class="lf-quick">
+        <button class="chip lf-chip lf-lost" onclick="openLostFoundPost('lost')"><i class="fa-solid fa-triangle-exclamation"></i> Report Lost</button>
+        <button class="chip lf-chip lf-found" onclick="openLostFoundPost('found')"><i class="fa-solid fa-circle-check"></i> Report Found</button>
+      </div>
+
+      <div class="lf-quickpost" id="lfQuickPosts">
+        <span class="lf-qp-label">Quick post:</span>
+        <button class="chip" onclick="quickLostFound('lost','phone')"><i class="fa-solid fa-mobile-screen"></i> Phone</button>
+        <button class="chip" onclick="quickLostFound('lost','wallet')"><i class="fa-solid fa-wallet"></i> Wallet</button>
+        <button class="chip" onclick="quickLostFound('lost','bottle')"><i class="fa-solid fa-bottle-water"></i> Bottle</button>
+        <button class="chip" onclick="quickLostFound('lost','keys')"><i class="fa-solid fa-key"></i> Keys</button>
+        <button class="chip" onclick="quickLostFound('lost','bag')"><i class="fa-solid fa-bag-shopping"></i> Bag</button>
+      </div>
+
+      <div class="lf-toolbar">
+        <div class="lf-tabs">
+          <button class="chip lf-tab active" data-type="all" onclick="setLostFoundType('all',this)">All</button>
+          <button class="chip lf-tab" data-type="lost" onclick="setLostFoundType('lost',this)"><span class="lf-dot lf-dot-lost"></span>Lost</button>
+          <button class="chip lf-tab" data-type="found" onclick="setLostFoundType('found',this)"><span class="lf-dot lf-dot-found"></span>Found</button>
+        </div>
+        <div class="lf-filters">
+          <select id="lfCategoryFilter" aria-label="Filter by category" onchange="applyLostFoundFilters()"><option value="all">All categories</option></select>
+          <div class="lf-search"><i class="fa-solid fa-magnifying-glass"></i><input id="lfSearch" type="text" placeholder="Search Lost &amp; Found&hellip;" aria-label="Search Lost and Found" oninput="applyLostFoundFilters()"></div>
+        </div>
+      </div>
+
+      <div class="lf-feed" id="lostFoundFeed"></div>
+      <div class="lf-empty" id="lostFoundEmpty" hidden>No posts yet &mdash; be the first to report! &#128241;</div>
+    </section>
 
     <section class="section help-juniors" id="helpJuniors" hidden>
       <div class="section-head"><div><h2><i class="fa-solid fa-hand-holding-heart"></i> Help juniors</h2></div><span class="count" id="helpJuniorsCount"></span></div>
@@ -203,6 +236,53 @@
 
   <!-- Feedback / bug report -->
   <div class="modal" id="feedbackModal"><div class="dialog feedback-dialog"><div class="dialog-head"><h2>Feedback or a bug?</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Ran into a problem or have a great idea? Tell us &mdash; we'll fix it right away! 🙏</p><form class="upload-form" autocomplete="off" onsubmit="submitFeedback(event)"><div class="fb-kinds"><button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">&#128027; Bug</button><button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">&#128161; Idea</button><button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">&#10067; Question</button></div><div class="field"><label>What's the issue? *</label><textarea name="message" rows="3" required maxlength="1000" placeholder="e.g. Notes won't download..." oninput="updateFbCount(this.value)"></textarea><span class="fb-count" id="fbCount">0/1000</span></div><div class="field"><label>Screenshot (optional)</label><label class="file-box fb-file" for="feedbackFile"><i class="fa-solid fa-image"></i><span id="feedbackFileName">Attach screenshot</span><input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)"></label><div class="fb-thumb-wrap" id="fbThumbWrap" hidden><img id="fbThumb" alt="Screenshot preview"><button type="button" class="fb-thumb-remove" onclick="removeFeedbackFile(event)" aria-label="Remove screenshot">&times;</button></div></div><p class="fb-note">Your logged-in account is attached automatically so we can reply to you.</p><button class="primary" type="submit">Send feedback</button></form></div></div>
+
+  <!-- Lost & Found: post form -->
+  <div class="modal" id="lostFoundModal"><div class="dialog lf-dialog">
+    <div class="dialog-head"><h2>Lost &amp; Found</h2><button class="close" aria-label="Close dialog" onclick="closeLostFoundModal()">&times;</button></div>
+    <div class="lf-type-switch" id="lfTypeSwitch">
+      <button type="button" class="lf-type-btn lf-lost active" data-type="lost" onclick="setPostType(this)"><i class="fa-solid fa-triangle-exclamation"></i><span>I <b>LOST</b> this</span></button>
+      <button type="button" class="lf-type-btn lf-found" data-type="found" onclick="setPostType(this)"><i class="fa-solid fa-circle-check"></i><span>I <b>FOUND</b> this</span></button>
+    </div>
+    <form class="upload-form lf-form" id="lfForm" autocomplete="off" onsubmit="submitLostFoundPost(event)">
+      <div class="field"><label for="lfCategory">Category</label>
+        <select id="lfCategory" onchange="onLfCategoryChange(this)">
+          <option value="">Select a category&hellip;</option>
+          <option value="phone">&#128241; Phone</option>
+          <option value="wallet">&#128179; Wallet</option>
+          <option value="bottle">&#128168; Water Bottle</option>
+          <option value="bag">&#127894; Bag / Backpack</option>
+          <option value="keys">&#128273; Keys</option>
+          <option value="laptop">&#128187; Laptop</option>
+          <option value="books">&#128218; Books / Notes</option>
+          <option value="idcard">&#129712; ID / Library Card</option>
+          <option value="earphones">&#127911; Earphones / Headphones</option>
+          <option value="spectacles">&#128096; Spectacles</option>
+          <option value="watch">&#8986; Watch</option>
+          <option value="stationery">&#127915; Stationery</option>
+          <option value="other">Other</option>
+        </select>
+        <label class="field-hint lf-custom-label" for="lfCustomCategory" hidden>Which item? <small>(type it)</small></label>
+        <input id="lfCustomCategory" type="text" maxlength="40" placeholder="Which item? e.g. Power Bank" hidden>
+      </div>
+      <div class="field"><label>Photo <small>(optional)</small></label>
+        <label class="file-box lf-file" for="lfImage"><i class="fa-solid fa-image"></i><span id="lfImageName">Attach a photo</span><input id="lfImage" type="file" accept="image/*" hidden onchange="showLfImage(this)"></label>
+        <div class="lf-thumb-wrap" id="lfThumbWrap" hidden><img id="lfThumb" alt="Photo preview"><button type="button" class="fb-thumb-remove" onclick="removeLfImage(event)" aria-label="Remove photo">&times;</button></div>
+      </div>
+      <div class="field"><label for="lfDesc">Description</label><textarea id="lfDesc" rows="2" maxlength="300" required placeholder="Colour, brand, what does it look like&hellip;"></textarea></div>
+      <div class="field"><label for="lfLocation">Location</label><input id="lfLocation" type="text" maxlength="60" required placeholder="e.g. Library 2nd Floor, Canteen, Lab 3&hellip;"></div>
+      <div class="field"><label for="lfContact">Contact info</label><input id="lfContact" type="text" maxlength="80" placeholder="How should they reach you? (hidden until claim)"></div>
+      <div class="field"><label for="lfWhen">Date &amp; time</label><input id="lfWhen" type="datetime-local"></div>
+      <p class="account-message" id="lfMessage" aria-live="polite"></p>
+      <button class="primary" type="submit" id="lfSubmitBtn"><i class="fa-solid fa-paper-plane"></i> Post</button>
+    </form>
+  </div></div>
+
+  <!-- Lost & Found: post detail -->
+  <div class="modal" id="lostFoundDetailModal"><div class="dialog lf-dialog lf-detail-dialog">
+    <div class="dialog-head"><h2 id="lfDetailHead">Post</h2><button class="close" aria-label="Close dialog" onclick="closeLostFoundDetail()">&times;</button></div>
+    <div id="lfDetailBody"></div>
+  </div></div>
 
   <!-- New-device approval gate (WhatsApp-style linking) -->
   <div class="modal" id="deviceGateModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-qrcode"></i></div><p class="st-kicker">New device detected</p><h2 id="deviceGateTitle">Approve this login</h2><p class="st-sub">This is a new device. Enter this code on an approved device to approve the login, or <b>scan the QR</b>.</p><div class="device-gate-code"><span id="deviceCode">------</span><small>Enter this code on your approved device</small></div><div class="device-gate-actions"><button class="secondary" onclick="leaveDeviceGate()">Cancel &amp; logout</button><button class="primary" onclick="stopDevicePolling()">I'm waiting</button></div></div></div>

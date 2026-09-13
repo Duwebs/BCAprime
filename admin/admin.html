@@ -71,6 +71,7 @@
       <button class="tab active" data-tab="material" onclick="switchTab('material')"><i class="fa-solid fa-box-archive"></i> Material</button>
       <button class="tab" data-tab="subjects" onclick="switchTab('subjects')"><i class="fa-solid fa-book"></i> Subjects</button>
       <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
+      <button class="tab" data-tab="lostfound" onclick="switchTab('lostfound')"><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</button>
     </nav>
 
         <!-- ============ TAB: Material ============ -->
@@ -237,6 +238,20 @@
         </div>
         <div id="pendingQueue" class="pending-queue"><p class="note">Loading&hellip;</p></div>
         <div class="note">Approve a request to publish it for every student in that college &amp; semester. Reject uses the safe-delete confirmation (type the PIN) so you don't remove anything by accident.</div>
+      </section>
+
+    </section>
+
+    <!-- ============ TAB: Lost & Found (moderation) ============ -->
+    <section class="tab-panel" id="tab-lostfound" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Lost &amp; Found</h2>
+          <button class="button" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="lostfoundQueue" class="lf-admin-queue"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Remove inappropriate or spam posts. Removal archives the post (it disappears from the public feed but stays in the database).</div>
       </section>
 
     </section>

@@ -459,12 +459,13 @@ async function doDeleteFeedback(id){
    ============================================================ */
 function switchTab(tab){
   document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['material','subjects','pending'].forEach(id => {
+  ['material','subjects','pending','lostfound'].forEach(id => {
     const el = $('tab-' + id);
     if (el) el.hidden = (id !== tab);
   });
   if (tab === 'subjects') { if (!$('subjectCollege').options.length) populateSubjectFilters(); renderSubjects(); }
   if (tab === 'pending') loadPendingSubjects();
+  if (tab === 'lostfound') loadLostFoundAdmin();
 }
 
 /* ============================================================
@@ -675,6 +676,39 @@ async function confirmSafeDelete(){
   const fn = safeDeleteFn;
   closeSafeDelete();
   await fn();
+}
+/* ---- Lost & Found moderation ---- */
+const LOST_FOUND_ADMIN_CATS={phone:'Phone',wallet:'Wallet',bottle:'Water Bottle',bag:'Bag / Backpack',keys:'Keys',laptop:'Laptop',books:'Books / Notes',idcard:'ID / Library Card',earphones:'Earphones / Headphones',spectacles:'Spectacles',watch:'Watch',stationery:'Stationery',other:'Other'};
+function lfAdmCatName(v){return LOST_FOUND_ADMIN_CATS[v]||v||'Other'}
+function lfAdmStatusBadge(st){return '<span class="lf-adm-status" data-st="'+st+'">'+String(st||'active').replace(/^./,c=>c.toUpperCase())+'</span>'}
+async function loadLostFoundAdmin(){
+  const host=$('lostfoundQueue');if(!host)return;
+  if(!supabaseClient){host.innerHTML='<p class="note">Supabase is not configured.</p>';return}
+  const {data,error}=await supabaseClient.from('lost_found').select('*').order('created_at',{ascending:false}).limit(100);
+  if(error){host.innerHTML='<p class="note">Could not load posts. ('+escapeHtml(error.message)+')</p>';return}
+  const rows=data||[];
+  if(!rows.length){host.innerHTML='<p class="note">No Lost &amp; Found posts yet.</p>';return}
+  host.innerHTML=rows.map(r=>{
+    const label=r.type==='lost'?'LOST':'FOUND';
+    const cls=r.type==='lost'?'lf-adm-lost':'lf-adm-found';
+    const item=(r.category==='other'&&(r.custom_category||'').trim())?r.custom_category:lfAdmCatName(r.category);
+    const college=(collegeNames&&collegeNames[r.college])||r.college||'all';
+    const who=(r.poster_name||'').replace(/[<>&"']/g,'');
+    const time=r.created_at?new Date(r.created_at).toLocaleString():'';
+    return '<div class="lf-admin-item '+r.status+'">'+
+      '<div class="lf-adm-head"><span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+'<small>'+time+'</small></div>'+
+      '<div class="lf-adm-body"><b>'+escapeHtml(item)+'</b> &mdash; '+escapeHtml(r.description||'')+'</div>'+
+      '<div class="lf-adm-meta"><span>&#128205; '+escapeHtml(r.location||'')+'</span><span>&#127979; '+college+'</span>'+(r.poster_avatar?'<img src="'+escapeHtml(r.poster_avatar)+'" alt="" width="18" height="18" style="border-radius:50%;object-fit:cover">':'')+'<span>'+(who||'Student')+'</span></div>'+
+      (r.status!=='removed'
+        ?'<div class="row-actions"><button class="button danger" onclick="openSafeDelete(\'Remove this Lost &amp; Found post from the public feed? (campus-post #'+r.id+')\',()=>removeLostFoundPost('+r.id+'))"><i class="fa-solid fa-trash"></i> Remove</button></div>'
+        :'<div class="note">Archived (removed from public feed).</div>')+
+    '</div>';
+  }).join('');
+}
+async function removeLostFoundPost(id){
+  if(!supabaseClient)return;
+  await supabaseClient.from('lost_found').update({status:'removed'}).eq('id',id);
+  loadLostFoundAdmin();
 }
 /* ---- Boot ---- */
 document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'dark';
