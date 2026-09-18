@@ -1390,46 +1390,50 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
 /* ============================================================
    LOST & FOUND
    ============================================================ */
-.lf-quick{display:flex;gap:8px;margin:6px 0 4px}
+.lf-controls-container{display:flex;flex-direction:column;gap:12px;margin:12px 0;background:var(--surface-2);padding:14px;border-radius:14px;border:1px solid var(--line)}
+.lf-quick{display:flex;gap:8px}
 .lf-quick .chip{flex:1;justify-content:center;padding:12px;font-weight:700}
 .lf-chip.lf-lost{background:color-mix(in srgb,#e5484d 14%,var(--surface));color:#e5484d;border:1px solid color-mix(in srgb,#e5484d 40%,var(--line))}
 .lf-chip.lf-found{background:color-mix(in srgb,#2fbf71 14%,var(--surface));color:#2fbf71;border:1px solid color-mix(in srgb,#2fbf71 40%,var(--line))}
-.lf-quickpost{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:4px 0 12px}
-.lf-qp-label{font-size:12px;color:var(--muted);font-weight:600}
-.lf-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.lf-quickpost-scroll{display:flex;gap:7px;align-items:center;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.lf-quickpost-scroll::-webkit-scrollbar{display:none}
+.lf-qp-label{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;padding-right:4px}
+.lf-quickpost-scroll .chip{flex-shrink:0}
+.lf-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;background:var(--surface-2);padding:10px;border-radius:12px;border:1px solid var(--line)}
 .lf-tabs{display:flex;gap:6px}
 .lf-tabs .lf-tab.active{border-color:var(--brand);background:var(--brand-2);color:var(--brand)}
 .lf-filters{display:flex;gap:8px;flex:1;min-width:200px}
-.lf-filters select{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);padding:0 8px;font-size:13px;min-width:0;flex:1;outline:0}
+.lf-filters select{height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);padding:0 8px;font-size:13px;min-width:0;flex:1;outline:0}
 .lf-search{position:relative;flex:1}
-.lf-search i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px}
-.lf-search input{width:100%;height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);padding:0 30px 0 30px;outline:0;font-size:13px}
+.lf-search i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px}
+.lf-search input{width:100%;height:38px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);padding:0 30px 0 32px;outline:0;font-size:13px}
 .lf-search input:focus,.lf-filters select:focus{border-color:var(--brand)}
 .lf-dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
 .lf-dot-lost{background:#e5484d}
 .lf-dot-found{background:#2fbf71}
-.lf-feed{display:grid;gap:12px}
-.lf-card{display:flex;gap:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);cursor:pointer}
+.lf-feed{display:grid;gap:14px}
+.lf-card{display:flex;gap:14px;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2);cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.lf-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.05);border-color:var(--brand-2)}
 .lf-card:active{transform:scale(.98)}
-.lf-card-thumb{flex:0 0 64px;height:64px;border-radius:10px;overflow:hidden;background:var(--surface);display:grid;place-items:center;color:var(--muted);font-size:22px}
+.lf-card-thumb{flex:0 0 72px;height:72px;border-radius:12px;overflow:hidden;background:var(--surface);display:grid;place-items:center;color:var(--muted);font-size:24px}
 .lf-card-thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .lf-card-body{min-width:0;flex:1}
 .lf-card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.lf-badge{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 9px;border-radius:999px}
+.lf-badge{font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px;border-radius:999px}
 .lf-badge.lf-lost{background:color-mix(in srgb,#e5484d 16%,var(--surface));color:#e5484d}
 .lf-badge.lf-found{background:color-mix(in srgb,#2fbf71 16%,var(--surface));color:#2fbf71}
 .lf-badge.lf-done{background:color-mix(in srgb,#2fbf71 16%,var(--surface));color:#2fbf71}
 .lf-badge.lf-claimed{background:color-mix(in srgb,#f5a623 16%,var(--surface));color:#f5a623}
-.lf-cat-chip{font-size:11px;color:var(--muted);font-weight:600}
+.lf-cat-chip{font-size:11.5px;color:var(--muted);font-weight:600}
 .lf-cat-chip i{margin-right:4px;font-size:10px}
-.lf-card-title{display:block;font:600 15px 'Geist';color:var(--ink);margin-top:3px}
-.lf-card-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:12.5px;line-height:1.4;margin-top:3px}
-.lf-card-meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:11.5px;margin-top:8px;align-items:center}
-.lf-card-meta i{color:var(--brand);font-size:11px;margin-right:3px}
+.lf-card-title{display:block;font:600 16px 'Geist',sans-serif;color:var(--ink);margin-top:4px}
+.lf-card-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:var(--muted);font-size:13px;line-height:1.45;margin-top:4px}
+.lf-card-meta{display:flex;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:12px;margin-top:10px;align-items:center}
+.lf-card-meta i{color:var(--brand);font-size:11px;margin-right:4px}
 .lf-who{display:flex;align-items:center;gap:6px}
-.lf-who img{width:20px;height:20px;border-radius:50%;object-fit:cover}
+.lf-who img{width:22px;height:22px;border-radius:50%;object-fit:cover}
 .lf-who i{font-size:11px}
-.lf-empty{color:var(--muted);text-align:center;padding:22px;font-size:14px}
+.lf-empty{color:var(--muted);text-align:center;padding:30px 20px;font-size:15px;background:var(--surface-2);border-radius:14px;border:1px dashed var(--line)}
 .lf-type-switch{display:flex;gap:8px;margin-bottom:10px}
 .lf-type-btn{flex:1;padding:11px;border-radius:11px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);text-align:left;display:flex;gap:7px;align-items:center;font-weight:600;font-size:13px}
 .lf-type-btn i{font-size:15px}

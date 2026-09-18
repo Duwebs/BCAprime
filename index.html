@@ -114,18 +114,20 @@
     <section class="section" id="lostFound">
       <div class="section-head"><div><h2><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</h2></div><span class="count">Lost something? Found something? Post it here</span></div>
 
-      <div class="lf-quick">
-        <button class="chip lf-chip lf-lost" onclick="openLostFoundPost('lost')"><i class="fa-solid fa-triangle-exclamation"></i> Report Lost</button>
-        <button class="chip lf-chip lf-found" onclick="openLostFoundPost('found')"><i class="fa-solid fa-circle-check"></i> Report Found</button>
-      </div>
-
-      <div class="lf-quickpost" id="lfQuickPosts">
-        <span class="lf-qp-label">Quick post:</span>
-        <button class="chip" onclick="quickLostFound('lost','phone')"><i class="fa-solid fa-mobile-screen"></i> Phone</button>
-        <button class="chip" onclick="quickLostFound('lost','wallet')"><i class="fa-solid fa-wallet"></i> Wallet</button>
-        <button class="chip" onclick="quickLostFound('lost','bottle')"><i class="fa-solid fa-bottle-water"></i> Bottle</button>
-        <button class="chip" onclick="quickLostFound('lost','keys')"><i class="fa-solid fa-key"></i> Keys</button>
-        <button class="chip" onclick="quickLostFound('lost','bag')"><i class="fa-solid fa-bag-shopping"></i> Bag</button>
+      <div class="lf-controls-container">
+        <div class="lf-quick">
+          <button class="chip lf-chip lf-lost" onclick="openLostFoundPost('lost')"><i class="fa-solid fa-triangle-exclamation"></i> Report Lost</button>
+          <button class="chip lf-chip lf-found" onclick="openLostFoundPost('found')"><i class="fa-solid fa-circle-check"></i> Report Found</button>
+        </div>
+        
+        <div class="lf-quickpost-scroll" id="lfQuickPosts">
+          <span class="lf-qp-label">Quick:</span>
+          <button class="chip" onclick="quickLostFound('lost','phone')"><i class="fa-solid fa-mobile-screen"></i> Phone</button>
+          <button class="chip" onclick="quickLostFound('lost','wallet')"><i class="fa-solid fa-wallet"></i> Wallet</button>
+          <button class="chip" onclick="quickLostFound('lost','bottle')"><i class="fa-solid fa-bottle-water"></i> Bottle</button>
+          <button class="chip" onclick="quickLostFound('lost','keys')"><i class="fa-solid fa-key"></i> Keys</button>
+          <button class="chip" onclick="quickLostFound('lost','bag')"><i class="fa-solid fa-bag-shopping"></i> Bag</button>
+        </div>
       </div>
 
       <div class="lf-toolbar">
