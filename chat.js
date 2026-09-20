@@ -22,9 +22,56 @@
     { slug: 'exam-updates',     label: 'Exam Updates', icon: 'fa-bullhorn' },
     { slug: 'general-chat',     label: 'General',      icon: 'fa-comment' }
   ];
-  /* Your Telegram verification bot username — create with @BotFather,
-     then point its webhook at /api/phone-webhook on Vercel. */
-  var TELEGRAM_BOT = 'BCAPrimeVerifyBot';
+  /* ---------- country codes (flag + dial) — auto-detected below ---------- */
+  var COUNTRIES = {
+    IN:{dial:'91',name:'India'}, PK:{dial:'92',name:'Pakistan'}, BD:{dial:'880',name:'Bangladesh'},
+    NP:{dial:'977',name:'Nepal'}, LK:{dial:'94',name:'Sri Lanka'}, AF:{dial:'93',name:'Afghanistan'},
+    US:{dial:'1',name:'USA'}, CA:{dial:'1',name:'Canada'}, GB:{dial:'44',name:'UK'},
+    AE:{dial:'971',name:'UAE'}, SA:{dial:'966',name:'Saudi Arabia'}, QA:{dial:'974',name:'Qatar'},
+    KW:{dial:'965',name:'Kuwait'}, OM:{dial:'968',name:'Oman'}, BH:{dial:'973',name:'Bahrain'},
+    AU:{dial:'61',name:'Australia'}, NZ:{dial:'64',name:'New Zealand'}, SG:{dial:'65',name:'Singapore'},
+    MY:{dial:'60',name:'Malaysia'}, DE:{dial:'49',name:'Germany'}, FR:{dial:'33',name:'France'},
+    IT:{dial:'39',name:'Italy'}, ES:{dial:'34',name:'Spain'}, NL:{dial:'31',name:'Netherlands'},
+    IE:{dial:'353',name:'Ireland'}, JP:{dial:'81',name:'Japan'}, KR:{dial:'82',name:'South Korea'},
+    CN:{dial:'86',name:'China'}, HK:{dial:'852',name:'Hong Kong'}, TH:{dial:'66',name:'Thailand'},
+    ID:{dial:'62',name:'Indonesia'}, PH:{dial:'63',name:'Philippines'}, VN:{dial:'84',name:'Vietnam'},
+    ZA:{dial:'27',name:'South Africa'}, NG:{dial:'234',name:'Nigeria'}, KE:{dial:'254',name:'Kenya'},
+    EG:{dial:'20',name:'Egypt'}, TR:{dial:'90',name:'Turkey'}, BR:{dial:'55',name:'Brazil'},
+    MX:{dial:'52',name:'Mexico'}, RU:{dial:'7',name:'Russia'}, UA:{dial:'380',name:'Ukraine'},
+    PL:{dial:'48',name:'Poland'}, SE:{dial:'46',name:'Sweden'}, CH:{dial:'41',name:'Switzerland'},
+    PT:{dial:'351',name:'Portugal'}, GR:{dial:'30',name:'Greece'}, IL:{dial:'972',name:'Israel'},
+    FI:{dial:'358',name:'Finland'}, NO:{dial:'47',name:'Norway'}, DK:{dial:'45',name:'Denmark'}
+  };
+  function flagOf(cc) {
+    try {
+      return cc.toUpperCase().replace(/[A-Z]/g, function (c) {
+        return String.fromCodePoint(127397 + c.charCodeAt(0));
+      });
+    } catch (e) { return ''; }
+  }
+  /* Auto-detect: browser locale region (en-IN -> IN), fallback India */
+  function detectCountry() {
+    var regions = [];
+    try { regions.push(Intl.DateTimeFormat().resolvedOptions().locale); } catch (e) {}
+    try { regions = regions.concat(navigator.languages || []); } catch (e) {}
+    try { if (navigator.language) regions.push(navigator.language); } catch (e) {}
+    for (var i = 0; i < regions.length; i++) {
+      var m = String(regions[i] || '').match(/[-_]([A-Za-z]{2})(?:$|[-_])/);
+      if (m && COUNTRIES[m[1].toUpperCase()]) return m[1].toUpperCase();
+    }
+    return 'IN';
+  }
+  function populateCountries() {
+    var sel = $('phoneCountry');
+    if (!sel) return;
+    var cc = detectCountry();
+    var opts = [];
+    Object.keys(COUNTRIES).forEach(function (code) {
+      var c = COUNTRIES[code];
+      opts.push('<option value="' + code + '"' + (code === cc ? ' selected' : '') + '>' + flagOf(code) + ' ' + c.name + ' (+' + c.dial + ')</option>');
+    });
+    sel.innerHTML = opts.join('');
+  }
   var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
   var state = {
@@ -205,51 +252,84 @@
     } catch (e) { return { ok: false, error: true }; }
   }
   function openVerifyModal() {
-    $('phoneVerifyCodeCard').hidden = true;
+    populateCountries();
+    $('phoneVerifyOtpCard').hidden = true;
     $('phoneVerifyForm').hidden = false;
     $('phoneVerifyFormStatus').textContent = '';
     $('phoneVerifyModal').classList.add('open');
   }
+  function fullPhone() {
+    var cc = COUNTRIES[$('phoneCountry').value] || COUNTRIES.IN;
+    var digits = ($('phoneVerifyMobile').value || '').replace(/\D/g, '');
+    if (digits.charAt(0) === '0') digits = digits.slice(1);
+    return '+' + cc.dial + digits;
+  }
+  /* Send OTP: Firebase linkWithPhoneNumber keeps the student's existing
+     login session intact — the phone credential links to their account
+     (unlike signInWithPhoneNumber, which would replace it). */
   async function startVerify(event) {
     event.preventDefault();
     var u = myUser();
     var status = $('phoneVerifyFormStatus');
     if (!u) { status.textContent = 'Please login first.'; return false; }
-    var mobile = $('phoneVerifyMobile').value.trim();
-    if (mobile.replace(/\D/g, '').length < 10) { status.textContent = 'Enter a valid mobile number with country code.'; return false; }
-    status.textContent = 'Generating your code…';
+    var digits = ($('phoneVerifyMobile').value || '').replace(/\D/g, '');
+    if (digits.length < 7) { status.textContent = 'Enter a valid mobile number.'; return false; }
+    status.textContent = 'Sending OTP…';
     try {
-      var token = await u.getIdToken(true);
-      var url = (window.AUTH_API && AUTH_API.verifyPhone) || '';
-      if (!url) throw new Error('Verification API not configured.');
-      var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, mobile: mobile }) });
-      var d = await r.json().catch(function () { return {}; });
-      if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-      if (d.alreadyVerified) { await recheckVerified(); return false; }
-      state.pendingCode = d.code;
-      try { await SUPA.from('user_profiles').update({ mobile: mobile, updated_at: new Date().toISOString() }).eq('uid', u.uid); } catch (e) {}
-      $('phoneVerifyCode').textContent = d.code;
-      $('phoneVerifyBotLink').href = 'https://t.me/' + TELEGRAM_BOT + '?start=bca';
-      $('phoneVerifyCodeCard').hidden = false;
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('phoneVerifyRecaptcha', { size: 'invisible' });
+      }
+      await window.recaptchaVerifier.render();
+      var cc = COUNTRIES[$('phoneCountry').value] || COUNTRIES.IN;
+      var confirmResult = await u.linkWithPhoneNumber(fullPhone(), window.recaptchaVerifier);
+      state.confirm = confirmResult;
+      state.pendingMobile = fullPhone();
       $('phoneVerifyForm').hidden = true;
+      $('phoneVerifyOtpCard').hidden = false;
+      $('phoneVerifyStatus').textContent = 'OTP sent to ' + flagOf($('phoneCountry').value) + ' ' + fullPhone();
+      var otp = $('phoneVerifyOtp');
+      if (otp) otp.focus();
       status.textContent = '';
     } catch (e) {
-      status.textContent = 'Could not issue a code: ' + (e.message || e);
+      status.textContent = 'Could not send OTP: ' + (e && e.message ? e.message.replace('Firebase: ', '') : e);
+      try { if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; } } catch (e2) {}
     }
     return false;
   }
-  async function recheckVerified() {
+  /* Confirm the OTP -> phone linked & verified -> flip profile flag */
+  async function confirmOtp() {
     var status = $('phoneVerifyStatus');
-    if (status) status.textContent = 'Checking…';
-    var v = await fetchVerified();
-    if (v.ok) {
+    var u = myUser();
+    if (!u || !state.confirm) { openVerifyModal(); return; }
+    var code = ($('phoneVerifyOtp').value || '').replace(/\D/g, '');
+    if (code.length !== 6) { status.textContent = 'Enter the 6-digit OTP.'; return; }
+    status.textContent = 'Verifying…';
+    try {
+      await state.confirm.confirm(code);
+      var uid = u.uid;
+      try {
+        await SUPA.from('user_profiles').update({
+          mobile: state.pendingMobile || '',
+          is_phone_verified: true,
+          phone_verified_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }).eq('uid', uid);
+      } catch (e) { /* profile update is best-effort; RLS recheck below */ }
       $('phoneVerifyModal').classList.remove('open');
+      $('phoneVerifyOtp').value = '';
+      state.confirm = null;
+      try { if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; } } catch (e) {}
       toast('Number verified — welcome to the community! 🎉');
-      state.pendingCode = null;
       open();
-    } else {
-      if (status) status.textContent = 'Not verified yet. Send the code to the bot from your phone, then check again.';
+    } catch (e) {
+      status.textContent = 'Wrong or expired OTP — try again.';
     }
+  }
+  function editNumber() {
+    state.confirm = null;
+    $('phoneVerifyOtpCard').hidden = true;
+    $('phoneVerifyForm').hidden = false;
+    $('phoneVerifyStatus').textContent = '';
   }
 
   /* ---------- open / close ---------- */
@@ -390,11 +470,17 @@
     }
   });
 
+  /* Enter key on the OTP box confirms */
+  try {
+    var otpBox = $('phoneVerifyOtp');
+    if (otpBox) otpBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); confirmOtp(); } });
+  } catch (e) {}
+
   /* ---------- public API ---------- */
   window.BCAChat = {
     open: open, close: close,
     send: send, inputKey: inputKey, markCode: markCode,
     pickImage: pickImage, clearImage: clearImage,
-    startVerify: startVerify, recheckVerified: recheckVerified
+    startVerify: startVerify, confirmOtp: confirmOtp, editNumber: editNumber
   };
 })();

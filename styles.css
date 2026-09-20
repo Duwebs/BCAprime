@@ -1156,6 +1156,17 @@ html.auth-known #appTabs{display:grid!important}
 .phone-verify-code-card p{margin:0;color:var(--ink);font-size:13px}
 .phone-verify-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;min-height:44px}
 .phone-verify-status{color:var(--muted);font-size:12px;margin:6px 0 0;min-height:14px}
+/* country selector row + OTP step */
+.phone-country-row{display:flex;gap:8px;margin:14px 0}
+.phone-country-row select{flex:0 0 44%;max-width:170px;height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);padding:0 6px;font-size:12.5px;outline:0;cursor:pointer}
+.phone-country-row select:focus{border-color:var(--brand)}
+.phone-country-row input{flex:1;min-width:0;height:46px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);padding:0 12px;font-size:15px;letter-spacing:.04em;outline:0}
+.phone-country-row input:focus{border-color:var(--brand)}
+.phone-otp-label{display:block;text-align:left;margin:14px 0;color:var(--muted);font-size:12px;font-weight:700}
+.phone-otp-label input{width:100%;margin-top:6px;height:52px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);color:var(--ink);padding:0 14px;font-size:24px;letter-spacing:.4em;text-align:center;font-variant-numeric:tabular-nums;outline:0}
+.phone-otp-label input:focus{border-color:var(--brand)}
+.phone-verify-code-card .primary,.phone-verify-code-card .secondary{width:100%;min-height:44px}
+#phoneVerifyRecaptcha{display:flex;justify-content:center}
 @media(max-width:600px){
   .msg{max-width:92%}
   .fab-wrap{right:12px;bottom:calc(84px + env(safe-area-inset-bottom,0px))}

@@ -227,26 +227,28 @@
     </footer>
   </section>
 
-  <!-- ================= Phone verification gate modal ================= -->
+  <!-- ================= Phone verification gate modal (Firebase SMS OTP) ================= -->
   <div class="modal" id="phoneVerifyModal"><div class="dialog phone-verify-dialog">
     <button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button>
     <div class="phone-verify-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
     <p class="st-kicker">Community access</p>
     <h2>Verify your mobile number</h2>
-    <p class="st-sub" id="phoneVerifyIntro">To keep the community spam-free and safe, every member verifies their number once. It takes ~30 seconds.</p>
-    <div class="phone-verify-code-card" id="phoneVerifyCodeCard" hidden>
-      <small>Your verification code</small>
-      <strong id="phoneVerifyCode">------</strong>
-      <p>Open our Telegram bot below and send <b>BCAVERIFY &lt;code&gt;</b> from your phone. Your badge unlocks instantly.</p>
-      <a class="primary phone-verify-cta" id="phoneVerifyBotLink" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-telegram"></i> Open verification bot</a>
-      <button class="secondary" type="button" onclick="BCAChat.recheckVerified()"><i class="fa-solid fa-rotate"></i> I've sent it — check again</button>
-      <p class="phone-verify-status" id="phoneVerifyStatus" aria-live="polite"></p>
-    </div>
+    <p class="st-sub">To keep the community spam-free and safe, every member verifies their number once via OTP. Your login stays untouched.</p>
+    <div id="phoneVerifyRecaptcha"></div>
     <form class="phone-verify-form" id="phoneVerifyForm" onsubmit="return BCAChat.startVerify(event)">
-      <label>Mobile number (with country code)<input id="phoneVerifyMobile" type="tel" placeholder="+91 98765 43210" maxlength="20" required></label>
-      <button class="primary" type="submit"><i class="fa-solid fa-shield-halved"></i> Get verification code</button>
+      <div class="phone-country-row">
+        <select id="phoneCountry" aria-label="Country code"></select>
+        <input id="phoneVerifyMobile" type="tel" placeholder="98765 43210" maxlength="14" required>
+      </div>
+      <button class="primary" type="submit"><i class="fa-solid fa-comment-sms"></i> Send OTP</button>
       <p class="phone-verify-status" id="phoneVerifyFormStatus" aria-live="polite"></p>
     </form>
+    <div class="phone-verify-code-card" id="phoneVerifyOtpCard" hidden>
+      <label class="phone-otp-label">Enter the 6-digit OTP<input id="phoneVerifyOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······"></label>
+      <button class="primary" type="button" onclick="BCAChat.confirmOtp()"><i class="fa-solid fa-shield-halved"></i> Verify &amp; unlock community</button>
+      <button class="secondary" type="button" onclick="BCAChat.editNumber()"><i class="fa-solid fa-pen"></i> Change number</button>
+      <p class="phone-verify-status" id="phoneVerifyStatus" aria-live="polite"></p>
+    </div>
   </div></div>
 
 
@@ -374,7 +376,7 @@
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
   <script src="whats-new.js?v=12"></script>
   <script src="app.js?v=45"></script>
-  <script src="chat.js?v=1"></script>
+  <script src="chat.js?v=2"></script>
 </body>
 </html>
 
