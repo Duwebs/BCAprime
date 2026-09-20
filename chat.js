@@ -22,6 +22,10 @@
     { slug: 'exam-updates',     label: 'Exam Updates', icon: 'fa-bullhorn' },
     { slug: 'general-chat',     label: 'General',      icon: 'fa-comment' }
   ];
+  /* Your Telegram verification bot username — create free with @BotFather,
+     then point its webhook at /api/phone-webhook on Vercel. */
+  var TELEGRAM_BOT = 'BCAPrimeVerifyBot';
+
   /* ---------- country codes (flag + dial) — auto-detected below ---------- */
   var COUNTRIES = {
     IN:{dial:'91',name:'India'}, PK:{dial:'92',name:'Pakistan'}, BD:{dial:'880',name:'Bangladesh'},
@@ -264,9 +268,10 @@
     if (digits.charAt(0) === '0') digits = digits.slice(1);
     return '+' + cc.dial + digits;
   }
-  /* Send OTP: Firebase linkWithPhoneNumber keeps the student's existing
-     login session intact — the phone credential links to their account
-     (unlike signInWithPhoneNumber, which would replace it). */
+  /* Send OTP: SAME 6-digit code goes to the student's EMAIL instantly
+     (existing free send-otp system). The student then completes
+     verification EITHER by typing the OTP here, OR by sending
+     "BCAVERIFY <code>" to our Telegram bot from their phone. */
   async function startVerify(event) {
     event.preventDefault();
     var u = myUser();
@@ -274,59 +279,77 @@
     if (!u) { status.textContent = 'Please login first.'; return false; }
     var digits = ($('phoneVerifyMobile').value || '').replace(/\D/g, '');
     if (digits.length < 7) { status.textContent = 'Enter a valid mobile number.'; return false; }
-    status.textContent = 'Sending OTP…';
+    status.textContent = 'Sending OTP to your email…';
     try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('phoneVerifyRecaptcha', { size: 'invisible' });
-      }
-      await window.recaptchaVerifier.render();
-      var cc = COUNTRIES[$('phoneCountry').value] || COUNTRIES.IN;
-      var confirmResult = await u.linkWithPhoneNumber(fullPhone(), window.recaptchaVerifier);
-      state.confirm = confirmResult;
+      var token = await u.getIdToken(true);
+      var url = (window.AUTH_API && AUTH_API.sendChatOtp) || '';
+      if (!url) throw new Error('OTP service not configured.');
+      var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, email: u.email || '' }) });
+      var d = await r.json().catch(function () { return {}; });
+      if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      /* remember the number on the profile */
+      try {
+        await SUPA.from('user_profiles').update({
+          mobile: fullPhone(), updated_at: new Date().toISOString()
+        }).eq('uid', u.uid);
+      } catch (e) {}
       state.pendingMobile = fullPhone();
       $('phoneVerifyForm').hidden = true;
       $('phoneVerifyOtpCard').hidden = false;
-      $('phoneVerifyStatus').textContent = 'OTP sent to ' + flagOf($('phoneCountry').value) + ' ' + fullPhone();
+      $('tgVerifyLink').href = 'https://t.me/' + TELEGRAM_BOT + '?start=bca';
+      $('phoneVerifyStatus').textContent = 'OTP sent to ' + (u.email || 'your email');
       var otp = $('phoneVerifyOtp');
       if (otp) otp.focus();
       status.textContent = '';
     } catch (e) {
       status.textContent = 'Could not send OTP: ' + (e && e.message ? e.message.replace('Firebase: ', '') : e);
-      try { if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; } } catch (e2) {}
     }
     return false;
   }
-  /* Confirm the OTP -> phone linked & verified -> flip profile flag */
+  /* Path A: student types the emailed OTP here */
   async function confirmOtp() {
     var status = $('phoneVerifyStatus');
     var u = myUser();
-    if (!u || !state.confirm) { openVerifyModal(); return; }
+    if (!u) { openVerifyModal(); return; }
     var code = ($('phoneVerifyOtp').value || '').replace(/\D/g, '');
-    if (code.length !== 6) { status.textContent = 'Enter the 6-digit OTP.'; return; }
+    if (code.length !== 6) { status.textContent = 'Enter the 6-digit OTP from your email.'; return; }
     status.textContent = 'Verifying…';
     try {
-      await state.confirm.confirm(code);
-      var uid = u.uid;
-      try {
-        await SUPA.from('user_profiles').update({
-          mobile: state.pendingMobile || '',
-          is_phone_verified: true,
-          phone_verified_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }).eq('uid', uid);
-      } catch (e) { /* profile update is best-effort; RLS recheck below */ }
-      $('phoneVerifyModal').classList.remove('open');
-      $('phoneVerifyOtp').value = '';
-      state.confirm = null;
-      try { if (window.recaptchaVerifier) { window.recaptchaVerifier.clear(); window.recaptchaVerifier = null; } } catch (e) {}
-      toast('Number verified — welcome to the community! 🎉');
-      open();
+      var token = await u.getIdToken(true);
+      var url = (window.AUTH_API && AUTH_API.verifyOtp) || '';
+      if (!url) throw new Error('OTP service not configured.');
+      var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, code: code }) });
+      var d = await r.json().catch(function () { return {}; });
+      if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      await finishVerified(u.uid);
     } catch (e) {
-      status.textContent = 'Wrong or expired OTP — try again.';
+      status.textContent = 'Wrong or expired OTP — check your email and try again.';
     }
   }
+  /* Path B: student sent BCAVERIFY <code> to the Telegram bot — the
+     webhook flips is_phone_verified server-side; we just re-check. */
+  async function recheckVerified() {
+    var status = $('phoneVerifyStatus');
+    if (status) status.textContent = 'Checking…';
+    var v = await fetchVerified();
+    if (v.ok) { await finishVerified(myUser() && myUser().uid); }
+    else if (status) status.textContent = 'Not verified yet. Send BCAVERIFY <code> to the bot from your phone, then check again.';
+  }
+  async function finishVerified(uid) {
+    try {
+      await SUPA.from('user_profiles').update({
+        mobile: state.pendingMobile || '',
+        is_phone_verified: true,
+        phone_verified_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }).eq('uid', uid);
+    } catch (e) {}
+    $('phoneVerifyModal').classList.remove('open');
+    $('phoneVerifyOtp').value = '';
+    toast('Verified! Welcome to the community 🎉');
+    open();
+  }
   function editNumber() {
-    state.confirm = null;
     $('phoneVerifyOtpCard').hidden = true;
     $('phoneVerifyForm').hidden = false;
     $('phoneVerifyStatus').textContent = '';
@@ -481,6 +504,6 @@
     open: open, close: close,
     send: send, inputKey: inputKey, markCode: markCode,
     pickImage: pickImage, clearImage: clearImage,
-    startVerify: startVerify, confirmOtp: confirmOtp, editNumber: editNumber
+    startVerify: startVerify, confirmOtp: confirmOtp, editNumber: editNumber, recheckVerified: recheckVerified
   };
 })();

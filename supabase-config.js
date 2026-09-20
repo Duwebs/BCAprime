@@ -27,6 +27,7 @@ const AUTH_API = {
   googleWelcome: AUTH_API_ORIGIN + '/api/google-welcome',
   forgotPassword: AUTH_API_ORIGIN + '/api/forgot-password',
   verifyPhone: AUTH_API_ORIGIN + '/api/verify-phone',
+  sendChatOtp: AUTH_API_ORIGIN + '/api/send-chat-otp',
 };
 
 /* ---- Web Push (VAPID) ----

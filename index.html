@@ -244,8 +244,11 @@
       <p class="phone-verify-status" id="phoneVerifyFormStatus" aria-live="polite"></p>
     </form>
     <div class="phone-verify-code-card" id="phoneVerifyOtpCard" hidden>
-      <label class="phone-otp-label">Enter the 6-digit OTP<input id="phoneVerifyOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······"></label>
+      <label class="phone-otp-label">Enter the 6-digit OTP (sent to your email)<input id="phoneVerifyOtp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······"></label>
       <button class="primary" type="button" onclick="BCAChat.confirmOtp()"><i class="fa-solid fa-shield-halved"></i> Verify &amp; unlock community</button>
+      <p style="margin:10px 0 0;font-size:12px;color:var(--muted)"><b>Or verify your number on Telegram:</b> check your email for the OTP, then send <b>BCAVERIFY &lt;code&gt;</b> to our bot from your phone.</p>
+      <a class="primary phone-verify-cta" id="tgVerifyLink" href="#" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#2AABEE,#229ED9);border:0"><i class="fa-brands fa-telegram"></i> Open Telegram bot</a>
+      <button class="secondary" type="button" onclick="BCAChat.recheckVerified()"><i class="fa-solid fa-rotate"></i> I sent it on Telegram — check again</button>
       <button class="secondary" type="button" onclick="BCAChat.editNumber()"><i class="fa-solid fa-pen"></i> Change number</button>
       <p class="phone-verify-status" id="phoneVerifyStatus" aria-live="polite"></p>
     </div>
@@ -376,7 +379,7 @@
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
   <script src="whats-new.js?v=12"></script>
   <script src="app.js?v=45"></script>
-  <script src="chat.js?v=2"></script>
+  <script src="chat.js?v=3"></script>
 </body>
 </html>
 

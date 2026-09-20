@@ -90,31 +90,37 @@ module.exports = withCors(async (req, res) => {
 
   const code = match[1];
   const db = supabase();
+  /* The SAME 6-digit code that was emailed to the student (email_otps,
+     hashed by api/_lib/otp.js hashOtp — HMAC with no prefix). Redeeming
+     it here proves the message came from the student's own phone. */
+  const hash = crypto.createHmac('sha256', process.env.OTP_PEPPER || 'bca-otp-pepper').update(String(code)).digest('hex');
   const { data: row } = await db
-    .from('phone_verifications')
-    .select('uid, code_hash, attempts, expires_at, used_at')
-    .eq('code_hash', hashOtp(code))
+    .from('email_otps')
+    .select('uid, code_hash, attempts, expires_at, used_at, email')
+    .eq('code_hash', hash)
+    .order('id', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (!row) {
-    await reply(chatId, '\u274c That code is not valid. Open BCAPrime \u2192 Community and get a fresh code.');
+    await reply(chatId, '\u274c That code is not valid. Open BCAPrime \u2192 Community and get a fresh OTP.');
     return send(res, 200, { ok: true });
   }
   if (row.used_at) {
-    await reply(chatId, '\u2713 This code was already used. Your number is verified \u2014 enjoy the Community Chat!');
+    await reply(chatId, '\u2713 This code was already used. You are verified \u2014 enjoy the Community Chat!');
     return send(res, 200, { ok: true });
   }
   if (new Date(row.expires_at) < new Date()) {
-    await reply(chatId, '\u23f0 That code expired. Open BCAPrime \u2192 Community for a new one.');
+    await reply(chatId, '\u23f0 That code expired. Open BCAPrime \u2192 Community for a new OTP.');
     return send(res, 200, { ok: true });
   }
   if ((row.attempts || 0) >= MAX_ATTEMPTS) {
-    await reply(chatId, '\ud83d\udeab Too many attempts for this code. Get a fresh one in the app.');
+    await reply(chatId, '\ud83d\udeab Too many attempts for this code. Get a fresh OTP in the app.');
     return send(res, 200, { ok: true });
   }
 
-  // Redeem: mark used + flip the profile flag atomically-enough.
-  await db.from('phone_verifications')
+  // Redeem: mark the OTP used + flip the profile flag.
+  await db.from('email_otps')
     .update({ used_at: new Date().toISOString() })
     .eq('uid', row.uid);
 
