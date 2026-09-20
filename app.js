@@ -68,7 +68,114 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:accountSession&&accountSession.uid?accountSession.uid:'',user_email:accountSession&&accountSession.email?accountSession.email:'',user_name:accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||''),resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
-    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const {data,error}=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});if(error)throw error;const cloud=(data||[]).map(item=>({title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploader:item.uploader_name||(item.uploader_email?item.uploader_email.split('@')[0].split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' '):''),uploaderEmail:item.uploader_email||'',date:item.created_at?String(item.created_at).slice(0,10):''}));const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const cloud=(await fetchApprovedResourceRows()).map(mapCloudResourceRow);const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render()}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
+    /* ================= DYNAMIC CONTRIBUTOR PROFILES =================
+       Resource card par contributor ka naam/avatar ab STATIC nahi hote.
+       Har resource sirf `uploaderUid` (Firebase uid) rakhta hai; naam + DP
+       hamesha user_profiles se aate hain. Profile update hote hi Realtime
+       event aata hai aur us uid wale SAARE cards turant patch ho jaate hain
+       — na re-upload, na manual refresh, na page reload. */
+    const contributorCache=new Map(); /* uid -> {name,avatar,username} */
+    let contributorChannel=null;
+    const RESOURCE_FEED_COLUMNS='id,title,type,subject,college,semester,year,file_name,file_url,status,downloads,upvotes,created_at,uploader_email,uploader_name,uploader_uid,contributor_name,contributor_avatar';
+    function nameFromEmail(email){return String(email||'').split('@')[0].split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1)).join(' ')}
+    function cacheContributorProfile(uid,profile){
+      const key=uid?String(uid):'';if(!key)return null;
+      const prev=contributorCache.get(key)||{name:'',avatar:'',username:''};
+      const next={name:String((profile&&(profile.name||profile.display_name))||prev.name||'').trim(),avatar:String((profile&&(profile.avatar_url||profile.avatar))||prev.avatar||''),username:String((profile&&profile.username)||prev.username||'')};
+      contributorCache.set(key,next);return next;
+    }
+    function contributorNameFor(uid,fallback){const live=contributorCache.get(String(uid||''));return String((live&&live.name)||fallback||'')}
+    function contributorAvatarFor(uid,fallback){const live=contributorCache.get(String(uid||''));return String((live&&live.avatar)||fallback||'')}
+    /* Backend-populated read: `resources_feed` view (live join to user_profiles).
+       View abhi deploy na hui ho to plain table + user_profiles ka client-side
+       populate chal jaata hai — site kabhi break nahi hoti. */
+    async function fetchApprovedResourceRows(){
+      const primary=await supabaseClient.from('resources_feed').select(RESOURCE_FEED_COLUMNS).eq('status','approved').order('created_at',{ascending:false});
+      if(!primary.error)return primary.data||[];
+      console.warn('[BCAPrime] resources_feed view unavailable — plain table fallback. supabase-contributor-profiles.sql run karo.');
+      const fallback=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});
+      if(fallback.error)throw fallback.error;
+      await hydrateContributorProfiles(fallback.data||[]);
+      return fallback.data||[];
+    }
+    /* Fallback path: ek hi query me saare contributors ke live naam + DP */
+    async function hydrateContributorProfiles(rows){
+      const list=Array.isArray(rows)?rows:[];
+      const uids=[...new Set(list.map(item=>item&&item.uploader_uid).filter(Boolean))];
+      if(!uids.length)return list;
+      try{
+        const {data}=await supabaseClient.from('user_profiles').select('uid,name,username,avatar_url').in('uid',uids);
+        (data||[]).forEach(profile=>cacheContributorProfile(profile.uid,profile));
+      }catch(error){}
+      return list;
+    }
+    function mapCloudResourceRow(item){
+      const uid=item.uploader_uid?String(item.uploader_uid):'';
+      const email=item.uploader_email||'';
+      return {title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploaderUid:uid,uploader:item.contributor_name||contributorNameFor(uid,item.uploader_name||(email?nameFromEmail(email):'')),uploaderAvatar:item.contributor_avatar||contributorAvatarFor(uid,''),uploaderEmail:email,date:item.created_at?String(item.created_at).slice(0,10):''};
+    }
+
+    /* uid -> DOM selector (Firebase uids alphanumeric hote hain; baaki safely skip) */
+    function contributorSelector(uid){const value=String(uid||'');return /^[A-Za-z0-9_-]{1,80}$/.test(value)?value:''}
+    /* Card DOM ko bina full re-render patch karo — scroll position safe rehti hai */
+    function patchContributorInDom(uid,live,selfUid){
+      const selector=contributorSelector(uid);if(!selector)return false;
+      const name=(live&&live.name)||'';
+      const avatar=(live&&live.avatar)||(String(uid)===selfUid?getAvatar():'')||(name?uploaderSmallAvatar(name):'');
+      try{
+        document.querySelectorAll('.rc-uploader-avatar[data-contributor-uid="'+selector+'"]').forEach(img=>{img.src=avatar;img.alt=name||'BCAPrime'});
+        if(name)document.querySelectorAll('.rc-uploader-name[data-contributor-uid="'+selector+'"]').forEach(el=>{el.textContent=name});
+        return true;
+      }catch(error){return false}
+    }
+    /* Profile change apply karo: cache + local cards + DOM (+ apna naam/DP) */
+    function applyContributorProfileLive(uid,profile){
+      const key=uid?String(uid):'';if(!key)return;
+      const live=cacheContributorProfile(key,profile)||{name:'',avatar:''};
+      const name=live.name||nameFromEmail((profile&&profile.email)||'');
+      const avatar=live.avatar||((profile&&profile.photoURL)||'');
+      const selfUid=accountUid();
+      if(selfUid&&selfUid===key){
+        if(accountSession){
+          if(name)try{accountSession.displayName=name}catch(error){}
+          if(avatar)try{accountSession.photoURL=avatar}catch(error){}
+        }
+        if(avatar)setCachedAvatar(avatar);
+        renderAvatar();
+      }
+      let touched=false;
+      resources.forEach(item=>{if(item&&String(item.uploaderUid||'')===key){if(name)item.uploader=name;if(avatar)item.uploaderAvatar=avatar;touched=true}});
+      try{
+        const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]');let changed=false;
+        uploads.forEach(item=>{if(item&&String(item.uploaderUid||'')===key){if(name)item.uploader=name;if(avatar)item.uploaderAvatar=avatar;changed=true}});
+        if(changed)localStorage.setItem('bca-uploads',JSON.stringify(uploads));
+      }catch(error){}
+      const patched=patchContributorInDom(key,live,selfUid);
+      if(!patched&&touched)render();
+    }
+    /* Realtime: user_profiles ki koi bhi row badalti hai -> us uid ke saare
+       resource cards turant update (na reload, na refresh). */
+    function startContributorRealtime(){
+      if(!supabaseClient||contributorChannel)return;
+      try{
+        contributorChannel=supabaseClient.channel('contributors-live').on('postgres_changes',{event:'*',schema:'public',table:'user_profiles'},payload=>{
+          const row=payload&&((payload.new&&payload.new.uid)?payload.new:payload.old);
+          if(!row||!row.uid)return;
+          applyContributorProfileLive(row.uid,row);
+        });
+        contributorChannel.subscribe();
+      }catch(error){console.warn('[BCAPrime] contributor realtime unavailable.',error)}
+    }
+    /* Login ke baad apne hi cards me live naam/DP turant lagao */
+    async function refreshContributorSnapshot(){
+      if(!supabaseClient||!accountUid())return;
+      try{
+        const {data}=await supabaseClient.from('user_profiles').select('uid,name,username,avatar_url').eq('uid',accountUid()).maybeSingle();
+        if(data)applyContributorProfileLive(data.uid,data);
+      }catch(error){}
+    }
+
     function init(){
       /* Time-based default theme (initial load only): 6AM-5:59PM light, baaki dark.
          User ki manual choice (bca-theme-manual) hamesha override karti hai. */
@@ -144,7 +251,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     }
     function uploaderSmallAvatar(name){const n=(name||'Student').trim();const letter=n.charAt(0).toUpperCase()||'S';const hues=[142,200,280,320,40,170];let h=0;for(const ch of n)h=(h*31+ch.charCodeAt(0))%360;const hue=hues[h%hues.length];return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="14" fill="hsl(${hue},55%,42%)"/><text x="14" y="19" font-family="Arial,sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${letter}</text></svg>`)}`}
-function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject||'Community upload');const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const sUploader=r.uploader?escHtml(r.uploader):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const cnt=getCounts(id);const views=((cnt&&cnt.v)||0);const downloads=((typeof r.downloads==='number')?r.downloads:0)+((cnt&&cnt.d)||0);const isAdmin=(r.role==='admin'||r.uploaderRole==='admin');const avatar=isAdmin?(r.uploaderAvatar||'/assets/logo.png'):(r.uploaderAvatar||uploaderSmallAvatar(r.uploader||'S'));const saveBtn=`<button class="rc-icon ${saved?'on':''}" aria-label="Save resource" onclick="toggleSave('${id}')" title="Save"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button>`;const shareBtn=`<button class="rc-icon" aria-label="Share" onclick="shareResource('${dlTitle}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;const roleBadge=isAdmin?`<span class="rc-role rc-role-admin"><i class="fa-solid fa-circle-check"></i> Admin</span>`:`<span class="rc-role">Contributor</span>`;const fileExt=(r.fileName&&(r.fileName.match(/\.(\w+)$/)||[])[1])?escHtml(r.fileName.match(/\.(\w+)$/)[1].toUpperCase()):(r.type==='pyq'?'PYQ':'Notes');return `<article class="resource${isPending?' pending-resource':''}" data-id="${id}"><div class="rc-top"><div class="rc-top-left"><span class="badge">${r.type==='pyq'?'PYQ':'Notes'}</span><span class="rc-file">${fileExt}</span></div><div class="rc-top-actions">${saveBtn}${shareBtn}</div></div>${isPending?`<span class="rc-pending"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<h3 class="rc-title">${sTitle}</h3><div class="rc-subject"><span class="rc-subject-badge"><i class="fa-solid fa-book-open"></i> ${sSubject}</span><span class="rc-sem-badge"><i class="fa-solid fa-layer-group"></i> Sem ${(r.sem!=null&&r.sem!=='')?escHtml(String(r.sem)):''}</span></div><div class="rc-meta"><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span>${r.date?`<span><i class="fa-regular fa-clock"></i>${escHtml(r.date)}</span>`:''}</div><div class="rc-uploader"><img class="rc-uploader-avatar" src="${avatar}" alt="${sUploader||'BCAPrime'}" width="24" height="24">${sUploader?`<span class="rc-uploader-name">${sUploader}</span>`:''}${roleBadge}</div><div class="rc-stats"><button type="button" class="rc-stat rc-like${up?' on':''}" title="${up?'Unlike':'Like'}" onclick="toggleUpvote('${id}')"><i class="fa-${up?'solid':'regular'} fa-heart"></i><b>${upvoteDisplay(r)}</b> ${up?'Liked':'Likes'}</button><span class="rc-stat" title="Views"><i class="fa-regular fa-eye"></i><b id="rcv-${id}">${views}</b> Views</span><span class="rc-stat" title="Downloads"><i class="fa-solid fa-download"></i><b id="rcd-${id}">${downloads}</b> Downloads</span></div><div class="resource-actions"><button class="view read" onclick="readResource('${id}')"><i class="fa-solid fa-book-open"></i> Read</button><button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
+function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject||'Community upload');const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const cUid=contributorSelector(r.uploaderUid||'');const cLive=cUid?contributorCache.get(cUid):null;const cName=(cLive&&cLive.name)||r.uploader||'';const sUploader=cName?escHtml(cName):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const cnt=getCounts(id);const views=((cnt&&cnt.v)||0);const downloads=((typeof r.downloads==='number')?r.downloads:0)+((cnt&&cnt.d)||0);const isAdmin=(r.role==='admin'||r.uploaderRole==='admin');const avatar=(cLive&&cLive.avatar)||r.uploaderAvatar||(isAdmin?'/assets/logo.png':uploaderSmallAvatar(cName||'S'));const saveBtn=`<button class="rc-icon ${saved?'on':''}" aria-label="Save resource" onclick="toggleSave('${id}')" title="Save"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button>`;const shareBtn=`<button class="rc-icon" aria-label="Share" onclick="shareResource('${dlTitle}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;const roleBadge=isAdmin?`<span class="rc-role rc-role-admin"><i class="fa-solid fa-circle-check"></i> Admin</span>`:`<span class="rc-role">Contributor</span>`;const fileExt=(r.fileName&&(r.fileName.match(/\.(\w+)$/)||[])[1])?escHtml(r.fileName.match(/\.(\w+)$/)[1].toUpperCase()):(r.type==='pyq'?'PYQ':'Notes');return `<article class="resource${isPending?' pending-resource':''}" data-id="${id}"><div class="rc-top"><div class="rc-top-left"><span class="badge">${r.type==='pyq'?'PYQ':'Notes'}</span><span class="rc-file">${fileExt}</span></div><div class="rc-top-actions">${saveBtn}${shareBtn}</div></div>${isPending?`<span class="rc-pending"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<h3 class="rc-title">${sTitle}</h3><div class="rc-subject"><span class="rc-subject-badge"><i class="fa-solid fa-book-open"></i> ${sSubject}</span><span class="rc-sem-badge"><i class="fa-solid fa-layer-group"></i> Sem ${(r.sem!=null&&r.sem!=='')?escHtml(String(r.sem)):''}</span></div><div class="rc-meta"><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span>${r.date?`<span><i class="fa-regular fa-clock"></i>${escHtml(r.date)}</span>`:''}</div><div class="rc-uploader"><img class="rc-uploader-avatar"${cUid?` data-contributor-uid="${cUid}"`:''} src="${avatar}" alt="${sUploader||'BCAPrime'}" width="24" height="24">${(sUploader||cUid)?`<span class="rc-uploader-name"${cUid?` data-contributor-uid="${cUid}"`:''}>${sUploader}</span>`:''}${roleBadge}</div><div class="rc-stats"><button type="button" class="rc-stat rc-like${up?' on':''}" title="${up?'Unlike':'Like'}" onclick="toggleUpvote('${id}')"><i class="fa-${up?'solid':'regular'} fa-heart"></i><b>${upvoteDisplay(r)}</b> ${up?'Liked':'Likes'}</button><span class="rc-stat" title="Views"><i class="fa-regular fa-eye"></i><b id="rcv-${id}">${views}</b> Views</span><span class="rc-stat" title="Downloads"><i class="fa-solid fa-download"></i><b id="rcd-${id}">${downloads}</b> Downloads</span></div><div class="resource-actions"><button class="view read" onclick="readResource('${id}')"><i class="fa-solid fa-book-open"></i> Read</button><button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
 
     /* ================= Resource Card counters & helpers ================= */
         const RC_KEY='bca-rc-counts';
@@ -582,10 +689,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{
         profileRealtimeChannel=supabaseClient.channel('profile-live-'+accountUid()).on('postgres_changes',{event:'*',schema:'public',table:'user_profiles',filter:'uid=eq.'+accountUid()},payload=>{
           const profile=payload&&payload.new;
-          if(!profile||profile.uid!==accountUid()||!profile.avatar_url)return;
-          if(accountSession)accountSession.photoURL=profile.avatar_url;
-          setCachedAvatar(profile.avatar_url);
-          renderAvatar();
+          if(!profile||profile.uid!==accountUid())return;
+          if(profile.avatar_url){if(accountSession)accountSession.photoURL=profile.avatar_url;setCachedAvatar(profile.avatar_url)}
+          /* Naam ya DP badla -> mere SAARE resource cards turant update */
+          applyContributorProfileLive(profile.uid,profile);
         });
         profileRealtimeChannel.subscribe();
       }catch(e){console.warn('[BCAPrime] profile realtime unavailable.',e)}
@@ -611,6 +718,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{await syncProfileToAccount()}catch(e){}
       try{await saveProfileToAccount()}catch(e){}
       startProfileRealtime();
+      startContributorRealtime();
+      /* Mere saare resource cards par latest naam/DP turant laago */
+      try{await refreshContributorSnapshot()}catch(e){}
       try{await ensureDeviceApproved()}catch(e){}
       startDeviceRequestWatch();
     }
@@ -1021,8 +1131,39 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
-    function renderAvatar(){const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
-    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated across devices')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
+    function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
+    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
+    /* ---- Display name (contributor name) edit ----
+       Naam badalne par Firebase displayName + user_profiles.name dono update
+       hote hain, aur applyContributorProfileLive turant mere saare resource
+       cards par naya naam lagata hai (baaki users ko Realtime se milta hai).
+       Purane uploads ko dobara upload karne ki koi zaroorat nahi. */
+    function syncProfileNameField(){
+      const row=$('profileNameRow');if(row)row.hidden=!accountSession;
+      const input=$('profileDisplayName');if(!input)return;
+      if(document.activeElement===input)return;
+      const name=accountSession?(getUserName(accountSession)||''):'';
+      input.value=(name==='there')?'':name;
+    }
+    async function saveDisplayName(){
+      const input=$('profileDisplayName');if(!input)return;
+      if(!accountSession){toast('Login to change your display name');return}
+      const name=input.value.trim().replace(/\s+/g,' ');
+      if(name.length<2||name.length>40){toast('Name 2-40 characters ka hona chahiye');input.focus();return}
+      const btn=$('profileNameSave');if(btn)btn.disabled=true;
+      try{
+        if(typeof accountSession.updateProfile==='function')await accountSession.updateProfile({displayName:name});
+        if(supabaseClient&&accountUid()){
+          const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),name:name,updated_at:new Date().toISOString()},{onConflict:'uid'});
+          if(error)toast('Name saved on this device - cloud sync will retry');
+        }
+        applyContributorProfileLive(accountUid(),{uid:accountUid(),name:name,avatar_url:contributorAvatarFor(accountUid(),getAvatar())});
+        renderAvatar();renderGreeting();render();
+        toast('Display name updated on all your uploads ✓');
+      }catch(error){toast('Could not update the name. Please try again.')}
+      finally{if(btn)btn.disabled=false}
+    }
+
     function toggleProfileCard(event){if(event)event.stopPropagation();const pop=$('profilePop');if(!pop)return;const willShow=pop.hidden;if(willShow){const av=$('popAvatar');if(av)av.src=getAvatar();const n=$('popName');if(n)n.textContent=accountSession?getUserName(accountSession):'Guest';const m=$('popMail');if(m)m.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const c=$('popCollege');if(c)c.textContent=(colleges.find(cc=>cc[0]===state.college)||colleges[0])[1];const s=$('popSem');if(s)s.textContent=state.sem==='all'?'All semesters':'Semester '+state.sem;}const lo=$('popLogoutBtn');if(lo)lo.hidden=!accountSession;const lb=$('popLoginBtn');if(lb)lb.hidden=!!accountSession;const sc=$('popScanBtn');if(sc)sc.hidden=isGuestMode();pop.hidden=!willShow}
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
     function logoutFromPop(){hideProfileCard();if(firebaseApp&&accountSession){signOutAccount();return}sessionStorage.removeItem('bca-guest-mode');accountSession=null;hideAuthenticatedApp();toast('Logged out')}
@@ -1265,7 +1406,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const {data:storageData,error:storageError}=await supabaseClient.storage.from('resources').upload(filePath,file,{cacheControl:'3600',upsert:false,contentType:file.type || 'application/octet-stream'});
       if(storageError) throw storageError;
       const {data:publicData}=supabaseClient.storage.from('resources').getPublicUrl(storageData.path);
-      const row={title:upload.title,type:upload.type,subject:upload.subject,college:upload.college,semester:upload.sem,year:upload.year,file_name:file.name,file_url:publicData.publicUrl,status:'pending',downloads:0,uploader_email:upload.uploaderEmail||'',uploader_name:upload.uploader||''};
+      const row={title:upload.title,type:upload.type,subject:upload.subject,college:upload.college,semester:upload.sem,year:upload.year,file_name:file.name,file_url:publicData.publicUrl,status:'pending',downloads:0,uploader_email:upload.uploaderEmail||'',uploader_name:upload.uploader||'',uploader_uid:upload.uploaderUid||accountUid()||''};
       const {error:insertError}=await supabaseClient.from('resources').insert(row);
       if(insertError) throw insertError;
       // Fire-and-forget: admin ko naye upload ka push alert (role='admin' targeting)
@@ -1287,7 +1428,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           });
         }
       }catch(e){/* alert fail ho to upload fail na ho */}
-      return {...row,title:row.title,type:row.type,sem:row.semester,fileUrl:row.file_url,downloads:0,status:row.status,fileName:file.name,subject:row.subject,college:row.college,uploader:row.uploader_name||''};
+      return {...row,title:row.title,type:row.type,sem:row.semester,fileUrl:row.file_url,downloads:0,status:row.status,fileName:file.name,subject:row.subject,college:row.college,uploader:row.uploader_name||'',uploaderUid:row.uploader_uid||'',uploaderAvatar:contributorAvatarFor(row.uploader_uid||'','')};
     }
     function getUploaderEmail(){return accountSession&&accountSession.email?accountSession.email:''}
     /* ---- Duplicate upload guard ----
@@ -1315,10 +1456,25 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         (item.status||'pending')!=='rejected'
       );
     }
-    async function loadMyUploads(){try{const email=getUploaderEmail();if(!supabaseClient||!email)return[];const {data,error}=await supabaseClient.from('resources').select('id,title,type,status,semester,file_name,created_at,downloads').eq('uploader_email',email).order('created_at',{ascending:false});if(error)return[];return data||[]}catch(error){return[]}}
+    async function loadMyUploads(){
+      try{
+        const uid=accountUid();const email=getUploaderEmail();
+        if(!supabaseClient||(!uid&&!email))return[];
+        const columns='id,title,type,status,semester,file_name,created_at,downloads';
+        /* uid-first: live link hone par email badalne se uploads gayab nahi hote */
+        if(uid){
+          const byUid=await supabaseClient.from('resources').select(columns).eq('uploader_uid',uid).order('created_at',{ascending:false});
+          if(!byUid.error&&(byUid.data||[]).length)return byUid.data;
+        }
+        if(!email)return[];
+        const {data,error}=await supabaseClient.from('resources').select(columns).eq('uploader_email',email).order('created_at',{ascending:false});
+        if(error)return[];
+        return data||[];
+      }catch(error){return[]}
+    }
     async function renderMyUploads(){
       const listEl=$('myUploadsList');const summaryEl=$('myUploadsSummary');if(!listEl)return;
-      if(!getUploaderEmail()){summaryEl.textContent='';listEl.innerHTML='<p class="my-uploads-empty">Login to track your uploads and review status.</p>';return}
+      if(!accountUid()&&!getUploaderEmail()){summaryEl.textContent='';listEl.innerHTML='<p class="my-uploads-empty">Login to track your uploads and review status.</p>';return}
       const items=await loadMyUploads();
       const pending=items.filter(item=>item.status==='pending').length;
       const approved=items.filter(item=>item.status==='approved').length;
@@ -1329,6 +1485,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function startLibrarySync(){
       if(!supabaseClient)return;
+      /* Contributor profiles ka realtime: har user_profiles change par us
+         uid wale saare resource cards live update ho jaate hain. */
+      startContributorRealtime();
       try{const channel=supabaseClient.channel('resources-live').on('postgres_changes',{event:'*',schema:'public',table:'resources'},()=>loadCloudResources());channel.subscribe()}catch(error){}
       setInterval(()=>{if(document.visibilityState==='visible'){loadCloudResources();try{loadSeniorRequests()}catch(e){}}},30000);
     }
@@ -1362,7 +1521,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
       subject=subject||'Community upload';
       if(subject==='Community upload'){const linkInput=form.querySelector('input[name="link"]');if(linkInput&&linkInput.value.trim())subject=linkInput.value.trim();}
-      const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploader:accountSession?getUserName(accountSession):'Anonymous',uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
+      const payload={title,type,sem,year:Math.ceil(sem/2),subject:subject || 'Community upload',college:state.college,status:'pending',uploaderUid:accountUid(),uploader:contributorNameFor(accountUid(),'')||(accountSession?getUserName(accountSession):'Anonymous'),uploaderEmail:accountSession&&accountSession.email?accountSession.email:''};
       let existing=null;
       try{existing=await findExistingUpload(payload)}catch(error){}
       if(existing){toast('Duplicate! This material has already been uploaded ('+existing.status+')');return}
@@ -1376,7 +1535,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const reader2=new FileReader();
         const fileData=await new Promise((res,rej)=>{reader2.onload=()=>res(reader2.result);reader2.onerror=rej;reader2.readAsDataURL(file)});
         const cloudUp=await uploadResourceToSupabase(file,{...payload,fileData,...(opts||{})});
-        const rec={...cloudUp,title:cloudUp.title,type:cloudUp.type,sem:cloudUp.sem,year:cloudUp.year,subject:cloudUp.subject,college:cloudUp.college,date:'Just now',downloads:0,fileName:file.name,fileData:fileData,status:'pending',uploader:payload.uploader};
+        const rec={...cloudUp,title:cloudUp.title,type:cloudUp.type,sem:cloudUp.sem,year:cloudUp.year,subject:cloudUp.subject,college:cloudUp.college,date:'Just now',downloads:0,fileName:file.name,fileData:fileData,status:'pending',uploader:payload.uploader,uploaderUid:payload.uploaderUid||accountUid()||'',uploaderAvatar:contributorAvatarFor(payload.uploaderUid||accountUid(),'')};
         resources.unshift(rec);
         const uploads=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(r=>r.type==='notes'||r.type==='pyq');
         uploads.unshift(rec);localStorage.setItem('bca-uploads',JSON.stringify(uploads));

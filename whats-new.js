@@ -11,18 +11,18 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.0.0";
+const CURRENT_APP_VERSION = "3.1.0";
 
 const LATEST_RELEASE = {
-  version: "3.0.0",
+  version: "3.1.0",
   date: "September 2026",
-  title: "Lost & Found is Here!",
-  subtitle: "Report lost or found items on campus — and get instant alerts.",
+  title: "Your name, everywhere — automatically",
+  subtitle: "Change your display name or photo once, and every note & PYQ you shared updates instantly.",
   features: [
-    { type: "new",      title: "Lost & Found Board", desc: "Lost your phone? Found someone's wallet? Post it on campus Lost & Found — with photos, location and your contact." },
-    { type: "new",      title: "Instant Alerts", desc: "New posts send a push notification to students of the same college. Tap it to open the exact post." },
-    { type: "improved", title: "Faster Reporting", desc: "Quick-post buttons for Phone, Wallet, Bottle, Keys and Bag — two taps and you're done." },
-    { type: "improved", title: "Safe & Moderated", desc: "Contact details stay hidden until someone claims. Every post is reviewed before it goes live." }
+    { type: "new",      title: "Live Contributor Profiles", desc: "Resource cards now link to your account instead of copying your name — so your latest name and photo always show, on every card you ever uploaded." },
+    { type: "new",      title: "Edit Your Display Name", desc: "Open Your profile → set your display name and save. Every old upload updates in real time, with no re-upload and no refresh." },
+    { type: "improved", title: "Instant Profile Sync", desc: "Change your profile photo or name and watch it update across the library and on other students' screens the moment you save." },
+    { type: "improved", title: "Smarter My Uploads", desc: "Your uploads list follows your account, so it stays accurate even if your email changes." }
   ]
 };
 

@@ -19,6 +19,7 @@ Everything works in the browser and is **installable as a PWA**, so you can use 
 
 ### 🙌 Community
 - **Share material** — upload notes or PYQs so other students can use them (goes through admin moderation).
+- **Live contributor profiles** — resource cards store only your `userId`; change your display name or profile photo once and every note/PYQ you ever uploaded updates instantly on everyone's screen (no re-upload, no refresh).
 - **Ask seniors / Help juniors** — juniors request notes & PYQs; seniors in the same college + semester can step in and fulfill.
 - **Lost & Found** — a dedicated space to report and find lost items around campus.
 - **Feedback & bug reports** — report issues or suggest ideas straight from the app.
@@ -85,6 +86,7 @@ Everything works in the browser and is **installable as a PWA**, so you can use 
 3. **Supabase (data + admin)** — open the project linked in `supabase-config.js`, then run the SQL files in this order in the **SQL Editor**:
    - `supabase-schema.sql` — core tables (resources, user_profiles, device_sessions, push_subscriptions, email_otps, qr_login_sessions, …)
    - `supabase-security-fix.sql` — hardens the DB / removes temporary open-moderation policies
+   - `supabase-contributor-profiles.sql` — **live contributor profiles**: `resources.uploader_uid` (link to `user_profiles`), backfill of old rows, the `resources_feed` populated view, Realtime publication and the name-sync trigger
 
 4. **Admin role** — create the admin user, then set `app_metadata.role = 'admin'` (query included in `supabase-security-fix.sql`).
 

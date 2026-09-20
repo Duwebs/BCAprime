@@ -134,6 +134,7 @@ async function showAdmin(session) {
   $('logoutButton').style.display = 'inline-block';
   load();
   loadSubjects();
+  startAdminLiveSync();
 }
 
 async function logout() {
@@ -169,8 +170,18 @@ async function load() {
     return;
   }
   try {
-    const { data, error } = await supabaseClient.from('resources').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
+    /* `resources_feed` view = resources + live contributor name/avatar
+       (user_profiles se join). Isse admin table bhi hamesha latest naam/DP
+       dikhata hai. View na ho (migration pending) to plain table fallback. */
+    let data = null;
+    const primary = await supabaseClient.from('resources_feed').select('*').order('created_at', { ascending: false });
+    if (!primary.error) {
+      data = primary.data;
+    } else {
+      const fallback = await supabaseClient.from('resources').select('*').order('created_at', { ascending: false });
+      if (fallback.error) throw fallback.error;
+      data = fallback.data;
+    }
     uploads = (data || []).map(item => ({
       id: String(item.id),
       title: item.title,
@@ -182,7 +193,9 @@ async function load() {
       fileName: item.file_name,
       fileUrl: item.file_url,
       status: item.status,
-      uploader: item.uploader_name || item.uploader_email || '',
+      uploaderUid: item.uploader_uid || '',
+      uploader: item.contributor_name || item.uploader_name || item.uploader_email || '',
+      uploaderAvatar: item.contributor_avatar || '',
       uploaderEmail: item.uploader_email || '',
       date: item.created_at
     }));
@@ -193,6 +206,27 @@ async function load() {
   render();
   loadFeedback();
 }
+/* ---- Live sync (contributor profiles + resources) ----
+   User apna naam/DP badale ya naya resource aaye -> admin table turant
+   refresh (F5 ki zaroorat nahi). 600ms debounce se burst events ek hi
+   reload me collapse ho jaate hain. */
+let adminLiveChannel = null;
+let adminReloadTimer = null;
+function scheduleAdminReload() {
+  clearTimeout(adminReloadTimer);
+  adminReloadTimer = setTimeout(() => { load().catch(() => {}); }, 600);
+}
+function startAdminLiveSync() {
+  if (!supabaseClient || adminLiveChannel) return;
+  try {
+    adminLiveChannel = supabaseClient.channel('admin-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, scheduleAdminReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleAdminReload)
+      .subscribe();
+  } catch (error) { console.warn('Admin live sync unavailable.', error); }
+}
+
+
 
 /* ---- Rendering ---- */
 function filteredUploads() {
@@ -242,7 +276,7 @@ function render() {
           <td><input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)"></td>
           <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject || '')}${item.fileName ? ` &middot; ${escapeHtml(item.fileName)}` : ''}</small>${item.fileUrl ? `<small><a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Open file</a></small>` : ''}</td>
           <td><span class="type-badge ${typeClass}">${typeLabel === 'PYQ' ? '📝 PYQ' : '📚 Notes'}</span></td>
-          <td>${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}${item.uploader ? `<small>by ${escapeHtml(item.uploader)}</small>` : ''}</td>
+          <td>${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}${item.uploader ? `<small>${item.uploaderAvatar ? `<img src="${escapeHtml(item.uploaderAvatar)}" alt="" width="16" height="16" style="border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:5px">` : ''}by ${escapeHtml(item.uploader)}</small>` : ''}</td>
           <td>Semester ${item.sem}${item.year ? `<small>Year ${item.year}</small>` : ''}</td>
           <td><span class="badge ${badgeClass}">${item.status}</span></td>
           <td><div class="row-actions">

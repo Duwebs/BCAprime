@@ -1449,3 +1449,20 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
 .lf-detail-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .lf-contact-note{display:block;margin-top:8px;color:var(--muted);font-size:12.5px}
 .lf-contact-note small{color:var(--muted-dim,var(--muted))}
+
+/* ================= Dynamic contributor profile — display name editor =================
+   Resource cards ka contributor naam/DP ab live (user_profiles se) aata hai.
+   Ye block profile modal ke display-name editor ko style karta hai. */
+.profile-name-edit{margin-top:14px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2)}
+.profile-name-edit label{display:block;margin-bottom:6px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.profile-name-row{display:flex;gap:8px;align-items:stretch}
+.profile-name-row input{flex:1 1 auto;min-width:0;height:42px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:500 14px 'Geist',sans-serif;outline:none;transition:border-color .15s ease}
+.profile-name-row input:focus{border-color:var(--brand)}
+.profile-name-row .secondary{flex:0 0 auto;min-height:42px;padding:0 16px;display:inline-flex;align-items:center;gap:6px}
+.profile-name-hint{display:block;margin-top:7px;font-size:11.5px;line-height:1.45;color:var(--muted)}
+.profile-name-hint i{color:var(--brand);margin-right:3px}
+@media(max-width:640px){
+  /* iOS auto-zoom prevent: 16px inputs */
+  .profile-name-row input{height:46px;font-size:16px}
+  .profile-name-row .secondary{min-height:46px}
+}
