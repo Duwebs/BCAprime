@@ -182,7 +182,73 @@
       <p class="app-version" id="appVersion" title="Current app version"></p>
     </footer>
   </main>
-  <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab bottom-star" onclick="openUpload()"><span class="bottom-star-icon"><i class="fa-solid fa-plus"></i></span><span class="bottom-star-text">Upload</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
+  <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab" onclick="selectTab('community',this)"><i class="fa-solid fa-comments"></i><span>Community</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
+
+  <!-- Floating Action Button: quick actions (Upload / Community / Ask seniors) -->
+  <div class="fab-wrap" id="fabWrap" hidden>
+    <div class="fab-menu" id="fabMenu" hidden>
+      <button class="fab-item" onclick="BCAFab.action('upload')"><i class="fa-solid fa-cloud-arrow-up"></i> Upload material</button>
+      <button class="fab-item" onclick="BCAFab.action('community')"><i class="fa-solid fa-comments"></i> Community chat</button>
+      <button class="fab-item" onclick="BCAFab.action('senior')"><i class="fa-solid fa-users"></i> Ask seniors</button>
+    </div>
+    <button class="fab" id="mainFab" type="button" aria-label="Quick actions" onclick="BCAFab.toggle()"><i class="fa-solid fa-plus fab-icon"></i></button>
+  </div>
+
+  <!-- ================= Community Chat (full-screen) ================= -->
+  <section class="community" id="communitySection" hidden role="dialog" aria-label="Community chat">
+    <header class="community-head">
+      <button class="community-back" type="button" aria-label="Back to library" onclick="BCAChat.close()"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="community-title">
+        <img src="assets/logo.png" alt="" width="30" height="30">
+        <div><strong>BCAPrime Community</strong><small id="communityActiveChannel">general-chat</small></div>
+      </div>
+      <span class="community-live"><span class="status-dot"></span> Live</span>
+    </header>
+    <div class="community-chips" id="communityChips"></div>
+    <div class="community-announce" id="communityAnnounce" hidden><i class="fa-solid fa-thumbtack"></i> <span id="communityAnnounceText"></span></div>
+    <div class="community-scroll" id="communityMessages" aria-live="polite"></div>
+    <div class="community-typing" id="communityTyping" hidden></div>
+    <footer class="community-composer">
+      <div class="community-preview" id="communityImagePreview" hidden>
+        <img id="communityPreviewImg" alt="Preview">
+        <button class="close" type="button" aria-label="Remove image" onclick="BCAChat.clearImage()">&times;</button>
+      </div>
+      <div class="community-input-row">
+        <button class="composer-btn" type="button" title="Attach image" onclick="document.getElementById('communityImageInput').click()"><i class="fa-solid fa-image"></i></button>
+        <input id="communityImageInput" type="file" accept="image/*" hidden onchange="BCAChat.pickImage(this)">
+        <textarea id="communityInput" rows="1" placeholder="Message community…" maxlength="4000" onkeydown="BCAChat.inputKey(event)"></textarea>
+        <select id="communityCodeLang" class="composer-lang" title="Code block language" onchange="BCAChat.markCode(this.value)">
+          <option value="">Code: off</option>
+          <option value="cpp">C++</option>
+          <option value="javascript">JavaScript</option>
+        </select>
+        <button class="composer-send" type="button" aria-label="Send" onclick="BCAChat.send()"><i class="fa-solid fa-paper-plane"></i></button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ================= Phone verification gate modal ================= -->
+  <div class="modal" id="phoneVerifyModal"><div class="dialog phone-verify-dialog">
+    <button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button>
+    <div class="phone-verify-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
+    <p class="st-kicker">Community access</p>
+    <h2>Verify your mobile number</h2>
+    <p class="st-sub" id="phoneVerifyIntro">To keep the community spam-free and safe, every member verifies their number once. It takes ~30 seconds.</p>
+    <div class="phone-verify-code-card" id="phoneVerifyCodeCard" hidden>
+      <small>Your verification code</small>
+      <strong id="phoneVerifyCode">------</strong>
+      <p>Open our Telegram bot below and send <b>BCAVERIFY &lt;code&gt;</b> from your phone. Your badge unlocks instantly.</p>
+      <a class="primary phone-verify-cta" id="phoneVerifyBotLink" href="#" target="_blank" rel="noopener"><i class="fa-brands fa-telegram"></i> Open verification bot</a>
+      <button class="secondary" type="button" onclick="BCAChat.recheckVerified()"><i class="fa-solid fa-rotate"></i> I've sent it — check again</button>
+      <p class="phone-verify-status" id="phoneVerifyStatus" aria-live="polite"></p>
+    </div>
+    <form class="phone-verify-form" id="phoneVerifyForm" onsubmit="return BCAChat.startVerify(event)">
+      <label>Mobile number (with country code)<input id="phoneVerifyMobile" type="tel" placeholder="+91 98765 43210" maxlength="20" required></label>
+      <button class="primary" type="submit"><i class="fa-solid fa-shield-halved"></i> Get verification code</button>
+      <p class="phone-verify-status" id="phoneVerifyFormStatus" aria-live="polite"></p>
+    </form>
+  </div></div>
+
 
   <div class="modal" id="collegeModal"><div class="dialog"><div class="dialog-head"><h2>Choose your college</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Resources marked for your college will appear first.</p><div class="field"><input id="collegeSearch" aria-label="Search colleges" placeholder="Search colleges&#8230;" oninput="renderColleges(this.value)"></div><div class="college-list" id="collegeList"></div><div class="onboarding-custom"><input id="collegeCustom" aria-label="Add your college name" placeholder="College not listed? Add it here&#8230;" onkeydown="if(event.key==='Enter')useCustomCollege()"><button class="primary" onclick="useCustomCollege()"><i class="fa-solid fa-plus"></i> Add</button></div></div></div>
   <div class="modal" id="uploadModal"><div class="dialog"><div class="dialog-head"><h2>Share BCA material</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><form class="upload-form" autocomplete="off" onsubmit="submitUpload(event)"><label class="file-box" id="fileBox" for="file"><i class="fa-solid fa-file-arrow-up"></i><span id="fileName">Choose files or drag &amp; drop — PDF, DOCX, PPTX, images</span><small class="file-box-sub" id="fileNameHint">Select 5–10 photos of notes together &mdash; they auto-merge into 1 clean PDF</small><input id="file" name="file" type="file" accept=".pdf,.docx,.doc,.pptx,.ppt,.jpg,.jpeg,.png,.webp,.heic,.zip" multiple hidden onchange="showFile(this)"></label><div class="drive-import-row"><button type="button" class="secondary drive-import-btn" onclick="openDrivePicker()"><i class="fa-brands fa-google-drive"></i> Import from Google Drive</button></div><div class="upload-photo-wrap" id="uploadPhotoWrap" hidden></div><div class="upload-file-badges" id="uploadFileBadges" hidden></div><div class="upload-progress" id="uploadProgress" hidden><div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadProgressFill"></div></div><span class="upload-progress-text" id="uploadProgressText"></span></div><div class="field"><label>Title</label><input name="title" required placeholder="e.g. DBMS Unit 2 notes"></div><div class="row"><div class="field"><label>Semester</label><select name="semester" onchange="updateUploadSubjects()"><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label>Type</label><select name="type"><option value="notes">Notes</option><option value="pyq">PYQ</option></select></div></div><div class="field"><label>Subject</label><select name="subjectSelect" id="uploadSubjectSelect" onchange="onUploadSubjectChange(this)"><option value="__other">+ Other / new subject&#8230;</option></select></div><div class="field" id="customSubjectField" hidden><label>Your subject name</label><input name="customSubject" maxlength="80" placeholder="e.g. a subject only your college has"></div><button class="primary" type="submit">Publish resource</button></form></div></div>
@@ -304,8 +370,11 @@
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="if(!window.jspdf){var s=document.createElement('script');s.async=false;s.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js';var r=document.currentScript&&document.currentScript.parentNode;if(r)s.parentNode.insertBefore(s,r.nextSibling);else document.head.appendChild(s)}"></script>
   <script src="lib/imageToPdf.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
   <script src="whats-new.js?v=12"></script>
-  <script src="app.js?v=44"></script>
+  <script src="app.js?v=45"></script>
+  <script src="chat.js?v=1"></script>
 </body>
 </html>
 

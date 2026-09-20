@@ -530,6 +530,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.remove('active'));
       if(button) button.classList.add('active');
       if(tab==='profile'){state.savedOnly=false;openProfile();return}
+      if(tab==='community'){if(window.BCAChat)window.BCAChat.open();return}
       state.savedOnly=tab==='saved';
       if(tab==='semesters'){const grid=$('semesterGrid');if(grid)grid.scrollIntoView({behavior:'smooth',block:'start'});else $('library').scrollIntoView({behavior:'smooth',block:'start'});}
       else if(tab==='saved')$('resources').scrollIntoView({behavior:'smooth',block:'start'});
@@ -646,9 +647,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const popScanBtn=$('popScanBtn');
       if(popScanBtn)popScanBtn.hidden=isGuest;
     }
-    function showAuthenticatedApp(){try{localStorage.setItem('bca-auth-known','1')}catch(e){}$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();cacheProfile();renderAvatar();afterAccountAuth();updateQrButtonVisibility();setTimeout(showOnboardingIfNeeded,180);setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900)}
+    function showAuthenticatedApp(){try{localStorage.setItem('bca-auth-known','1')}catch(e){}$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;if($('fabWrap'))$('fabWrap').hidden=false;renderGreeting();cacheProfile();renderAvatar();afterAccountAuth();updateQrButtonVisibility();setTimeout(showOnboardingIfNeeded,180);setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900)}
     function continueAsGuest(){sessionStorage.setItem('bca-guest-mode','true');showAuthenticatedApp();toast('Guest mode enabled')}
-    function hideAuthenticatedApp(){try{localStorage.removeItem('bca-auth-known')}catch(e){}$('authGate').hidden=false;$('appShell').hidden=true;$('appTabs').hidden=true;renderGreeting();updateQrButtonVisibility()}
+    function hideAuthenticatedApp(){try{localStorage.removeItem('bca-auth-known')}catch(e){}$('authGate').hidden=false;$('appShell').hidden=true;$('appTabs').hidden=true;if($('fabWrap'))$('fabWrap').hidden=true;renderGreeting();updateQrButtonVisibility()}
     /* ================== Account-bound college & semester ==================
        Ab account (Firebase uid) ki ek server-side profile hoti hai (college +
        semester). Login par is profile se sync hota hai, taaki SAME account har
