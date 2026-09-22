@@ -15,7 +15,7 @@
 (function () {
   'use strict';
 
-  var SUPA = window.supabaseClient;
+  var SUPA = (typeof supabaseClient !== 'undefined') ? supabaseClient : null;
   var CHANNELS = [
     { slug: 'dsa-coding',       label: 'DSA & Coding', icon: 'fa-code' },
     { slug: 'web-development',  label: 'Web Dev',      icon: 'fa-globe' },
@@ -282,7 +282,7 @@
     status.textContent = 'Sending OTP to your email…';
     try {
       var token = await u.getIdToken(true);
-      var url = (window.AUTH_API && AUTH_API.sendChatOtp) || '';
+      var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.sendChatOtp) || '';
       if (!url) throw new Error('OTP service not configured.');
       var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, email: u.email || '' }) });
       var d = await r.json().catch(function () { return {}; });
@@ -316,7 +316,7 @@
     status.textContent = 'Verifying…';
     try {
       var token = await u.getIdToken(true);
-      var url = (window.AUTH_API && AUTH_API.verifyOtp) || '';
+      var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.verifyOtp) || '';
       if (!url) throw new Error('OTP service not configured.');
       var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, code: code }) });
       var d = await r.json().catch(function () { return {}; });
