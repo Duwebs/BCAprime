@@ -1,13 +1,13 @@
 /* ============================================================
    BCAPrime — chat.js (Community Chat hub)
    WhatsApp-style community chat: subject channels, real-time
-   sync via Supabase Realtime, phone-verification gate, code
-   highlighting (C++/JS), image sharing, pinned announcements.
+   sync via Supabase Realtime, code highlighting (C++/JS),
+   image sharing, pinned announcements.
 
-   SECURITY MODEL:
-   - The phone-verification gate is enforced SERVER-SIDE by RLS
-     (chat_messages insert policy -> is_phone_verified_student).
-   - Client checks here are UX only (fast feedback + modal).
+   ACCESS MODEL (phone verification REMOVED):
+   - Community chat needs Firebase LOGIN only. No SMS/OTP gate.
+   - Server RLS insert policy checks length only (see
+     supabase-chat-no-phone-gate.sql). Client checks are UX only.
    - All rendered text is escaped via textContent — no XSS.
 
    Exposed globals: BCAChat, BCAFab
@@ -23,44 +23,6 @@
     { slug: 'general-chat',     label: 'General',      icon: 'fa-comment' }
   ];
 
-  /* ---------- country codes (flag + dial) - auto-detected below ----------
-     The Community Chat mobile verification gate supports these 8 countries ONLY. */
-  var COUNTRIES = {
-    IN:{dial:'91',name:'India'},        NP:{dial:'977',name:'Nepal'},
-    BD:{dial:'880',name:'Bangladesh'},  UZ:{dial:'998',name:'Uzbekistan'},
-    AF:{dial:'93',name:'Afghanistan'},  PK:{dial:'92',name:'Pakistan'},
-    BT:{dial:'975',name:'Bhutan'},      LK:{dial:'94',name:'Sri Lanka'}
-  };
-  function flagOf(cc) {
-    try {
-      return cc.toUpperCase().replace(/[A-Z]/g, function (c) {
-        return String.fromCodePoint(127397 + c.charCodeAt(0));
-      });
-    } catch (e) { return ''; }
-  }
-  /* Auto-detect: browser locale region (en-IN -> IN), fallback India */
-  function detectCountry() {
-    var regions = [];
-    try { regions.push(Intl.DateTimeFormat().resolvedOptions().locale); } catch (e) {}
-    try { regions = regions.concat(navigator.languages || []); } catch (e) {}
-    try { if (navigator.language) regions.push(navigator.language); } catch (e) {}
-    for (var i = 0; i < regions.length; i++) {
-      var m = String(regions[i] || '').match(/[-_]([A-Za-z]{2})(?:$|[-_])/);
-      if (m && COUNTRIES[m[1].toUpperCase()]) return m[1].toUpperCase();
-    }
-    return 'IN';
-  }
-  function populateCountries() {
-    var sel = $('phoneCountry');
-    if (!sel) return;
-    var cc = detectCountry();
-    var opts = [];
-    Object.keys(COUNTRIES).forEach(function (code) {
-      var c = COUNTRIES[code];
-      opts.push('<option value="' + code + '"' + (code === cc ? ' selected' : '') + '>' + flagOf(code) + ' ' + c.name + ' (+' + c.dial + ')</option>');
-    });
-    sel.innerHTML = opts.join('');
-  }
   var MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
   var state = {
@@ -68,7 +30,6 @@
     messages: [], profiles: {}, lastSent: 0, sending: false,
     imageFile: null, pendingCode: null, min: false,
     rtChannel: null, profileRt: null, seenIds: {},
-    pendingMobile: '', phoneCredResult: null, phoneAppVerifier: null,
     /* college+semester room isolation + WhatsApp-style unread */
     room: { college: 'all', semester: null, label: '' },
     roomSupported: true, /* false = isolation SQL abhi DB par run nahi hua (legacy mode) */
@@ -168,16 +129,16 @@
     return Number(m.semester) === Number(state.room.semester);
   }
 
-  /* ---------- profile linking (live) ---------- */
+  /* ---------- profile linking (live, NO phone badge) ---------- */
   async function loadProfiles(uids) {
     if (!SUPA || !uids.length) return;
     try {
-      var res = await SUPA.from('user_profiles').select('uid,name,username,avatar_url,is_phone_verified').in('uid', uids);
+      var res = await SUPA.from('user_profiles').select('uid,name,username,avatar_url').in('uid', uids);
       (res.data || []).forEach(function (p) { state.profiles[p.uid] = p; });
       document.querySelectorAll('#communityMessages .msg[data-uid]').forEach(function (el) {
         var p = state.profiles[el.getAttribute('data-uid')]; if (!p) return;
         var nameEl = el.querySelector('.msg-name'); var avEl = el.querySelector('.msg-avatar');
-        if (nameEl) nameEl.innerHTML = esc(p.name || p.username || 'Student') + ' ' + (p.is_phone_verified ? '<span class="verified-badge" title="Verified Student"><i class="fa-solid fa-circle-check"></i></span>' : '');
+        if (nameEl) nameEl.textContent = p.name || p.username || 'Student';
         if (avEl && p.avatar_url) avEl.src = p.avatar_url;
       });
     } catch (e) { /* offline-safe */ }
@@ -311,7 +272,6 @@
       '<img class="msg-avatar" alt="" src="' + esc(p.avatar_url || m.author_avatar || '') + '" onerror="this.style.visibility=\'hidden\'">' +
       '<div class="msg-bubble">' +
       '<div class="msg-head"><span class="msg-name">' + esc(p.name || p.username || m.author_name || 'Student') + '</span>' +
-      (p.is_phone_verified ? '<span class="verified-badge" title="Verified Student"><i class="fa-solid fa-circle-check"></i></span>' : '') +
       '<span class="msg-time">' + time(m.created_at) + '</span></div>' +
       '</div>';
     wrap.querySelector('.msg-bubble').appendChild(renderBody(m));
@@ -549,176 +509,47 @@
     return out;
   }
 
-  /* ---------- phone verification gate ---------- */
+  /* ---------- profile cache (NO phone gate) ----------
+     Sirf display-name/avatar cache karta hai. Koi verification
+     check nahi — login user seedha chat me aata hai. */
   async function fetchVerified() {
     var u = myUser();
-    if (!u || !SUPA) return { ok: false };
+    if (!u || !SUPA) return { ok: true };
     try {
-      var res = await SUPA.from('user_profiles').select('is_phone_verified,name,username,avatar_url').eq('uid', u.uid).maybeSingle();
+      var res = await SUPA.from('user_profiles').select('name,username,avatar_url').eq('uid', u.uid).maybeSingle();
       if (res.data) state.profiles[u.uid] = res.data;
-      return { ok: !!(res.data && res.data.is_phone_verified) };
-    } catch (e) { return { ok: false, error: true }; }
+      return { ok: true };
+    } catch (e) { return { ok: true, error: true }; }
   }
-  function openVerifyModal() {
-    populateCountries();
-    $('phoneVerifyOtpCard').hidden = true;
-    $('phoneVerifyForm').hidden = false;
-    $('phoneVerifyFormStatus').textContent = '';
-    $('phoneVerifyModal').classList.add('open');
-  }
-  function fullPhone() {
-    var cc = COUNTRIES[$('phoneCountry').value] || COUNTRIES.IN;
-    var digits = ($('phoneVerifyMobile').value || '').replace(/\D/g, '');
-    if (digits.charAt(0) === '0') digits = digits.slice(1);
-    return '+' + cc.dial + digits;
-  }
-      /* Verify phone (Community Chat ONLY): a 6-digit code is sent by SMS to the
-     student's mobile number through Firebase Phone Auth. There is NO email OTP
-     and no email fallback here - chat access stays blocked until the mobile
-     number itself is verified. */
+  /* Phone verification REMOVED — ye saare entry points seedha chat
+     kholte hain (login check open() ke andar hota hai). Purane
+     modal/OTP references ke liye no-op aliases rakhe hain. */
+  function openVerifyModal() { try { open(); } catch (e) {} }
+  function fullPhone() { return ''; }
   async function startVerify(event) {
     if (event && event.preventDefault) event.preventDefault();
-    var u = myUser();
-    var status = $('phoneVerifyFormStatus');
-    if (!u) { status.textContent = 'Please login first.'; return false; }
-    var digits = ($('phoneVerifyMobile').value || '').replace(/\D/g, '');
-    if (digits.length < 7) { status.textContent = 'Enter a valid mobile number.'; return false; }
-    var phone = fullPhone();
-    state.pendingMobile = phone;
-    status.textContent = 'Sending SMS code to ' + phone + '...';
-    try {
-      if (!(window.firebase && firebase.auth && firebase.auth.RecaptchaVerifier)) {
-        throw new Error('Phone verification is unavailable right now.');
-      }
-      /* A reCAPTCHA container can hold only one verifier - clear the previous
-         one so "Resend code" works without a page reload. */
-      if (state.phoneAppVerifier && state.phoneAppVerifier.clear) {
-        try { state.phoneAppVerifier.clear(); } catch (e) {}
-      }
-      state.phoneAppVerifier = null;
-      state.phoneCredResult = null;
-
-      var appVerifier = new firebase.auth.RecaptchaVerifier('phoneVerifyRecaptcha', {
-        size: 'invisible',
-        callback: function () {},
-        'expired-callback': function () {}
-      });
-      var confirmationResult = await u.linkWithPhoneNumber(phone, appVerifier);
-      state.phoneCredResult = confirmationResult;
-      state.phoneAppVerifier = appVerifier;
-      try {
-        await SUPA.from('user_profiles').update({
-          mobile: phone, updated_at: new Date().toISOString()
-        }).eq('uid', u.uid);
-      } catch (e) {}
-      $('phoneVerifyForm').hidden = true;
-      $('phoneVerifyOtpCard').hidden = false;
-      $('phoneVerifyOtp').value = '';
-      $('phoneVerifyStatus').textContent = 'SMS code sent to ' + phone + '. It expires in a few minutes.';
-      var otp = $('phoneVerifyOtp');
-      if (otp) otp.focus();
-      status.textContent = '';
-    } catch (e) {
-      /* The number is already attached to a Firebase account. If it is THIS
-         account, ownership was already proven for this exact number, so unlock
-         instead of leaving the student stuck. */
-      if (e && (e.code === 'auth/provider-already-linked' || e.code === 'auth/credential-already-in-use')) {
-        var current = (firebase.auth().currentUser || {}).phoneNumber || '';
-        if (current && current === phone) {
-          status.textContent = 'This number is already verified on your account - unlocking...';
-          await unlockCommunity(u.uid);
-          return false;
-        }
-        status.textContent = 'That number is already linked to another BCAPrime account. Please use a different number.';
-        return false;
-      }
-      status.textContent = smsErrorText(e);
-    }
+    try { await open(); } catch (e) {}
     return false;
   }
-  /* Friendly messages for the Firebase phone-auth error codes. */
-  function smsErrorText(e) {
-    var code = (e && e.code) || '';
-    if (code === 'auth/invalid-phone-number') return 'That mobile number looks invalid - check the country code and try again.';
-    if (code === 'auth/missing-phone-number') return 'Please enter your mobile number.';
-    if (code === 'auth/too-many-requests') return 'Too many attempts from this device. Please wait a few minutes and try again.';
-    if (code === 'auth/quota-exceeded') return 'The SMS limit has been reached for now. Please try again later.';
-    if (code === 'auth/captcha-check-failed') return 'The security check failed - reload the page and try again.';
-    if (code === 'auth/requires-recent-login') return 'For security, please log out and log in again, then verify your number.';
-    if (code === 'auth/operation-not-allowed') return 'Mobile verification is not enabled for this app yet. Please contact the BCAPrime team.';
-    var msg = (e && e.message) ? e.message.replace('Firebase: ', '') : String(e);
-    return 'Could not send the SMS code: ' + msg;
-  }
-  /* Confirm the SMS code typed by the student (mobile OTP only). */
+  function smsErrorText() { return ''; }
+  /* Confirm the SMS code (DISABLED — phone gate hata diya; no-op). */
   async function confirmOtp() {
-    var status = $('phoneVerifyStatus');
-    var u = myUser();
-    if (!u) { openVerifyModal(); return; }
-    var code = ($('phoneVerifyOtp').value || '').replace(/\D/g, '');
-    if (code.length !== 6) { status.textContent = 'Enter the 6-digit code from your SMS.'; return; }
-    if (!state.phoneCredResult) { status.textContent = 'Please request a new SMS code first.'; return; }
-    status.textContent = 'Verifying...';
-    try {
-      await state.phoneCredResult.confirm(code);
-    } catch (e) {
-      status.textContent = 'That SMS code is wrong or has expired - tap "Resend code" and try again.';
-      return;
-    }
-    await unlockCommunity(u.uid);
+    try { await finishVerified(myUser() && myUser().uid); } catch (e) {}
   }
-  /* Open the community gate for this account. The server confirms that Firebase
-     really holds a verified phoneNumber (it is only set after a genuine SMS
-     verification), then the local profile is unlocked. */
+  /* Path A result handler (DISABLED — direct entry, no verification). */
   async function unlockCommunity(uid) {
-    var status = $('phoneVerifyStatus');
-    var u = myUser();
-    try {
-      if (!u) throw new Error('Please log in again.');
-      var token = await u.getIdToken(true);
-      var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.markPhoneVerified) || '';
-      if (!url) throw new Error('Verification service not configured.');
-      var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, phone: state.pendingMobile || '' }) });
-      var d = await r.json().catch(function () { return {}; });
-      if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-    } catch (e) {
-      if (status) status.textContent = 'Verified on your phone, but we could not unlock the chat: ' + (e && e.message ? e.message : e);
-      return false;
-    }
-    if (state.phoneAppVerifier && state.phoneAppVerifier.clear) {
-      try { state.phoneAppVerifier.clear(); } catch (e) {}
-    }
-    state.phoneCredResult = null;
-    await finishVerified(uid || (myUser() && myUser().uid));
+    try { await finishVerified(uid); } catch (e) {}
     return true;
   }
-  /* Path B: student sent BCAVERIFY <code> to the Telegram bot — the
-     webhook flips is_phone_verified server-side; we just re-check. */
+  /* Path B re-check (DISABLED — hamesha verified). */
   async function recheckVerified() {
-    var status = $('phoneVerifyStatus');
-    if (status) status.textContent = 'Checking…';
-    var v = await fetchVerified();
-    if (v.ok) { await finishVerified(myUser() && myUser().uid); }
-    else if (status) status.textContent = 'Not verified yet. Send BCAVERIFY <code> to the bot from your phone, then check again.';
+    try { await finishVerified(myUser() && myUser().uid); } catch (e) {}
   }
-  async function finishVerified(uid) {
-    try {
-      await SUPA.from('user_profiles').update({
-        mobile: state.pendingMobile || '',
-        is_phone_verified: true,
-        phone_verified_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }).eq('uid', uid);
-    } catch (e) {}
-    $('phoneVerifyModal').classList.remove('open');
-    $('phoneVerifyOtp').value = '';
-    toast('Verified! Welcome to the community 🎉');
-    open();
+  async function finishVerified() {
+    /* Phone gate removed — seedha chat me entry. */
+    if (!state.open) { try { await open(); } catch (e) {} }
   }
-  function editNumber() {
-    $('phoneVerifyOtpCard').hidden = true;
-    $('phoneVerifyForm').hidden = false;
-    $('phoneVerifyStatus').textContent = '';
-  }
+  function editNumber() {}
 
   /* ---------- open / close (room-resolved) ---------- */
   async function open() {
@@ -765,64 +596,23 @@
     state.lastSent = 0;
     state.sending = false;
     state.pendingCode = null;
-    state.pendingMobile = '';
-    state.phoneCredResult = null;
-    state.phoneAppVerifier = null;
     try {
       var box = $('communityMessages'); if (box) box.innerHTML = '';
       var input = $('communityInput'); if (input) { input.value = ''; input.placeholder = 'Message community…'; }
       var lang = $('communityCodeLang'); if (lang) lang.value = '';
       var prev = $('communityImagePreview'); if (prev) prev.hidden = true;
       var pimg = $('communityPreviewImg'); if (pimg) pimg.src = '';
-      var otp = $('phoneVerifyOtp'); if (otp) otp.value = '';
       var chips = $('communityChips'); if (chips) chips.innerHTML = '';
     } catch (e) { /* keep logout resilient */ }
   }
-  /* Revoke community membership server-side: flips is_phone_verified back to
-     false and unlinks the phone from the Firebase account, so the student must
-     run verification again (same number or a new one) before rejoining. If the
-     endpoint is unreachable we still close the gate with a direct profile write
-     (user_profiles allows it) so logout keeps working. */
-  async function revokeCommunityAccess() {
-    var u = myUser();
-    if (!u) return true;
-    var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.communityLogout) || '';
-    if (url) {
-      try {
-        var token = await u.getIdToken(true);
-        if (token) {
-          var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
-          if (r.ok) return true;
-        }
-      } catch (e) { /* network / endpoint issue -> use the fallback below */ }
-    }
-    try {
-      var res = await SUPA.from('user_profiles').update({
-        is_phone_verified: false,
-        phone_verified_at: null,
-        updated_at: new Date().toISOString()
-      }).eq('uid', u.uid);
-      return !res.error;
-    } catch (e) { return false; }
-  }
-  /* Log out of the COMMUNITY CHAT ONLY. The main BCAPrime login and the library
-     session are never touched - this ends the community session and revokes
-     membership, so the student has to verify their number again to rejoin.
-     Use the profile-menu logout to end the whole account session. */
+  /* Community logout (phone gate REMOVED): sirf local chat session
+     band hota hai. Main BCAPrime login + library session untouched.
+     Koi verification revoke nahi — dobara open seedha khulega. */
+  async function revokeCommunityAccess() { return true; }
   async function logout() {
-    var u = myUser();
-    if (!u) { close(); resetSession(); return; }
-    var btn = document.querySelector('.community-logout');
-    if (btn) btn.disabled = true;
-    var ok = await revokeCommunityAccess();
-    if (btn) btn.disabled = false;
-    if (!ok) {
-      toast('Could not log out of the community - check your connection and try again.');
-      return;
-    }
     close();
     resetSession();
-    toast('Logged out of the community - verify again to rejoin');
+    toast('Logged out of the community');
   }
 
   /* ---------- sending ---------- */
@@ -1004,8 +794,7 @@
         college: state.room.college || 'all',
         semester: state.room.semester
       };
-      /* Room mismatch? Auto-sync profile to THIS room once, then retry.
-         nahi, toh phone-gate fail hai. */
+      /* No phone gate: bas room profile sync retry. */
       async function tryInsert(payload) {
         var r = await SUPA.from('chat_messages').insert(payload).select().single();
         if (r.error && state.roomSupported && markRoomUnsupported(r.error)) {
@@ -1019,8 +808,7 @@
       var res = await tryInsert(msg);
       if (res.error && state.roomSupported && !sendRoomSynced &&
           (res.error.code === '42501' || /policy/i.test(res.error.message || ''))) {
-        /* Profile abhi purane room par hai (ya phone unverified nahi, room
-           mismatch hai) → profile ko isi room par sync karke ek retry. */
+        /* Profile abhi purane room par hai → isi room par sync, ek retry. */
         sendRoomSynced = true;
         try {
           await SUPA.from('user_profiles').upsert({
@@ -1037,7 +825,7 @@
           /* handled above — legacy retry already attempted */
         }
         if (res.error.code === '42501' || /policy|permission|row-level/i.test(res.error.message || '')) {
-          toast('Could not send — this device is not verified for ' + state.room.label + '. Re-verify your phone (profile icon → Verify), then retry.');
+          toast('Could not send — please login again and retry. (' + (res.error.message || 'policy') + ')');
         } else if (String(res.error.code) === '42703' || /column .*college|column .*semester/i.test(res.error.message || '')) {
           toast('Chat room upgrade pending — run supabase-chat-isolation.sql in Supabase, then retry.');
         } else { toast('Could not send: ' + (res.error.message || 'unknown error')); }
@@ -1085,11 +873,7 @@
     }
   });
 
-  /* Enter key on the OTP box confirms */
-  try {
-    var otpBox = $('phoneVerifyOtp');
-    if (otpBox) otpBox.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); confirmOtp(); } });
-  } catch (e) {}
+  /* Enter-key handler for the composer (OTP box hata diya gaya). */
 
   /* ---------- public API ---------- */
   /* Background watcher: while the chat is closed, keep ONE room-scoped
