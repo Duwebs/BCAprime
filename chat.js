@@ -82,7 +82,8 @@
     open: false, channel: 'general-chat',
     messages: [], profiles: {}, lastSent: 0, sending: false,
     imageFile: null, pendingCode: null,
-    rtChannel: null, profileRt: null, seenIds: {}
+    rtChannel: null, profileRt: null, seenIds: {},
+    pendingMobile: '', phoneCredResult: null, phoneAppVerifier: null
   };
 
   /* ---------- tiny helpers ---------- */
@@ -268,10 +269,10 @@
     if (digits.charAt(0) === '0') digits = digits.slice(1);
     return '+' + cc.dial + digits;
   }
-  /* Send OTP: SAME 6-digit code goes to the student's EMAIL instantly
-     (existing free send-otp system). The student then completes
-     verification EITHER by typing the OTP here, OR by sending
-     "BCAVERIFY <code>" to our Telegram bot from their phone. */
+    /* Verify phone: PRIMARY = Firebase Phone Auth (SMS to the real
+     number — true verification). FALLBACK = email OTP (send-chat-otp).
+     Students can also verify via the Telegram bot by sending
+     BCAVERIFY <code> from their phone. */
   async function startVerify(event) {
     event.preventDefault();
     var u = myUser();
@@ -279,7 +280,39 @@
     if (!u) { status.textContent = 'Please login first.'; return false; }
     var digits = ($('phoneVerifyMobile').value || '').replace(/\D/g, '');
     if (digits.length < 7) { status.textContent = 'Enter a valid mobile number.'; return false; }
-    status.textContent = 'Sending OTP to your email…';
+    var phone = fullPhone();
+
+    /* --- Primary: Firebase Phone Auth (SMS to the actual number) --- */
+    try {
+      var auth = firebase.auth();
+      var appVerifier = new firebase.auth.RecaptchaVerifier('phoneVerifyRecaptcha', {
+        size: 'invisible',
+        callback: function (response) {},
+        'expired-callback': function () {}
+      });
+      var confirmationResult = await u.linkWithPhoneNumber(phone, appVerifier);
+      state.phoneCredResult = confirmationResult;
+      state.phoneAppVerifier = appVerifier;
+      state.pendingMobile = phone;
+      try {
+        await SUPA.from('user_profiles').update({
+          mobile: phone, updated_at: new Date().toISOString()
+        }).eq('uid', u.uid);
+      } catch (e) {}
+      $('phoneVerifyForm').hidden = true;
+      $('phoneVerifyOtpCard').hidden = false;
+      $('tgVerifyLink').href = 'https://t.me/' + TELEGRAM_BOT + '?start=bca';
+      $('phoneVerifyStatus').textContent = 'SMS code sent to ' + phone;
+      var otp = $('phoneVerifyOtp');
+      if (otp) otp.focus();
+      status.textContent = '';
+      return false;
+    } catch (e) {
+      /* Fall through to email OTP fallback */
+    }
+
+    /* --- Fallback: email OTP (existing free send-chat-otp system) --- */
+    status.textContent = 'Sending code to your email…';
     try {
       var token = await u.getIdToken(true);
       var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.sendChatOtp) || '';
@@ -287,13 +320,12 @@
       var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, email: u.email || '' }) });
       var d = await r.json().catch(function () { return {}; });
       if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
-      /* remember the number on the profile */
       try {
         await SUPA.from('user_profiles').update({
-          mobile: fullPhone(), updated_at: new Date().toISOString()
+          mobile: phone, updated_at: new Date().toISOString()
         }).eq('uid', u.uid);
       } catch (e) {}
-      state.pendingMobile = fullPhone();
+      state.pendingMobile = phone;
       $('phoneVerifyForm').hidden = true;
       $('phoneVerifyOtpCard').hidden = false;
       $('tgVerifyLink').href = 'https://t.me/' + TELEGRAM_BOT + '?start=bca';
@@ -302,30 +334,58 @@
       if (otp) otp.focus();
       status.textContent = '';
     } catch (e) {
-      status.textContent = 'Could not send OTP: ' + (e && e.message ? e.message.replace('Firebase: ', '') : e);
+      var msg = (e && e.message) ? e.message.replace('Firebase: ', '') : e;
+      if (e && e.code === 'auth/requires-recent-login') {
+        status.textContent = 'Please logout and login again, then try verifying your phone.';
+      } else {
+        status.textContent = 'Could not send code: ' + msg;
+      }
     }
     return false;
   }
-  /* Path A: student types the emailed OTP here */
+  /* Verify the code: SMS path first (Firebase Phone Auth), then
+     email OTP fallback. */
   async function confirmOtp() {
     var status = $('phoneVerifyStatus');
     var u = myUser();
     if (!u) { openVerifyModal(); return; }
     var code = ($('phoneVerifyOtp').value || '').replace(/\D/g, '');
-    if (code.length !== 6) { status.textContent = 'Enter the 6-digit OTP from your email.'; return; }
+    if (code.length !== 6) { status.textContent = 'Enter the 6-digit code.'; return; }
     status.textContent = 'Verifying…';
+
+    /* --- SMS path: confirm via Firebase Phone Auth --- */
+    if (state.phoneCredResult) {
+      try {
+        var userCred = await state.phoneCredResult.confirm(code);
+        /* Phone is now verified in Firebase — sync to our backend */
+        var token = await u.getIdToken(true);
+        var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.markPhoneVerified) || '';
+        if (!url) throw new Error('Verification service not configured.');
+        var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, phone: state.pendingMobile || '' }) });
+        var d = await r.json().catch(function () { return {}; });
+        if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+        if (state.phoneAppVerifier && state.phoneAppVerifier.clear) state.phoneAppVerifier.clear();
+        state.phoneCredResult = null;
+        await finishVerified(u.uid);
+        return;
+      } catch (e) {
+        status.textContent = 'SMS code incorrect or expired. Try the email fallback below.';
+      }
+    }
+
+    /* --- Email OTP fallback --- */
     try {
-      var token = await u.getIdToken(true);
-      var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.verifyOtp) || '';
-      if (!url) throw new Error('OTP service not configured.');
-      var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token, code: code }) });
-      var d = await r.json().catch(function () { return {}; });
-      if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status));
+      var token2 = await u.getIdToken(true);
+      var url2 = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.verifyOtp) || '';
+      if (!url2) throw new Error('OTP service not configured.');
+      var r2 = await fetch(url2, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token2, code: code }) });
+      var d2 = await r2.json().catch(function () { return {}; });
+      if (!r2.ok) throw new Error(d2.error || ('HTTP ' + r2.status));
       await finishVerified(u.uid);
     } catch (e) {
-      status.textContent = 'Wrong or expired OTP — check your email and try again.';
+      status.textContent = 'Wrong or expired code — check your email and try again.';
     }
-  }
+    }
   /* Path B: student sent BCAVERIFY <code> to the Telegram bot — the
      webhook flips is_phone_verified server-side; we just re-check. */
   async function recheckVerified() {
