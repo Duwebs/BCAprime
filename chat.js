@@ -465,16 +465,51 @@
       var chips = $('communityChips'); if (chips) chips.innerHTML = '';
     } catch (e) { /* keep logout resilient */ }
   }
-  /* Log out of the COMMUNITY CHAT ONLY. This never signs the student out of
-     the main BCAPrime app: the Firebase login and the library session stay
-     exactly as they are. It just ends the chat session - closes the overlay,
-     tears down the realtime subscriptions and clears all cached chat state so
-     the next open starts fresh. Use the main app logout (profile menu) to end
-     the whole account session. */
-  function logout() {
+  /* Revoke community membership server-side: flips is_phone_verified back to
+     false and unlinks the phone from the Firebase account, so the student must
+     run verification again (same number or a new one) before rejoining. If the
+     endpoint is unreachable we still close the gate with a direct profile write
+     (user_profiles allows it) so logout keeps working. */
+  async function revokeCommunityAccess() {
+    var u = myUser();
+    if (!u) return true;
+    var url = (typeof AUTH_API !== 'undefined' && AUTH_API && AUTH_API.communityLogout) || '';
+    if (url) {
+      try {
+        var token = await u.getIdToken(true);
+        if (token) {
+          var r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) });
+          if (r.ok) return true;
+        }
+      } catch (e) { /* network / endpoint issue -> use the fallback below */ }
+    }
+    try {
+      var res = await SUPA.from('user_profiles').update({
+        is_phone_verified: false,
+        phone_verified_at: null,
+        updated_at: new Date().toISOString()
+      }).eq('uid', u.uid);
+      return !res.error;
+    } catch (e) { return false; }
+  }
+  /* Log out of the COMMUNITY CHAT ONLY. The main BCAPrime login and the library
+     session are never touched - this ends the community session and revokes
+     membership, so the student has to verify their number again to rejoin.
+     Use the profile-menu logout to end the whole account session. */
+  async function logout() {
+    var u = myUser();
+    if (!u) { close(); resetSession(); return; }
+    var btn = document.querySelector('.community-logout');
+    if (btn) btn.disabled = true;
+    var ok = await revokeCommunityAccess();
+    if (btn) btn.disabled = false;
+    if (!ok) {
+      toast('Could not log out of the community - check your connection and try again.');
+      return;
+    }
     close();
     resetSession();
-    toast('Logged out of the community chat');
+    toast('Logged out of the community - verify again to rejoin');
   }
 
   /* ---------- sending ---------- */

@@ -31,7 +31,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=49">
+  <link rel="stylesheet" href="styles.css?v=50">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -234,7 +234,7 @@
     <div class="phone-verify-icon"><i class="fa-solid fa-mobile-screen-button"></i></div>
     <p class="st-kicker">Community access</p>
     <h2>Verify your mobile number</h2>
-    <p class="st-sub">To keep the community spam-free and safe, every member verifies their number once via OTP. Your login stays untouched.</p>
+    <p class="st-sub">To keep the community spam-free and safe, every member verifies their number via OTP before chatting. Your BCAPrime login stays untouched.</p>
     <div id="phoneVerifyRecaptcha"></div>
     <form class="phone-verify-form" id="phoneVerifyForm" onsubmit="return BCAChat.startVerify(event)">
       <div class="phone-country-row">
@@ -372,7 +372,7 @@
     </span>
   </aside>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=12"></script><script src="push-subscribe.js?v=4"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script><script src="firebase-config.js?v=11"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=13"></script><script src="push-subscribe.js?v=4"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="if(!window.jspdf){var s=document.createElement('script');s.async=false;s.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js';var r=document.currentScript&&document.currentScript.parentNode;if(r)s.parentNode.insertBefore(s,r.nextSibling);else document.head.appendChild(s)}"></script>
   <script src="lib/imageToPdf.js"></script>
@@ -380,7 +380,7 @@
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
   <script src="whats-new.js?v=12"></script>
   <script src="app.js?v=45"></script>
-  <script src="chat.js?v=5"></script>
+  <script src="chat.js?v=6"></script>
 </body>
 </html>
 

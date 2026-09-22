@@ -29,6 +29,7 @@ const AUTH_API = {
   verifyPhone: AUTH_API_ORIGIN + '/api/verify-phone',
   sendChatOtp: AUTH_API_ORIGIN + '/api/send-chat-otp',
   markPhoneVerified: AUTH_API_ORIGIN + '/api/mark-phone-verified',
+  communityLogout: AUTH_API_ORIGIN + '/api/community-logout',
 };
 
 /* ---- Web Push (VAPID) ----
