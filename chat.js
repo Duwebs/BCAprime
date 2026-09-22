@@ -385,7 +385,7 @@
     } catch (e) {
       status.textContent = 'Wrong or expired code — check your email and try again.';
     }
-    }
+  }
   /* Path B: student sent BCAVERIFY <code> to the Telegram bot — the
      webhook flips is_phone_verified server-side; we just re-check. */
   async function recheckVerified() {
@@ -439,6 +439,21 @@
     $('communitySection').hidden = true;
     document.body.classList.remove('community-open');
     unsubscribe();
+  }
+  /* Log out from inside the community chat: close the overlay first so it
+     can never linger over the auth gate, then run the app's global logout
+     (Firebase signOut + full UI reset). */
+  function logout() {
+    close();
+    try {
+      if (typeof logoutFromPop === 'function') { logoutFromPop(); return; }
+    } catch (e) { /* app not ready */ }
+    try {
+      if (typeof signOutAccount === 'function') { signOutAccount(); return; }
+    } catch (e) { /* app not ready */ }
+    /* Last resort: sign out of Firebase directly. */
+    try { if (window.firebase && firebase.auth) firebase.auth().signOut(); } catch (e) {}
+    toast('Logged out');
   }
 
   /* ---------- sending ---------- */
@@ -564,6 +579,7 @@
     open: open, close: close,
     send: send, inputKey: inputKey, markCode: markCode,
     pickImage: pickImage, clearImage: clearImage,
-    startVerify: startVerify, confirmOtp: confirmOtp, editNumber: editNumber, recheckVerified: recheckVerified
+    startVerify: startVerify, confirmOtp: confirmOtp, editNumber: editNumber, recheckVerified: recheckVerified,
+    logout: logout
   };
 })();

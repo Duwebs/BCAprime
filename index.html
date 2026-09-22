@@ -31,7 +31,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=48">
+  <link rel="stylesheet" href="styles.css?v=49">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -203,6 +203,7 @@
         <div><strong>BCAPrime Community</strong><small id="communityActiveChannel">general-chat</small></div>
       </div>
       <span class="community-live"><span class="status-dot"></span> Live</span>
+      <button class="community-logout" type="button" aria-label="Log out" title="Log out" onclick="BCAChat.logout()"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
     </header>
     <div class="community-chips" id="communityChips"></div>
     <div class="community-announce" id="communityAnnounce" hidden><i class="fa-solid fa-thumbtack"></i> <span id="communityAnnounceText"></span></div>
@@ -379,7 +380,7 @@
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
   <script src="whats-new.js?v=12"></script>
   <script src="app.js?v=45"></script>
-  <script src="chat.js?v=3"></script>
+  <script src="chat.js?v=4"></script>
 </body>
 </html>
 
