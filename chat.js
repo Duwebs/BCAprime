@@ -306,14 +306,14 @@
      inMyRoom() before it touches state or the DOM.
      A status callback catches missing-column filters (isolation SQL
      not applied), auto-falls back to legacy mode and re-connects
-     with backoff. A 15s poll is the safety net: even when the
-     socket is down, the open view and badges stay fresh — no page
-     reload required to see new messages. */
+     with backoff. A 1s SILENT merge-poll (15s when chat closed) is the
+     guarantee: even with the socket down, new messages appear in the
+     open chat on their own — nobody ever has to reload the page. */
   var refreshTimer = null;
   var rtClock = { roomKey: '', generation: 0, healthy: false };
   var reconnectTimer = null, reconnectAttempts = 0;
   var ROOM_POLL_MS = 15000;
-  var OPEN_POLL_MS = 6000;
+  var OPEN_POLL_MS = 1000;
 
   function roomChangedSinceSubscribed() { return rtClock.roomKey && rtClock.roomKey !== myRoomKey(); }
 
@@ -940,13 +940,17 @@
       if (res.error) markRoomUnsupported(res.error);
     } catch (e) { markRoomUnsupported(e); }
   }
-  /* Poll safety net: even with the realtime socket down, when the chat
-     is OPEN new message rows are merged straight into the DOM (every
-     OPEN_POLL_MS). It fetches ONLY ids newer than the newest already on
-     screen — a reorder bug here previously fetched the OLDEST 50 rows,
-     so new messages silently never appeared without reopening the chat. */
+  /* In-flight guard so back-to-back 1s polls never overlap. */
+  var openPollBusy = false;
+  /* Poll safety net: while the chat is OPEN, a silent 1-second merge-poll
+     keeps the conversation perfectly fresh — users see new messages with
+     ZERO manual refresh and no visual flicker (scroll is only auto-followed
+     when already at the bottom, like WhatsApp). It fetches ONLY ids newer
+     than the newest already on screen; realtime, when working, is additive
+     and non-conflicting on top of this. */
   async function refreshOpenView() {
-    if (!SUPA || !state.open) return;
+    if (!SUPA || !state.open || openPollBusy) return;
+    openPollBusy = true;
     try {
       var maxId = 0;
       for (var i = 0; i < state.messages.length; i++) {
@@ -966,6 +970,7 @@
       if (res.error) { if (state.roomSupported && markRoomUnsupported(res.error)) state.roomSupported = false; return; }
       mergeIncoming(res.data || []);
     } catch (e) { /* poll is best-effort */ }
+    finally { openPollBusy = false; }
   }
   function mergeIncoming(rows) {
     var box = $('communityMessages');
