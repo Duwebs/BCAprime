@@ -68,7 +68,10 @@
     messages: [], profiles: {}, lastSent: 0, sending: false,
     imageFile: null, pendingCode: null, min: false,
     rtChannel: null, profileRt: null, seenIds: {},
-    pendingMobile: '', phoneCredResult: null, phoneAppVerifier: null
+    pendingMobile: '', phoneCredResult: null, phoneAppVerifier: null,
+    /* college+semester room isolation + WhatsApp-style unread */
+    room: { college: 'all', semester: null, label: '' },
+    unread: 0, unreadByChannel: {}, baseTitle: ''
   };
 
   /* ---------- tiny helpers ---------- */
@@ -84,6 +87,67 @@
     setTimeout(function () { el.remove(); }, 3200);
   }
   function myUser() { try { return window.firebase && firebase.auth().currentUser; } catch (e) { return null; } }
+
+  /* ============================================================
+     College & Semester room mapping.
+     Room = (collegeName, semester) taken from the verified user's
+     profile (user_profiles.college/semester), falling back to the
+     onboarding picks in localStorage. Every history query + the
+     realtime transport is scoped to this room — other colleges /
+     semesters are never requested and never rendered.
+     ============================================================ */
+  function normRoomStr(v) { return String(v == null ? '' : v).trim().toLowerCase(); }
+  function myCollege() {
+    try { return normRoomStr(localStorage.getItem('bca-college')) || 'all'; }
+    catch (e) { return 'all'; }
+  }
+  function mySemester() {
+    try {
+      var v = localStorage.getItem('bca-sem');
+      var n = Number(v);
+      return (v && v !== 'all' && n >= 1 && n <= 6) ? n : null;
+    } catch (e) { return null; }
+  }
+  function roomKey(college, sem) { return normRoomStr(college) + '::' + (sem == null ? 'all' : sem); }
+  function myRoomKey() { return roomKey(state.room.college, state.room.semester); }
+  function collegeDisplayName(key) {
+    try {
+      var list = (typeof colleges !== 'undefined') ? colleges : (window.colleges || []);
+      for (var i = 0; i < list.length; i++) {
+        if (String(list[i][0]).toLowerCase() === normRoomStr(key)) return list[i][1];
+      }
+    } catch (e) {}
+    return key === 'all' ? 'All Colleges' : String(key || 'Community');
+  }
+  function roomLabel(college, sem) {
+    return collegeDisplayName(college) + (sem == null ? '' : ' · Sem ' + sem);
+  }
+  /* Server truth wins: the verified profile row decides the room. */
+  async function resolveRoom() {
+    var college = myCollege(), sem = mySemester();
+    try {
+      var u = myUser();
+      if (u && SUPA) {
+        var res = await SUPA.from('user_profiles').select('college,semester').eq('uid', u.uid).maybeSingle();
+        if (res.data) {
+          if (res.data.college) college = normRoomStr(res.data.college) || college;
+          var s = Number(res.data.semester);
+          if (s >= 1 && s <= 6) sem = s;
+        }
+      }
+    } catch (e) { /* offline-safe: local picks stand in */ }
+    state.room.college = college || 'all';
+    state.room.semester = sem;
+    state.room.label = roomLabel(state.room.college, sem);
+    try { document.dispatchEvent(new CustomEvent('bca-room-changed', { detail: { college: state.room.college, semester: sem } })); } catch (e) {}
+    return state.room;
+  }
+  function inMyRoom(m) {
+    if (!m) return false;
+    if (normRoomStr(m.college) !== normRoomStr(state.room.college)) return false;
+    if (state.room.semester == null) return m.semester == null;
+    return Number(m.semester) === Number(state.room.semester);
+  }
 
   /* ---------- profile linking (live) ---------- */
   async function loadProfiles(uids) {
@@ -109,6 +173,88 @@
           loadProfiles([payload.new.uid]);
         }
       }).subscribe();
+  }
+
+  /* ============================================================
+     WhatsApp-style unread counters + notifications for MY room.
+     - Per-channel "floors" (last seen id) persist in localStorage.
+     - paintUnreadBadges() renders the badge on the Community
+       bottom-tab, per-channel chips (99+ capped) + title ping.
+     - notifyIncoming() fires a browser alert when a room message
+       arrives while the chat is closed/hidden.
+     - notifyRoomPush() triggers the server push (same-room only).
+     ============================================================ */
+  function floorKey(channel) { return 'bca-chat-lastseen-' + myRoomKey() + '-' + channel; }
+  function storedNum(k) { try { return Number(localStorage.getItem(k) || '0') || 0; } catch (e) { return 0; } }
+  function storeNum(k, v) { try { localStorage.setItem(k, String(v)); } catch (e) {} }
+  function communityTabBtn() {
+    var tabs = document.querySelectorAll('.bottom-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      var fn = tabs[i].getAttribute('onclick') || '';
+      if (fn.indexOf('community') !== -1) return tabs[i];
+    }
+    return null;
+  }
+  function fmtCount(n) { return n > 99 ? '99+' : String(n); }
+  function paintUnreadBadges() {
+    try {
+      var btn = communityTabBtn();
+      if (btn) {
+        var badge = btn.querySelector('.chat-unread-badge');
+        if (state.unread > 0) {
+          if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'chat-unread-badge';
+            btn.appendChild(badge);
+          }
+          badge.textContent = fmtCount(state.unread);
+          badge.hidden = false;
+        } else if (badge) { badge.hidden = true; }
+      }
+      var chips = document.querySelectorAll('#communityChips .community-chip');
+      for (var i = 0; i < chips.length; i++) {
+        var slug = chips[i].getAttribute('data-channel') || '';
+        var n = state.unreadByChannel[slug] || 0;
+        var dot = chips[i].querySelector('.chip-unread');
+        if (n > 0) {
+          if (!dot) { dot = document.createElement('span'); dot.className = 'chip-unread'; chips[i].appendChild(dot); }
+          dot.textContent = fmtCount(n);
+          dot.hidden = false;
+        } else if (dot) { dot.hidden = true; }
+      }
+      if (!state.baseTitle) state.baseTitle = document.title || 'BCAPrime';
+      var clean = state.baseTitle.replace(/^\(\d+\+?\)\s*/, '');
+      document.title = state.unread > 0 ? '(' + fmtCount(state.unread) + ') ' + clean : clean;
+    } catch (e) { /* badges are cosmetic */ }
+  }
+  /* Browser alert for room messages arriving while chat is hidden. */
+  function notifyIncoming(m) {
+    try {
+      if (!m || state.open) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') return;
+      var u = myUser();
+      if (u && m.uid === u.uid) return; /* never alert for own messages */
+      var title = '💬 ' + (m.author_name || 'Student') + ' · ' + state.room.label;
+      var text = String(m.body || '').slice(0, 120) || 'Sent a photo 📷';
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          if (reg && reg.showNotification) reg.showNotification(title, { body: text, icon: './assets/logo.png', badge: './assets/logo.png', tag: 'chat-' + myRoomKey(), data: { url: './index.html#community' } });
+          else if (window.Notification) new Notification(title, { body: text });
+        }).catch(function () { try { new Notification(title, { body: text }); } catch (e) {} });
+      } else { new Notification(title, { body: text }); }
+    } catch (e) { /* alerts are best-effort */ }
+  }
+  /* Server push (Web-Push via notify-chat fn, same-room only). Fire-and-forget. */
+  function notifyRoomPush(messageId) {
+    try {
+      var base = (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL) ? SUPABASE_URL : 'https://kjesjaakjddfxykisssh.supabase.co';
+      var key = (typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' && SUPABASE_PUBLISHABLE_KEY) ? SUPABASE_PUBLISHABLE_KEY : '';
+      fetch(base + '/functions/v1/notify-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: key, Authorization: 'Bearer ' + key },
+        body: JSON.stringify({ message_id: messageId })
+      }).catch(function () {});
+    } catch (e) { /* offline-safe */ }
   }
 
   /* ---------- message rendering ---------- */
@@ -170,27 +316,53 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  /* ---------- realtime sync ---------- */
+  /* ---------- realtime sync (STRICTLY room-scoped) ----------
+     One realtime subscription per ROOM: college rides on the wire as
+     the transport filter, semester/channel are checked client-side.
+     Rows from any other college/semester are dropped before render
+     AND before unread — zero access, zero leakage. */
+  var refreshTimer = null;
   function unsubscribe() {
     if (state.rtChannel) { try { SUPA.removeChannel(state.rtChannel); } catch (e) {} state.rtChannel = null; }
   }
-  function subscribe(channel) {
+  function subscribe() {
     if (!SUPA) return;
     unsubscribe();
-    state.rtChannel = SUPA.channel('community:' + channel)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'channel=eq.' + channel },
+    var col = state.room.college || 'all';
+    state.rtChannel = SUPA.channel('room:' + roomKey(col, state.room.semester))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'college=eq.' + col },
         function (payload) {
           var m = payload.new;
-          state.messages.push(m);
-          appendMsg(m);
-          if (m.uid) loadProfiles([m.uid]);
+          if (!m || state.seenIds[m.id]) return;
+          if (!inMyRoom(m)) return; /* another college/semester: ignore */
+          state.seenIds[m.id] = true;
+          if (m.channel === state.channel && state.open) {
+            state.messages.push(m);
+            appendMsg(m);
+            if (m.uid) loadProfiles([m.uid]);
+            storeNum(floorKey(m.channel), m.id);
+            scheduleRefresh();
+          } else {
+            scheduleRefresh(); /* exact server recount + browser alert */
+          }
         })
       .subscribe();
+  }
+  function scheduleRefresh() {
+    if (refreshTimer) return;
+    refreshTimer = setTimeout(function () { refreshTimer = null; refreshUnread(); }, 250);
   }
   async function loadHistory(channel) {
     if (!SUPA) return;
     try {
-      var res = await SUPA.from('chat_messages').select('*').eq('channel', channel).order('id', { ascending: false }).limit(50);
+      /* Room-scoped query: my college AND my semester AND this topic. */
+      var q = SUPA.from('chat_messages').select('*')
+        .eq('channel', channel)
+        .eq('college', state.room.college)
+        .order('id', { ascending: false }).limit(50);
+      if (state.room.semester == null) q = q.is('semester', null);
+      else q = q.eq('semester', state.room.semester);
+      var res = await q;
       state.messages = (res.data || []).reverse();
     } catch (e) { state.messages = []; }
   }
@@ -211,20 +383,101 @@
     CHANNELS.forEach(function (c) {
       var b = document.createElement('button');
       b.className = 'community-chip' + (c.slug === state.channel ? ' active' : '');
+      b.setAttribute('data-channel', c.slug);
       b.innerHTML = '<i class="fa-solid ' + c.icon + '"></i> ' + esc(c.label);
       b.onclick = function () { switchChannel(c.slug); };
       wrap.appendChild(b);
     });
+    /* Re-apply unread dots after rebuilding the chips. */
+    paintUnreadBadges();
   }
   async function switchChannel(slug) {
     state.channel = slug;
-    $('communityActiveChannel').textContent = '#' + slug;
+    $('communityActiveChannel').textContent = '#' + slug + ' · ' + state.room.label;
+    try {
+      var pill = $('communityRoomPill');
+      if (pill) {
+        pill.textContent = '🏫 ' + state.room.label;
+        pill.hidden = false;
+        pill.title = 'Only students from ' + state.room.label + ' can read & write here';
+      }
+    } catch (e) {}
     renderChips();
     await loadHistory(slug);
     renderAll();
     loadAnnouncement();
-    subscribe(slug);
+    subscribe();
     loadProfiles(uniqueUids());
+    markChannelSeen(slug);
+  }
+  /* The open channel is "read": its floor jumps to the newest id. */
+  function markChannelSeen(slug) {
+    try {
+      var top = 0;
+      if (slug === state.channel) {
+        for (var i = 0; i < state.messages.length; i++) {
+          if (state.messages[i] && state.messages[i].id > top) top = state.messages[i].id;
+        }
+      }
+      var prev = storedNum(floorKey(slug));
+      storeNum(floorKey(slug), Math.max(prev, top));
+    } catch (e) {}
+    scheduleRefresh();
+  }
+  /* WhatsApp-style recount: for every topic, unread = rows above my
+     floor inside MY room only. Unknown ids also surface the newest
+     room message as a browser alert. */
+  async function refreshUnread() {
+    if (!SUPA) { state.unread = 0; state.unreadByChannel = {}; paintUnreadBadges(); return; }
+    try {
+      await resolveRoomQuiet();
+      var floors = {}, total = 0, byCh = {};
+      var alerts = [];
+      for (var i = 0; i < CHANNELS.length; i++) {
+        var slug = CHANNELS[i].slug;
+        floors[slug] = storedNum(floorKey(slug));
+        var q = SUPA.from('chat_messages').select('id,uid,author_name,body,channel')
+          .eq('college', state.room.college)
+          .eq('channel', slug)
+          .gt('id', floors[slug])
+          .order('id', { ascending: true }).limit(100);
+        if (state.room.semester == null) q = q.is('semester', null);
+        else q = q.eq('semester', state.room.semester);
+        var res = await q;
+        var rows = res.data || [];
+        var u = myUser();
+        var mine = u ? u.uid : null;
+        var others = rows.filter(function (r) { return !mine || r.uid !== mine; });
+        /* The open channel self-clears — its rows were just rendered. */
+        if (slug === state.channel && state.open) {
+          if (rows.length) storeNum(floorKey(slug), rows[rows.length - 1].id);
+        } else {
+          byCh[slug] = others.length;
+          total += others.length;
+          if (others.length && !state.open) alerts.push(others[others.length - 1]);
+        }
+      }
+      state.unreadByChannel = byCh;
+      state.unread = total;
+      paintUnreadBadges();
+      for (var a = 0; a < alerts.length; a++) notifyIncoming(alerts[a]);
+    } catch (e) { /* keep old badge on failure */ }
+  }
+  /* Room resolution without re-painting the label (cheap path). */
+  async function resolveRoomQuiet() {
+    try {
+      var u = myUser();
+      if (u && SUPA) {
+        var res = await SUPA.from('user_profiles').select('college,semester').eq('uid', u.uid).maybeSingle();
+        if (res.data) {
+          if (res.data.college) state.room.college = normRoomStr(res.data.college) || state.room.college;
+          var s = Number(res.data.semester);
+          if (s >= 1 && s <= 6) state.room.semester = s;
+          state.room.label = roomLabel(state.room.college, state.room.semester);
+        }
+      }
+    } catch (e) {}
+    return state.room;
   }
   function uniqueUids() {
     var set = {}; var out = [];
@@ -403,7 +656,7 @@
     $('phoneVerifyStatus').textContent = '';
   }
 
-  /* ---------- open / close ---------- */
+  /* ---------- open / close (room-resolved) ---------- */
   async function open() {
     var u = myUser();
     if (!u) {
@@ -412,6 +665,7 @@
       return;
     }
     await fetchVerified(); // profile/name cache only — no extra gate here
+    await resolveRoom(); /* verified profile decides the room */
     state.open = true;
     state.min = false;
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
@@ -420,6 +674,7 @@
     renderChips();
     subscribeProfileRealtime();
     await switchChannel(state.channel);
+    await refreshUnread(); /* clear the open topic, count the rest */
     var input = $('communityInput');
     if (input) input.focus();
   }
@@ -429,9 +684,12 @@
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
     $('communitySection').hidden = true;
     document.body.classList.remove('community-open');
-    unsubscribe();
+    /* Keep the room subscription alive so background messages still
+       raise the badge + browser alert (WhatsApp-style). */
+    markChannelSeen(state.channel);
   }
-  /* Reset every cached community-chat value so the next open starts clean. */
+  /* Reset every cached community-chat value so the next open starts clean.
+     Unread floors stay — they are per-room read receipts, not session. */
   function resetSession() {
     if (state.rtChannel) { try { SUPA.removeChannel(state.rtChannel); } catch (e) {} state.rtChannel = null; }
     if (state.profileRt) { try { SUPA.removeChannel(state.profileRt); } catch (e) {} state.profileRt = null; }
@@ -677,7 +935,10 @@
         author_name: p.name || p.username || u.displayName || 'Student',
         author_avatar: p.avatar_url || '',
         body: body, code_lang: body && lang ? lang : '',
-        image_url: imageUrl
+        image_url: imageUrl,
+        /* Room stamp: server policy rejects anything outside my room. */
+        college: state.room.college || 'all',
+        semester: state.room.semester
       };
       var res = await SUPA.from('chat_messages').insert(msg).select().single();
       if (res.error) {
@@ -688,8 +949,14 @@
         t.value = '';
         $('communityCodeLang').value = '';
         markCode('');
-        state.messages.push(res.data);
-        appendMsg(res.data, { forceScroll: true });
+        if (inMyRoom(res.data)) {
+          state.messages.push(res.data);
+          appendMsg(res.data, { forceScroll: true });
+        }
+        storeNum(floorKey(state.channel), res.data && res.data.id ? res.data.id : storedNum(floorKey(state.channel)));
+        scheduleRefresh();
+        /* Fan-out: the notify-chat fn pushes ONLY to same-room devices. */
+        if (res.data && res.data.id) notifyRoomPush(res.data.id);
       }
     } catch (e) {
       toast('Network error — try again.');
@@ -729,10 +996,52 @@
   } catch (e) {}
 
   /* ---------- public API ---------- */
+  /* Background watcher: while the chat is closed, keep ONE room-scoped
+     subscription + a lightweight poll so the Community badge stays
+     WhatsApp-fresh. Started once on page boot (SUPA may arrive late). */
+  var bgStarted = false, bgPoll = null, bootTimer = null;
+  function startBackgroundWatcher() {
+    if (bgStarted) return;
+    if (typeof SUPA === 'undefined' || !SUPA) {
+      if (!bootTimer) bootTimer = setTimeout(function () { bootTimer = null; startBackgroundWatcher(); }, 1500);
+      return;
+    }
+    bgStarted = true;
+    resolveRoom().then(function () {
+      subscribe(); /* room-filtered, profile-independent */
+      refreshUnread();
+    }).catch(function () {});
+    bgPoll = setInterval(function () {
+      try {
+        if (!state.open && document.visibilityState === 'visible') refreshUnread();
+      } catch (e) {}
+    }, 30000);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && !state.open) refreshUnread();
+    });
+    /* College/semester changed elsewhere (profile/onboarding) → new room. */
+    window.addEventListener('storage', function (e) {
+      if (e && (e.key === 'bca-college' || e.key === 'bca-sem')) {
+        state.room.college = myCollege();
+        state.room.semester = mySemester();
+        state.room.label = roomLabel(state.room.college, state.room.semester);
+        if (!state.open) { subscribe(); refreshUnread(); }
+      }
+    });
+    try {
+      document.addEventListener('bca-room-changed', function () { if (!state.open) { subscribe(); refreshUnread(); } });
+    } catch (e) {}
+  }
+  try {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startBackgroundWatcher);
+    else startBackgroundWatcher();
+  } catch (e) {}
   window.BCAChat = {
     open: open, close: close,
     send: send, inputKey: inputKey, markCode: markCode,
     pickImage: pickImage, clearImage: clearImage,
-    toggleMinimize: toggleMinimize, openLightbox: openLightbox, closeLightbox: closeLightbox
+    toggleMinimize: toggleMinimize, openLightbox: openLightbox, closeLightbox: closeLightbox,
+    refreshUnread: refreshUnread, unreadCount: function () { return state.unread; },
+    roomInfo: function () { return { college: state.room.college, semester: state.room.semester, label: state.room.label }; }
   };
 })();
