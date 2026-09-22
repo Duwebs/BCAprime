@@ -440,20 +440,41 @@
     document.body.classList.remove('community-open');
     unsubscribe();
   }
-  /* Log out from inside the community chat: close the overlay first so it
-     can never linger over the auth gate, then run the app's global logout
-     (Firebase signOut + full UI reset). */
+  /* Reset every cached community-chat value so the next open starts clean. */
+  function resetSession() {
+    if (state.rtChannel) { try { SUPA.removeChannel(state.rtChannel); } catch (e) {} state.rtChannel = null; }
+    if (state.profileRt) { try { SUPA.removeChannel(state.profileRt); } catch (e) {} state.profileRt = null; }
+    state.channel = 'general-chat';
+    state.messages = [];
+    state.profiles = {};
+    state.seenIds = {};
+    state.imageFile = null;
+    state.lastSent = 0;
+    state.sending = false;
+    state.pendingCode = null;
+    state.pendingMobile = '';
+    state.phoneCredResult = null;
+    state.phoneAppVerifier = null;
+    try {
+      var box = $('communityMessages'); if (box) box.innerHTML = '';
+      var input = $('communityInput'); if (input) { input.value = ''; input.placeholder = 'Message community…'; }
+      var lang = $('communityCodeLang'); if (lang) lang.value = '';
+      var prev = $('communityImagePreview'); if (prev) prev.hidden = true;
+      var pimg = $('communityPreviewImg'); if (pimg) pimg.src = '';
+      var otp = $('phoneVerifyOtp'); if (otp) otp.value = '';
+      var chips = $('communityChips'); if (chips) chips.innerHTML = '';
+    } catch (e) { /* keep logout resilient */ }
+  }
+  /* Log out of the COMMUNITY CHAT ONLY. This never signs the student out of
+     the main BCAPrime app: the Firebase login and the library session stay
+     exactly as they are. It just ends the chat session - closes the overlay,
+     tears down the realtime subscriptions and clears all cached chat state so
+     the next open starts fresh. Use the main app logout (profile menu) to end
+     the whole account session. */
   function logout() {
     close();
-    try {
-      if (typeof logoutFromPop === 'function') { logoutFromPop(); return; }
-    } catch (e) { /* app not ready */ }
-    try {
-      if (typeof signOutAccount === 'function') { signOutAccount(); return; }
-    } catch (e) { /* app not ready */ }
-    /* Last resort: sign out of Firebase directly. */
-    try { if (window.firebase && firebase.auth) firebase.auth().signOut(); } catch (e) {}
-    toast('Logged out');
+    resetSession();
+    toast('Logged out of the community chat');
   }
 
   /* ---------- sending ---------- */
