@@ -411,7 +411,18 @@
       return;
     }
     var v = await fetchVerified();
-    if (!v.ok) { openVerifyModal(); return; }
+    var emailOk = u && u.emailVerified;
+    if (!emailOk) {
+      var em = $("verifyEmailModal");
+      if (em) {
+        var addrBox = $("verifyEmailAddr");
+        if (addrBox) addrBox.textContent = (u.email || "your email address");
+        $("verifyEmailMessage").textContent = "Please confirm your email first — only verified students can use the Community Chat. Check your inbox (and spam folder) for the confirmation link from Firebase.";
+        em.classList.add("open");
+        toast("Email verification required to join the Community Chat");
+      }
+      return;
+    }
     state.open = true;
     $('communitySection').hidden = false;
     document.body.classList.add('community-open');
@@ -570,8 +581,13 @@
       var res = await SUPA.from('chat_messages').insert(msg).select().single();
       if (res.error) {
         if (res.error.code === '42501' || /policy/i.test(res.error.message || '')) {
-          toast('Your phone verification is pending — finish it to chat.');
-          openVerifyModal();
+          toast('Your email must be verified to send messages in the Community Chat.');
+          var em2 = $('verifyEmailModal');
+          if (em2) {
+            var addr2 = $('verifyEmailAddr');
+            if (addr2 && u) addr2.textContent = (u.email || 'your email address');
+            em2.classList.add('open');
+          }
         } else { toast('Could not send: ' + (res.error.message || 'unknown error')); }
       } else {
         t.value = '';
@@ -622,7 +638,6 @@
     open: open, close: close,
     send: send, inputKey: inputKey, markCode: markCode,
     pickImage: pickImage, clearImage: clearImage,
-    startVerify: startVerify, confirmOtp: confirmOtp, editNumber: editNumber, recheckVerified: recheckVerified,
     logout: logout
   };
 })();
