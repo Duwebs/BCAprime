@@ -638,7 +638,6 @@
   window.BCAChat = {
     open: open, close: close,
     send: send, inputKey: inputKey, markCode: markCode,
-    pickImage: pickImage, clearImage: clearImage,
-    logout: logout
+    pickImage: pickImage, clearImage: clearImage
   };
 })();
