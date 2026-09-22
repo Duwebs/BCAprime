@@ -411,20 +411,7 @@
       if (gate) { gate.classList.add('open'); toast('Login to join the community chat'); }
       return;
     }
-    var v = await fetchVerified();
-    var emailOk = u && u.emailVerified;
-    if (!emailOk) {
-      var em = $("verifyEmailModal");
-      if (em) {
-        var addrBox = $("verifyEmailAddr");
-        if (addrBox) addrBox.textContent = (u.email || "your email address");
-        $("verifyEmailMessage").textContent = "Please confirm your email first — only verified students can use the Community Chat. Check your inbox (and spam folder) for the confirmation link from Firebase.";
-        em.classList.add("open");
-        toast("Email verification required to join the Community Chat");
-      }
-      window._bcaprimePendingCommunityOpen = true;
-      return;
-    }
+    await fetchVerified(); // profile/name cache only — no extra gate here
     state.open = true;
     state.min = false;
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
@@ -695,13 +682,7 @@
       var res = await SUPA.from('chat_messages').insert(msg).select().single();
       if (res.error) {
         if (res.error.code === '42501' || /policy/i.test(res.error.message || '')) {
-          toast('Your email must be verified to send messages in the Community Chat.');
-          var em2 = $('verifyEmailModal');
-          if (em2) {
-            var addr2 = $('verifyEmailAddr');
-            if (addr2 && u) addr2.textContent = (u.email || 'your email address');
-            em2.classList.add('open');
-          }
+          toast('Could not send — community membership check failed. Please re-login and try again.');
         } else { toast('Could not send: ' + (res.error.message || 'unknown error')); }
       } else {
         t.value = '';
