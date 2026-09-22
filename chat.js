@@ -71,6 +71,7 @@
     pendingMobile: '', phoneCredResult: null, phoneAppVerifier: null,
     /* college+semester room isolation + WhatsApp-style unread */
     room: { college: 'all', semester: null, label: '' },
+    roomSupported: true, /* false = isolation SQL abhi DB par run nahi hua (legacy mode) */
     unread: 0, unreadByChannel: {}, baseTitle: ''
   };
 
@@ -121,6 +122,24 @@
   }
   function roomLabel(college, sem) {
     return collegeDisplayName(college) + (sem == null ? '' : ' · Sem ' + sem);
+  }
+  /* Detect whether the isolation migration is live on the DB.
+     First room-scoped query that returns "column college/semester
+     does not exist" (or code 42703) flips us into legacy mode so
+     sending/reading keeps working until you run the SQL. */
+  function markRoomUnsupported(err) {
+    try {
+      var msg = String((err && (err.message || err.details || err.hint)) || '');
+      var code = String((err && err.code) || '');
+      if (code === '42703' || /college|semester/i.test(msg)) {
+        if (state.roomSupported) {
+          state.roomSupported = false;
+          toast('Chat room upgrade pending — running in compatibility mode. Run supabase-chat-isolation.sql to enable college & semester rooms.');
+        }
+        return true;
+      }
+    } catch (e) {}
+    return false;
   }
   /* Server truth wins: the verified profile row decides the room. */
   async function resolveRoom() {
@@ -328,6 +347,25 @@
   function subscribe() {
     if (!SUPA) return;
     unsubscribe();
+    /* Legacy mode (columns missing): old per-channel subscription so
+       realtime keeps working until the isolation SQL is run. */
+    if (!state.roomSupported) {
+      state.rtChannel = SUPA.channel('community:' + state.channel)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'channel=eq.' + state.channel },
+          function (payload) {
+            var m2 = payload.new;
+            if (!m2 || state.seenIds[m2.id]) return;
+            state.seenIds[m2.id] = true;
+            if (m2.channel === state.channel && state.open) {
+              state.messages.push(m2);
+              appendMsg(m2);
+              if (m2.uid) loadProfiles([m2.uid]);
+              scheduleRefresh();
+            } else { scheduleRefresh(); }
+          })
+        .subscribe();
+      return;
+    }
     var col = state.room.college || 'all';
     state.rtChannel = SUPA.channel('room:' + roomKey(col, state.room.semester))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'college=eq.' + col },
@@ -357,14 +395,33 @@
     try {
       /* Room-scoped query: my college AND my semester AND this topic. */
       var q = SUPA.from('chat_messages').select('*')
-        .eq('channel', channel)
-        .eq('college', state.room.college)
-        .order('id', { ascending: false }).limit(50);
-      if (state.room.semester == null) q = q.is('semester', null);
-      else q = q.eq('semester', state.room.semester);
+        .eq('channel', channel);
+      if (state.roomSupported) {
+        q = q.eq('college', state.room.college);
+        if (state.room.semester == null) q = q.is('semester', null);
+        else q = q.eq('semester', state.room.semester);
+      }
+      q = q.order('id', { ascending: false }).limit(50);
       var res = await q;
+      if (res.error && state.roomSupported && markRoomUnsupported(res.error)) {
+        var retry = await SUPA.from('chat_messages').select('*')
+          .eq('channel', channel).order('id', { ascending: false }).limit(50);
+        state.messages = (retry.data || []).reverse();
+        return;
+      }
+      if (res.error) throw res.error;
       state.messages = (res.data || []).reverse();
-    } catch (e) { state.messages = []; }
+    } catch (e) {
+      if (state.roomSupported && markRoomUnsupported(e)) {
+        try {
+          var retry2 = await SUPA.from('chat_messages').select('*')
+            .eq('channel', channel).order('id', { ascending: false }).limit(50);
+          state.messages = (retry2.data || []).reverse();
+          return;
+        } catch (e2) {}
+      }
+      state.messages = [];
+    }
   }
   async function loadAnnouncement() {
     var box = $('communityAnnounce'); var txt = $('communityAnnounceText');
@@ -436,14 +493,21 @@
       for (var i = 0; i < CHANNELS.length; i++) {
         var slug = CHANNELS[i].slug;
         floors[slug] = storedNum(floorKey(slug));
-        var q = SUPA.from('chat_messages').select('id,uid,author_name,body,channel')
-          .eq('college', state.room.college)
-          .eq('channel', slug)
+        var q = SUPA.from('chat_messages').select('id,uid,author_name,body,channel');
+        if (state.roomSupported) {
+          q = q.eq('college', state.room.college);
+          if (state.room.semester == null) q = q.is('semester', null);
+          else q = q.eq('semester', state.room.semester);
+        }
+        q = q.eq('channel', slug)
           .gt('id', floors[slug])
           .order('id', { ascending: true }).limit(100);
-        if (state.room.semester == null) q = q.is('semester', null);
-        else q = q.eq('semester', state.room.semester);
         var res = await q;
+        if (res.error && state.roomSupported && markRoomUnsupported(res.error)) {
+          state.roomSupported = false;
+          return refreshUnread(); /* retry once in legacy mode */
+        }
+        if (res.error) throw res.error;
         var rows = res.data || [];
         var u = myUser();
         var mine = u ? u.uid : null;
@@ -940,10 +1004,42 @@
         college: state.room.college || 'all',
         semester: state.room.semester
       };
-      var res = await SUPA.from('chat_messages').insert(msg).select().single();
+      /* Room mismatch? Auto-sync profile to THIS room once, then retry.
+         nahi, toh phone-gate fail hai. */
+      async function tryInsert(payload) {
+        var r = await SUPA.from('chat_messages').insert(payload).select().single();
+        if (r.error && state.roomSupported && markRoomUnsupported(r.error)) {
+          state.roomSupported = false;
+          delete payload.college; delete payload.semester;
+          return SUPA.from('chat_messages').insert(payload).select().single();
+        }
+        return r;
+      }
+      var sendRoomSynced = false;
+      var res = await tryInsert(msg);
+      if (res.error && state.roomSupported && !sendRoomSynced &&
+          (res.error.code === '42501' || /policy/i.test(res.error.message || ''))) {
+        /* Profile abhi purane room par hai (ya phone unverified nahi, room
+           mismatch hai) → profile ko isi room par sync karke ek retry. */
+        sendRoomSynced = true;
+        try {
+          await SUPA.from('user_profiles').upsert({
+            uid: u.uid, college: state.room.college || 'all', semester: state.room.semester
+          }, { onConflict: 'uid' });
+          try { await resolveRoomQuiet(); } catch (e2) {}
+          msg.college = state.room.college || 'all';
+          msg.semester = state.room.semester;
+          res = await tryInsert(msg);
+        } catch (e2) { /* fall through to the error toast below */ }
+      }
       if (res.error) {
-        if (res.error.code === '42501' || /policy/i.test(res.error.message || '')) {
-          toast('Could not send — community membership check failed. Please re-login and try again.');
+        if (markRoomUnsupported(res.error)) {
+          /* handled above — legacy retry already attempted */
+        }
+        if (res.error.code === '42501' || /policy|permission|row-level/i.test(res.error.message || '')) {
+          toast('Could not send — this device is not verified for ' + state.room.label + '. Re-verify your phone (profile icon → Verify), then retry.');
+        } else if (String(res.error.code) === '42703' || /column .*college|column .*semester/i.test(res.error.message || '')) {
+          toast('Chat room upgrade pending — run supabase-chat-isolation.sql in Supabase, then retry.');
         } else { toast('Could not send: ' + (res.error.message || 'unknown error')); }
       } else {
         t.value = '';
