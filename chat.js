@@ -313,6 +313,7 @@
   var rtClock = { roomKey: '', generation: 0, healthy: false };
   var reconnectTimer = null, reconnectAttempts = 0;
   var ROOM_POLL_MS = 15000;
+  var OPEN_POLL_MS = 6000;
 
   function roomChangedSinceSubscribed() { return rtClock.roomKey && rtClock.roomKey !== myRoomKey(); }
 
@@ -612,6 +613,7 @@
     await probeRoomSupport(); /* realtime transport mode = DB truth, probe first */
     state.open = true;
     state.min = false;
+    schedulePoll();
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
     $('communitySection').hidden = false;
     document.body.classList.add('community-open');
@@ -625,6 +627,7 @@
   function close() {
     state.open = false;
     state.min = false;
+    schedulePoll();
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
     $('communitySection').hidden = true;
     document.body.classList.remove('community-open');
@@ -888,6 +891,8 @@
         }
         storeNum(floorKey(state.channel), res.data && res.data.id ? res.data.id : storedNum(floorKey(state.channel)));
         scheduleRefresh();
+        /* Cross-tab wake-up: other open tabs re-poll instantly. */
+        try { localStorage.setItem('bca-chat-ping', String(Date.now())); } catch (e) {}
         /* Fan-out: the notify-chat fn pushes ONLY to same-room devices. */
         if (res.data && res.data.id) notifyRoomPush(res.data.id);
       }
@@ -936,20 +941,27 @@
     } catch (e) { markRoomUnsupported(e); }
   }
   /* Poll safety net: even with the realtime socket down, when the chat
-     is OPEN new message rows are merged straight into the DOM (15s).
-     No manual reopen/reload ever needed. */
+     is OPEN new message rows are merged straight into the DOM (every
+     OPEN_POLL_MS). It fetches ONLY ids newer than the newest already on
+     screen — a reorder bug here previously fetched the OLDEST 50 rows,
+     so new messages silently never appeared without reopening the chat. */
   async function refreshOpenView() {
     if (!SUPA || !state.open) return;
     try {
+      var maxId = 0;
+      for (var i = 0; i < state.messages.length; i++) {
+        if (state.messages[i] && state.messages[i].id > maxId) maxId = state.messages[i].id;
+      }
       var q = SUPA.from('chat_messages')
         .select('id,uid,author_name,author_avatar,channel,body,code_lang,image_url,college,semester,created_at')
-        .eq('channel', state.channel);
+        .eq('channel', state.channel)
+        .gt('id', maxId);
       if (state.roomSupported) {
         q = q.eq('college', state.room.college);
         if (state.room.semester == null) q = q.is('semester', null);
         else q = q.eq('semester', state.room.semester);
       }
-      q = q.order('id', { ascending: true }).limit(50);
+      q = q.order('id', { ascending: true }).limit(60);
       var res = await q;
       if (res.error) { if (state.roomSupported && markRoomUnsupported(res.error)) state.roomSupported = false; return; }
       mergeIncoming(res.data || []);
@@ -1001,6 +1013,17 @@
      subscription + a lightweight poll so the Community badge stays
      WhatsApp-fresh. Started once on page boot (SUPA may arrive late). */
   var bgStarted = false, bgPoll = null, bootTimer = null;
+  /* Re-arm the poll timer at the right cadence for the chat state. */
+  function schedulePoll() {
+    if (bgPoll) { clearInterval(bgPoll); bgPoll = null; }
+    var ms = state.open ? OPEN_POLL_MS : ROOM_POLL_MS;
+    bgPoll = setInterval(function () {
+      try {
+        if (document.visibilityState !== 'visible') return;
+        if (state.open) refreshOpenView(); else refreshUnread();
+      } catch (e) {}
+    }, ms);
+  }
   function startBackgroundWatcher() {
     if (bgStarted) return;
     if (typeof SUPA === 'undefined' || !SUPA) {
@@ -1014,20 +1037,26 @@
       subscribe(); /* room-filtered, profile-independent */
       refreshUnread();
     }).catch(function () {});
-    bgPoll = setInterval(function () {
-      try {
-        if (document.visibilityState !== 'visible') return;
-        if (state.open) refreshOpenView(); else refreshUnread();
-      } catch (e) {}
-    }, ROOM_POLL_MS);
+    /* Poll cadence changes with chat state: fast merge-polls while the
+       chat is OPEN, light unread polls while it is closed. */
+    schedulePoll();
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') {
         if (state.open) refreshOpenView(); else refreshUnread();
       }
     });
-    /* College/semester changed elsewhere (profile/onboarding) → new room. */
+    /* College/semester changed elsewhere (profile/onboarding) → new room.
+       bca-chat-ping is a cross-tab wake-up so the OTHER tab re-polls the
+       moment a message is sent — near-instant without realtime. */
     window.addEventListener('storage', function (e) {
-      if (e && (e.key === 'bca-college' || e.key === 'bca-sem')) onRoomMaybeChanged();
+      if (!e) return;
+      if (e.key === 'bca-college' || e.key === 'bca-sem') {
+        onRoomMaybeChanged();
+        return;
+      }
+      if (e.key === 'bca-chat-ping') {
+        if (state.open) refreshOpenView(); else refreshUnread();
+      }
     });
     try {
       document.addEventListener('bca-room-changed', function () {
