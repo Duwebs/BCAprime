@@ -2,7 +2,9 @@
    BCAPrime — chat.js (Community Chat hub)
    WhatsApp-style community chat: subject channels, real-time
    sync via Supabase Realtime, code highlighting (C++/JS),
-   image sharing, pinned announcements.
+   image sharing, pinned announcements, emoji reactions +
+   edit/delete (long-press on mobile, hover ⋮ + right-click
+   on desktop — DB side: supabase-chat-reactions-edits.sql).
 
    ACCESS MODEL (phone verification REMOVED):
    - Community chat needs Firebase LOGIN only. No SMS/OTP gate.
@@ -30,6 +32,11 @@
     messages: [], profiles: {}, lastSent: 0, sending: false,
     imageFile: null, pendingCode: null, min: false,
     rtChannel: null, profileRt: null, seenIds: {},
+    /* reactions + edit/delete (supabase-chat-reactions-edits.sql) */
+    reactions: {}, reactRt: null, reactionsSupported: true, reactionsNotified: false,
+    opsSupported: true, opsNotified: false,
+    hiddenIds: {}, editingId: null, savingEdit: false,
+    actionMsg: null, deleteCtx: null, sheetOpenedAt: 0,
     /* college+semester room isolation + WhatsApp-style unread */
     room: { college: 'all', semester: null, label: '' },
     roomSupported: true, /* false = isolation SQL abhi DB par run nahi hua (legacy mode) */
@@ -49,6 +56,8 @@
     setTimeout(function () { el.remove(); }, 3200);
   }
   function myUser() { try { return window.firebase && firebase.auth().currentUser; } catch (e) { return null; } }
+  /* "Delete for me" hides — restored once at boot (fn is hoisted). */
+  loadHiddenIds();
 
   /* ============================================================
      College & Semester room mapping.
@@ -257,7 +266,7 @@
     if (m.image_url) {
       var img=document.createElement('img');
       img.className='msg-image';img.loading='lazy';img.alt='shared screenshot';img.src=m.image_url;
-      img.onclick=function(){ openLightbox(m.image_url); };
+      img.onclick=function(ev){ if(Date.now()<suppressClickUntil){ if(ev&&ev.stopPropagation)ev.stopPropagation(); return; } openLightbox(m.image_url); };
       el.appendChild(img);
     }
     return el;
@@ -267,19 +276,74 @@
     var wrap = document.createElement('div');
     wrap.className = 'msg' + (mine ? ' mine' : '');
     wrap.setAttribute('data-uid', m.uid || '');
+    if (m.id) wrap.setAttribute('data-mid', m.id);
     var p = state.profiles[m.uid] || {};
     wrap.innerHTML =
       '<img class="msg-avatar" alt="" src="' + esc(p.avatar_url || m.author_avatar || '') + '" onerror="this.style.visibility=\'hidden\'">' +
       '<div class="msg-bubble">' +
       '<div class="msg-head"><span class="msg-name">' + esc(p.name || p.username || m.author_name || 'Student') + '</span>' +
-      '<span class="msg-time">' + time(m.created_at) + '</span></div>' +
+      '<span class="msg-time">' + time(m.created_at) + '</span>' +
+      (m.edited_at ? '<span class="msg-edited" title="Edited">(edited)</span>' : '') +
+      '<button class="msg-menu" type="button" aria-label="Message options" title="React, edit or delete"><i class="fa-solid fa-ellipsis"></i></button>' +
+      '</div>' +
       '</div>';
-    wrap.querySelector('.msg-bubble').appendChild(renderBody(m));
+    var bubble = wrap.querySelector('.msg-bubble');
+    bubble.appendChild(renderBody(m));
+    var rr = renderReactions(m);
+    if (rr) bubble.appendChild(rr);
     return wrap;
+  }
+  /* ---------- message DOM helpers (reactions / edit / live updates) ---------- */
+  function getMsgEl(id) { return document.querySelector('#communityMessages .msg[data-mid="' + Number(id) + '"]'); }
+  function findLoaded(id) {
+    id = Number(id);
+    for (var i = 0; i < state.messages.length; i++) if (state.messages[i].id === id) return state.messages[i];
+    return null;
+  }
+  function filterHidden(rows) {
+    return (rows || []).filter(function (m) { return m && !state.hiddenIds[m.id]; });
+  }
+  /* Rebuild ONE bubble in place (edited tag, reaction pills, live text). */
+  function refreshMsgDom(m) {
+    if (!m || !m.id) return;
+    if (state.editingId === m.id) return; /* never clobber an open editor */
+    var old = getMsgEl(m.id);
+    if (!old || !old.parentNode) return;
+    old.parentNode.replaceChild(buildMsg(m), old);
+  }
+  function reactionSummary(mid) {
+    var list = state.reactions[mid] || [];
+    var u = myUser(), map = {}, order = [];
+    for (var i = 0; i < list.length; i++) {
+      var r = list[i];
+      if (!map[r.emoji]) { map[r.emoji] = { emoji: r.emoji, count: 0, mine: false }; order.push(r.emoji); }
+      map[r.emoji].count++;
+      if (u && r.uid === u.uid) map[r.emoji].mine = true;
+    }
+    return order.map(function (e) { return map[e]; });
+  }
+  function renderReactions(m) {
+    var sums = m && m.id ? reactionSummary(m.id) : [];
+    if (!sums.length) return null;
+    var row = document.createElement('div');
+    row.className = 'msg-reactions';
+    sums.forEach(function (s) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'msg-react' + (s.mine ? ' mine' : '');
+      b.setAttribute('data-emoji', s.emoji);
+      var label = (s.mine ? 'Remove your reaction' : 'React with ' + s.emoji) + ' — ' + s.count + ' reacted';
+      b.title = label; b.setAttribute('aria-label', label);
+      var e = document.createElement('span'); e.className = 'msg-react-emoji'; e.textContent = s.emoji;
+      var c = document.createElement('span'); c.className = 'msg-react-count'; c.textContent = String(s.count);
+      b.appendChild(e); b.appendChild(c);
+      row.appendChild(b);
+    });
+    return row;
   }
   function appendMsg(m, opts) {
     opts = opts || {};
-    if (m.id && state.seenIds[m.id]) return;
+    if (m.id && (state.seenIds[m.id] || state.hiddenIds[m.id])) return;
     if (m.id) state.seenIds[m.id] = true;
     var box = $('communityMessages');
     if (!box) return;
@@ -327,7 +391,7 @@
      dedupe, room guard, push into state, render instantly, advance
      the read floor — the UI never waits on a reload. */
   function handleIncoming(m) {
-    if (!m || state.seenIds[m.id]) return;
+    if (!m || state.seenIds[m.id] || (m.id && state.hiddenIds[m.id])) return;
     if (!inMyRoom(m)) return; /* filter-leakage guard: other room — drop */
     state.seenIds[m.id] = true;
     if (m.channel === state.channel && state.open) {
@@ -362,6 +426,7 @@
   }
   function unsubscribe() {
     if (state.rtChannel) { try { SUPA.removeChannel(state.rtChannel); } catch (e) {} state.rtChannel = null; }
+    if (state.reactRt) { try { SUPA.removeChannel(state.reactRt); } catch (e) {} state.reactRt = null; }
     rtClock.healthy = false;
     if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   }
@@ -380,19 +445,102 @@
     rtClock.roomKey = myRoomKey();
     rtClock.generation += 1;
     var topic = 'room:' + rtClock.roomKey + '#gen' + rtClock.generation;
-    if (!state.roomSupported) {
-      /* Legacy mode (isolation SQL pending): channel-level transport, rows
-         are still room-checked + deduped client-side. */
-      state.rtChannel = SUPA.channel(topic)
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'channel=eq.' + state.channel },
-          function (payload) { handleIncoming(payload.new); })
-        .subscribe(channelByStatus);
-      return;
-    }
+    /* INSERT + UPDATE carry the full row → room/channel filter works
+       (legacy mode falls back to a channel-level filter). DELETE events
+       ship only the primary key (replica identity default), so they are
+       subscribed unfiltered and guarded client-side by loaded-id lookup.
+       UPDATE = edited text, DELETE = "deleted for everyone". */
+    var msgFilter = state.roomSupported ? roomFilter() : ('channel=eq.' + state.channel);
     state.rtChannel = SUPA.channel(topic)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: roomFilter() },
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: msgFilter },
         function (payload) { handleIncoming(payload.new); })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages', filter: msgFilter },
+        function (payload) { handleRemoteUpdate(payload.new); })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_messages' },
+        function (payload) { handleRemoteDelete(payload.old); })
       .subscribe(channelByStatus);
+    subscribeReactions();
+  }
+
+  /* ---------- realtime: edits / deletes / reactions (instant sync) ---------- */
+  function handleRemoteUpdate(row) {
+    if (!row || !row.id) return;
+    var m = findLoaded(row.id);
+    if (!m) return; /* other channel / not on screen — history covers it */
+    var changed = (m.body !== row.body) || (m.edited_at !== row.edited_at) ||
+      (m.code_lang !== row.code_lang) || (m.image_url !== row.image_url);
+    m.body = row.body; m.edited_at = row.edited_at;
+    m.code_lang = row.code_lang; m.image_url = row.image_url;
+    if (changed) refreshMsgDom(m);
+  }
+  function handleRemoteDelete(oldRow) {
+    var id = oldRow && Number(oldRow.id);
+    if (id) removeMessageLocal(id);
+  }
+  /* Drop a message everywhere locally (remote delete / delete-for-me). */
+  function removeMessageLocal(id) {
+    id = Number(id);
+    if (!id) return;
+    if (state.editingId === id) state.editingId = null;
+    if (state.actionMsg && state.actionMsg.id === id) closeActions();
+    for (var i = 0; i < state.messages.length; i++) {
+      if (state.messages[i].id === id) { state.messages.splice(i, 1); break; }
+    }
+    delete state.reactions[id];
+    state.seenIds[id] = true; /* a late in-flight INSERT can't resurrect it */
+    var el = getMsgEl(id);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+  function handleReactionInsert(row) {
+    if (!row || !row.message_id) return;
+    var mid = Number(row.message_id);
+    var m = findLoaded(mid);
+    if (!m) return; /* not loaded here — history/poll picks it up later */
+    var list = state.reactions[mid] || (state.reactions[mid] = []);
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].uid === row.uid && list[i].emoji === row.emoji) {
+        list[i].id = row.id; /* backfill our optimistic entry */
+        return;
+      }
+    }
+    list.push({ id: row.id, uid: row.uid, emoji: row.emoji });
+    refreshMsgDom(m);
+  }
+  function handleReactionDelete(row) {
+    var rid = row && Number(row.id);
+    if (!rid) return;
+    for (var mid in state.reactions) {
+      var list = state.reactions[mid];
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].id === rid) {
+          list.splice(i, 1);
+          if (!list.length) delete state.reactions[mid];
+          var m = findLoaded(mid);
+          if (m) refreshMsgDom(m);
+          return;
+        }
+      }
+    }
+  }
+  /* SEPARATE transport for reactions: agar chat_reactions table abhi
+     migrate nahi hai to iska failure main message socket ko kabhi nahi
+     todta (bilkul alag Supabase channel). */
+  function subscribeReactions() {
+    if (!SUPA || state.reactRt || !state.reactionsSupported) return;
+    state.reactRt = SUPA.channel('chat-reacts:' + rtClock.roomKey + '#gen' + rtClock.generation)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_reactions' },
+        function (payload) { handleReactionInsert(payload.new); })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'chat_reactions' },
+        function (payload) { handleReactionDelete(payload.old); })
+      .subscribe(function (status) {
+        if (status === 'SUBSCRIBED') return;
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          /* teardown so the next subscribe() retries; the missing-table
+             toast comes from the loadReactions() select path. */
+          try { if (state.reactRt) SUPA.removeChannel(state.reactRt); } catch (e) {}
+          state.reactRt = null;
+        }
+      });
   }
   function scheduleRefresh() {
     if (refreshTimer) return;
@@ -414,17 +562,17 @@
       if (res.error && state.roomSupported && markRoomUnsupported(res.error)) {
         var retry = await SUPA.from('chat_messages').select('*')
           .eq('channel', channel).order('id', { ascending: false }).limit(50);
-        state.messages = (retry.data || []).reverse();
+        state.messages = filterHidden((retry.data || []).reverse());
         return;
       }
       if (res.error) throw res.error;
-      state.messages = (res.data || []).reverse();
+      state.messages = filterHidden((res.data || []).reverse());
     } catch (e) {
       if (state.roomSupported && markRoomUnsupported(e)) {
         try {
           var retry2 = await SUPA.from('chat_messages').select('*')
             .eq('channel', channel).order('id', { ascending: false }).limit(50);
-          state.messages = (retry2.data || []).reverse();
+          state.messages = filterHidden((retry2.data || []).reverse());
           return;
         } catch (e2) {}
       }
@@ -469,6 +617,7 @@
     } catch (e) {}
     renderChips();
     await loadHistory(slug);
+    await loadReactions();
     renderAll();
     loadAnnouncement();
     ensureRoomChannel();
@@ -520,7 +669,7 @@
         var rows = res.data || [];
         var u = myUser();
         var mine = u ? u.uid : null;
-        var others = rows.filter(function (r) { return !mine || r.uid !== mine; });
+        var others = rows.filter(function (r) { return (!mine || r.uid !== mine) && !state.hiddenIds[r.id]; });
         /* The open channel self-clears — its rows were just rendered. */
         if (slug === state.channel && state.open) {
           if (rows.length) storeNum(floorKey(slug), rows[rows.length - 1].id);
@@ -627,6 +776,7 @@
   function close() {
     state.open = false;
     state.min = false;
+    closeActions();
     schedulePoll();
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
     $('communitySection').hidden = true;
@@ -640,10 +790,15 @@
   function resetSession() {
     if (state.rtChannel) { try { SUPA.removeChannel(state.rtChannel); } catch (e) {} state.rtChannel = null; }
     if (state.profileRt) { try { SUPA.removeChannel(state.profileRt); } catch (e) {} state.profileRt = null; }
+    if (state.reactRt) { try { SUPA.removeChannel(state.reactRt); } catch (e) {} state.reactRt = null; }
     state.channel = 'general-chat';
     state.messages = [];
     state.profiles = {};
     state.seenIds = {};
+    state.reactions = {};
+    state.editingId = null;
+    state.savingEdit = false;
+    closeActions();
     state.imageFile = null;
     state.lastSent = 0;
     state.sending = false;
@@ -781,7 +936,10 @@
   document.addEventListener('keydown',function(e){
     if((e.key==='Escape'||e.key==='Esc')&&state.open){
       var lb=document.getElementById('communityLightbox');
-      if(lb&&!lb.hidden){e.stopPropagation();closeLightbox();}
+      if(lb&&!lb.hidden){e.stopPropagation();closeLightbox();return;}
+      var sheet=document.getElementById('chatActionSheet');
+      var conf=document.getElementById('chatDeleteConfirm');
+      if((sheet&&!sheet.hidden)||(conf&&!conf.hidden)){e.stopPropagation();closeActions();return;}
     }
   },true);
   /* Req2: desktop minimize/expand */
@@ -904,6 +1062,370 @@
     }
   }
 
+  /* ============================================================
+     MESSAGE ACTIONS — emoji reactions, edit, delete
+     · Mobile: long-press (hold ~480ms) → action sheet
+     · Desktop: hover ⋮ button OR right-click → same sheet
+     · Sync: RPC + Supabase Realtime
+       (DB: supabase-chat-reactions-edits.sql — RUN IT FIRST)
+     ============================================================ */
+  var REACT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥'];
+  var press = { timer: null, mid: null, x0: 0, y0: 0, fired: false };
+  var suppressClickUntil = 0;
+
+  /* ---------- "delete for me" hidden ids (localStorage) ---------- */
+  function hiddenIdsKey() { return 'bca-chat-hidden-msgs'; }
+  function loadHiddenIds() {
+    try {
+      state.hiddenIds = {};
+      var arr = JSON.parse(localStorage.getItem(hiddenIdsKey()) || '[]');
+      if (Array.isArray(arr)) arr.forEach(function (id) { state.hiddenIds[Number(id)] = true; });
+    } catch (e) { state.hiddenIds = {}; }
+  }
+  function persistHiddenIds() {
+    try {
+      var ids = Object.keys(state.hiddenIds);
+      if (ids.length > 500) {
+        ids = ids.slice(-500);
+        state.hiddenIds = {};
+        ids.forEach(function (k) { state.hiddenIds[k] = true; });
+      }
+      localStorage.setItem(hiddenIdsKey(), JSON.stringify(ids.map(Number)));
+    } catch (e) { /* storage full / private mode */ }
+  }
+  function hideMessageForMe(id) {
+    state.hiddenIds[id] = true;
+    persistHiddenIds();
+    removeMessageLocal(id);
+  }
+
+  /* ---------- action sheet: open / close / build ---------- */
+  function openActions(m) {
+    if (!m) return;
+    closeActions();
+    var u = myUser();
+    state.actionMsg = m;
+    /* preview line (author + snippet) */
+    var pv = $('chatSheetPreview');
+    if (pv) {
+      var name = (state.profiles[m.uid] || {}).name || m.author_name || 'Student';
+      var snip = String(m.body || '').replace(/\s+/g, ' ').trim();
+      pv.textContent = (m.uid && u && m.uid === u.uid ? 'You' : name) + ': ' + (snip || '📷 Photo');
+      pv.hidden = false;
+    }
+    /* emoji row (highlights the emojis YOU already used) */
+    var rw = $('chatSheetReactions');
+    if (!rw) return;
+    rw.innerHTML = '';
+    var mineMap = {};
+    (state.reactions[m.id] || []).forEach(function (r) { if (u && r.uid === u.uid) mineMap[r.emoji] = true; });
+    REACT_EMOJIS.forEach(function (em) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sheet-emoji' + (mineMap[em] ? ' mine' : '');
+      b.textContent = em;
+      b.setAttribute('aria-label', 'React with ' + em);
+      b.onclick = function (ev) { ev.stopPropagation(); closeActions(); toggleReaction(m, em); };
+      rw.appendChild(b);
+    });
+    /* Edit / Delete rows (owner-only where it matters) */
+    var aw = $('chatSheetActions');
+    if (!aw) return;
+    aw.innerHTML = '';
+    var isMine = !!(u && m.uid && m.uid === u.uid);
+    if (isMine && String(m.body || '').trim()) {
+      addSheetAction(aw, 'fa-pen', 'Edit', function () { startEdit(m); });
+    }
+    if (isMine) {
+      addSheetAction(aw, 'fa-trash', 'Delete for everyone…', function () { askDelete(m, 'all'); }, true);
+    }
+    addSheetAction(aw, 'fa-user-slash', 'Delete for me…', function () { askDelete(m, 'me'); });
+    var sheet = $('chatActionSheet');
+    if (!sheet) return;
+    sheet.hidden = false;
+    state.sheetOpenedAt = Date.now();
+  }
+  function addSheetAction(wrap, icon, label, fn, danger) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'sheet-action' + (danger ? ' danger' : '');
+    b.innerHTML = '<i class="fa-solid ' + icon + '"></i>';
+    b.appendChild(document.createTextNode(label));
+    b.onclick = function (ev) { ev.stopPropagation(); fn(); };
+    wrap.appendChild(b);
+  }
+  function closeActions() {
+    state.actionMsg = null;
+    state.deleteCtx = null;
+    ['chatActionSheet', 'chatDeleteConfirm'].forEach(function (id) {
+      var el = $(id);
+      if (el) { el.classList.remove('open'); el.hidden = true; }
+    });
+  }
+  function sheetBackdrop(ev) {
+    /* ignore the click synthesized right when a long-press is released */
+    if (Date.now() - (state.sheetOpenedAt || 0) < 450) return;
+    if (ev && ev.target && ev.target === ev.currentTarget) closeActions();
+  }
+
+  /* ---------- reactions: optimistic UI + realtime + RPC ---------- */
+  async function toggleReaction(m, emoji) {
+    if (!m || !m.id || !emoji) return;
+    var u = myUser();
+    if (!u) { toast('Login to react'); return; }
+    if (!state.reactionsSupported) {
+      if (!state.reactionsNotified) toast('Reactions upgrade pending — run supabase-chat-reactions-edits.sql in Supabase SQL Editor.');
+      return;
+    }
+    var list = state.reactions[m.id] || (state.reactions[m.id] = []);
+    var mineIdx = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].uid === u.uid && list[i].emoji === emoji) { mineIdx = i; break; }
+    }
+    var add = mineIdx < 0;
+    /* optimistic update — the tap feels instant, the RPC confirms after */
+    if (add) list.push({ id: 0, uid: u.uid, emoji: emoji });
+    else list.splice(mineIdx, 1);
+    if (!list.length) delete state.reactions[m.id];
+    refreshMsgDom(m);
+    try {
+      var res = await SUPA.rpc('bca_toggle_reaction', { p_message_id: m.id, p_uid: u.uid, p_emoji: emoji, p_add: add });
+      if (res.error) {
+        /* roll the optimistic change back */
+        var l2 = state.reactions[m.id] || [];
+        if (add) {
+          for (var j = l2.length - 1; j >= 0; j--) {
+            if (l2[j].uid === u.uid && l2[j].emoji === emoji && !l2[j].id) { l2.splice(j, 1); break; }
+          }
+        } else {
+          l2.push({ id: 0, uid: u.uid, emoji: emoji });
+        }
+        if (!l2.length) delete state.reactions[m.id];
+        refreshMsgDom(m);
+        if (!markOpsUnsupported(res.error)) toast('Reaction failed: ' + (res.error.message || 'error'));
+      }
+    } catch (e) { /* network hiccup — the 5s reaction sync reconciles */ }
+  }
+
+  /* ---------- inline edit (Edit action) ---------- */
+  function startEdit(m) {
+    closeActions();
+    if (!m || !m.id) return;
+    var u = myUser();
+    if (!u || m.uid !== u.uid) { toast('Only the author can edit'); return; }
+    /* close any OTHER open inline editor first */
+    if (state.editingId && state.editingId !== m.id) {
+      var prev = findLoaded(state.editingId);
+      state.editingId = null;
+      if (prev) refreshMsgDom(prev);
+    }
+    refreshMsgDom(m); /* clean base state */
+    var wrap = getMsgEl(m.id);
+    var bubble = wrap && wrap.querySelector('.msg-bubble');
+    if (!bubble) return;
+    state.editingId = m.id;
+    Array.prototype.forEach.call(bubble.children, function (ch) {
+      if (!ch.classList.contains('msg-head')) ch.style.display = 'none';
+    });
+    var ed = document.createElement('div');
+    ed.className = 'msg-edit';
+    var ta = document.createElement('textarea');
+    ta.value = String(m.body || '');
+    ta.maxLength = 4000;
+    ta.rows = 3;
+    ta.setAttribute('aria-label', 'Edit message');
+    var btns = document.createElement('div');
+    btns.className = 'msg-edit-btns';
+    var cancel = document.createElement('button');
+    cancel.type = 'button'; cancel.className = 'cancel'; cancel.textContent = 'Cancel';
+    var save = document.createElement('button');
+    save.type = 'button'; save.className = 'save'; save.textContent = 'Save';
+    var hint = document.createElement('div');
+    hint.className = 'msg-edit-hint';
+    hint.textContent = 'Esc to cancel · Ctrl+Enter to save';
+    btns.appendChild(cancel); btns.appendChild(save);
+    ed.appendChild(ta); ed.appendChild(btns); ed.appendChild(hint);
+    bubble.appendChild(ed);
+    cancel.onclick = function () { cancelEdit(m); };
+    save.onclick = function () { saveEdit(m, ta); };
+    ta.onkeydown = function (ev) {
+      ev.stopPropagation();
+      if (ev.key === 'Escape') { ev.preventDefault(); cancelEdit(m); }
+      else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); saveEdit(m, ta); }
+    };
+    ta.focus();
+    try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+  }
+  function cancelEdit(m) {
+    state.editingId = null;
+    if (m) refreshMsgDom(m);
+  }
+  async function saveEdit(m, ta) {
+    var u = myUser();
+    if (!u || !m || m.uid !== u.uid) { toast('Not allowed'); return; }
+    var text = String(ta.value == null ? '' : ta.value);
+    if (!text.trim()) { toast('Message cannot be empty'); return; }
+    if (text.length > 4000) { toast('Too long — max 4000 characters'); return; }
+    if (text === String(m.body || '')) { cancelEdit(m); return; }
+    if (state.savingEdit) return;
+    state.savingEdit = true;
+    try {
+      var res = await SUPA.rpc('bca_edit_message', { p_id: m.id, p_uid: u.uid, p_body: text });
+      if (res.error) {
+        if (!markOpsUnsupported(res.error)) toast('Could not edit: ' + (res.error.message || 'error'));
+        return; /* stay in edit mode so the typed text isn't lost */
+      }
+      m.body = text;
+      var row = (Array.isArray(res.data) && res.data[0]) ? res.data[0] : null;
+      m.edited_at = (row && row.edited_at) || new Date().toISOString();
+      state.editingId = null;
+      refreshMsgDom(m);
+      toast('Message edited');
+    } catch (e) {
+      toast('Network error — try again.');
+    } finally {
+      state.savingEdit = false;
+    }
+  }
+
+  /* ---------- delete: for everyone (server) / for me (local) ---------- */
+  function askDelete(m, scope) {
+    if (!m) return;
+    var t = $('chatDeleteTitle'), x = $('chatDeleteText');
+    if (!t || !x) return;
+    state.deleteCtx = { m: m, scope: scope };
+    if (scope === 'all') {
+      t.textContent = 'Delete for everyone?';
+      x.textContent = 'This message will be removed for everyone in this room.';
+    } else {
+      t.textContent = 'Delete for me?';
+      x.textContent = 'The message will be hidden on your device only. Others will still see it.';
+    }
+    var sheet = $('chatActionSheet');
+    if (sheet) { sheet.classList.remove('open'); sheet.hidden = true; }
+    var conf = $('chatDeleteConfirm');
+    if (conf) { conf.hidden = false; state.sheetOpenedAt = Date.now(); }
+  }
+  function confirmDelete() {
+    var ctx = state.deleteCtx;
+    closeActions();
+    if (!ctx || !ctx.m) return;
+    if (ctx.scope === 'me') {
+      hideMessageForMe(ctx.m.id);
+      toast('Message hidden for you');
+    } else {
+      deleteForEveryone(ctx.m);
+    }
+  }
+  async function deleteForEveryone(m) {
+    var u = myUser();
+    if (!u) { toast('Login required'); return; }
+    try {
+      var res = await SUPA.rpc('bca_delete_message', { p_id: m.id, p_uid: u.uid });
+      if (res.error) {
+        if (!markOpsUnsupported(res.error)) toast('Could not delete: ' + (res.error.message || 'error'));
+        return;
+      }
+      if (res.data === false) { toast('You can only delete your own messages'); return; }
+      removeMessageLocal(m.id);
+      toast('Message deleted for everyone');
+    } catch (e) {
+      toast('Network error — try again.');
+    }
+  }
+
+  /* ============================================================
+     INPUT TRIGGERS
+     · touch long-press (mobile)  → sheet after ~480ms hold
+     · contextmenu (right-click)  → same sheet (desktop)
+     · click on the hover ⋮       → same sheet (desktop)
+     · click on a reaction pill   → toggle that reaction
+     ============================================================ */
+  function msgFromTarget(t) {
+    var el = t && t.closest ? t.closest('.msg') : null;
+    if (!el) return null;
+    var id = Number(el.getAttribute('data-mid'));
+    return id ? findLoaded(id) : null;
+  }
+  function fireLongPress() {
+    press.fired = true;
+    suppressClickUntil = Date.now() + 700;
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+    var m = press.mid ? findLoaded(press.mid) : null;
+    if (m && state.editingId !== m.id) openActions(m);
+  }
+  function endPress() {
+    if (press.timer) { clearTimeout(press.timer); press.timer = null; }
+    press.mid = null;
+    var box = $('communityMessages');
+    if (box) box.classList.remove('holding');
+  }
+
+  try {
+    var msgBox = $('communityMessages');
+    if (msgBox) {
+      /* --- MOBILE: long-press (hold) opens the action sheet --- */
+      msgBox.addEventListener('touchstart', function (e) {
+        if (!e.touches || e.touches.length !== 1) return;
+        if (e.target.closest && e.target.closest('.msg-menu,.msg-react,.msg-edit,.msg-code-copy')) return;
+        var wrap = e.target.closest && e.target.closest('.msg');
+        if (!wrap) return;
+        var id = Number(wrap.getAttribute('data-mid'));
+        if (!id || !findLoaded(id)) return;
+        var t = e.touches[0];
+        press.mid = id;
+        press.fired = false;
+        press.x0 = t.clientX; press.y0 = t.clientY;
+        msgBox.classList.add('holding'); /* blocks text selection during hold */
+        if (press.timer) clearTimeout(press.timer);
+        press.timer = setTimeout(fireLongPress, 480);
+      }, { passive: true });
+      msgBox.addEventListener('touchmove', function (e) {
+        if (!press.timer) return;
+        var t = e.touches && e.touches[0];
+        if (!t) return;
+        /* finger scrolled away → this is a scroll, not a hold */
+        if (Math.abs(t.clientX - press.x0) > 12 || Math.abs(t.clientY - press.y0) > 12) endPress();
+      }, { passive: true });
+      msgBox.addEventListener('touchend', function (e) {
+        var fired = press.fired;
+        endPress();
+        if (fired) {
+          /* swallow the synthesized click so it can't close the sheet
+             (or zoom into the image underneath) */
+          suppressClickUntil = Date.now() + 500;
+          if (e.cancelable) e.preventDefault();
+        }
+      }, { passive: false });
+      msgBox.addEventListener('touchcancel', function () { endPress(); });
+
+      /* --- DESKTOP: right-click opens the same sheet --- */
+      msgBox.addEventListener('contextmenu', function (e) {
+        var m = msgFromTarget(e.target);
+        if (!m) return;
+        e.preventDefault();
+        openActions(m);
+      });
+
+      /* --- DESKTOP hover ⋮ + reaction pill taps (capture: wins first) --- */
+      msgBox.addEventListener('click', function (e) {
+        if (Date.now() < suppressClickUntil) { e.stopPropagation(); return; }
+        var pill = e.target.closest && e.target.closest('.msg-react');
+        if (pill) {
+          var mp = msgFromTarget(pill);
+          if (mp) toggleReaction(mp, pill.getAttribute('data-emoji') || '');
+          return;
+        }
+        var menu = e.target.closest && e.target.closest('.msg-menu');
+        if (menu) {
+          e.stopPropagation();
+          var mm = msgFromTarget(menu);
+          if (mm) openActions(mm);
+        }
+      }, true);
+    }
+  } catch (e) { /* interaction wiring is best-effort */ }
+
   /* ---------- Floating Action Button ---------- */
   window.BCAFab = {
     toggle: function () {
@@ -942,51 +1464,144 @@
   }
   /* In-flight guard so back-to-back 1s polls never overlap. */
   var openPollBusy = false;
+
+  /* ---------- reactions: initial load + schema guard ---------- */
+  async function loadReactions() {
+    state.reactions = {};
+    if (!SUPA || !state.reactionsSupported) return;
+    var ids = [];
+    for (var i = 0; i < state.messages.length; i++) if (state.messages[i].id) ids.push(state.messages[i].id);
+    if (!ids.length) return;
+    try {
+      var res = await SUPA.from('chat_reactions').select('id,message_id,uid,emoji').in('message_id', ids).limit(1000);
+      if (res.error) { markReactionsUnsupported(res.error); return; }
+      (res.data || []).forEach(function (r) {
+        (state.reactions[r.message_id] = state.reactions[r.message_id] || [])
+          .push({ id: r.id, uid: r.uid, emoji: r.emoji });
+      });
+    } catch (e) { /* offline-safe */ }
+  }
+  /* Is the reactions/edit/delete DB upgrade (supabase-chat-
+     reactions-edits.sql) still missing on this project? */
+  function isMissingFeature(err) {
+    var code = String((err && err.code) || '');
+    var msg = String((err && (err.message || err.details || err.hint)) || '');
+    return code === '42883' || code === 'PGRST202' || code === '42P01' || code === '42703' ||
+      /does not exist|schema cache|could not find the table/i.test(msg);
+  }
+  function markReactionsUnsupported(err) {
+    if (!isMissingFeature(err) || !state.reactionsSupported) return;
+    state.reactionsSupported = false;
+    if (!state.reactionsNotified) {
+      state.reactionsNotified = true;
+      toast('Reactions upgrade pending — run supabase-chat-reactions-edits.sql in Supabase SQL Editor.');
+    }
+  }
+  function markOpsUnsupported(err) {
+    if (!isMissingFeature(err)) return false;
+    state.opsSupported = false;
+    if (!state.opsNotified) {
+      state.opsNotified = true;
+      toast('Edit/Delete upgrade pending — run supabase-chat-reactions-edits.sql in Supabase SQL Editor.');
+    }
+    return true;
+  }
+  function canonReactions(list) {
+    return (list || []).map(function (r) { return r.uid + '|' + r.emoji; }).sort().join(',');
+  }
+  /* Reactions safety net every ~5s while chat is open (realtime is the
+     fast path) — reconciles any missed reaction INSERT/DELETE events. */
+  async function syncReactionsQuiet() {
+    if (!SUPA || !state.reactionsSupported || !state.open) return;
+    var ids = [];
+    for (var i = 0; i < state.messages.length; i++) if (state.messages[i].id) ids.push(state.messages[i].id);
+    if (!ids.length) return;
+    try {
+      var res = await SUPA.from('chat_reactions').select('id,message_id,uid,emoji').in('message_id', ids).limit(1000);
+      if (res.error) { markReactionsUnsupported(res.error); return; }
+      var fresh = {};
+      (res.data || []).forEach(function (r) {
+        (fresh[r.message_id] = fresh[r.message_id] || []).push({ id: r.id, uid: r.uid, emoji: r.emoji });
+      });
+      ids.forEach(function (mid) {
+        if (canonReactions(state.reactions[mid]) === canonReactions(fresh[mid])) return;
+        state.reactions[mid] = fresh[mid] || [];
+        var m = findLoaded(mid);
+        if (m) refreshMsgDom(m);
+      });
+    } catch (e) { /* best-effort */ }
+  }
+
   /* Poll safety net: while the chat is OPEN, a silent 1-second merge-poll
-     keeps the conversation perfectly fresh — users see new messages with
-     ZERO manual refresh and no visual flicker (scroll is only auto-followed
-     when already at the bottom, like WhatsApp). It fetches ONLY ids newer
-     than the newest already on screen; realtime, when working, is additive
-     and non-conflicting on top of this. */
+     keeps the conversation perfectly fresh — new messages, remote EDITS
+     and remote DELETES all appear with ZERO manual refresh (scroll is
+     only auto-followed when already at the bottom, like WhatsApp).
+     Realtime, when working, is additive on top of this. */
+  var reactionSyncTicks = 0;
   async function refreshOpenView() {
     if (!SUPA || !state.open || openPollBusy) return;
     openPollBusy = true;
     try {
-      var maxId = 0;
-      for (var i = 0; i < state.messages.length; i++) {
-        if (state.messages[i] && state.messages[i].id > maxId) maxId = state.messages[i].id;
-      }
-      var q = SUPA.from('chat_messages')
-        .select('id,uid,author_name,author_avatar,channel,body,code_lang,image_url,college,semester,created_at')
-        .eq('channel', state.channel)
-        .gt('id', maxId);
+      var q = SUPA.from('chat_messages').select('*')
+        .eq('channel', state.channel);
       if (state.roomSupported) {
         q = q.eq('college', state.room.college);
         if (state.room.semester == null) q = q.is('semester', null);
         else q = q.eq('semester', state.room.semester);
       }
-      q = q.order('id', { ascending: true }).limit(60);
+      q = q.order('id', { ascending: false }).limit(100);
       var res = await q;
       if (res.error) { if (state.roomSupported && markRoomUnsupported(res.error)) state.roomSupported = false; return; }
-      mergeIncoming(res.data || []);
+      reconcileRows(res.data || []);
+      if (++reactionSyncTicks >= 5) { reactionSyncTicks = 0; syncReactionsQuiet(); }
     } catch (e) { /* poll is best-effort */ }
     finally { openPollBusy = false; }
   }
-  function mergeIncoming(rows) {
+  /* Single reconcile pass: append new rows, re-render edited rows,
+     drop rows deleted on the server (delete-for-everyone). */
+  function reconcileRows(descRows) {
     var box = $('communityMessages');
-    if (!rows.length || !box) return;
+    if (!box) return;
+    var rows = descRows.slice().reverse(); /* ascending by id */
     var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
-    var added = 0, lastId = 0;
-    for (var i = 0; i < rows.length; i++) {
-      var m = rows[i];
-      if (!m) continue;
-      if (m.id > lastId) lastId = m.id;
-      if (state.seenIds[m.id]) continue;
-      if (!inMyRoom(m) || m.channel !== state.channel) continue;
-      state.seenIds[m.id] = true;
-      state.messages.push(m);
-      box.appendChild(buildMsg(m));
-      if (m.uid) loadProfiles([m.uid]);
+    var added = 0, lastId = 0, changed = [];
+    var i, m, r;
+    if (!rows.length) {
+      /* channel drained on the server — clear whatever we still show */
+      for (i = state.messages.length - 1; i >= 0; i--) removeMessageLocal(state.messages[i].id);
+      return;
+    }
+    var byId = {};
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i];
+      byId[r.id] = r;
+      if (r.id > lastId) lastId = r.id;
+    }
+    var windowMin = rows[0].id; /* oldest row fetched */
+    /* deletions: loaded ids INSIDE the window that vanished */
+    for (i = state.messages.length - 1; i >= 0; i--) {
+      m = state.messages[i];
+      if (m.id >= windowMin && !byId[m.id]) removeMessageLocal(m.id);
+    }
+    /* edits + additions */
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i];
+      m = findLoaded(r.id);
+      if (m) {
+        if (m.body !== r.body || m.edited_at !== r.edited_at ||
+            m.code_lang !== r.code_lang || m.image_url !== r.image_url) {
+          m.body = r.body; m.edited_at = r.edited_at;
+          m.code_lang = r.code_lang; m.image_url = r.image_url;
+          changed.push(m);
+        }
+        continue;
+      }
+      if (state.seenIds[r.id] || state.hiddenIds[r.id]) continue;
+      if (!inMyRoom(r)) continue;
+      state.seenIds[r.id] = true;
+      state.messages.push(r);
+      box.appendChild(buildMsg(r));
+      if (r.uid) loadProfiles([r.uid]);
       added++;
     }
     if (added) {
@@ -994,6 +1609,7 @@
       if (lastId) storeNum(floorKey(state.channel), Math.max(storedNum(floorKey(state.channel)), lastId));
       scheduleRefresh();
     }
+    for (i = 0; i < changed.length; i++) refreshMsgDom(changed[i]);
   }
   /* College/semester changed (profile, onboarding, another tab): rebuild
      the room socket + reload history — works open OR closed. */
@@ -1078,6 +1694,7 @@
     send: send, inputKey: inputKey, markCode: markCode,
     pickImage: pickImage, clearImage: clearImage,
     toggleMinimize: toggleMinimize, openLightbox: openLightbox, closeLightbox: closeLightbox,
+    closeActions: closeActions, sheetBackdrop: sheetBackdrop, confirmDelete: confirmDelete,
     refreshUnread: refreshUnread, unreadCount: function () { return state.unread; },
     roomInfo: function () { return { college: state.room.college, semester: state.room.semester, label: state.room.label }; }
   };

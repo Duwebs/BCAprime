@@ -31,7 +31,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=51">
+  <link rel="stylesheet" href="styles.css?v=52">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -235,6 +235,29 @@
     <img class="community-lightbox-img" id="communityLightboxImg" alt="Shared image full view">
   </div>
 
+  <!-- Community Chat: message actions — mobile long-press / desktop right-click or hover ⋮ -->
+  <div class="chat-sheet" id="chatActionSheet" hidden role="dialog" aria-modal="true" aria-label="Message actions" onclick="BCAChat.sheetBackdrop(event)">
+    <div class="chat-sheet-panel">
+      <p class="chat-sheet-preview" id="chatSheetPreview" hidden></p>
+      <p class="chat-sheet-head">React</p>
+      <div class="chat-sheet-react" id="chatSheetReactions"></div>
+      <div class="chat-sheet-actions" id="chatSheetActions"></div>
+      <button class="chat-sheet-cancel" type="button" onclick="BCAChat.closeActions()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Community Chat: delete confirmation (for everyone / for me) -->
+  <div class="chat-sheet" id="chatDeleteConfirm" hidden role="dialog" aria-modal="true" aria-label="Confirm delete" onclick="BCAChat.sheetBackdrop(event)">
+    <div class="chat-sheet-panel chat-confirm">
+      <h3 id="chatDeleteTitle">Delete message?</h3>
+      <p id="chatDeleteText">This cannot be undone.</p>
+      <div class="chat-confirm-btns">
+        <button class="chat-cancel-btn" type="button" onclick="BCAChat.closeActions()">Cancel</button>
+        <button class="chat-danger-btn" type="button" id="chatDeleteGo" onclick="BCAChat.confirmDelete()"><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Community phone verification REMOVED: login-only entry. -->
   <!-- Community phone verification REMOVED: login-only entry. -->
 <div class="modal" id="collegeModal"><div class="dialog"><div class="dialog-head"><h2>Choose your college</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Resources marked for your college will appear first.</p><div class="field"><input id="collegeSearch" aria-label="Search colleges" placeholder="Search colleges&#8230;" oninput="renderColleges(this.value)"></div><div class="college-list" id="collegeList"></div><div class="onboarding-custom"><input id="collegeCustom" aria-label="Add your college name" placeholder="College not listed? Add it here&#8230;" onkeydown="if(event.key==='Enter')useCustomCollege()"><button class="primary" onclick="useCustomCollege()"><i class="fa-solid fa-plus"></i> Add</button></div></div></div>
@@ -361,7 +384,7 @@
   <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
   <script src="whats-new.js?v=12"></script>
   <script src="app.js?v=45"></script>
-  <script src="chat.js?v=11"></script>
+  <script src="chat.js?v=12"></script>
 </body>
 </html>
 
