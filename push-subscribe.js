@@ -28,7 +28,7 @@
 
   async function getRegistration() {
     if (!support.sw) return null;
-    return (await navigator.serviceWorker.getRegistration()) || navigator.serviceWorker.register('./sw.js?v=21');
+    return (await navigator.serviceWorker.getRegistration()) || navigator.serviceWorker.register('./sw.js?v=25');
   }
 
   /* ---------- Supabase subscription storage ---------- */
@@ -52,19 +52,58 @@
       return null;
     } catch (e) { return null; }
   }
-  async function saveSubscription(subscription) {
-    const json = subscription.toJSON();
+  // Server profile (user_profiles) is the source of truth for the room —
+  // never subscribe with stale localStorage college/semester, otherwise
+  // notify-chat's same-room filter silently drops this device's pushes.
+  async function enrolledRoom() {
+    let college = enrolledCollege();
+    let semester = enrolledSemester();
+    const uid = enrolledUid();
+    if (uid && supabaseClient) {
+      try {
+        const res = await supabaseClient.from('user_profiles').select('college,semester').eq('uid', uid).maybeSingle();
+        if (res && res.data) {
+          const c = String(res.data.college || '').trim().toLowerCase();
+          if (c) college = c;
+          const s = Number(res.data.semester);
+          if (s >= 1 && s <= 6) semester = s;
+        }
+      } catch (e) { /* fall back to localStorage */ }
+    }
+    return { college, semester };
+  }
+  // FCM background messages are handled by firebase-messaging-sw.js. When
+  // this returns a token we store it (device_token) and the notify-chat
+  // function delivers through FCM (best lock-screen support). If FCM is not
+  // configured on the Firebase project it degrades to plain VAPID Web Push.
+  async function getFcmToken(registration) {
+    try {
+      if (typeof firebase === 'undefined' || !firebase.messaging || !registration) return null;
+      const messaging = firebase.messaging();
+      if (!messaging.getToken) return null;
+      return await messaging.getToken({ vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: registration });
+    } catch (error) {
+      console.warn('FCM token unavailable, using VAPID Web Push.', error && error.message ? error.message : error);
+      return null;
+    }
+  }
+  async function saveSubscription(subscription, fcmToken) {
+    const json = (subscription && subscription.toJSON ? subscription.toJSON() : null) || {};
+    const room = await enrolledRoom();
     const payload = {
       endpoint: json.endpoint,
       p256dh: json.keys ? json.keys.p256dh : null,
       auth: json.keys ? json.keys.auth : null,
       user_agent: navigator.userAgent,
-      college: enrolledCollege(),
-      semester: enrolledSemester(),
-      uid: enrolledUid()
+      college: room.college,
+      semester: room.semester,
+      uid: enrolledUid(),
+      device_token: fcmToken || null,
+      push_type: fcmToken ? 'fcm' : 'webpush'
     };
     const { error } = await supabaseClient.from(SUBS_TABLE).upsert(payload, { onConflict: 'endpoint' });
     if (error) console.warn('Could not save push subscription.', error.message);
+    return { college: room.college, semester: room.semester };
   }
 
   async function removeSubscription(subscription) {
@@ -91,10 +130,11 @@
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
-      await saveSubscription(subscription);
+      const fcmToken = await getFcmToken(registration);
+      await saveSubscription(subscription, fcmToken);
       localStorage.setItem(PREF_KEY, 'on');
       updateBell(true);
-      showToast('Notifications on 🔔', 'You will now get alerts for new notes, PYQs & notices.', 'success');
+      showToast('Notifications on 🔔', 'You will now get alerts for new messages, notes, PYQs & notices.', 'success');
       return true;
     } catch (error) {
       console.warn('Push subscription failed.', error);
@@ -140,7 +180,8 @@
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
       }
-      await saveSubscription(subscription);
+      const fcmToken = await getFcmToken(registration);
+      await saveSubscription(subscription, fcmToken);
       localStorage.setItem(PREF_KEY, 'on');
       updateBell(true);
       return true;
@@ -281,9 +322,42 @@
     });
   }
 
+  /* Foreground FCM pushes (data-only chat payloads) → premium in-app toast.
+     Background pushes (app closed / phone locked) are shown as system
+     notifications by firebase-messaging-sw.js via onBackgroundMessage. */
+  function initForegroundFcm() {
+    try {
+      if (typeof firebase === 'undefined' || !firebase.messaging) return;
+      const messaging = firebase.messaging();
+      if (!messaging.onMessage) return;
+      messaging.onMessage(payload => {
+        const d = (payload && payload.data) || {};
+        const title = d.title || '💬 New community message';
+        const body = d.body || '';
+        showToast(title, body, 'info');
+      });
+    } catch (e) { /* FCM foreground is best-effort */ }
+  }
+
   /* ---------- Boot ---------- */
   function boot() {
     initBellState();
+    initForegroundFcm();
+    /* Login hota hai to uid (aur profile-room) attach hone ke baad
+       subscription re-save karo — warna device uid=null par sub ho jaata
+       hai aur sender khud ko push filter nahi kar paate. */
+    try {
+      if (window.firebase && window.firebase.auth) {
+        window.firebase.auth().onAuthStateChanged(() => {
+          setTimeout(() => ensureNotificationsEnabled(false), 800);
+        });
+      }
+    } catch (e) { /* ignore */ }
+    /* College/semester change anywhere (other tab/profile) → re-save the
+       subscription so room targeting stays correct. */
+    window.addEventListener('storage', e => {
+      if (e && (e.key === 'bca-college' || e.key === 'bca-sem')) ensureNotificationsEnabled(false);
+    });
     /* Har visit par banner (jab tak ON nahi hota) — thodi der baad taaki
        splash/onboarding pehle complete ho jaye */
     setTimeout(showEnableBanner, supported ? 12000 : 100000000);

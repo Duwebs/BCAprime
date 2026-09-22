@@ -90,7 +90,7 @@
      sending/reading keeps working until you run the SQL. */
   function markRoomUnsupported(err) {
     try {
-      var msg = String((err && (err.message || err.details || err.hint)) || '');
+      var msg = String((err && (err.message || err.details || err.hint || err.reason)) || '');
       var code = String((err && err.code) || '');
       if (code === '42703' || /college|semester/i.test(msg)) {
         if (state.roomSupported) {
@@ -296,55 +296,102 @@
   }
 
   /* ---------- realtime sync (STRICTLY room-scoped) ----------
-     One realtime subscription per ROOM: college rides on the wire as
-     the transport filter, semester/channel are checked client-side.
-     Rows from any other college/semester are dropped before render
-     AND before unread — zero access, zero leakage. */
+     One subscription per ROOM that SURVIVES topic-channel switches.
+     The transport filter rides on BOTH room columns:
+       college  -> college=eq.<college>
+       semester -> semester=eq.<n>  (or semester=is.null for the
+                   'all'/unset room)  — rows from other colleges /
+                   semesters never even reach this socket.
+     Anything that slips past the filter is still dropped by
+     inMyRoom() before it touches state or the DOM.
+     A status callback catches missing-column filters (isolation SQL
+     not applied), auto-falls back to legacy mode and re-connects
+     with backoff. A 15s poll is the safety net: even when the
+     socket is down, the open view and badges stay fresh — no page
+     reload required to see new messages. */
   var refreshTimer = null;
+  var rtClock = { roomKey: '', generation: 0, healthy: false };
+  var reconnectTimer = null, reconnectAttempts = 0;
+  var ROOM_POLL_MS = 15000;
+
+  function roomChangedSinceSubscribed() { return rtClock.roomKey && rtClock.roomKey !== myRoomKey(); }
+
+  /* Transport filter for the realtime socket: my college AND my semester. */
+  function roomFilter() {
+    var f = 'college=eq.' + encodeURIComponent(normRoomStr(state.room.college) || 'all');
+    f += state.room.semester == null ? ',semester=is.null' : ',semester=eq.' + state.room.semester;
+    return f;
+  }
+  /* Single funnel for every incoming row (realtime OR poll merge):
+     dedupe, room guard, push into state, render instantly, advance
+     the read floor — the UI never waits on a reload. */
+  function handleIncoming(m) {
+    if (!m || state.seenIds[m.id]) return;
+    if (!inMyRoom(m)) return; /* filter-leakage guard: other room — drop */
+    state.seenIds[m.id] = true;
+    if (m.channel === state.channel && state.open) {
+      state.messages.push(m);
+      appendMsg(m);
+      if (m.uid) loadProfiles([m.uid]);
+      storeNum(floorKey(m.channel), m.id);
+      scheduleRefresh(); /* recount the rest of the badges */
+    } else {
+      scheduleRefresh(); /* counts as unread + browser alert path */
+    }
+  }
+  /* If the realtime channel fails (e.g. unmigrated DB) fall back to the
+     legacy per-channel transport or retry with backoff; polling keeps
+     working either way. */
+  function channelByStatus(status, err) {
+    if (!SUPA) return;
+    if (status === 'SUBSCRIBED') { rtClock.healthy = true; reconnectAttempts = 0; return; }
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      rtClock.healthy = false;
+      if (state.roomSupported && markRoomUnsupported(err)) {
+        state.roomSupported = false; /* isolation SQL pending → legacy mode */
+        subscribe();
+        return;
+      }
+      if (reconnectAttempts < 6) {
+        reconnectAttempts += 1;
+        if (reconnectTimer) clearTimeout(reconnectTimer);
+        reconnectTimer = setTimeout(subscribe, 3000 * reconnectAttempts);
+      }
+    }
+  }
   function unsubscribe() {
     if (state.rtChannel) { try { SUPA.removeChannel(state.rtChannel); } catch (e) {} state.rtChannel = null; }
+    rtClock.healthy = false;
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  }
+  /* Create/re-create the ROOM channel. No-op when a healthy channel for
+     the current room already exists, so switching topic channels never
+     tears the realtime socket down. */
+  function ensureRoomChannel(force) {
+    if (!SUPA) return;
+    if (!force && state.rtChannel && rtClock.roomKey === myRoomKey() && rtClock.healthy) return;
+    subscribe();
   }
   function subscribe() {
     if (!SUPA) return;
     unsubscribe();
-    /* Legacy mode (columns missing): old per-channel subscription so
-       realtime keeps working until the isolation SQL is run. */
+    reconnectAttempts = 0;
+    rtClock.roomKey = myRoomKey();
+    rtClock.generation += 1;
+    var topic = 'room:' + rtClock.roomKey + '#gen' + rtClock.generation;
     if (!state.roomSupported) {
-      state.rtChannel = SUPA.channel('community:' + state.channel)
+      /* Legacy mode (isolation SQL pending): channel-level transport, rows
+         are still room-checked + deduped client-side. */
+      state.rtChannel = SUPA.channel(topic)
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'channel=eq.' + state.channel },
-          function (payload) {
-            var m2 = payload.new;
-            if (!m2 || state.seenIds[m2.id]) return;
-            state.seenIds[m2.id] = true;
-            if (m2.channel === state.channel && state.open) {
-              state.messages.push(m2);
-              appendMsg(m2);
-              if (m2.uid) loadProfiles([m2.uid]);
-              scheduleRefresh();
-            } else { scheduleRefresh(); }
-          })
-        .subscribe();
+          function (payload) { handleIncoming(payload.new); })
+        .subscribe(channelByStatus);
       return;
     }
-    var col = state.room.college || 'all';
-    state.rtChannel = SUPA.channel('room:' + roomKey(col, state.room.semester))
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: 'college=eq.' + col },
-        function (payload) {
-          var m = payload.new;
-          if (!m || state.seenIds[m.id]) return;
-          if (!inMyRoom(m)) return; /* another college/semester: ignore */
-          state.seenIds[m.id] = true;
-          if (m.channel === state.channel && state.open) {
-            state.messages.push(m);
-            appendMsg(m);
-            if (m.uid) loadProfiles([m.uid]);
-            storeNum(floorKey(m.channel), m.id);
-            scheduleRefresh();
-          } else {
-            scheduleRefresh(); /* exact server recount + browser alert */
-          }
-        })
-      .subscribe();
+    state.rtChannel = SUPA.channel(topic)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: roomFilter() },
+        function (payload) { handleIncoming(payload.new); })
+      .subscribe(channelByStatus);
   }
   function scheduleRefresh() {
     if (refreshTimer) return;
@@ -423,7 +470,7 @@
     await loadHistory(slug);
     renderAll();
     loadAnnouncement();
-    subscribe();
+    ensureRoomChannel();
     loadProfiles(uniqueUids());
     markChannelSeen(slug);
   }
@@ -448,6 +495,7 @@
     if (!SUPA) { state.unread = 0; state.unreadByChannel = {}; paintUnreadBadges(); return; }
     try {
       await resolveRoomQuiet();
+      if (roomChangedSinceSubscribed()) ensureRoomChannel(true);
       var floors = {}, total = 0, byCh = {};
       var alerts = [];
       for (var i = 0; i < CHANNELS.length; i++) {
@@ -561,6 +609,7 @@
     }
     await fetchVerified(); // profile/name cache only — no extra gate here
     await resolveRoom(); /* verified profile decides the room */
+    await probeRoomSupport(); /* realtime transport mode = DB truth, probe first */
     state.open = true;
     state.min = false;
     try { $('communitySection').classList.remove('min'); resetMinBtn(); } catch (e) {}
@@ -876,6 +925,78 @@
   /* Enter-key handler for the composer (OTP box hata diya gaya). */
 
   /* ---------- public API ---------- */
+  /* Room-schema probe: check whether the isolation SQL is live BEFORE
+     creating the realtime transport, so the watcher never builds a
+     room-filtered channel against an unmigrated table. */
+  async function probeRoomSupport() {
+    if (!SUPA || !state.roomSupported) return;
+    try {
+      var res = await SUPA.from('chat_messages').select('id,college,semester').limit(1);
+      if (res.error) markRoomUnsupported(res.error);
+    } catch (e) { markRoomUnsupported(e); }
+  }
+  /* Poll safety net: even with the realtime socket down, when the chat
+     is OPEN new message rows are merged straight into the DOM (15s).
+     No manual reopen/reload ever needed. */
+  async function refreshOpenView() {
+    if (!SUPA || !state.open) return;
+    try {
+      var q = SUPA.from('chat_messages')
+        .select('id,uid,author_name,author_avatar,channel,body,code_lang,image_url,college,semester,created_at')
+        .eq('channel', state.channel);
+      if (state.roomSupported) {
+        q = q.eq('college', state.room.college);
+        if (state.room.semester == null) q = q.is('semester', null);
+        else q = q.eq('semester', state.room.semester);
+      }
+      q = q.order('id', { ascending: true }).limit(50);
+      var res = await q;
+      if (res.error) { if (state.roomSupported && markRoomUnsupported(res.error)) state.roomSupported = false; return; }
+      mergeIncoming(res.data || []);
+    } catch (e) { /* poll is best-effort */ }
+  }
+  function mergeIncoming(rows) {
+    var box = $('communityMessages');
+    if (!rows.length || !box) return;
+    var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+    var added = 0, lastId = 0;
+    for (var i = 0; i < rows.length; i++) {
+      var m = rows[i];
+      if (!m) continue;
+      if (m.id > lastId) lastId = m.id;
+      if (state.seenIds[m.id]) continue;
+      if (!inMyRoom(m) || m.channel !== state.channel) continue;
+      state.seenIds[m.id] = true;
+      state.messages.push(m);
+      box.appendChild(buildMsg(m));
+      if (m.uid) loadProfiles([m.uid]);
+      added++;
+    }
+    if (added) {
+      if (atBottom) box.scrollTop = box.scrollHeight;
+      if (lastId) storeNum(floorKey(state.channel), Math.max(storedNum(floorKey(state.channel)), lastId));
+      scheduleRefresh();
+    }
+  }
+  /* College/semester changed (profile, onboarding, another tab): rebuild
+     the room socket + reload history — works open OR closed. */
+  function onRoomMaybeChanged() {
+    var oldKey = myRoomKey();
+    state.room.college = myCollege();
+    state.room.semester = mySemester();
+    state.room.label = roomLabel(state.room.college, state.room.semester);
+    var newKey = myRoomKey();
+    if (oldKey === newKey && rtClock.roomKey === newKey) return;
+    if (!state.open) {
+      ensureRoomChannel(true);
+      refreshUnread();
+    } else {
+      state.messages = [];
+      state.seenIds = {};
+      var box = $('communityMessages'); if (box) box.innerHTML = '';
+      switchChannel(state.channel);
+    }
+  }
   /* Background watcher: while the chat is closed, keep ONE room-scoped
      subscription + a lightweight poll so the Community badge stays
      WhatsApp-fresh. Started once on page boot (SUPA may arrive late). */
@@ -888,28 +1009,30 @@
     }
     bgStarted = true;
     resolveRoom().then(function () {
+      return probeRoomSupport();
+    }).then(function () {
       subscribe(); /* room-filtered, profile-independent */
       refreshUnread();
     }).catch(function () {});
     bgPoll = setInterval(function () {
       try {
-        if (!state.open && document.visibilityState === 'visible') refreshUnread();
+        if (document.visibilityState !== 'visible') return;
+        if (state.open) refreshOpenView(); else refreshUnread();
       } catch (e) {}
-    }, 30000);
+    }, ROOM_POLL_MS);
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible' && !state.open) refreshUnread();
+      if (document.visibilityState === 'visible') {
+        if (state.open) refreshOpenView(); else refreshUnread();
+      }
     });
     /* College/semester changed elsewhere (profile/onboarding) → new room. */
     window.addEventListener('storage', function (e) {
-      if (e && (e.key === 'bca-college' || e.key === 'bca-sem')) {
-        state.room.college = myCollege();
-        state.room.semester = mySemester();
-        state.room.label = roomLabel(state.room.college, state.room.semester);
-        if (!state.open) { subscribe(); refreshUnread(); }
-      }
+      if (e && (e.key === 'bca-college' || e.key === 'bca-sem')) onRoomMaybeChanged();
     });
     try {
-      document.addEventListener('bca-room-changed', function () { if (!state.open) { subscribe(); refreshUnread(); } });
+      document.addEventListener('bca-room-changed', function () {
+        try { resolveRoomQuiet().then(function () { onRoomMaybeChanged(); }); } catch (e) {}
+      });
     } catch (e) {}
   }
   try {
