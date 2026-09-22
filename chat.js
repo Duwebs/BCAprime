@@ -421,6 +421,7 @@
         em.classList.add("open");
         toast("Email verification required to join the Community Chat");
       }
+      window._bcaprimePendingCommunityOpen = true;
       return;
     }
     state.open = true;

@@ -565,7 +565,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         try{
           const u=firebase.auth().currentUser;if(!u){stopVerifyPolling();return}
           await u.reload();const fresh=firebase.auth().currentUser;
-          if(fresh&&isVerifiedUser(fresh)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified ✓')}
+          if(fresh&&isVerifiedUser(fresh)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified ✓');if(window._bcaprimePendingCommunityOpen){window._bcaprimePendingCommunityOpen=false;if(typeof BCAChat!=='undefined'){BCAChat.open()}}}
         }catch(e){}
       },3000);
     }
