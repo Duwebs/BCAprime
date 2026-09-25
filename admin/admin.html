@@ -71,6 +71,7 @@
       <button class="tab active" data-tab="material" onclick="switchTab('material')"><i class="fa-solid fa-box-archive"></i> Material</button>
       <button class="tab" data-tab="subjects" onclick="switchTab('subjects')"><i class="fa-solid fa-book"></i> Subjects</button>
       <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
+      <button class="tab" data-tab="chat" onclick="switchTab('chat')"><i class="fa-solid fa-comments"></i> Community Chat</button>
       <button class="tab" data-tab="lostfound" onclick="switchTab('lostfound')"><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</button>
     </nav>
 
@@ -242,6 +243,57 @@
 
     </section>
 
+    <!-- ============ TAB: Community Chat moderation ============ -->
+    <section class="tab-panel" id="tab-chat" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Community Chat — live moderation</h2>
+          <div class="filters">
+            <select class="select" id="chatModChannel" onchange="renderChatMod()">
+              <option value="all">All channels</option>
+              <option value="general-chat">General</option>
+              <option value="dsa-coding">DSA &amp; Coding</option>
+              <option value="web-development">Web Dev</option>
+              <option value="exam-updates">Exam Updates</option>
+            </select>
+            <button class="button" onclick="loadChatMod()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+        </div>
+        <div class="note">Delete <b>any</b> user's message instantly — it becomes a <i>"deleted by an admin"</i> tombstone for everyone in real-time. Bans block the user server-side (they cannot send until unbanned).</div>
+        <div id="chatModList" class="chat-mod-list"><p class="note">Loading&hellip;</p></div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Banned users</h2>
+          <button class="button" onclick="loadChatBans()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <form class="chat-ban-form" id="chatBanForm" onsubmit="return submitChatBan(event)">
+          <input class="search" id="chatBanUid" placeholder="Firebase uid to ban" required>
+          <input class="search" id="chatBanReason" placeholder="Reason (optional)" maxlength="200">
+          <select class="select" id="chatBanDays">
+            <option value="">Permanent</option>
+            <option value="1">1 day</option>
+            <option value="7">7 days</option>
+            <option value="30">30 days</option>
+          </select>
+          <button class="button danger" type="submit"><i class="fa-solid fa-ban"></i> Ban</button>
+        </form>
+        <div id="chatBanList" class="chat-ban-list"><p class="note">Loading&hellip;</p></div>
+      </section>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Moderation log</h2>
+          <button class="button" onclick="loadModLogs()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="modLogList" class="mod-log-list"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Audit trail: every self-delete, admin-delete, ban &amp; unban is recorded here (original text kept for review).</div>
+      </section>
+
+    </section>
+
     <!-- ============ TAB: Lost & Found (moderation) ============ -->
     <section class="tab-panel" id="tab-lostfound" hidden>
 
@@ -316,6 +368,6 @@
   <!-- ================= Scripts ================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-config.js"></script>
-  <script src="admin.js?v=11"></script>
+  <script src="admin.js?v=12"></script>
 </body>
 </html>

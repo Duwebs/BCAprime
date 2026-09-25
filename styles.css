@@ -1290,6 +1290,11 @@ html.auth-known #appTabs{display:grid!important}
 .chat-danger-btn:hover{filter:brightness(1.08)}
 .chat-danger-btn i{margin-right:5px}
 
+/* --- Deleted tombstone bubble (WhatsApp-style "This message was deleted") --- */
+.msg-deleted .msg-bubble{opacity:.85}
+.msg-deleted-text{color:var(--muted);font-style:italic;display:flex;align-items:center;gap:7px}
+.msg-deleted-text i{font-size:12px;opacity:.8}
+
 /* --- Long-press: holding state (blocks text selection/callout while held) --- */
 #communityMessages.holding .msg,#communityMessages.holding .msg *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 

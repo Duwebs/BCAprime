@@ -129,12 +129,15 @@ async function showAdmin(session) {
     setAuthMessage('Access denied: This account does not have admin privileges.');
     return;
   }
+  window.BCA_ADMIN_UID = session?.user?.id || session?.user?.email || 'admin';
   $('authScreen').hidden = true;
   $('adminShell').hidden = false;
   $('logoutButton').style.display = 'inline-block';
   load();
   loadSubjects();
+  loadChatMod(); loadChatBans(); loadModLogs();
   startAdminLiveSync();
+  startChatModLiveSync();
 }
 
 async function logout() {
@@ -493,12 +496,13 @@ async function doDeleteFeedback(id){
    ============================================================ */
 function switchTab(tab){
   document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['material','subjects','pending','lostfound'].forEach(id => {
+  ['material','subjects','pending','chat','lostfound'].forEach(id => {
     const el = $('tab-' + id);
     if (el) el.hidden = (id !== tab);
   });
   if (tab === 'subjects') { if (!$('subjectCollege').options.length) populateSubjectFilters(); renderSubjects(); }
   if (tab === 'pending') loadPendingSubjects();
+  if (tab === 'chat') { loadChatMod(); loadChatBans(); loadModLogs(); }
   if (tab === 'lostfound') loadLostFoundAdmin();
 }
 
@@ -710,6 +714,150 @@ async function confirmSafeDelete(){
   const fn = safeDeleteFn;
   closeSafeDelete();
   await fn();
+}
+/* ---- Community Chat moderation (deletion-moderation.sql RPCs) ---- */
+let chatModMessages = [];
+let chatModSync = null;
+function adminIdentity() { return window.BCA_ADMIN_UID || 'admin'; }
+async function loadChatMod() {
+  const host = $('chatModList');
+  if (host) host.innerHTML = '<p class="note">Loading&hellip;</p>';
+  if (!supabaseClient) { if (host) host.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  try {
+    const { data, error } = await supabaseClient.from('chat_messages').select('*').order('id', { ascending: false }).limit(100);
+    if (error) throw error;
+    chatModMessages = (data || []).slice().reverse();
+    renderChatMod();
+  } catch (error) {
+    if (host) host.innerHTML = '<p class="note">Load failed: ' + escapeHtml(error.message) + '</p>';
+  }
+}
+function renderChatMod() {
+  const host = $('chatModList');
+  if (!host) return;
+  const ch = ($('chatModChannel') && $('chatModChannel').value) || 'all';
+  const list = chatModMessages.filter(m => ch === 'all' || m.channel === ch);
+  if (!list.length) { host.innerHTML = '<p class="note">No messages in this view yet.</p>'; return; }
+  host.innerHTML = list.slice().reverse().map(m => {
+    const id = Number(m.id);
+    const deleted = !!m.is_deleted;
+    const body = deleted
+      ? '<i class="fa-solid fa-ban"></i> <i>' + escapeHtml(m.deleted_by === 'admin' ? 'This message was deleted by an admin' : 'This message was deleted') + '</i>'
+      : escapeHtml(String(m.body || '').slice(0, 280)) + (m.image_url ? ' <small>photo</small>' : '');
+    const when = m.created_at ? new Date(m.created_at).toLocaleString() : '';
+    return '<div class="chat-mod-item' + (deleted ? ' is-deleted' : '') + '">'
+      + '<div class="cm-main"><div class="cm-head"><b>' + escapeHtml(m.author_name || 'Student') + '</b>'
+      + ' <span class="cm-chan">' + escapeHtml(m.channel || '') + '</span>'
+      + ' <small>' + escapeHtml(when) + '</small></div>'
+      + '<div class="cm-body">' + body + '</div>'
+      + '<div class="cm-meta"><small>uid: ' + escapeHtml(m.uid || '') + ' · #' + id + '</small></div></div>'
+      + '<div class="row-actions cm-actions">'
+      + (deleted ? '<span class="fi-resolved">Deleted</span>'
+        : '<button class="button danger" onclick="adminDeleteMessage(' + id + ')"><i class="fa-solid fa-trash"></i> Delete</button>')
+      + (m.uid ? ' <button class="button" onclick="prefillChatBan(\'' + escapeHtml(m.uid) + '\')"><i class="fa-solid fa-ban"></i> Ban user</button>' : '')
+      + '</div></div>';
+  }).join('');
+}
+async function adminDeleteMessage(id) {
+  if (!supabaseClient) return;
+  openSafeDelete('Chat message #' + id + ' will show "deleted by an admin" for EVERYONE. This cannot be undone.', async () => {
+    const { data, error } = await supabaseClient.rpc('bca_admin_delete_message',
+      { p_id: Number(id), p_uid: adminIdentity(), p_reason: 'admin panel' });
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    if (data && data.ok === false) { alert('Delete failed: ' + (data.error || 'not allowed')); return; }
+    const m = chatModMessages.find(x => Number(x.id) === Number(id));
+    if (m) { m.is_deleted = true; m.deleted_by = 'admin'; m.body = 'This message was deleted by an admin'; m.image_url = ''; }
+    renderChatMod();
+    loadModLogs();
+  });
+}
+function prefillChatBan(uid) {
+  switchTab('chat');
+  const inp = $('chatBanUid');
+  if (inp) { inp.value = uid; inp.focus(); }
+}
+/* ---- Chat bans + moderation log ---- */
+async function loadChatBans() {
+  const host = $('chatBanList');
+  if (host) host.innerHTML = '<p class="note">Loading&hellip;</p>';
+  if (!supabaseClient) { if (host) host.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  try {
+    const { data, error } = await supabaseClient.from('chat_bans').select('*').order('banned_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    const rows = data || [];
+    if (!rows.length) { host.innerHTML = '<p class="note">No banned users.</p>'; return; }
+    host.innerHTML = rows.map(b => {
+      const exp = b.expires_at ? new Date(b.expires_at).toLocaleString() : 'Permanent';
+      return '<div class="chat-ban-item"><div class="cm-main"><b>' + escapeHtml(b.uid) + '</b>'
+        + '<small>' + escapeHtml(b.reason || 'no reason') + ' · expires: ' + escapeHtml(exp) + '</small></div>'
+        + '<div class="row-actions"><button class="button primary" onclick="unbanChatUser(\'' + escapeHtml(b.uid) + '\')">Unban</button></div></div>';
+    }).join('');
+  } catch (error) {
+    if (host) host.innerHTML = '<p class="note">Load failed: ' + escapeHtml(error.message) + '</p>';
+  }
+}
+async function submitChatBan(event) {
+  if (event) event.preventDefault();
+  if (!supabaseClient) return false;
+  const uid = ($('chatBanUid').value || '').trim();
+  const reason = ($('chatBanReason').value || '').trim();
+  const daysVal = ($('chatBanDays').value || '').trim();
+  if (!uid) return false;
+  const { data, error } = await supabaseClient.rpc('bca_ban_user', {
+    p_uid: adminIdentity(), p_target_uid: uid, p_reason: reason, p_days: daysVal ? Number(daysVal) : null
+  });
+  if (error) { alert('Ban failed: ' + error.message); return false; }
+  if (data && data.ok === false) { alert('Ban failed: ' + (data.error || 'not allowed')); return false; }
+  $('chatBanUid').value = ''; $('chatBanReason').value = '';
+  loadChatBans(); loadModLogs();
+  return false;
+}
+async function unbanChatUser(uid) {
+  if (!supabaseClient) return;
+  const { data, error } = await supabaseClient.rpc('bca_unban_user', { p_uid: adminIdentity(), p_target_uid: uid });
+  if (error) { alert('Unban failed: ' + error.message); return; }
+  if (data && data.ok === false) { alert('Unban failed: ' + (data.error || 'not allowed')); return; }
+  loadChatBans(); loadModLogs();
+}
+async function loadModLogs() {
+  const host = $('modLogList');
+  if (host) host.innerHTML = '<p class="note">Loading&hellip;</p>';
+  if (!supabaseClient) { if (host) host.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  try {
+    const { data, error } = await supabaseClient.from('moderation_logs').select('*').order('created_at', { ascending: false }).limit(100);
+    if (error) throw error;
+    const rows = data || [];
+    if (!rows.length) { host.innerHTML = '<p class="note">No moderation actions yet.</p>'; return; }
+    const label = { delete_self: 'Self-delete', delete_admin: 'Admin delete', ban: 'Ban', unban: 'Unban' };
+    host.innerHTML = rows.map(l => {
+      const when = l.created_at ? new Date(l.created_at).toLocaleString() : '';
+      return '<div class="mod-log-item"><div class="cm-head"><b>' + escapeHtml(label[l.action] || l.action) + '</b><small>' + escapeHtml(when) + '</small></div>'
+        + (l.original_body ? '<div class="cm-body">"' + escapeHtml(String(l.original_body).slice(0, 300)) + '"</div>' : '')
+        + '<div class="cm-meta"><small>target: ' + escapeHtml(l.target_uid || '') + (l.message_id ? ' · msg #' + l.message_id : '') + ' · by ' + escapeHtml(l.actor_uid || '') + (l.reason ? ' · ' + escapeHtml(l.reason) : '') + '</small></div></div>';
+    }).join('');
+  } catch (error) {
+    if (host) host.innerHTML = '<p class="note">Load failed: ' + escapeHtml(error.message) + '</p>';
+  }
+}
+function startChatModLiveSync() {
+  if (!supabaseClient || chatModSync) return;
+  try {
+    chatModSync = supabaseClient.channel('admin-chat-mod')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
+        const row = payload.new;
+        if (!row) return;
+        chatModMessages.push(row);
+        if (chatModMessages.length > 100) chatModMessages = chatModMessages.slice(-100);
+        renderChatMod();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_messages' }, (payload) => {
+        const row = payload.new;
+        if (!row) return;
+        const i = chatModMessages.findIndex(x => Number(x.id) === Number(row.id));
+        if (i >= 0) { chatModMessages[i] = Object.assign({}, chatModMessages[i], row); renderChatMod(); }
+      })
+      .subscribe();
+  } catch (e) { /* realtime optional */ }
 }
 /* ---- Lost & Found moderation ---- */
 const LOST_FOUND_ADMIN_CATS={phone:'Phone',wallet:'Wallet',bottle:'Water Bottle',bag:'Bag / Backpack',keys:'Keys',laptop:'Laptop',books:'Books / Notes',idcard:'ID / Library Card',earphones:'Earphones / Headphones',spectacles:'Spectacles',watch:'Watch',stationery:'Stationery',other:'Other'};

@@ -25,7 +25,9 @@ const js = fs.readFileSync(path.join(root, 'chat.js'), 'utf8');
   'removeMessageLocal', 'handleReactionInsert', 'handleReactionDelete', 'subscribeReactions',
   'loadReactions', 'syncReactionsQuiet', 'reconcileRows', 'refreshMsgDom', 'renderReactions',
   'filterHidden', 'markOpsUnsupported', 'markReactionsUnsupported', 'isMissingFeature',
-  'bca_edit_message', 'bca_delete_message', 'bca_toggle_reaction',
+  'bca_edit_message', 'bca_soft_delete_message', 'bca_admin_delete_message', 'bca_hide_for_me',
+  'bca_toggle_reaction', 'isDeleted', 'deletedLabel', 'deleteWindowLeft',
+  'syncHiddenFromServer', 'syncModerationRole', 'msg-deleted-text',
   "event: 'UPDATE'", "event: 'DELETE'", "table: 'chat_reactions'",
   'touchstart', 'touchmove', 'touchend', 'contextmenu', 'msg-menu', 'msg-react',
   'msg-edited', 'data-mid', 'suppressClickUntil', 'holding'
@@ -50,7 +52,7 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   'id="chatActionSheet"', 'id="chatDeleteConfirm"', 'id="chatSheetReactions"',
   'id="chatSheetActions"', 'id="chatDeleteTitle"', 'id="chatDeleteText"',
   'id="chatDeleteGo"', 'id="chatSheetPreview"', 'BCAChat.closeActions', 'BCAChat.sheetBackdrop',
-  'BCAChat.confirmDelete', 'styles.css?v=52', 'chat.js?v=12'
+  'BCAChat.confirmDelete', 'styles.css?v=53', 'chat.js?v=13'
 ].forEach(s => ok(html.includes(s), 'index.html contains ' + s));
 
 /* 5) SQL migration: required objects */
@@ -63,8 +65,36 @@ const sql = fs.readFileSync(path.join(root, 'supabase-chat-reactions-edits.sql')
 ].forEach(s => ok(sql.toLowerCase().includes(s.toLowerCase()), 'SQL contains ' + s));
 
 /* 6) exported API surface used by inline HTML handlers */
-['closeActions: closeActions', 'sheetBackdrop: sheetBackdrop', 'confirmDelete: confirmDelete']
+['closeActions: closeActions', 'sheetBackdrop: sheetBackdrop', 'confirmDelete: confirmDelete',
+ 'isAdmin:', 'banUser:', 'unbanUser:']
   .forEach(s => ok(js.includes(s), 'BCAChat exports ' + s.split(':')[0].trim()));
+
+/* 7) deletion-moderation SQL migration: required objects */
+const modSql = fs.readFileSync(path.join(root, 'supabase-chat-deletion-moderation.sql'), 'utf8');
+[
+  'is_deleted', 'deleted_by', 'deleted_at', 'deleted_by_uid',
+  'create table if not exists public.chat_hides',
+  'create table if not exists public.chat_bans',
+  'create table if not exists public.moderation_logs',
+  'bca_soft_delete_message', 'bca_admin_delete_message', 'bca_hide_for_me',
+  'bca_ban_user', 'bca_unban_user', 'is_chat_admin', 'is_chat_banned',
+  'guard_chat_banned_sender', '48 hours',
+  'security definer', 'supabase_realtime'
+].forEach(s => ok(modSql.toLowerCase().includes(s.toLowerCase()), 'moderation SQL contains ' + s));
+
+/* 8) admin panel moderation surface */
+const admJs = fs.readFileSync(path.join(root, 'admin', 'admin.js'), 'utf8');
+[
+  'loadChatMod', 'renderChatMod', 'adminDeleteMessage', 'loadChatBans',
+  'submitChatBan', 'unbanChatUser', 'loadModLogs', 'startChatModLiveSync',
+  'bca_admin_delete_message', 'bca_ban_user', 'bca_unban_user', 'moderation_logs'
+].forEach(s => ok(admJs.includes(s), 'admin.js contains ' + s));
+const admHtml = fs.readFileSync(path.join(root, 'admin', 'admin.html'), 'utf8');
+[
+  'data-tab="chat"', 'id="tab-chat"', 'id="chatModList"', 'id="chatBanList"',
+  'id="modLogList"', 'id="chatBanForm"', 'id="chatModChannel"'
+].forEach(s => ok(admHtml.includes(s), 'admin.html contains ' + s));
+ok(admJs.includes("['material','subjects','pending','chat','lostfound']"), 'admin tabs include chat');
 
 console.log(fail ? ('\n' + fail + ' check(s) FAILED') : '\nALL CHECKS PASSED');
 process.exit(fail ? 1 : 0);

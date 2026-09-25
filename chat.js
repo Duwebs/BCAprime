@@ -37,6 +37,11 @@
     opsSupported: true, opsNotified: false,
     hiddenIds: {}, editingId: null, savingEdit: false,
     actionMsg: null, deleteCtx: null, sheetOpenedAt: 0,
+    /* WhatsApp-style deletion + admin moderation
+       (supabase-chat-deletion-moderation.sql):
+       isAdmin = user_profiles.is_admin (Firebase-uid row). Admins get
+       "Delete for everyone" on ANY message + ban controls via panel. */
+    isAdmin: false, isBanned: false, hidesSyncedFor: '',
     /* college+semester room isolation + WhatsApp-style unread */
     room: { college: 'all', semester: null, label: '' },
     roomSupported: true, /* false = isolation SQL abhi DB par run nahi hua (legacy mode) */
@@ -246,7 +251,15 @@
     } catch (e) { /* offline-safe */ }
   }
 
-  /* ---------- message rendering ---------- */
+  /* ---------- message rendering ----------
+     Deleted tombstones: WhatsApp-style placeholder bubble
+     ("This message was deleted" / "…deleted by an admin") — no body,
+     no image/code, no edit/react affordances. */
+  function isDeleted(m) { return !!(m && m.is_deleted); }
+  function deletedLabel(m) {
+    if (m && m.deleted_by === 'admin') return 'This message was deleted by an admin';
+    return 'This message was deleted';
+  }
   function renderBody(m) {
     var el = document.createElement('div');
     var sx = String(m.body || '');
@@ -274,7 +287,7 @@
   function buildMsg(m) {
     var mine = myUser() && m.uid === myUser().uid;
     var wrap = document.createElement('div');
-    wrap.className = 'msg' + (mine ? ' mine' : '');
+    wrap.className = 'msg' + (mine ? ' mine' : '') + (isDeleted(m) ? ' msg-deleted' : '');
     wrap.setAttribute('data-uid', m.uid || '');
     if (m.id) wrap.setAttribute('data-mid', m.id);
     var p = state.profiles[m.uid] || {};
@@ -283,14 +296,27 @@
       '<div class="msg-bubble">' +
       '<div class="msg-head"><span class="msg-name">' + esc(p.name || p.username || m.author_name || 'Student') + '</span>' +
       '<span class="msg-time">' + time(m.created_at) + '</span>' +
-      (m.edited_at ? '<span class="msg-edited" title="Edited">(edited)</span>' : '') +
-      '<button class="msg-menu" type="button" aria-label="Message options" title="React, edit or delete"><i class="fa-solid fa-ellipsis"></i></button>' +
+      ((m.edited_at && !isDeleted(m)) ? '<span class="msg-edited" title="Edited">(edited)</span>' : '') +
+      (isDeleted(m)
+        ? '<span class="msg-edited" title="Deleted">🚫</span>'
+        : '<button class="msg-menu" type="button" aria-label="Message options" title="React, edit or delete"><i class="fa-solid fa-ellipsis"></i></button>') +
       '</div>' +
       '</div>';
     var bubble = wrap.querySelector('.msg-bubble');
-    bubble.appendChild(renderBody(m));
-    var rr = renderReactions(m);
-    if (rr) bubble.appendChild(rr);
+    if (isDeleted(m)) {
+      var ph = document.createElement('div');
+      ph.className = 'msg-text msg-deleted-text';
+      var ico = document.createElement('i');
+      ico.className = 'fa-solid fa-ban';
+      ico.setAttribute('aria-hidden', 'true');
+      ph.appendChild(ico);
+      ph.appendChild(document.createTextNode(' ' + deletedLabel(m)));
+      bubble.appendChild(ph);
+    } else {
+      bubble.appendChild(renderBody(m));
+      var rr = renderReactions(m);
+      if (rr) bubble.appendChild(rr);
+    }
     return wrap;
   }
   /* ---------- message DOM helpers (reactions / edit / live updates) ---------- */
@@ -462,15 +488,22 @@
     subscribeReactions();
   }
 
-  /* ---------- realtime: edits / deletes / reactions (instant sync) ---------- */
+  /* ---------- realtime: edits / deletes / reactions (instant sync) ----------
+     Soft-delete model (supabase-chat-deletion-moderation.sql):
+     "Delete for Everyone" = UPDATE -> tombstone row (is_deleted=true),
+     delivered here as UPDATE (no reload, no history gap). Hard DELETE
+     events are still honored (legacy rows) via handleRemoteDelete. */
   function handleRemoteUpdate(row) {
     if (!row || !row.id) return;
     var m = findLoaded(row.id);
     if (!m) return; /* other channel / not on screen — history covers it */
     var changed = (m.body !== row.body) || (m.edited_at !== row.edited_at) ||
-      (m.code_lang !== row.code_lang) || (m.image_url !== row.image_url);
+      (m.code_lang !== row.code_lang) || (m.image_url !== row.image_url) ||
+      (!!m.is_deleted !== !!row.is_deleted) || (m.deleted_by !== row.deleted_by);
     m.body = row.body; m.edited_at = row.edited_at;
     m.code_lang = row.code_lang; m.image_url = row.image_url;
+    m.is_deleted = row.is_deleted; m.deleted_by = row.deleted_by;
+    m.deleted_at = row.deleted_at; m.deleted_by_uid = row.deleted_by_uid;
     if (changed) refreshMsgDom(m);
   }
   function handleRemoteDelete(oldRow) {
@@ -714,8 +747,11 @@
     var u = myUser();
     if (!u || !SUPA) return { ok: true };
     try {
-      var res = await SUPA.from('user_profiles').select('name,username,avatar_url').eq('uid', u.uid).maybeSingle();
-      if (res.data) state.profiles[u.uid] = res.data;
+      var res = await SUPA.from('user_profiles').select('name,username,avatar_url,is_admin').eq('uid', u.uid).maybeSingle();
+      if (res.data) {
+        state.profiles[u.uid] = res.data;
+        if (res.data.is_admin === true) state.isAdmin = true;
+      }
       return { ok: true };
     } catch (e) { return { ok: true, error: true }; }
   }
@@ -758,6 +794,9 @@
       return;
     }
     await fetchVerified(); // profile/name cache only — no extra gate here
+    try { await syncModerationRole(); } catch (e) {}
+    try { await syncHiddenFromServer(); } catch (e) {}
+    if (state.isBanned) toast('You are restricted from community chat');
     await resolveRoom(); /* verified profile decides the room */
     await probeRoomSupport(); /* realtime transport mode = DB truth, probe first */
     state.open = true;
@@ -974,6 +1013,7 @@
   async function send() {
     var u = myUser();
     if (!u || state.sending) return;
+    if (state.isBanned) { toast('You are restricted from community chat'); return; }
     var t = $('communityInput');
     var body = (t.value || '').trim();
     var lang = $('communityCodeLang').value || '';
@@ -1031,7 +1071,10 @@
         } catch (e2) { /* fall through to the error toast below */ }
       }
       if (res.error) {
-        if (markRoomUnsupported(res.error)) {
+        if (/banned from community chat/i.test(res.error.message || '')) {
+          state.isBanned = true;
+          toast('You are restricted from community chat');
+        } else if (markRoomUnsupported(res.error)) {
           /* handled above — legacy retry already attempted */
         }
         if (res.error.code === '42501' || /policy|permission|row-level/i.test(res.error.message || '')) {
@@ -1073,7 +1116,9 @@
   var press = { timer: null, mid: null, x0: 0, y0: 0, fired: false };
   var suppressClickUntil = 0;
 
-  /* ---------- "delete for me" hidden ids (localStorage) ---------- */
+  /* ---------- "delete for me" hidden ids (localStorage + server sync) ----------
+     Local hides instant hain; server (chat_hides) cross-device sync
+     karta hai — dusra phone/tablet bhi wahi hide dekhega. */
   function hiddenIdsKey() { return 'bca-chat-hidden-msgs'; }
   function loadHiddenIds() {
     try {
@@ -1094,9 +1139,55 @@
     } catch (e) { /* storage full / private mode */ }
   }
   function hideMessageForMe(id) {
+    id = Number(id);
+    if (!id) return;
     state.hiddenIds[id] = true;
     persistHiddenIds();
     removeMessageLocal(id);
+    /* Server record (best-effort): dusre devices par bhi hidden. */
+    try {
+      var u = myUser();
+      if (u && SUPA && SUPA.rpc) {
+        SUPA.rpc('bca_hide_for_me', { p_message_id: id, p_uid: u.uid })
+          .then(function () {}, function () {});
+      }
+    } catch (e) { /* offline-safe */ }
+  }
+  /* Login ke baad server hides pull karo (cross-device Delete-for-Me). */
+  async function syncHiddenFromServer() {
+    var u = myUser();
+    if (!u || !SUPA) return;
+    if (state.hidesSyncedFor === u.uid) return;
+    try {
+      var res = await SUPA.from('chat_hides').select('message_id').eq('uid', u.uid).limit(500);
+      if (res.error) return; /* table abhi migrate nahi — local hides kaafi */
+      (res.data || []).forEach(function (r) {
+        var id = Number(r.message_id);
+        if (id && !state.hiddenIds[id]) {
+          state.hiddenIds[id] = true;
+          removeMessageLocal(id);
+        }
+      });
+      persistHiddenIds();
+      state.hidesSyncedFor = u.uid;
+    } catch (e) { /* offline-safe */ }
+  }
+  /* Admin flag + ban status: open() par resolve hota hai (UI gating). */
+  async function syncModerationRole() {
+    state.isAdmin = false; state.isBanned = false;
+    var u = myUser();
+    if (!u || !SUPA) return;
+    try {
+      var prof = await SUPA.from('user_profiles').select('is_admin').eq('uid', u.uid).maybeSingle();
+      if (prof.data && prof.data.is_admin === true) state.isAdmin = true;
+    } catch (e) { /* column abhi migrate nahi — admin off */ }
+    try {
+      var ban = await SUPA.from('chat_bans').select('uid,expires_at').eq('uid', u.uid).maybeSingle();
+      if (ban.data && ban.data.uid) {
+        var exp = ban.data.expires_at ? new Date(ban.data.expires_at).getTime() : 0;
+        state.isBanned = (!exp || exp > Date.now());
+      }
+    } catch (e) { /* table abhi migrate nahi — banned off */ }
   }
 
   /* ---------- action sheet: open / close / build ---------- */
@@ -1128,18 +1219,24 @@
       b.onclick = function (ev) { ev.stopPropagation(); closeActions(); toggleReaction(m, em); };
       rw.appendChild(b);
     });
-    /* Edit / Delete rows (owner-only where it matters) */
+    /* Edit / Delete rows (owner-only where it matters; admins moderate any) */
     var aw = $('chatSheetActions');
     if (!aw) return;
     aw.innerHTML = '';
     var isMine = !!(u && m.uid && m.uid === u.uid);
-    if (isMine && String(m.body || '').trim()) {
+    var isAdm = !!state.isAdmin;
+    var gone = isDeleted(m);
+    if (!gone && isMine && String(m.body || '').trim()) {
       addSheetAction(aw, 'fa-pen', 'Edit', function () { startEdit(m); });
     }
-    if (isMine) {
-      addSheetAction(aw, 'fa-trash', 'Delete for everyone…', function () { askDelete(m, 'all'); }, true);
+    if (!gone && (isMine || isAdm)) {
+      addSheetAction(aw, 'fa-trash',
+        isAdm && !isMine ? 'Delete (admin)…' : 'Delete for everyone…',
+        function () { askDelete(m, 'all'); }, true);
     }
-    addSheetAction(aw, 'fa-user-slash', 'Delete for me…', function () { askDelete(m, 'me'); });
+    if (!gone) {
+      addSheetAction(aw, 'fa-user-slash', 'Delete for me…', function () { askDelete(m, 'me'); });
+    }
     var sheet = $('chatActionSheet');
     if (!sheet) return;
     sheet.hidden = false;
@@ -1211,6 +1308,7 @@
   function startEdit(m) {
     closeActions();
     if (!m || !m.id) return;
+    if (isDeleted(m)) { toast('Deleted messages cannot be edited'); return; }
     var u = myUser();
     if (!u || m.uid !== u.uid) { toast('Only the author can edit'); return; }
     /* close any OTHER open inline editor first */
@@ -1288,18 +1386,47 @@
     }
   }
 
-  /* ---------- delete: for everyone (server) / for me (local) ---------- */
+  /* ---------- delete: for everyone (server tombstone) / for me (hide) ----------
+     Server contract (supabase-chat-deletion-moderation.sql):
+     - bca_soft_delete_message(p_id, p_uid) -> {ok, error?}
+       sender-only, 48h time window, tombstone "This message was deleted".
+     - bca_admin_delete_message(p_id, p_uid, p_reason?) -> {ok, error?}
+       admin-only, kisi ka bhi message, tombstone "…deleted by an admin".
+     Dono UPDATE events hain -> sab clients realtime sync (no reload). */
+  function deleteWindowLeft(m) {
+    try {
+      if (!m || !m.created_at) return '';
+      var ageMs = Date.now() - new Date(m.created_at).getTime();
+      var leftMs = (48 * 3600 * 1000) - ageMs;
+      if (leftMs <= 0) return 'expired';
+      var h = Math.floor(leftMs / 3600000);
+      if (h >= 1) return 'about ' + h + 'h left';
+      var min = Math.max(1, Math.floor(leftMs / 60000));
+      return 'about ' + min + 'm left';
+    } catch (e) { return ''; }
+  }
   function askDelete(m, scope) {
     if (!m) return;
     var t = $('chatDeleteTitle'), x = $('chatDeleteText');
     if (!t || !x) return;
     state.deleteCtx = { m: m, scope: scope };
     if (scope === 'all') {
-      t.textContent = 'Delete for everyone?';
-      x.textContent = 'This message will be removed for everyone in this room.';
+      var u = myUser();
+      var mine = !!(u && m.uid && u.uid === m.uid);
+      if (state.isAdmin && !mine) {
+        t.textContent = 'Delete this message (admin)?';
+        x.textContent = 'It will show "This message was deleted by an admin" for everyone. This is logged for moderation.';
+      } else {
+        var left = deleteWindowLeft(m);
+        t.textContent = 'Delete for everyone?';
+        x.textContent = left === 'expired'
+          ? 'The 48-hour delete window has expired — ask an admin to remove it.'
+          : 'This message will show "This message was deleted" for everyone in this room.' +
+            (left ? ' (' + left + ' to delete.)' : '');
+      }
     } else {
       t.textContent = 'Delete for me?';
-      x.textContent = 'The message will be hidden on your device only. Others will still see it.';
+      x.textContent = 'The message will be hidden on your devices. Others will still see it.';
     }
     var sheet = $('chatActionSheet');
     if (sheet) { sheet.classList.remove('open'); sheet.hidden = true; }
@@ -1320,15 +1447,33 @@
   async function deleteForEveryone(m) {
     var u = myUser();
     if (!u) { toast('Login required'); return; }
+    var mine = !!(m.uid && u.uid === m.uid);
+    var fn = (state.isAdmin && !mine) ? 'bca_admin_delete_message' : 'bca_soft_delete_message';
     try {
-      var res = await SUPA.rpc('bca_delete_message', { p_id: m.id, p_uid: u.uid });
+      var res = await SUPA.rpc(fn, { p_id: m.id, p_uid: u.uid });
       if (res.error) {
         if (!markOpsUnsupported(res.error)) toast('Could not delete: ' + (res.error.message || 'error'));
         return;
       }
-      if (res.data === false) { toast('You can only delete your own messages'); return; }
-      removeMessageLocal(m.id);
-      toast('Message deleted for everyone');
+      var payload = res.data;
+      if (payload && typeof payload === 'object' && payload.ok === false) {
+        var err = String(payload.error || 'error');
+        if (err === 'time-window-expired') toast('Delete window expired (48h) — ask an admin');
+        else if (err === 'not-your-message') toast('You can only delete your own messages');
+        else if (err === 'admin-only') toast('Admin only');
+        else toast('Could not delete: ' + err);
+        return;
+      }
+      if (payload === false) { toast('You can only delete your own messages'); return; }
+      /* Optimistic tombstone — realtime UPDATE event final state dega. */
+      m.is_deleted = true;
+      m.deleted_by = (fn === 'bca_admin_delete_message') ? 'admin' : 'self';
+      m.body = (fn === 'bca_admin_delete_message')
+        ? 'This message was deleted by an admin'
+        : 'This message was deleted';
+      m.image_url = ''; m.code_lang = ''; m.edited_at = null;
+      refreshMsgDom(m);
+      toast(fn === 'bca_admin_delete_message' ? 'Deleted by admin' : 'Message deleted for everyone');
     } catch (e) {
       toast('Network error — try again.');
     }
@@ -1557,8 +1702,8 @@
     } catch (e) { /* poll is best-effort */ }
     finally { openPollBusy = false; }
   }
-  /* Single reconcile pass: append new rows, re-render edited rows,
-     drop rows deleted on the server (delete-for-everyone). */
+  /* Single reconcile pass: append new rows, re-render edited + soft-deleted
+     rows (delete-for-everyone tombstones), drop legacy hard-deleted rows. */
   function reconcileRows(descRows) {
     var box = $('communityMessages');
     if (!box) return;
@@ -1578,20 +1723,23 @@
       if (r.id > lastId) lastId = r.id;
     }
     var windowMin = rows[0].id; /* oldest row fetched */
-    /* deletions: loaded ids INSIDE the window that vanished */
+    /* deletions: loaded ids INSIDE the window that vanished (legacy hard delete) */
     for (i = state.messages.length - 1; i >= 0; i--) {
       m = state.messages[i];
       if (m.id >= windowMin && !byId[m.id]) removeMessageLocal(m.id);
     }
-    /* edits + additions */
+    /* edits + soft-delete tombstones + additions */
     for (i = 0; i < rows.length; i++) {
       r = rows[i];
       m = findLoaded(r.id);
       if (m) {
         if (m.body !== r.body || m.edited_at !== r.edited_at ||
-            m.code_lang !== r.code_lang || m.image_url !== r.image_url) {
+            m.code_lang !== r.code_lang || m.image_url !== r.image_url ||
+            (!!m.is_deleted !== !!r.is_deleted) || m.deleted_by !== r.deleted_by) {
           m.body = r.body; m.edited_at = r.edited_at;
           m.code_lang = r.code_lang; m.image_url = r.image_url;
+          m.is_deleted = r.is_deleted; m.deleted_by = r.deleted_by;
+          m.deleted_at = r.deleted_at; m.deleted_by_uid = r.deleted_by_uid;
           changed.push(m);
         }
         continue;
@@ -1696,6 +1844,32 @@
     toggleMinimize: toggleMinimize, openLightbox: openLightbox, closeLightbox: closeLightbox,
     closeActions: closeActions, sheetBackdrop: sheetBackdrop, confirmDelete: confirmDelete,
     refreshUnread: refreshUnread, unreadCount: function () { return state.unread; },
-    roomInfo: function () { return { college: state.room.college, semester: state.room.semester, label: state.room.label }; }
+    roomInfo: function () { return { college: state.room.college, semester: state.room.semester, label: state.room.label }; },
+    /* Admin moderation (supabase-chat-deletion-moderation.sql RPCs). */
+    isAdmin: function () { return !!state.isAdmin; },
+    adminDelete: function (id) {
+      var m = Number(id) ? findLoaded(Number(id)) : null;
+      if (m) { askDelete(m, 'all'); return true; }
+      return false;
+    },
+    banUser: async function (uid, reason, days) {
+      var me = myUser();
+      if (!me) { toast('Login required'); return { ok: false }; }
+      try {
+        var res = await SUPA.rpc('bca_ban_user',
+          { p_uid: me.uid, p_target_uid: String(uid || ''), p_reason: String(reason || ''), p_days: days || null });
+        if (res.error) { toast('Ban failed: ' + res.error.message); return { ok: false, error: res.error.message }; }
+        return res.data || { ok: true };
+      } catch (e) { toast('Network error — try again.'); return { ok: false }; }
+    },
+    unbanUser: async function (uid) {
+      var me = myUser();
+      if (!me) { toast('Login required'); return { ok: false }; }
+      try {
+        var res = await SUPA.rpc('bca_unban_user', { p_uid: me.uid, p_target_uid: String(uid || '') });
+        if (res.error) { toast('Unban failed: ' + res.error.message); return { ok: false }; }
+        return res.data || { ok: true };
+      } catch (e) { toast('Network error — try again.'); return { ok: false }; }
+    }
   };
 })();
