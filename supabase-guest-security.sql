@@ -57,10 +57,12 @@ drop policy if exists "No client access to guest_preview_log" on public.guest_pr
 create index if not exists guest_preview_log_guest_idx
   on public.guest_preview_log (guest_id, created_at);
 
--- Server-authoritative daily preview limit.
+-- Server-side guest preview AUDIT LOG.
 -- SECURITY DEFINER => function owner ke roop me chalta hai, isliye
 -- service role bhi theek se call kar paayega aur RLS bypass hoga.
--- Returns: true => preview allowed (row log ho gayi); false => limit khatam.
+-- NOTE: preview quota ab khatam ho gayi hai (Guest Mode = unlimited
+-- reading). Ye function ab sirf analytics logging ke liye hai — hamesha
+-- true return karti hai taaki preview kabhi block na ho.
 create or replace function public.consume_guest_preview(p_guest_id text, p_resource_id text)
 returns boolean
 language plpgsql
@@ -69,25 +71,17 @@ set search_path = public
 as $$
 declare
   v_count int;
-  v_limit constant int := 3;  -- 3 free previews per guest per day
 begin
   -- Basic validation: guest id chhoti aur meaningful honi chahiye.
   if p_guest_id is null or length(p_guest_id) < 8 or length(p_guest_id) > 80 then
     return false;
   end if;
 
-  select count(*) into v_count
-  from public.guest_preview_log
-  where guest_id = p_guest_id
-    and created_at >= date_trunc('day', now());
-
-  if v_count >= v_limit then
-    return false;
-  end if;
-
+  -- Audit: kaunsi guest ne kaunsi file kab dekhi (sirf analytics ke liye).
   insert into public.guest_preview_log (guest_id, resource_id)
   values (p_guest_id, p_resource_id);
 
+  -- NO QUOTA: reading unlimited hai — hamesha allow.
   return true;
 end;
 $$;

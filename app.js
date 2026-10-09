@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v40 loaded ✔');
+console.info('[BCAPrime] app.js v41 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -263,7 +263,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         function bumpDownload(id){if(!id)return;const c=loadCounts();const rec=c[id]||{v:0,d:0};rec.d=(rec.d||0)+1;c[id]=rec;saveCounts(c);const resource=resources.find(x=>rcId(x.title)===id);const total=((resource&&typeof resource.downloads==='number')?resource.downloads:0)+rec.d;if(resource)resource.downloadCount=total;const el=document.getElementById('rcd-'+id);if(el)el.textContent=total}
         function bindCardViews(){/* Views are counted STRICTLY on the "Read" button click (readResource) — never on card tap, page load, mount or hover. */}
         async function shareResource(title){try{if(navigator.share){await navigator.share({title:'BCAPrime',text:title||'Check this on BCAPrime',url:location.href})}else if(navigator.clipboard){await navigator.clipboard.writeText(location.href);toast('Link copied')}else{toast('Share is not supported here')}}catch(e){}}
-        async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest preview limit (client counter + server quota sign-resource me) */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);openReader(signed?{...resource,fileUrl:signed}:resource)}
+        async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);openReader(signed?{...resource,fileUrl:signed}:resource)}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');renderSubjectFilter();render()}
     function applyFilters(){updateSemesterOptions();state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
     /* Semester dropdown sabhi 6 semesters dikhata hai aur user ki
@@ -546,11 +546,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     async function download(title){/* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */if(!accountSession){requireAccount('Sign up or login to download this note.','download',title);return}bumpDownload(rcId(title));const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){if(!await ensureFileAvailable(resource,'download'))return;let href=resource.fileData||resource.fileUrl;const raw=resource.fileUrl||'';if(!resource.fileData&&isRemoteFile(raw)){/* Private bucket: signed URL lo (Firebase session verify hoti hai) */const signed=await fetchSignedUrl(resource,'download');if(!signed){toast('Could not start download — please try again.');return}href=signed}const a=document.createElement('a');a.href=href;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
     let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;let profileRealtimeChannel=null;
-    /* ============ Guest Mode: welcome popup + preview limits + signed URLs ============
+    /* ============ Guest Mode: welcome popup + signed URLs ============
        Bucket PRIVATE hai — seedha public URL ab kaam nahi karta. Har Read/Preview/Download
        se pehle sign-resource Edge Function se ek chhota-lived SIGNED URL lete hain.
-       Guest = sirf limited previews (client counter + server quota). Download = sign-up wall. */
-    const GUEST_PREVIEW_LIMIT = 3;
+       Guest = UNLIMITED reading/viewing. Download + Upload = sign-up wall. */
     function getGuestId(){
       try{
         let g = localStorage.getItem('bca-guest-id');
@@ -558,9 +557,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         return g;
       }catch(e){ return 'g-session'; }
     }
-    function guestPreviewsUsed(){ try{ return parseInt(sessionStorage.getItem('bca-guest-previews')||'0',10)||0; }catch(e){ return 0; } }
-    function setGuestPreviewsUsed(n){ try{ sessionStorage.setItem('bca-guest-previews', String(n)); }catch(e){} }
-    function guestPreviewsLeft(){ return Math.max(0, GUEST_PREVIEW_LIMIT - guestPreviewsUsed()); }
+    /* Legacy key cleanup: preview limits ab khatam, purane counters hata do. */
+    try{ sessionStorage.removeItem('bca-guest-previews'); }catch(e){}
+    /* Unlimited reading — koi client-side preview limit nahi rahi. */
+    function consumeGuestPreview(resource){ return true; }
+    /* Guest welcome popup + sign-up CTA */
     /* Firebase ID token (agar logged-in) — sign-resource function isse verify karta hai. */
     async function firebaseIdToken(){
       try{ if(accountSession && typeof accountSession.getIdToken === 'function'){ return await accountSession.getIdToken(); } }catch(e){}
@@ -584,20 +585,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         return (data && data.ok && data.url) ? data.url : '';
       }catch(e){ return ''; }
     }
-    /* Guest preview consume karo. true = aage badho, false = sign-up wall dikha do. */
-    function consumeGuestPreview(resource){
-      if(accountSession) return true;        /* logged-in = unlimited */
-      if(!isGuestMode()) return true;        /* gate par hi ruk jaata hai */
-      if(guestPreviewsLeft() <= 0){
-        toast('Free previews used up — sign up to keep reading');
-        guestSignupPrompt(resource && resource.title);
-        return false;
-      }
-      setGuestPreviewsUsed(guestPreviewsUsed() + 1);
-      return true;
-    }
     /* Guest welcome popup + sign-up CTA */
-    function showGuestWelcome(){ const m=$('guestWelcomeModal'); if(!m) return; const el=$('gwPreviewAllowance'); if(el) el.textContent=String(GUEST_PREVIEW_LIMIT); m.classList.add('open'); }
+    function showGuestWelcome(){ const m=$('guestWelcomeModal'); if(!m) return; m.classList.add('open'); }
     function closeGuestWelcome(){ const m=$('guestWelcomeModal'); if(m) m.classList.remove('open'); }
     function guestSignupPrompt(title){
       closeGuestWelcome();
@@ -1186,7 +1175,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{await firebase.auth().signInWithEmailAndPassword(loginEmail,password);accountSession=firebase.auth().currentUser;if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){clearProfileRealtime();await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{pendingHelpRequest=null}catch(e){}}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -1430,7 +1419,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       });
     }
     async function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
-      /* Guest preview limit + signed URL (private bucket) */
+      /* Guest reading unlimited + signed URL (private bucket) */
       if(!consumeGuestPreview(resource))return;
       ensureFileAvailable(resource,'preview').then(async ok=>{
         if(!ok)return;
@@ -1457,11 +1446,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const gurl='https://docs.google.com/gview?url='+encodeURIComponent(src)+'&embedded=true';
         const frame=document.createElement('iframe');frame.className='preview-embed';frame.src=gurl;frame.setAttribute('title',resource.title);frame.style.minHeight='500px';body.appendChild(frame);
       }else{
-        body.innerHTML='<div class="preview-fallback"><i class="fa-solid fa-file-circle-question"></i><strong>Inline preview is not available for this format</strong><small>Use the Open full file button below to view or download it.</small></div>';
+        body.innerHTML='<div class="preview-fallback"><i class="fa-solid fa-file-circle-question"></i><strong>Inline preview is not available for this format</strong><small>This file opens only in the secure in-app reader.</small></div>';
       }
-      $('previewOpenLink').href=src;
+      const _pol=$('previewOpenLink');if(_pol){try{_pol.removeAttribute('href')}catch(e){}}
       trackEvent('view',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});bumpView(rcId(resource.title));
       $('previewModal').classList.add('open');
+      enableSecureGuards();
     }
     function createLocalUploadRecord(file, upload){return {title:upload.title,type:upload.type,sem:upload.sem,year:upload.year,subject:upload.subject,college:upload.college,uploader:upload.uploader||'Anonymous',date:'Just now',downloads:0,fileName:file.name,fileData:upload.fileData||'',status:upload.status||'pending'}}
     async function uploadResourceToSupabase(file, upload){
@@ -1849,8 +1839,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       readerZoom=1;
       currentReaderResource=resource;
       $('readerTitle').textContent=resource.title;
-      $('readerOpen').href=src;
-      $('readerOpen').setAttribute('download',resource.fileName||resource.title.replace(/\W+/g,'-')+'.pdf');
+      /* SECURE VIEW: koi raw URL DOM me expose nahi hoga — sirf sandboxed iframe me load. */
+      const ro=$('readerOpen');if(ro){try{ro.removeAttribute('href');ro.removeAttribute('download')}catch(e){}}
       if(isPptx&&!src.startsWith('data:')){
         /* PPTX: use Google Docs Viewer for inline preview */
         if(frm){frm.hidden=true;frm.src='about:blank'}
@@ -1869,51 +1859,89 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           fetch(src).then(r=>{if(!r.ok)throw new Error('fetch failed');return r.arrayBuffer()})
             .then(buf=>window.mammoth.convertToHtml({arrayBuffer:buf}))
             .then(res=>{docxPane.innerHTML=res.value||'<p class="docx-error">This document appears to be empty.</p>';applyReaderZoom()})
-            .catch(()=>{docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-triangle-exclamation"></i> This document could not be opened in the app. Download it to view it.</p>'});
+            .catch(()=>{docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-triangle-exclamation"></i> This document could not be opened in the app right now. Please try again later.</p>'});
         }
       }else if(isOldDoc||isDocx){
         /* Legacy .doc (or Mammoth unavailable): cannot render inline — guide to download. */
         if(frm){frm.hidden=true;frm.src='about:blank'}
-        if(docxPane){docxPane.hidden=false;docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-file-word"></i> Files in the older .doc format cannot be opened in the app. Download the file and open it in MS Word.</p>'}
+        if(docxPane){docxPane.hidden=false;docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-file-word"></i> Files in the older .doc format cannot be opened in the app. Please convert it to PDF or DOCX first.</p>'}
       }else{
         if(docxPane){docxPane.hidden=true;docxPane.innerHTML=''}
         if(frm){frm.hidden=false;frm.src=inlineSrc}
       }
       $('readerModal').classList.add('open');
+      enableSecureGuards();
       applyReaderZoom();
     }
-    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=false}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}}
+    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=false}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}disableSecureGuards()}
+    /* ======= Secure-view guards (sirf reader/preview open hone par) =======
+       - right-click (context menu) block — viewport ke andar
+       - text select/copy/drag block — DOCX pane ke andar
+       - Ctrl/Cmd+S, Ctrl/Cmd+P, Ctrl/Cmd+U, Ctrl/Cmd+Shift+S block
+       - beforeprint: agar secure view open hai to print hone hi mat do
+       NOTE: ye client-side rokk hai (casual copy rokta hai). File bytes
+       server-side signed URL se hi milti hain — real enforcement wahi hai. */
+    let __secureGuardsOn=false;
+    function secureViewOpen(){try{const r=$('readerModal'),p=$('previewModal');return !!((r&&r.classList.contains('open'))||(p&&p.classList.contains('open')))}catch(e){return false}}
+    function onSecureContextMenu(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
+    function onSecureCopyCut(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-docx')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
+    function onSecureDragStart(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
+    function onSecureKeyDown(e){
+      if(!secureViewOpen())return;
+      try{
+        const k=(e.key||'').toLowerCase();
+        const mod=e.ctrlKey||e.metaKey;
+        if(!mod)return;
+        /* S=save, P=print, U=view-source, C/X=copy/cut */
+        if(k==='s'||k==='p'||k==='u'||k==='c'||k==='x'){
+          const t=e.target;
+          const inField=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable);
+          if(inField)return;   /* form fields me normal typing chalne do */
+          e.preventDefault();e.stopPropagation();
+          if(k==='p'){try{toast('Printing is disabled in the secure viewer')}catch(err){}}
+          return false;
+        }
+      }catch(err){}
+    }
+    function onSecureBeforePrint(e){
+      if(!secureViewOpen())return;
+      try{e.preventDefault()}catch(err){}
+      try{toast('Printing is disabled in the secure viewer')}catch(err2){}
+    }
+    function enableSecureGuards(){
+      if(__secureGuardsOn)return;__secureGuardsOn=true;
+      try{document.body.classList.add('secure-print-block')}catch(e){}
+      try{
+        document.addEventListener('contextmenu',onSecureContextMenu,true);
+        document.addEventListener('copy',onSecureCopyCut,true);
+        document.addEventListener('cut',onSecureCopyCut,true);
+        document.addEventListener('dragstart',onSecureDragStart,true);
+        document.addEventListener('keydown',onSecureKeyDown,true);
+        window.addEventListener('beforeprint',onSecureBeforePrint);
+      }catch(e){}
+    }
+    function disableSecureGuards(){
+      if(secureViewOpen())return;   /* dono me se ek bhi khula ho to guards rakho */
+      if(!__secureGuardsOn)return;__secureGuardsOn=false;
+      try{document.body.classList.remove('secure-print-block')}catch(e){}
+      try{
+        document.removeEventListener('contextmenu',onSecureContextMenu,true);
+        document.removeEventListener('copy',onSecureCopyCut,true);
+        document.removeEventListener('cut',onSecureCopyCut,true);
+        document.removeEventListener('dragstart',onSecureDragStart,true);
+        document.removeEventListener('keydown',onSecureKeyDown,true);
+        window.removeEventListener('beforeprint',onSecureBeforePrint);
+      }catch(e){}
+    }
     function applyReaderZoom(){const f=$('readerFrame');if(f&&!f.hidden)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%';const d=$('readerDocx');if(d&&!d.hidden)d.style.fontSize=Math.round(16*readerZoom)+'px'}
     function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
     function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
-    /* In-reader direct download: blob fetch + object URL, koi naya tab/redirect nahi */
+    /* In-reader download button AB HATA DIYA GAYA HAI (secure view).
+       Purana call kahin bacha ho to normal gated download flow me bhejo — seedha blob leak nahi. */
     async function downloadCurrentReaderFile(){
       const resource=currentReaderResource;if(!resource)return;
-      const src=resource.fileUrl||resource.fileData;if(!src){toast('Download not available for this item');return}
-      const btn=$('readerDownload');if(btn)btn.disabled=true;
-      try{
-        let blob;
-        if(src.startsWith('data:')){
-          blob=await (await fetch(src)).blob();
-        }else{
-          const res=await fetch(src,{cache:'no-store'});
-          if(!res.ok)throw new Error('HTTP '+res.status);
-          blob=await res.blob();
-        }
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url;
-        a.download=resource.fileName||resource.title.replace(/[^\w]+/g,'-')+'.pdf';
-        document.body.appendChild(a);a.click();a.remove();
-        setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(e){}},4000);
-        bumpDownload(resource.title.replace(/\W/g,''));
-        toast('Download started ✅');
-      }catch(e){
-        console.error('[BCAPrime] Reader download failed:',e);
-        toast('Download failed — "Open in new tab" se try karo');
-      }finally{
-        if(btn)btn.disabled=false;
-      }
+      if(!accountSession){requireAccount('Sign up or login to download this note.','download',resource.title||'');return}
+      download(resource.title||'');
     }
 
     /* ================= SENIOR HELP REQUESTS =================
@@ -2141,7 +2169,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         location.reload();
       });
             window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=27').then(reg=>{
+        navigator.serviceWorker.register('./sw.js?v=28').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */

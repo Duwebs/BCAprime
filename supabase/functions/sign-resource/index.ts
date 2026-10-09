@@ -10,8 +10,8 @@
 //   dikhte hain. Isliye is function ko caller ka FIREBASE ID token
 //   verify karna padta hai (identitytoolkit accounts:lookup se).
 //     - Valid Firebase session  -> full access (preview + download)
-//     - Guest (koi token nahi)  -> sirf PREVIEW, aur wo bhi
-//       server-side quota (3 previews/day) ke saath.
+//     - Guest (koi token nahi)  -> UNLIMITED READING (preview mode);
+//       DOWNLOAD hamesha sign-up wall ke peeche (403).
 //
 // Deploy:
 //   supabase functions deploy sign-resource
@@ -103,28 +103,20 @@ Deno.serve(async (req) => {
   );
 
   // ---- GUEST rules (na user, na admin) ----
+  // Guest reading UNLIMITED hai; DOWNLOAD hamesha sign-up wall ke peeche.
   if (!user && !gotAdmin) {
     // Guest kabhi download nahi kar sakta.
     if (mode === 'download') {
       return json({ ok: false, error: 'signup_required', message: 'Sign up to download this file.' }, 403);
     }
-    // Preview ke liye server-side quota check (3/day).
-    if (!guestId) {
-      return json({ ok: false, error: 'guest_id_required' }, 400);
-    }
-    const { data: allowed, error: quotaError } = await supabaseAdmin.rpc(
-      'consume_guest_preview',
-      { p_guest_id: guestId, p_resource_id: resourceId || path },
-    );
-    if (quotaError) {
-      return json({ ok: false, error: 'quota_check_failed', detail: quotaError.message }, 500);
-    }
-    if (allowed !== true) {
-      return json({
-        ok: false,
-        error: 'preview_limit_reached',
-        message: 'Free previews used up. Sign up to keep reading.',
-      }, 429);
+    // Preview = unlimited. Analytics ke liye log kar do (quota nahi).
+    if (guestId) {
+      try {
+        await supabaseAdmin.rpc(
+          'consume_guest_preview',
+          { p_guest_id: guestId, p_resource_id: resourceId || path },
+        );
+      } catch (e) { /* logging fail ho to preview mat roko */ }
     }
   }
 

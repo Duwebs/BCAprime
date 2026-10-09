@@ -31,7 +31,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=49">
+  <link rel="stylesheet" href="styles.css?v=50">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -196,11 +196,11 @@
 
   <!-- Modern OTP popup: auto-focus 6 digit boxes, resend countdown, WebOTP auto-fill -->
   <div class="modal" id="otpModal"><div class="dialog otp-dialog"><div class="dialog-head"><span></span><button class="close" aria-label="Close dialog" onclick="closeOtpModal()">&times;</button></div><div class="verify-icon"><i class="fa-solid fa-hashtag"></i></div><h3 class="verify-title">Enter your verification code</h3><p class="verify-sub">We emailed a 6-digit code to <strong id="otpEmailAddr">your inbox</strong>. Enter it below to confirm your email.</p><div class="otp-boxes" id="otpBoxes" aria-label="6-digit verification code"><input class="otp-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Digit 1"><input class="otp-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Digit 2"><input class="otp-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Digit 3"><input class="otp-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Digit 4"><input class="otp-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Digit 5"><input class="otp-digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" pattern="[0-9]*" aria-label="Digit 6"></div><p class="otp-status" id="otpStatus" aria-live="polite"></p><p class="otp-resend"><span id="otpCountdown"></span><button class="linklike" id="otpResendBtn" type="button" onclick="resendOtp()" hidden><i class="fa-solid fa-rotate-right"></i> Resend code</button></p><button class="primary verify-continue" id="otpVerifyBtn" type="button" onclick="submitOtp()"><i class="fa-solid fa-shield-halved"></i> Verify &amp; continue</button><button class="linklike otp-uses-link" type="button" onclick="switchToLinkView()"><i class="fa-solid fa-envelope"></i> I'll confirm a link instead</button></div></div>
-  <div class="modal" id="previewModal"><div class="dialog preview-dialog"><div class="dialog-head"><h2 id="previewTitle">Preview</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p class="preview-meta" id="previewMeta"></p><div class="preview-frame" id="previewBody"></div><a class="primary preview-open" id="previewOpenLink" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Open full file</a></div></div>
+  <div class="modal" id="previewModal"><div class="dialog preview-dialog"><div class="dialog-head"><h2 id="previewTitle">Preview</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p class="preview-meta" id="previewMeta"></p><div class="preview-frame" id="previewBody"></div><p class="preview-secure-note"><i class="fa-solid fa-shield-halved"></i> Secure in-app view — downloads need a free account.</p></div></div>
   <!-- Offline: file not saved on this device yet -->
   <div class="modal" id="offlineModal"><div class="dialog offline-dialog"><div class="dialog-head"><span></span><button class="close" aria-label="Close dialog" onclick="closeOfflineModal()">&times;</button></div><div class="offline-icon"><i class="fa-solid fa-wifi"></i></div><h2>You&#39;re offline</h2><p class="offline-msg">This file hasn&#39;t been saved on this device yet, so it can&#39;t open without internet. Files you&#39;ve opened before still work offline.</p><div class="offline-actions"><button class="secondary" type="button" onclick="openNetworkSettings()"><i class="fa-solid fa-gear"></i> Turn on WiFi / data</button><button class="primary" type="button" onclick="retryOfflineAction()"><i class="fa-solid fa-rotate-right"></i> Retry</button></div></div></div>
-  <!-- In-app PDF reader (full-screen, zoom + offline) -->
-  <div class="modal reader-modal" id="readerModal"><div class="reader-shell"><div class="reader-toolbar"><button class="reader-btn" onclick="closeReader()" aria-label="Close reader" title="Close"><i class="fa-solid fa-arrow-left"></i></button><div class="reader-title"><strong id="readerTitle">Reading</strong></div><div class="reader-zoom"><button class="reader-btn" onclick="readerZoomOut()" aria-label="Zoom out" title="Zoom out"><i class="fa-solid fa-minus"></i></button><span id="readerZoomVal">100%</span><button class="reader-btn" onclick="readerZoomIn()" aria-label="Zoom in" title="Zoom in"><i class="fa-solid fa-plus"></i></button></div><button class="reader-btn" id="readerDownload" onclick="downloadCurrentReaderFile()" aria-label="Download" title="Download"><i class="fa-solid fa-download"></i></button><a class="reader-btn reader-open" id="readerOpen" target="_blank" rel="noopener" aria-label="Open in new tab" title="Open in new tab"><i class="fa-solid fa-up-right-from-square"></i></a></div><div class="reader-viewport"><iframe id="readerFrame" class="reader-frame" title="PDF viewer"></iframe><div id="readerDocx" class="reader-docx" hidden></div></div></div></div>
+  <!-- In-app PDF reader (full-screen, zoom + offline) — SECURE: koi direct download / new-tab nahi. Toolbar ke actions openReader me guest mode par chipa diye jaate hain. -->
+  <div class="modal reader-modal" id="readerModal"><div class="reader-shell"><div class="reader-toolbar"><button class="reader-btn" onclick="closeReader()" aria-label="Close reader" title="Close"><i class="fa-solid fa-arrow-left"></i></button><div class="reader-title"><strong id="readerTitle">Reading</strong></div><div class="reader-zoom"><button class="reader-btn" onclick="readerZoomOut()" aria-label="Zoom out" title="Zoom out"><i class="fa-solid fa-minus"></i></button><span id="readerZoomVal">100%</span><button class="reader-btn" onclick="readerZoomIn()" aria-label="Zoom in" title="Zoom in"><i class="fa-solid fa-plus"></i></button></div></div><div class="reader-viewport secure-view"><iframe id="readerFrame" class="reader-frame" title="PDF viewer"></iframe><div id="readerDocx" class="reader-docx" hidden></div></div></div></div>
 
 
   <div id="toastRoot" role="status" aria-live="polite"></div>
@@ -312,13 +312,11 @@
     <div class="gw-list">
       <div class="gw-group gw-allowed">
         <span class="gw-label"><i class="fa-solid fa-circle-check"></i> Allowed</span>
-        <div class="gw-item"><span class="gw-ico gw-ok"><i class="fa-solid fa-book-open"></i></span><div><strong>Browse everything</strong><span>Semester notes &amp; PYQ titles, subjects and colleges — all visible.</span></div></div>
-        <div class="gw-item"><span class="gw-ico gw-ok"><i class="fa-solid fa-eye"></i></span><div><strong>Sample previews</strong><span>Open up to <b id="gwPreviewAllowance">3</b> sample previews for free.</span></div></div>
+        <div class="gw-item"><span class="gw-ico gw-ok"><i class="fa-solid fa-layer-group"></i></span><div><strong>Browse &amp; Read Everything</strong><span>Access all semester notes &amp; PYQ titles and read them fully online — no limits.</span></div></div>
       </div>
       <div class="gw-group gw-restricted">
         <span class="gw-label"><i class="fa-solid fa-lock"></i> Restricted</span>
-        <div class="gw-item"><span class="gw-ico gw-no"><i class="fa-solid fa-download"></i></span><div><strong>PDF downloads</strong><span>Full downloads need a free account — it also keeps our servers clean.</span></div></div>
-        <div class="gw-item"><span class="gw-ico gw-no"><i class="fa-solid fa-upload"></i></span><div><strong>Uploads</strong><span>Sharing notes &amp; PYQs is for signed-up members only.</span></div></div>
+        <div class="gw-item"><span class="gw-ico gw-no"><i class="fa-solid fa-file-arrow-down"></i></span><div><strong>PDF Downloads &amp; Uploads</strong><span>Full file downloads and sharing require a free account.</span></div></div>
       </div>
     </div>
     <div class="gw-foot">
@@ -333,7 +331,7 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" onerror="if(!window.jspdf){var s=document.createElement('script');s.async=false;s.src='https://unpkg.com/jspdf@2.5.2/dist/jspdf.umd.min.js';var r=document.currentScript&&document.currentScript.parentNode;if(r)s.parentNode.insertBefore(s,r.nextSibling);else document.head.appendChild(s)}"></script>
   <script src="lib/imageToPdf.js"></script>
   <script src="whats-new.js?v=14"></script>
-  <script src="app.js?v=46"></script>
+  <script src="app.js?v=47"></script>
 </body>
 </html>
 
