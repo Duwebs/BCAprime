@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v41 loaded ✔');
+console.info('[BCAPrime] app.js v42 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -1175,7 +1175,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function submitAccount(event){event.preventDefault();if(!firebaseApp){$('accountMessage').textContent='Firebase is not configured.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{await firebase.auth().signInWithEmailAndPassword(loginEmail,password);accountSession=firebase.auth().currentUser;if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=error.message;return}}
     async function signOutAccount(){clearProfileRealtime();await firebase.auth().signOut();accountSession=null;try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}hideAuthenticatedApp();$('accountAuth').innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount();toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -1432,15 +1432,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       $('previewTitle').textContent=resource.title;
       const kindLabel=resource.type==='pyq'?'Previous year paper':'Notes';
       $('previewMeta').textContent=`${kindLabel} · Semester ${resource.sem}${resource.fileName?' · '+resource.fileName:''}`;
-      const body=$('previewBody');body.innerHTML='';
+      const body=$('previewBody');body.innerHTML='';body.classList.remove('secure-body');
       const lower=((resource.fileName||'')+' '+src.split('?')[0].split('#')[0]).toLowerCase();
       const isDocx=/\.docx(\?|$)/.test(lower);
       const isPptx=/\.pptx(\?|$)/.test(lower);
       const isOffice=isDocx||isPptx;
       if(src.startsWith('data:image')||/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/.test(lower)){
-        const img=document.createElement('img');img.className='preview-image';img.src=src;img.alt=resource.title;body.appendChild(img);
+        /* Image -> canvas draw (raw src DOM me nahi, right-click/drag blocked) */
+        body.classList.add('secure-body');
+        renderSecureImage(body,src);
       }else if(src.startsWith('data:application/pdf')||/\.pdf(\?|$)/.test(lower)){
-        const frame=document.createElement('iframe');frame.className='preview-embed';frame.src=src;frame.setAttribute('title',resource.title);body.appendChild(frame);
+        /* PDF -> CANVAS pages (no iframe, extension scrapers ke liye kuch nahi) */
+        body.classList.add('secure-body');
+        renderSecurePdf(body,src,{maxPages:5,baseScale:1.1});
       }else if(isOffice&&!src.startsWith('data:')){
         /* Office docs: embed via Google Docs Viewer */
         const gurl='https://docs.google.com/gview?url='+encodeURIComponent(src)+'&embedded=true';
@@ -1822,37 +1826,110 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       toast(liked?'Upvote removed':'Upvoted 👍');
       try{if(supabaseClient){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(resource){const delta=liked?-1:1;const newCount=(typeof resource.upvotes==='number'?resource.upvotes:0)+delta;resource.upvotes=newCount;await supabaseClient.from('resources').update({upvotes:newCount}).eq('title',resource.title)}}}catch(e){}
     }
-    /* 4) In-app PDF reader */
+    /* 4) In-app PDF reader — SECURE CANVAS RENDERER
+       ---------------------------------------------------------------
+       PDF bytes fetch -> pdf.js se har page CANVAS par render -> DOM me
+       sirf <canvas> pixels. Na iframe, na <img src=file>, na download
+       link — browser "Save page as" aur PDF extensions ke paas koi
+       document nahi bachta (sirf screenshot possible hai).
+       - Watermark har page par (CSS overlay, pointer-events:none)
+       - Chunked rendering (3 pages ke baad event loop free) */
+    let securePdfDoc=null;let secureRenderToken=0;
+    function destroySecurePdf(){secureRenderToken++;if(securePdfDoc){try{securePdfDoc.destroy()}catch(e){}securePdfDoc=null}}
+    function securePageWrap(){const w=document.createElement('div');w.className='secure-page';return w}
+    async function renderSecurePdf(container,src,opts){
+      opts=opts||{};
+      const token=++secureRenderToken;
+      container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>Preparing secure reader…</span></div>';
+      try{
+        const pdfjs=await window.loadPdfJs();
+        if(token!==secureRenderToken)return;
+        const buf=await fetch(src).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer()});
+        if(token!==secureRenderToken)return;
+        const doc=await pdfjs.getDocument({data:new Uint8Array(buf),isEvalSupported:false,disableAutoFetch:true}).promise;
+        if(token!==secureRenderToken){try{doc.destroy()}catch(e){}return}
+        if(securePdfDoc){try{securePdfDoc.destroy()}catch(e){}}
+        securePdfDoc=doc;
+        const pages=document.createElement('div');pages.className='secure-pages';
+        container.innerHTML='';container.appendChild(pages);
+        const maxPages=opts.maxPages||doc.numPages;
+        const dpr=Math.min(window.devicePixelRatio||1,2);
+        const baseScale=(opts.baseScale||1.35)*dpr;
+        for(let i=1;i<=Math.min(doc.numPages,maxPages);i++){
+          if(token!==secureRenderToken)return;
+          const page=await doc.getPage(i);
+          const vp1=page.getViewport({scale:1});
+          const fitW=(container.clientWidth||760)*dpr/vp1.width;
+          const vp=page.getViewport({scale:Math.min(baseScale,fitW)});
+          const canvas=document.createElement('canvas');
+          canvas.width=Math.floor(vp.width);canvas.height=Math.floor(vp.height);
+          canvas.setAttribute('aria-label','Page '+i);
+          const wrap=securePageWrap();wrap.appendChild(canvas);pages.appendChild(wrap);
+          await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport:vp}).promise;
+          if(i%3===0)await new Promise(r=>setTimeout(r,0));   /* UI responsive rakho */
+        }
+        if(opts.maxPages&&doc.numPages>opts.maxPages){
+          const note=document.createElement('p');note.className='secure-more';
+          note.textContent='Preview shows first '+opts.maxPages+' of '+doc.numPages+' pages — open Read for the full document.';
+          pages.appendChild(note);
+        }
+      }catch(err){
+        if(token!==secureRenderToken)return;
+        container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-triangle-exclamation"></i><span>Could not open this document securely right now. Please try again.</span></div>';
+        console.warn('[BCAPrime] secure pdf render failed:',err);
+      }
+    }
+    async function renderSecureImage(container,src){
+      container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>Preparing secure viewer…</span></div>';
+      try{
+        const img=new Image();img.decoding='async';
+        await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('img load'));img.src=src});
+        const canvas=document.createElement('canvas');
+        const dpr=Math.min(window.devicePixelRatio||1,2);
+        canvas.width=Math.max(1,Math.floor(img.naturalWidth*dpr));
+        canvas.height=Math.max(1,Math.floor(img.naturalHeight*dpr));
+        canvas.getContext('2d',{alpha:false}).drawImage(img,0,0,canvas.width,canvas.height);
+        const pages=document.createElement('div');pages.className='secure-pages';
+        const wrap=securePageWrap();wrap.appendChild(canvas);pages.appendChild(wrap);
+        container.innerHTML='';container.appendChild(pages);
+      }catch(e){
+        container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-triangle-exclamation"></i><span>Could not open this image securely.</span></div>';
+      }
+    }
+    function isPdfSrc(src,name){
+      const clean=(src||'').split('?')[0].split('#')[0].toLowerCase();
+      return (src||'').startsWith('data:application/pdf')||/\.pdf$/.test(clean)||(name&&/\.pdf$/i.test(name));
+    }
+    function isImageSrc(src){
+      const clean=(src||'').split('?')[0].split('#')[0].toLowerCase();
+      return (src||'').startsWith('data:image')||/\.(png|jpe?g|gif|webp|bmp|svg)$/.test(clean);
+    }
     let readerZoom=1;
     let currentReaderResource=null;
     function openReader(resource){
       const src=resource.fileUrl||resource.fileData;if(!src)return;
-      /* Inline-only rendering: PDF fragment params force desktop browsers to render
-         the PDF in-page instead of prompting a download dialog. data: URLs cannot
-         carry fragment params, so they are used as-is. */
-      const inlineSrc=src.startsWith('data:')?src:src+'#toolbar=0&navpanes=0&view=FitH';
       const name=resource.fileName||'';
       const isDocx=/\.docx$/i.test(name)||/\.docx(\?|#|$)/i.test(src);
       const isOldDoc=/\.doc(\?|#|$)/i.test(name)||/\.doc(\?|#|$)/i.test(src);
       const isPptx=/\.pptx$/i.test(name)||/\.pptx(\?|#|$)/i.test(src);
-      const docxPane=$('readerDocx');const frm=$('readerFrame');
+      const docxPane=$('readerDocx');const frm=$('readerFrame');const pane=$('readerCanvasPane');
       readerZoom=1;
       currentReaderResource=resource;
       $('readerTitle').textContent=resource.title;
-      /* SECURE VIEW: koi raw URL DOM me expose nahi hoga — sirf sandboxed iframe me load. */
+      /* SECURE: raw URL kabhi DOM me expose nahi hoti — canvas rendering. */
       const ro=$('readerOpen');if(ro){try{ro.removeAttribute('href');ro.removeAttribute('download')}catch(e){}}
+      if(frm){frm.hidden=true;frm.src='about:blank'}
+      if(docxPane){docxPane.hidden=true;docxPane.innerHTML=''}
+      if(pane){pane.hidden=true;pane.innerHTML=''}
       if(isPptx&&!src.startsWith('data:')){
-        /* PPTX: use Google Docs Viewer for inline preview */
-        if(frm){frm.hidden=true;frm.src='about:blank'}
+        /* PPTX: Google Docs Viewer inline (canvas-render nahi ho sakta) */
         if(docxPane){
           docxPane.hidden=false;
           var gurl='https://docs.google.com/gview?url='+encodeURIComponent(src)+'&embedded=true';
           docxPane.innerHTML='<iframe class="gdocs-embed" src="'+gurl+'" title="'+resource.title+'" style="width:100%;height:100%;min-height:500px;border:none"></iframe>';
         }
       }else if(isDocx&&window.mammoth){
-        /* DOCX: browsers can't render Word files inline, so convert to HTML
-           in-app with Mammoth and show it in the reader pane (no download). */
-        if(frm){frm.hidden=true;frm.src='about:blank'}
+        /* DOCX: Mammoth se HTML (no download path) */
         if(docxPane){
           docxPane.hidden=false;
           docxPane.innerHTML='<p class="docx-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading document…</p>';
@@ -1862,18 +1939,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             .catch(()=>{docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-triangle-exclamation"></i> This document could not be opened in the app right now. Please try again later.</p>'});
         }
       }else if(isOldDoc||isDocx){
-        /* Legacy .doc (or Mammoth unavailable): cannot render inline — guide to download. */
-        if(frm){frm.hidden=true;frm.src='about:blank'}
         if(docxPane){docxPane.hidden=false;docxPane.innerHTML='<p class="docx-error"><i class="fa-solid fa-file-word"></i> Files in the older .doc format cannot be opened in the app. Please convert it to PDF or DOCX first.</p>'}
       }else{
-        if(docxPane){docxPane.hidden=true;docxPane.innerHTML=''}
-        if(frm){frm.hidden=false;frm.src=inlineSrc}
+        /* PDF / image / unknown -> SECURE CANVAS rendering (no iframe, no raw src) */
+        if(pane){pane.hidden=false;pane.innerHTML='';}
+        if(isPdfSrc(src,name))renderSecurePdf(pane,src,{});
+        else if(isImageSrc(src))renderSecureImage(pane,src);
+        else renderSecurePdf(pane,src,{});   /* unknown = mostly PDF -> canvas try */
       }
       $('readerModal').classList.add('open');
       enableSecureGuards();
       applyReaderZoom();
     }
-    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=false}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}disableSecureGuards()}
+    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}disableSecureGuards()}
     /* ======= Secure-view guards (sirf reader/preview open hone par) =======
        - right-click (context menu) block — viewport ke andar
        - text select/copy/drag block — DOCX pane ke andar
@@ -1890,7 +1968,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!secureViewOpen())return;
       try{
         const k=(e.key||'').toLowerCase();
+        /* F12 = devtools (browser UI, best-effort) */
+        if(e.key==='F12'){e.preventDefault();e.stopPropagation();try{toast('This shortcut is disabled in the secure viewer')}catch(err){}return false}
         const mod=e.ctrlKey||e.metaKey;
+        /* Ctrl+Shift+I/J/C = devtools / console (best-effort) */
+        if(mod&&e.shiftKey&&(k==='i'||k==='j'||k==='c')){e.preventDefault();e.stopPropagation();return false}
         if(!mod)return;
         /* S=save, P=print, U=view-source, C/X=copy/cut */
         if(k==='s'||k==='p'||k==='u'||k==='c'||k==='x'){
@@ -1903,6 +1985,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       }catch(err){}
     }
+    function onSecureSelectStart(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
     function onSecureBeforePrint(e){
       if(!secureViewOpen())return;
       try{e.preventDefault()}catch(err){}
@@ -1916,6 +1999,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         document.addEventListener('copy',onSecureCopyCut,true);
         document.addEventListener('cut',onSecureCopyCut,true);
         document.addEventListener('dragstart',onSecureDragStart,true);
+        document.addEventListener('selectstart',onSecureSelectStart,true);
         document.addEventListener('keydown',onSecureKeyDown,true);
         window.addEventListener('beforeprint',onSecureBeforePrint);
       }catch(e){}
@@ -1929,11 +2013,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         document.removeEventListener('copy',onSecureCopyCut,true);
         document.removeEventListener('cut',onSecureCopyCut,true);
         document.removeEventListener('dragstart',onSecureDragStart,true);
+        document.removeEventListener('selectstart',onSecureSelectStart,true);
         document.removeEventListener('keydown',onSecureKeyDown,true);
         window.removeEventListener('beforeprint',onSecureBeforePrint);
       }catch(e){}
     }
-    function applyReaderZoom(){const f=$('readerFrame');if(f&&!f.hidden)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%';const d=$('readerDocx');if(d&&!d.hidden)d.style.fontSize=Math.round(16*readerZoom)+'px'}
+    function applyReaderZoom(){const f=$('readerFrame');if(f&&!f.hidden)f.style.transform='scale('+readerZoom+')';const v=$('readerZoomVal');if(v)v.textContent=Math.round(readerZoom*100)+'%';const d=$('readerDocx');if(d&&!d.hidden)d.style.fontSize=Math.round(16*readerZoom)+'px';const cp=$('readerCanvasPane');if(cp&&!cp.hidden)cp.style.setProperty('--secure-zoom',readerZoom)}
     function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
     function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
     /* In-reader download button AB HATA DIYA GAYA HAI (secure view).
@@ -2169,7 +2254,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         location.reload();
       });
             window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=28').then(reg=>{
+        navigator.serviceWorker.register('./sw.js?v=29').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */

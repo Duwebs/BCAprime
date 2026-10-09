@@ -906,6 +906,20 @@ html.auth-known #appTabs{display:grid!important}
 .reader-open{color:var(--brand)}
 .reader-viewport{flex:1;overflow:auto;display:flex;justify-content:center;background:#111}
 .reader-frame{width:100%;height:100%;border:0;background:#fff;transform-origin:top center}
+/* ======= SECURE CANVAS VIEWER (anti-download / anti-extension) ======= */
+.reader-canvas-pane{flex:1;overflow:auto;width:100%;--secure-zoom:1}
+.reader-canvas-pane .secure-pages{display:flex;flex-direction:column;align-items:center;gap:16px;padding:18px 12px;transform:scale(var(--secure-zoom,1));transform-origin:top center;width:100%}
+.secure-page{position:relative;line-height:0;border-radius:6px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.5);background:#fff;max-width:100%}
+.secure-page canvas{display:block;max-width:100%;height:auto!important;-webkit-user-select:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+/* Watermark overlay: canvas ke UPAR translucent text (sirf view, no pointer) */
+.secure-page::after{content:'BCAPrime • study use only';position:absolute;inset:0;display:grid;place-items:center;font:700 26px 'Geist',sans-serif;color:rgba(20,40,60,.10);transform:rotate(-28deg);pointer-events:none;user-select:none;letter-spacing:.08em;white-space:nowrap}
+.secure-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:56px 20px;color:#c9d4dd;font-size:13.5px;text-align:center}
+.secure-loading i{font-size:26px;color:#7fb2d9}
+.secure-more{color:#9fb2c2;font-size:12.5px;text-align:center;margin:4px 0 0;line-height:1.5}
+#previewBody .secure-pages{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+/* Preview modal me canvas pages ke liye scrollable state (clipping fix) */
+.preview-frame.secure-body{display:block;overflow:auto;height:auto;max-height:min(68vh,560px);padding:12px 0}
+.preview-frame.secure-body .secure-page::after{font-size:18px}
 
 /* ---- Offline top notification banner (dismissible, big-tech style) ---- */
 .offline-banner{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;z-index:1200;transform:translate(-50%,-140%) translateY(0) scale(.98);display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100% - 24px));padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--bg,#0a0a0a) 86%,#333);border:1px solid color-mix(in srgb,var(--brand,#67c9dc) 45%,transparent);box-shadow:0 14px 36px rgba(0,0,0,.45);color:var(--ink,#eee);font-size:13px;opacity:0;pointer-events:none;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease}
@@ -1480,8 +1494,11 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   /* iOS auto-zoom prevent: 16px inputs */
   .profile-name-row input{height:46px;font-size:16px}
   .profile-name-row .secondary{min-height:46px}
+}
 
 /* ================= Guest Mode welcome modal ================= */
+/* NOTE: ye block kabhi kisi @media ke andar nest MAT karna — desktop par
+   centered layout isi order par depend karta hai (neeche desktop fix dekho). */
 .gw-modal{z-index:96;background:rgba(4,10,16,.8);backdrop-filter:blur(10px)}
 .gw-dialog{width:min(100%,430px);max-height:min(92dvh,700px);display:flex;flex-direction:column;padding:0;border-radius:24px;overflow:hidden;border:1px solid color-mix(in srgb,var(--brand) 26%,var(--line));box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04) inset;animation:gwIn .42s cubic-bezier(.2,.9,.3,1.12) both}
 @keyframes gwIn{from{opacity:0;transform:translateY(24px) scale(.99)}to{opacity:1;transform:none}}
@@ -1520,4 +1537,15 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
 .resource-actions .download.guest-locked{background:color-mix(in srgb,var(--brand) 14%,var(--surface-2));color:var(--brand);border:1px dashed color-mix(in srgb,var(--brand) 45%,var(--line))}
 .resource-actions .download.guest-locked:hover{background:color-mix(in srgb,var(--brand) 22%,var(--surface-2))}
 
+/* ================= Guest modal: DESKTOP centering fix =================
+   .modal.open{display:grid} + place-items:center desktop par dialog ko
+   center karta hai. Yahan max-width/padding desktop par lock karte hain
+   taaki bade viewport par modal faila hua ya misaligned na lage. */
+@media(min-width:641px){
+  .gw-modal{padding:24px;display:grid;place-items:center}
+  .gw-modal .gw-dialog{width:min(430px,calc(100vw - 48px));max-height:min(92dvh,720px);margin:auto}
+  .gw-hero{padding:30px 28px 24px}
+  .gw-hero h2{font-size:22px}
+  .gw-list{padding:20px 22px}
+  .gw-foot{padding:16px 22px 20px}
 }
