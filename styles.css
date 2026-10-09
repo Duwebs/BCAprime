@@ -1465,4 +1465,43 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   /* iOS auto-zoom prevent: 16px inputs */
   .profile-name-row input{height:46px;font-size:16px}
   .profile-name-row .secondary{min-height:46px}
+
+/* ================= Guest Mode welcome modal ================= */
+.gw-modal{z-index:96;background:rgba(4,10,16,.8);backdrop-filter:blur(10px)}
+.gw-dialog{width:min(100%,430px);max-height:min(92dvh,700px);display:flex;flex-direction:column;padding:0;border-radius:24px;overflow:hidden;border:1px solid color-mix(in srgb,var(--brand) 26%,var(--line));box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04) inset;animation:gwIn .42s cubic-bezier(.2,.9,.3,1.12) both}
+@keyframes gwIn{from{opacity:0;transform:translateY(24px) scale(.99)}to{opacity:1;transform:none}}
+.gw-hero{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:0;padding:26px 24px 20px;text-align:center;background:linear-gradient(150deg,color-mix(in srgb,var(--brand) 22%,#070d12) 0%,#0a1220 58%,color-mix(in srgb,#7c5cff 15%,#070d12) 100%)}
+.gw-orb{position:absolute;border-radius:50%;filter:blur(40px);opacity:.3;pointer-events:none}
+.gw-orb1{width:190px;height:190px;top:-80px;left:-60px;background:var(--brand)}
+.gw-orb2{width:160px;height:160px;bottom:-80px;right:-50px;background:#7c5cff}
+.gw-logo{position:relative;width:56px;height:56px;object-fit:contain;border-radius:16px;box-shadow:0 8px 30px color-mix(in srgb,var(--brand) 45%,transparent),0 0 0 1px rgba(255,255,255,.12);margin-bottom:12px;animation:gwFloat 3.4s ease-in-out infinite}
+@keyframes gwFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.gw-pill{position:relative;display:inline-flex;align-items:center;gap:7px;margin-bottom:12px;padding:6px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;backdrop-filter:blur(6px)}
+.gw-hero h2{position:relative;margin:0;font:700 20px/1.2 'Geist';letter-spacing:-.02em;color:#fff}
+.gw-sub{position:relative;margin:7px 0 0;color:rgba(255,255,255,.66);font-size:12.5px;line-height:1.45;max-width:300px}
+.gw-list{display:grid;gap:14px;overflow:auto;flex:1;min-height:0;padding:18px 20px;background:var(--surface)}
+.gw-group{display:grid;gap:8px}
+.gw-label{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.gw-allowed .gw-label{color:var(--good)}
+.gw-restricted .gw-label{color:#e0a53e}
+.gw-item{display:flex;gap:12px;align-items:flex-start;padding:11px 13px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2)}
+.gw-ico{flex:0 0 auto;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;font-size:14px;color:#fff}
+.gw-ok{background:color-mix(in srgb,var(--good) 82%,#000)}
+.gw-no{background:color-mix(in srgb,#e0a53e 80%,#000)}
+.gw-item strong{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}
+.gw-item span{display:block;font-size:12px;line-height:1.45;color:var(--muted);margin-top:2px}
+.gw-item b{color:var(--brand);font-weight:700}
+.gw-foot{display:grid;gap:8px;padding:14px 20px 18px;border-top:1px solid var(--line);background:var(--surface)}
+.gw-cta{width:100%;justify-content:center}
+.gw-signup{width:100%;justify-content:center;color:var(--brand)}
+@media(max-width:420px){
+  .gw-hero{padding:22px 18px 16px}
+  .gw-hero h2{font-size:18px}
+  .gw-list{padding:14px 16px}
+  .gw-foot{padding:12px 16px 16px}
+}
+/* Guest-locked download button (card par "Sign up to download") */
+.resource-actions .download.guest-locked{background:color-mix(in srgb,var(--brand) 14%,var(--surface-2));color:var(--brand);border:1px dashed color-mix(in srgb,var(--brand) 45%,var(--line))}
+.resource-actions .download.guest-locked:hover{background:color-mix(in srgb,var(--brand) 22%,var(--surface-2))}
+
 }

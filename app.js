@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER firebase-config.js and supabase-config.js.
-console.info('[BCAPrime] app.js v39 loaded ✔');
+console.info('[BCAPrime] app.js v40 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -251,7 +251,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     }
     function uploaderSmallAvatar(name){const n=(name||'Student').trim();const letter=n.charAt(0).toUpperCase()||'S';const hues=[142,200,280,320,40,170];let h=0;for(const ch of n)h=(h*31+ch.charCodeAt(0))%360;const hue=hues[h%hues.length];return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="14" fill="hsl(${hue},55%,42%)"/><text x="14" y="19" font-family="Arial,sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${letter}</text></svg>`)}`}
-function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject||'Community upload');const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const cUid=contributorSelector(r.uploaderUid||'');const cLive=cUid?contributorCache.get(cUid):null;const cName=(cLive&&cLive.name)||r.uploader||'';const sUploader=cName?escHtml(cName):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const cnt=getCounts(id);const views=((cnt&&cnt.v)||0);const downloads=((typeof r.downloads==='number')?r.downloads:0)+((cnt&&cnt.d)||0);const isAdmin=(r.role==='admin'||r.uploaderRole==='admin');const avatar=(cLive&&cLive.avatar)||r.uploaderAvatar||(isAdmin?'/assets/logo.png':uploaderSmallAvatar(cName||'S'));const saveBtn=`<button class="rc-icon ${saved?'on':''}" aria-label="Save resource" onclick="toggleSave('${id}')" title="Save"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button>`;const shareBtn=`<button class="rc-icon" aria-label="Share" onclick="shareResource('${dlTitle}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;const roleBadge=isAdmin?`<span class="rc-role rc-role-admin"><i class="fa-solid fa-circle-check"></i> Admin</span>`:`<span class="rc-role">Contributor</span>`;const fileExt=(r.fileName&&(r.fileName.match(/\.(\w+)$/)||[])[1])?escHtml(r.fileName.match(/\.(\w+)$/)[1].toUpperCase()):(r.type==='pyq'?'PYQ':'Notes');return `<article class="resource${isPending?' pending-resource':''}" data-id="${id}"><div class="rc-top"><div class="rc-top-left"><span class="badge">${r.type==='pyq'?'PYQ':'Notes'}</span><span class="rc-file">${fileExt}</span></div><div class="rc-top-actions">${saveBtn}${shareBtn}</div></div>${isPending?`<span class="rc-pending"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<h3 class="rc-title">${sTitle}</h3><div class="rc-subject"><span class="rc-subject-badge"><i class="fa-solid fa-book-open"></i> ${sSubject}</span><span class="rc-sem-badge"><i class="fa-solid fa-layer-group"></i> Sem ${(r.sem!=null&&r.sem!=='')?escHtml(String(r.sem)):''}</span></div><div class="rc-meta"><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span>${r.date?`<span><i class="fa-regular fa-clock"></i>${escHtml(r.date)}</span>`:''}</div><div class="rc-uploader"><img class="rc-uploader-avatar"${cUid?` data-contributor-uid="${cUid}"`:''} src="${avatar}" alt="${sUploader||'BCAPrime'}" width="24" height="24">${(sUploader||cUid)?`<span class="rc-uploader-name"${cUid?` data-contributor-uid="${cUid}"`:''}>${sUploader}</span>`:''}${roleBadge}</div><div class="rc-stats"><button type="button" class="rc-stat rc-like${up?' on':''}" title="${up?'Unlike':'Like'}" onclick="toggleUpvote('${id}')"><i class="fa-${up?'solid':'regular'} fa-heart"></i><b>${upvoteDisplay(r)}</b> ${up?'Liked':'Likes'}</button><span class="rc-stat" title="Views"><i class="fa-regular fa-eye"></i><b id="rcv-${id}">${views}</b> Views</span><span class="rc-stat" title="Downloads"><i class="fa-solid fa-download"></i><b id="rcd-${id}">${downloads}</b> Downloads</span></div><div class="resource-actions"><button class="view read" onclick="readResource('${id}')"><i class="fa-solid fa-book-open"></i> Read</button><button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button></div></article>`}
+function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject||'Community upload');const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const cUid=contributorSelector(r.uploaderUid||'');const cLive=cUid?contributorCache.get(cUid):null;const cName=(cLive&&cLive.name)||r.uploader||'';const sUploader=cName?escHtml(cName):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const cnt=getCounts(id);const views=((cnt&&cnt.v)||0);const downloads=((typeof r.downloads==='number')?r.downloads:0)+((cnt&&cnt.d)||0);const isAdmin=(r.role==='admin'||r.uploaderRole==='admin');const avatar=(cLive&&cLive.avatar)||r.uploaderAvatar||(isAdmin?'/assets/logo.png':uploaderSmallAvatar(cName||'S'));const saveBtn=`<button class="rc-icon ${saved?'on':''}" aria-label="Save resource" onclick="toggleSave('${id}')" title="Save"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button>`;const shareBtn=`<button class="rc-icon" aria-label="Share" onclick="shareResource('${dlTitle}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;const roleBadge=isAdmin?`<span class="rc-role rc-role-admin"><i class="fa-solid fa-circle-check"></i> Admin</span>`:`<span class="rc-role">Contributor</span>`;const fileExt=(r.fileName&&(r.fileName.match(/\.(\w+)$/)||[])[1])?escHtml(r.fileName.match(/\.(\w+)$/)[1].toUpperCase()):(r.type==='pyq'?'PYQ':'Notes');return `<article class="resource${isPending?' pending-resource':''}" data-id="${id}"><div class="rc-top"><div class="rc-top-left"><span class="badge">${r.type==='pyq'?'PYQ':'Notes'}</span><span class="rc-file">${fileExt}</span></div><div class="rc-top-actions">${saveBtn}${shareBtn}</div></div>${isPending?`<span class="rc-pending"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<h3 class="rc-title">${sTitle}</h3><div class="rc-subject"><span class="rc-subject-badge"><i class="fa-solid fa-book-open"></i> ${sSubject}</span><span class="rc-sem-badge"><i class="fa-solid fa-layer-group"></i> Sem ${(r.sem!=null&&r.sem!=='')?escHtml(String(r.sem)):''}</span></div><div class="rc-meta"><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span>${r.date?`<span><i class="fa-regular fa-clock"></i>${escHtml(r.date)}</span>`:''}</div><div class="rc-uploader"><img class="rc-uploader-avatar"${cUid?` data-contributor-uid="${cUid}"`:''} src="${avatar}" alt="${sUploader||'BCAPrime'}" width="24" height="24">${(sUploader||cUid)?`<span class="rc-uploader-name"${cUid?` data-contributor-uid="${cUid}"`:''}>${sUploader}</span>`:''}${roleBadge}</div><div class="rc-stats"><button type="button" class="rc-stat rc-like${up?' on':''}" title="${up?'Unlike':'Like'}" onclick="toggleUpvote('${id}')"><i class="fa-${up?'solid':'regular'} fa-heart"></i><b>${upvoteDisplay(r)}</b> ${up?'Liked':'Likes'}</button><span class="rc-stat" title="Views"><i class="fa-regular fa-eye"></i><b id="rcv-${id}">${views}</b> Views</span><span class="rc-stat" title="Downloads"><i class="fa-solid fa-download"></i><b id="rcd-${id}">${downloads}</b> Downloads</span></div><div class="resource-actions"><button class="view read" onclick="readResource('${id}')"><i class="fa-solid fa-book-open"></i> Read</button>${isGuestMode()?`<button class="download guest-locked" onclick="guestSignupPrompt('${dlTitle}')" title="Sign up to download"><i class="fa-solid fa-lock"></i> Sign up to download</button>`:`<button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button>`}</div></article>`}
 
     /* ================= Resource Card counters & helpers ================= */
         const RC_KEY='bca-rc-counts';
@@ -263,7 +263,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         function bumpDownload(id){if(!id)return;const c=loadCounts();const rec=c[id]||{v:0,d:0};rec.d=(rec.d||0)+1;c[id]=rec;saveCounts(c);const resource=resources.find(x=>rcId(x.title)===id);const total=((resource&&typeof resource.downloads==='number')?resource.downloads:0)+rec.d;if(resource)resource.downloadCount=total;const el=document.getElementById('rcd-'+id);if(el)el.textContent=total}
         function bindCardViews(){/* Views are counted STRICTLY on the "Read" button click (readResource) — never on card tap, page load, mount or hover. */}
         async function shareResource(title){try{if(navigator.share){await navigator.share({title:'BCAPrime',text:title||'Check this on BCAPrime',url:location.href})}else if(navigator.clipboard){await navigator.clipboard.writeText(location.href);toast('Link copied')}else{toast('Share is not supported here')}}catch(e){}}
-        function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}bumpView(id);openReader(resource)}
+        async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest preview limit (client counter + server quota sign-resource me) */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);openReader(signed?{...resource,fileUrl:signed}:resource)}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');renderSubjectFilter();render()}
     function applyFilters(){updateSemesterOptions();state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
     /* Semester dropdown sabhi 6 semesters dikhata hai aur user ki
@@ -544,8 +544,66 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function resumeRestrictedAction(){if(!accountSession||!restrictedAction)return;const action=restrictedAction;restrictedAction=null;closeModals();if(action.action==='upload')openUpload();if(action.action==='download')download(action.title);if(action.action==='feedback')openFeedback();if(action.action==='qr-login')openQrScanner()}
     async function submitAccessAuth(event){event.preventDefault();if(!firebaseApp){$('accessAuthMessage').textContent='Firebase is not configured.';return}const password=$('accessAuthPassword').value;const msgEl=$('accessAuthMessage');if(accessAuthMode==='signup'){const username=$('accessAuthName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accessAuthConfirm'),msgEl))return;const usernameAvail=await checkUsernameAvailable(username);if(usernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accessAuthMessage');return}const loginEmail=await resolveLoginEmail($('accessAuthEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{await firebase.auth().signInWithEmailAndPassword(loginEmail,password);accountSession=firebase.auth().currentUser;if(await ensureVerified(accountSession)){resumeRestrictedAction()}}catch(error){$('accessAuthMessage').textContent=error.message;return}}
 
-    async function download(title){/* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */if(!accountSession){requireAccount('Sign up or login to download this note.','download',title);return}bumpDownload(rcId(title));const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){if(!await ensureFileAvailable(resource,'download'))return;const a=document.createElement('a');a.href=resource.fileData||resource.fileUrl;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
+    async function download(title){/* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */if(!accountSession){requireAccount('Sign up or login to download this note.','download',title);return}bumpDownload(rcId(title));const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){if(!await ensureFileAvailable(resource,'download'))return;let href=resource.fileData||resource.fileUrl;const raw=resource.fileUrl||'';if(!resource.fileData&&isRemoteFile(raw)){/* Private bucket: signed URL lo (Firebase session verify hoti hai) */const signed=await fetchSignedUrl(resource,'download');if(!signed){toast('Could not start download — please try again.');return}href=signed}const a=document.createElement('a');a.href=href;a.download=resource.fileName||title.replace(/\W+/g,'-');a.target='_blank';a.click();toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=title.replace(/\W+/g,'-')+'.txt';a.click();URL.revokeObjectURL(a.href);toast('Demo download started')}
     let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;let profileRealtimeChannel=null;
+    /* ============ Guest Mode: welcome popup + preview limits + signed URLs ============
+       Bucket PRIVATE hai — seedha public URL ab kaam nahi karta. Har Read/Preview/Download
+       se pehle sign-resource Edge Function se ek chhota-lived SIGNED URL lete hain.
+       Guest = sirf limited previews (client counter + server quota). Download = sign-up wall. */
+    const GUEST_PREVIEW_LIMIT = 3;
+    function getGuestId(){
+      try{
+        let g = localStorage.getItem('bca-guest-id');
+        if(!g){ g = (crypto.randomUUID ? crypto.randomUUID() : 'g-'+Date.now()+'-'+Math.random().toString(36).slice(2,10)); localStorage.setItem('bca-guest-id', g); }
+        return g;
+      }catch(e){ return 'g-session'; }
+    }
+    function guestPreviewsUsed(){ try{ return parseInt(sessionStorage.getItem('bca-guest-previews')||'0',10)||0; }catch(e){ return 0; } }
+    function setGuestPreviewsUsed(n){ try{ sessionStorage.setItem('bca-guest-previews', String(n)); }catch(e){} }
+    function guestPreviewsLeft(){ return Math.max(0, GUEST_PREVIEW_LIMIT - guestPreviewsUsed()); }
+    /* Firebase ID token (agar logged-in) — sign-resource function isse verify karta hai. */
+    async function firebaseIdToken(){
+      try{ if(accountSession && typeof accountSession.getIdToken === 'function'){ return await accountSession.getIdToken(); } }catch(e){}
+      return '';
+    }
+    /* Signed URL lo. Guest -> preview mode (server quota). Logged-in -> preview/download. */
+    async function fetchSignedUrl(resource, mode){
+      const raw = resource && (resource.fileUrl || '');
+      if(!raw) return '';
+      if(!isRemoteFile(raw)) return raw;               /* data:/local — sign ki zaroorat nahi */
+      if(!supabaseClient || typeof SUPABASE_URL === 'undefined') return raw;
+      try{
+        const headers = { 'Content-Type':'application/json', 'Authorization':'Bearer ' + SUPABASE_PUBLISHABLE_KEY };
+        const token = await firebaseIdToken();
+        if(token) headers['x-firebase-token'] = token;
+        const body = { fileUrl: raw, mode: mode || 'preview', resourceId: (resource && resource.id != null) ? String(resource.id) : '' };
+        if(!accountSession) body.guestId = getGuestId();   /* guest = server-side preview quota */
+        const res = await fetch(SUPABASE_URL + '/functions/v1/sign-resource', { method:'POST', headers, body: JSON.stringify(body) });
+        if(!res.ok) return '';
+        const data = await res.json();
+        return (data && data.ok && data.url) ? data.url : '';
+      }catch(e){ return ''; }
+    }
+    /* Guest preview consume karo. true = aage badho, false = sign-up wall dikha do. */
+    function consumeGuestPreview(resource){
+      if(accountSession) return true;        /* logged-in = unlimited */
+      if(!isGuestMode()) return true;        /* gate par hi ruk jaata hai */
+      if(guestPreviewsLeft() <= 0){
+        toast('Free previews used up — sign up to keep reading');
+        guestSignupPrompt(resource && resource.title);
+        return false;
+      }
+      setGuestPreviewsUsed(guestPreviewsUsed() + 1);
+      return true;
+    }
+    /* Guest welcome popup + sign-up CTA */
+    function showGuestWelcome(){ const m=$('guestWelcomeModal'); if(!m) return; const el=$('gwPreviewAllowance'); if(el) el.textContent=String(GUEST_PREVIEW_LIMIT); m.classList.add('open'); }
+    function closeGuestWelcome(){ const m=$('guestWelcomeModal'); if(m) m.classList.remove('open'); }
+    function guestSignupPrompt(title){
+      closeGuestWelcome();
+      if(title) requireAccount('Sign up or login to download "'+title+'".','download',title);
+      else requireAccount('Create a free account to unlock full downloads and uploads.','','');
+    }
     /* ============ Strict Email Verification gate ============
        Email/password users MUST verify before entering the app.
        Google / Apple (OAuth) users are already verified -> they bypass.
@@ -647,7 +705,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(popScanBtn)popScanBtn.hidden=isGuest;
     }
     function showAuthenticatedApp(){try{localStorage.setItem('bca-auth-known','1')}catch(e){}$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();cacheProfile();renderAvatar();afterAccountAuth();updateQrButtonVisibility();setTimeout(showOnboardingIfNeeded,180);setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900)}
-    function continueAsGuest(){sessionStorage.setItem('bca-guest-mode','true');showAuthenticatedApp();toast('Guest mode enabled')}
+    function continueAsGuest(){sessionStorage.setItem('bca-guest-mode','true');showAuthenticatedApp();setTimeout(showGuestWelcome,250)}
     function hideAuthenticatedApp(){try{localStorage.removeItem('bca-auth-known')}catch(e){}$('authGate').hidden=false;$('appShell').hidden=true;$('appTabs').hidden=true;renderGreeting();updateQrButtonVisibility()}
     /* ================== Account-bound college & semester ==================
        Ab account (Firebase uid) ki ek server-side profile hoti hai (college +
@@ -1371,8 +1429,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         else{toast('That doesn\'t look like a file — drag a PDF/photo here')}
       });
     }
-    function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
-      ensureFileAvailable(resource,'preview').then(ok=>{if(ok)showPreview(resource)});
+    async function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
+      /* Guest preview limit + signed URL (private bucket) */
+      if(!consumeGuestPreview(resource))return;
+      ensureFileAvailable(resource,'preview').then(async ok=>{
+        if(!ok)return;
+        const signed=await fetchSignedUrl(resource,'preview');
+        if(!signed&&isRemoteFile(src)){toast('Could not preview this file right now.');return}
+        showPreview(signed?{...resource,fileUrl:signed}:resource);
+      });
     }
     function showPreview(resource){const src=resource.fileUrl||resource.fileData;
       $('previewTitle').textContent=resource.title;
@@ -2076,7 +2141,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         location.reload();
       });
             window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=26').then(reg=>{
+        navigator.serviceWorker.register('./sw.js?v=27').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */

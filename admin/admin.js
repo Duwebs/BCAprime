@@ -274,7 +274,7 @@ function render() {
     const rowClass = isNewPending ? 'new-pending' : '';
     return `<tr class="${rowClass}">
           <td><input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)"></td>
-          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject || '')}${item.fileName ? ` &middot; ${escapeHtml(item.fileName)}` : ''}</small>${item.fileUrl ? `<small><a href="${escapeHtml(item.fileUrl)}" target="_blank" rel="noopener">Open file</a></small>` : ''}</td>
+          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject || '')}${item.fileName ? ` &middot; ${escapeHtml(item.fileName)}` : ''}</small>${item.fileUrl ? `<small><a href="#" onclick="event.preventDefault();openResourceFile('${escapeHtml(item.fileUrl)}')" >Open file</a></small>` : ''}</td>
           <td><span class="type-badge ${typeClass}">${typeLabel === 'PYQ' ? '📝 PYQ' : '📚 Notes'}</span></td>
           <td>${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}${item.uploader ? `<small>${item.uploaderAvatar ? `<img src="${escapeHtml(item.uploaderAvatar)}" alt="" width="16" height="16" style="border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:5px">` : ''}by ${escapeHtml(item.uploader)}</small>` : ''}</td>
           <td>Semester ${item.sem}${item.year ? `<small>Year ${item.year}</small>` : ''}</td>
@@ -385,6 +385,31 @@ setInterval(() => {
 /* ---- Broadcast push notifications (Web Push via Edge Function) ---- */
 // Must match the NOTIFY_SECRET configured on the send-push Edge Function.
 const ADMIN_NOTIFY_SECRET = 'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz';
+
+/* ---- Private bucket: admin "Open file" ab signed URL se khulta hai ----
+   resources bucket private hai, isliye seedha public URL 403 deta hai.
+   sign-resource Edge Function admin secret bhejti hai -> full access. */
+async function openResourceFile(fileUrl) {
+  if (!fileUrl) return;
+  if (typeof SUPABASE_URL === 'undefined') { window.open(fileUrl, '_blank', 'noopener'); return; }
+  try {
+    const res = await fetch(SUPABASE_URL + '/functions/v1/sign-resource', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : ''),
+        'x-admin-secret': ADMIN_NOTIFY_SECRET,
+      },
+      body: JSON.stringify({ fileUrl: fileUrl, mode: 'download' }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data && data.ok && data.url) window.open(data.url, '_blank', 'noopener');
+    else { console.warn('Could not open file:', data && data.error); alert('Could not open the file. Please try again.'); }
+  } catch (e) {
+    console.warn('openResourceFile failed', e);
+    window.open(fileUrl, '_blank', 'noopener');
+  }
+}
 
 async function sendPushBroadcast(title, body, tag, target) {
   if (typeof SEND_PUSH_FUNCTION_URL === 'undefined') {
