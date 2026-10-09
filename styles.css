@@ -1542,7 +1542,11 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
    center karta hai. Yahan max-width/padding desktop par lock karte hain
    taaki bade viewport par modal faila hua ya misaligned na lage. */
 @media(min-width:641px){
-  .gw-modal{padding:24px;display:grid;place-items:center}
+  /* NOTE: yahan 'display:grid' MAT likho — base '.modal{display:none}' ko
+     override karke guest modal ko page-load par hi dikhne par majboor kar
+     deta tha (desktop par "trap"). Visibility sirf '.modal.open{display:grid}'
+     se control hoti hai. Yahan sirf padding/centering tweak. */
+  .gw-modal{padding:24px;place-items:center}
   .gw-modal .gw-dialog{width:min(430px,calc(100vw - 48px));max-height:min(92dvh,720px);margin:auto}
   .gw-hero{padding:30px 28px 24px}
   .gw-hero h2{font-size:22px}
