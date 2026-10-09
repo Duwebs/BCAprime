@@ -546,13 +546,113 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     /* Guess a file extension from the resource so the saved file is never extension-less. */
     function guessExt(resource){const n=((resource&&(resource.fileName||resource.fileUrl))||'').split(/[?#]/)[0];const m=n.match(/\.([a-z0-9]{1,5})$/i);return m?'.'+m[1].toLowerCase():''}
-    /* Force a real file save for same-origin / data: / blob: URLs (download attr is honoured here). */
-    function saveUrlAs(url,fileName){const a=document.createElement('a');a.href=url;a.download=fileName;a.rel='noopener';a.style.display='none';document.body.appendChild(a);a.click();setTimeout(()=>a.remove(),4000);return true}
-    /* Signed storage URLs are CROSS-ORIGIN, so the HTML5 `download` attribute is ignored if we
-       point the anchor straight at them (browser navigates / opens a tab). fetch -> Blob -> objectURL
-       makes `download` work and forces a clean save with NO new window, on desktop AND mobile. */
-    async function fetchBlobDownload(url,fileName){try{const res=await fetch(url,{mode:'cors'});if(!res.ok)return false;const blob=await res.blob();const blobUrl=URL.createObjectURL(blob);saveUrlAs(blobUrl,fileName);setTimeout(()=>URL.revokeObjectURL(blobUrl),6000);return true}catch(e){return false}}
-    async function download(title){/* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */if(!accountSession){requireAccount('Sign up or login to download this note.','download',title);return}bumpDownload(rcId(title));const resource=resources.find(item=>item.title===title);trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});if(resource&&(resource.fileData||resource.fileUrl)){if(!await ensureFileAvailable(resource,'download'))return;const fileName=resource.fileName||((title||'note').replace(/\W+/g,'-')+guessExt(resource));if(resource.fileData){/* data: URL — same-origin, download attr works directly */saveUrlAs(resource.fileData,fileName);toast('Download started');return}const raw=resource.fileUrl||'';if(isRemoteFile(raw)){/* Private bucket: signed URL lo (Firebase session verify hoti hai) */const signed=await fetchSignedUrl(resource,'download');if(!signed){toast('Could not start download — please try again.');return}const ok=await fetchBlobDownload(signed,fileName);if(!ok)saveUrlAs(signed,fileName);/* fallback */toast('Download started');return}saveUrlAs(raw,fileName);toast('Download started');return}const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain'});const url=URL.createObjectURL(blob);saveUrlAs(url,(title||'note').replace(/\W+/g,'-')+'.txt');setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Demo download started')}
+    /* Comprehensive MIME type map for robust mobile (iOS/Android) downloads. */
+    function getFileMimeType(fileName,fallbackType){
+      const ext=((fileName||'').split(/[?#]/)[0].match(/\.([a-z0-9]+)$/i)||[])[1]||'';
+      const map={
+        pdf:'application/pdf',
+        docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        doc:'application/msword',
+        pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        ppt:'application/vnd.ms-powerpoint',
+        txt:'text/plain;charset=utf-8',
+        png:'image/png',
+        jpg:'image/jpeg',
+        jpeg:'image/jpeg',
+        webp:'image/webp',
+        svg:'image/svg+xml',
+        zip:'application/zip'
+      };
+      return map[ext.toLowerCase()]||fallbackType||'application/octet-stream';
+    }
+    /* Mobile-safe file save: uses off-screen anchor and MouseEvent dispatch so mobile WebKit/Chromium reliably trigger the download */
+    function saveUrlAs(url,fileName,isBlob){
+      const a=document.createElement('a');
+      a.href=url;
+      if(fileName){
+        a.download=fileName;
+        a.setAttribute('download',fileName);
+      }
+      a.rel='noopener noreferrer';
+      /* Position offscreen instead of display:none so mobile WebKit & Android properly register programmatic clicks */
+      a.style.position='fixed';
+      a.style.top='-9999px';
+      a.style.left='-9999px';
+      a.style.opacity='0';
+      a.style.pointerEvents='none';
+      /* Cross-origin fallback on mobile: open in new tab so it doesn't unload the SPA */
+      if(!isBlob&&isRemoteFile(url)){
+        a.target='_blank';
+      }
+      document.body.appendChild(a);
+      try{
+        a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true,view:window}));
+      }catch(e){
+        a.click();
+      }
+      setTimeout(()=>{try{a.remove()}catch(err){}},10000);
+      return true;
+    }
+    /* Mobile-safe Blob download: fetch -> typed Blob -> objectURL.
+       Keeps Blob URL alive for 60s so Android DownloadManager and iOS Safari save dialogs have time to complete. */
+    async function fetchBlobDownload(url,fileName){
+      try{
+        const res=await fetch(url,{mode:'cors'});
+        if(!res.ok)return false;
+        const rawBlob=await res.blob();
+        const mime=getFileMimeType(fileName,rawBlob.type);
+        const safeBlob=new Blob([rawBlob],{type:mime});
+        const blobUrl=URL.createObjectURL(safeBlob);
+        saveUrlAs(blobUrl,fileName,true);
+        setTimeout(()=>{try{URL.revokeObjectURL(blobUrl)}catch(e){}},60000);
+        return true;
+      }catch(e){
+        console.warn('[BCAPrime] fetchBlobDownload error:',e);
+        return false;
+      }
+    }
+    async function download(title){
+      /* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */
+      if(!accountSession){
+        requireAccount('Sign up or login to download this note.','download',title);
+        return;
+      }
+      bumpDownload(rcId(title));
+      const resource=resources.find(item=>item.title===title);
+      trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});
+      if(resource&&(resource.fileData||resource.fileUrl)){
+        if(!await ensureFileAvailable(resource,'download'))return;
+        const fileName=resource.fileName||((title||'note').replace(/\W+/g,'-')+guessExt(resource));
+        if(resource.fileData){
+          /* data: URL — convert to Blob for mobile browsers that reject large data: URL downloads */
+          const ok=await fetchBlobDownload(resource.fileData,fileName);
+          if(!ok)saveUrlAs(resource.fileData,fileName,false);
+          toast('Download started');
+          return;
+        }
+        const raw=resource.fileUrl||'';
+        if(isRemoteFile(raw)){
+          /* Private bucket: signed URL lo (Firebase session verify hoti hai) */
+          const signed=await fetchSignedUrl(resource,'download');
+          if(!signed){
+            toast('Could not start download — please try again.');
+            return;
+          }
+          const ok=await fetchBlobDownload(signed,fileName);
+          if(!ok)saveUrlAs(signed,fileName,false);/* fallback with target="_blank" */
+          toast('Download started');
+          return;
+        }
+        saveUrlAs(raw,fileName,false);
+        toast('Download started');
+        return;
+      }
+      const blob=new Blob([`BCAPrime resource\n${title}\n\nUse this as a study reference.`],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      saveUrlAs(url,(title||'note').replace(/\W+/g,'-')+'.txt',true);
+      setTimeout(()=>{try{URL.revokeObjectURL(url)}catch(e){}},60000);
+      toast('Demo download started');
+    }
     let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;let profileRealtimeChannel=null;
     /* ============ Guest Mode: welcome popup + signed URLs ============
        Bucket PRIVATE hai — seedha public URL ab kaam nahi karta. Har Read/Preview/Download
@@ -1958,8 +2058,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       $('readerModal').classList.add('open');
       enableSecureGuards();
       applyReaderZoom();
+      const vp=$('readerViewport')||document.querySelector('.reader-viewport');
+      if(vp){
+        vp.tabIndex=0;
+        setTimeout(()=>{try{vp.focus()}catch(e){}},60);
+      }
     }
-    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}disableSecureGuards()}
+    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}const vp=$('readerViewport')||document.querySelector('.reader-viewport');if(vp){try{vp.scrollTop=0}catch(e){}}disableSecureGuards()}
     /* ======= Secure-view guards (sirf reader/preview open hone par) =======
        - right-click (context menu) block — viewport ke andar
        - text select/copy/drag block — DOCX pane ke andar
@@ -1971,7 +2076,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function secureViewOpen(){try{const r=$('readerModal'),p=$('previewModal');return !!((r&&r.classList.contains('open'))||(p&&p.classList.contains('open')))}catch(e){return false}}
     function onSecureContextMenu(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
     function onSecureCopyCut(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-docx')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
-    function onSecureDragStart(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
+    function onSecureDragStart(e){
+      if(!secureViewOpen())return;
+      try{
+        /* Only block drag on media items (canvas/img/a), never on the scrollbar or viewport container */
+        const tag=(e&&e.target&&e.target.tagName)||'';
+        if(tag==='IMG'||tag==='CANVAS'||tag==='A'){
+          e.preventDefault();
+        }
+      }catch(err){}
+    }
     function onSecureKeyDown(e){
       if(!secureViewOpen())return;
       try{
@@ -1981,7 +2095,36 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const mod=e.ctrlKey||e.metaKey;
         /* Ctrl+Shift+I/J/C = devtools / console (best-effort) */
         if(mod&&e.shiftKey&&(k==='i'||k==='j'||k==='c')){e.preventDefault();e.stopPropagation();return false}
-        if(!mod)return;
+        if(!mod){
+          /* Desktop Keyboard Navigation: Arrow keys, Page Up/Down, Space, Home/End */
+          const navKeys=['arrowdown','arrowup','pageup','pagedown',' ','space','home','end'];
+          if(navKeys.includes(k)){
+            const t=e.target;
+            const inField=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable);
+            if(!inField){
+              const rModal=$('readerModal');
+              if(rModal&&rModal.classList.contains('open')){
+                const scroller=$('readerViewport')||document.querySelector('.reader-viewport');
+                if(scroller){
+                  const pageStep=Math.max(200,Math.floor(scroller.clientHeight*0.85));
+                  let delta=0;
+                  if(k==='arrowdown') delta=60;
+                  else if(k==='arrowup') delta=-60;
+                  else if(k==='pagedown'||k===' '||k==='space') delta=e.shiftKey?-pageStep:pageStep;
+                  else if(k==='pageup') delta=-pageStep;
+                  else if(k==='home'){scroller.scrollTo({top:0,behavior:'smooth'});e.preventDefault();return false;}
+                  else if(k==='end'){scroller.scrollTo({top:scroller.scrollHeight,behavior:'smooth'});e.preventDefault();return false;}
+                  if(delta!==0){
+                    scroller.scrollBy({top:delta,behavior:'smooth'});
+                    e.preventDefault();
+                    return false;
+                  }
+                }
+              }
+            }
+          }
+          return;
+        }
         /* S=save, P=print, U=view-source, C/X=copy/cut */
         if(k==='s'||k==='p'||k==='u'||k==='c'||k==='x'){
           const t=e.target;
@@ -1993,7 +2136,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       }catch(err){}
     }
-    function onSecureSelectStart(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
+    function onSecureSelectStart(e){
+      if(!secureViewOpen())return;
+      try{
+        /* Block selection only inside docx text, never on viewport or scrollbars */
+        if(e&&e.target&&e.target.closest&&e.target.closest('.reader-docx'))e.preventDefault();
+      }catch(err){}
+    }
     function onSecureBeforePrint(e){
       if(!secureViewOpen())return;
       try{e.preventDefault()}catch(err){}
