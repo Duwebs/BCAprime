@@ -11,10 +11,10 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.1.0";
+const CURRENT_APP_VERSION = "3.1.1";
 
 const LATEST_RELEASE = {
-  version: "3.1.0",
+  version: "3.1.1",
   date: "September 2026",
   title: "Your name, everywhere — automatically",
   subtitle: "Change your display name or photo once, and every note & PYQ you shared updates instantly.",
