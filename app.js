@@ -864,6 +864,40 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         profileRealtimeChannel.subscribe();
       }catch(e){console.warn('[BCAPrime] profile realtime unavailable.',e)}
     }
+    /* ===== Default profile guarantee (new-user Firebase→Supabase sync) =====
+       Har Firebase user ki Supabase me user_profiles row honi chahiye
+       (uid + email + safe defaults). Asli creation google-welcome API karti
+       hai, par agar wo call fail ho jaaye to naya user bina profile row ke
+       reh jaata tha (verification writes bhi silently drop hoti thin).
+       Ye upsert har verified login par chalti hai —
+       EXISTING row ko kabhi overwrite nahi karti (pehle select guard),
+       sirf missing row banati hai ya missing verification flag repair karti
+       hai. RLS "Anyone can create/update user profiles" se allowed hai.
+       NOTE: downloads Edge Function (service role) se authorize hote hain,
+       isliye kisi extra role/permission ki zaroorat nahi — row ka hona hi
+       profile sync + notification targeting ke liye kaafi hai. */
+    async function ensureDefaultProfile(){
+      if(!supabaseClient||!accountSession||!accountSession.uid)return false;
+      const uid=accountSession.uid;
+      try{
+        const{data}=await supabaseClient.from('user_profiles').select('uid,college,semester,is_email_verified,name,username').eq('uid',uid).maybeSingle();
+        if(data&&data.uid){
+          /* Row maujood hai — sirf verification flag sync karo agar user ab verified hai. */
+          if(isVerifiedUser(accountSession)&&!data.is_email_verified){
+            try{await supabaseClient.from('user_profiles').update({is_email_verified:true,updated_at:new Date().toISOString()}).eq('uid',uid)}catch(e2){}
+          }
+          return true;
+        }
+      }catch(e){/* select fail — neeche upsert se aage badho */}
+      const email=(accountSession.email||'').toLowerCase();
+      let storedUsername='';try{storedUsername=localStorage.getItem('bca-username')||''}catch(e){}
+      const row={uid,email,name:(accountSession.displayName||storedUsername||''),...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:'all',semester:null,is_email_verified:!!isVerifiedUser(accountSession),updated_at:new Date().toISOString()};
+      try{
+        const{error}=await supabaseClient.from('user_profiles').upsert(row,{onConflict:'uid'});
+        if(error)throw error;
+        return true;
+      }catch(e2){console.warn('[BCAPrime] default profile sync failed:',e2&&e2.message);return false}
+    }
     async function saveProfileToAccount(){
       if(!supabaseClient||!accountUid())return;
       const uid=accountUid();
@@ -887,6 +921,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function getDeviceName(){const ua=navigator.userAgent;if(/iPhone|iPad|iPod/i.test(ua))return'iPhone/iPad';if(/Android/i.test(ua))return'Android phone';if(/Windows/i.test(ua))return'Windows laptop/PC';if(/Macintosh/i.test(ua))return'Mac';return'Browser device'}
     async function afterAccountAuth(){
       if(!supabaseClient||!accountUid())return;
+      /* Pehle default profile row guarantee karo (naya Firebase user = row
+         banegi: uid + email + safe defaults), phir server->device sync +
+         device->server sync. */
+      try{await ensureDefaultProfile()}catch(e){}
       try{await syncProfileToAccount()}catch(e){}
       try{await saveProfileToAccount()}catch(e){}
       startProfileRealtime();
@@ -1805,7 +1843,23 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function escAttr(s){return escHtml(s).replace(/'/g,'&#39;').replace(/\\/g,'\\\\')}
     function escJsStr(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}
     let __searchTimeout=null;
-    async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true'||(function(){try{return localStorage.getItem('bca-auth-known')==='1'}catch(e){return false}})())showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{accountSession=firebase.auth().currentUser;if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');if(isVerifiedUser(accountSession)){showAuthenticatedApp()}else{saveVerificationStatus(false);hideAuthenticatedApp();showVerifyEmail(accountSession.email||'')}}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{const qrLinked=sessionStorage.getItem('bca-qr-linked')==='true';/* QR synthetic session ko Firebase ke null user se overwrite hone se bachao */accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');if(isVerifiedUser(user)){saveVerificationStatus(true);showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else{saveVerificationStatus(false);if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if(!pendingOtpApproval)showVerifyEmail(user.email||'')}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
+    /* ===== Persisted-session restore helper =====
+       Firebase LOCAL persistence IndexedDB se session ASYNC restore karta hai.
+       Boot par firebase.auth().currentUser turant null ho sakta hai jabki
+       user ne kabhi logout nahi kiya. onAuthStateChanged ke FIRST fire ka
+       bounded wait karo — taaki naye users restart par guest me na gir jayein.
+       Unresolved rahe to currentUser (ya null) return karo. */
+    function waitForRestoredSession(timeoutMs){
+      return new Promise(function(resolve){
+        var done=false,unsub=null,limit=timeoutMs||3000;
+        var finish=function(u){if(done)return;done=true;try{if(typeof unsub==='function')unsub()}catch(e){}resolve(u||null)};
+        try{
+          unsub=firebase.auth().onAuthStateChanged(function(u){finish(u)});
+        }catch(e){finish(null);return}
+        setTimeout(function(){try{finish(firebase.auth().currentUser||null)}catch(e){finish(null)}},limit);
+      });
+    }
+    async function initAccount(){if(sessionStorage.getItem('bca-guest-mode')==='true'||(function(){try{return localStorage.getItem('bca-auth-known')==='1'}catch(e){return false}})())showAuthenticatedApp();let __pendQr=null;if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';}else{/* Persistence har boot par dobara assert karo (idempotent, cheap) — taaki koi bhi path session-only/in-memory mode me na chale. */try{if(firebase.auth&&firebase.auth.Auth&&firebase.auth.Auth.Persistence&&firebase.auth.Auth.Persistence.LOCAL){var __p=firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);if(__p&&__p.catch)__p.catch(function(){})}}catch(__pe){}accountSession=firebase.auth().currentUser;if(!accountSession&&sessionStorage.getItem('bca-guest-mode')!=='true'){/* Pehle login ka nishan ('bca-auth-known') = persisted session restore ka bounded wait. Naye users restart par yahin guest me gir jaate the. */try{if(localStorage.getItem('bca-auth-known')==='1'){accountSession=await waitForRestoredSession(3000)}}catch(e){}}if(!accountSession)restoreQrSession();if(accountSession){sessionStorage.removeItem('bca-guest-mode');if(isVerifiedUser(accountSession)){showAuthenticatedApp()}else{saveVerificationStatus(false);hideAuthenticatedApp();showVerifyEmail(accountSession.email||'')}}__pendQr=readQrParam();firebase.auth().onAuthStateChanged(user=>{const qrLinked=sessionStorage.getItem('bca-qr-linked')==='true';/* QR synthetic session ko Firebase ke null user se overwrite hone se bachao */accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);if(authSuppress)return;if(user){sessionStorage.removeItem('bca-guest-mode');if(isVerifiedUser(user)){saveVerificationStatus(true);showAuthenticatedApp();resumeRestrictedAction();const pq=sessionStorage.getItem('bca-pending-qr');if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(()=>maybePromptQrApproval(pq),400)}}else{saveVerificationStatus(false);if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if(!pendingOtpApproval)showVerifyEmail(user.email||'')}}else if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();if($('profileModal').classList.contains('open'))renderAccount()})}if(__pendQr)setTimeout(()=>maybePromptQrApproval(__pendQr),400);maybeStartQrLogin()}
     document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline()});
     /* ================= Offline / online UX (offline-first PWA) =================
        Big-tech pattern (Google/Netflix ki tarah):
