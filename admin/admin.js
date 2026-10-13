@@ -345,19 +345,28 @@ async function bulkUpdateStatus(status) {
     if (newlyApproved.length === 1) {
       notifyResourceApproved(newlyApproved[0]);
     } else {
-            // Bulk: if all share the same college + semester, target only those; otherwise broadcast to all.
-      const colleges = [...new Set(newlyApproved.map(i => i.college ? String(i.college) : 'all'))];
-      const sems = [...new Set(newlyApproved.map(i => i.sem != null ? Number(i.sem) : null))];
-      const target = {
-        college: colleges.length === 1 ? colleges[0] : null,
-        semester: sems.length === 1 ? sems[0] : null
-      };
-      sendPushBroadcast(
-        `${newlyApproved.length} new materials available! 📚`,
-        'Fresh notes & PYQs were just approved on BCAPrime — open the library to grab them.',
-        'resource-approved',
-        target
-      );
+      // STRICT semester scoping: har approved resource ki apni semester (+college)
+      // group banao aur har group KOI ek targeted push bhejo. Semester-less
+      // broadcast BILKUL nahi — Sem 1 ke materials sirf Sem 1 subscribers tak.
+      const groups = new Map();
+      newlyApproved.forEach(item => {
+        const sem = item.sem != null && item.sem !== '' ? Number(item.sem) : null;
+        if (sem == null || Number.isNaN(sem)) return; // bina semester -> auto-push nahi
+        const col = item.college ? String(item.college) : 'all';
+        const key = sem + '|' + col;
+        if (!groups.has(key)) groups.set(key, { sem, col, count: 0 });
+        groups.get(key).count += 1;
+      });
+      for (const g of groups.values()) {
+        sendPushBroadcast(
+          g.count > 1
+            ? `${g.count} new Semester ${g.sem} materials available! 📚`
+            : `New Semester ${g.sem} material available! 📚`,
+          'Fresh notes & PYQs were just approved on BCAPrime — open the library to grab them.',
+          'resource-approved',
+          { college: g.col, semester: g.sem }
+        );
+      }
     }
   }
 }

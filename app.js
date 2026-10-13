@@ -612,7 +612,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
     }
     async function download(title){
-      /* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */
+      /* Strict auth guard: block the download completely and open the Login/Signup modal for guests.
+         Naya signup / session-restore race: Firebase ka LIVE currentUser bhi accountSession maano —
+         tabhi freshly signed-up user ka pending download resume hota hai (onAuthStateChanged se
+         pehle click karne par bhi). */
+      if(!accountSession){
+        try{ if(typeof firebase!=='undefined'&&firebase.auth){ accountSession=firebase.auth().currentUser||null } }catch(e){}
+      }
       if(!accountSession){
         requireAccount('Sign up or login to download this note.','download',title);
         return;
@@ -635,6 +641,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           /* Private bucket: signed URL lo (Firebase session verify hoti hai) */
           const signed=await fetchSignedUrl(resource,'download');
           if(!signed){
+            /* Token hi nahi mila (QR-linked/synthetic session) -> is device par proper
+               login zaroori hai; misleading generic error ki jagah login wall do. */
+            const token=await firebaseIdToken();
+            if(!token){
+              requireAccount('For secure downloads, log in with your account on this device.','download',title);
+              return;
+            }
             toast('Could not start download — please try again.');
             return;
           }
@@ -669,12 +682,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     try{ sessionStorage.removeItem('bca-guest-previews'); }catch(e){}
     /* Unlimited reading — koi client-side preview limit nahi rahi. */
     function consumeGuestPreview(resource){ return true; }
-    /* Guest welcome popup + sign-up CTA */
-    /* Firebase ID token (agar logged-in) — sign-resource function isse verify karta hai. */
-    async function firebaseIdToken(){
-      try{ if(accountSession && typeof accountSession.getIdToken === 'function'){ return await accountSession.getIdToken(); } }catch(e){}
-      return '';
-    }
+    /* (firebaseIdToken ki duplicate declaration yahan se hata di gayi —
+       single hardened definition aur neeche, OTP section ke paas hai.) */
     /* Signed URL lo. Guest -> preview mode (server quota). Logged-in -> preview/download. */
     async function fetchSignedUrl(resource, mode){
       const raw = resource && (resource.fileUrl || '');
@@ -748,7 +757,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        issued + verified server-side only (api/send-otp, api/verify-otp). */
     let pendingOtpApproval=false,otpResendTimer=null,otpCountdownEnd=0,otpSubmitting=false;
     function getAuthApiUrl(name){try{return (typeof AUTH_API!=='undefined'&&AUTH_API&&AUTH_API[name])?AUTH_API[name]:''}catch(e){return''}}
-    async function firebaseIdToken(){try{const u=firebase.auth().currentUser;return u?await u.getIdToken():''}catch(e){return''}}
+    /* Firebase ID token — sign-resource server ise verify karta hai. Pehle LIVE
+       Firebase session (har normal signup/login), warna accountSession (QR-linked
+       synthetic session, jahan getIdToken hota hai). Dono fail ho to '' (guest). */
+    async function firebaseIdToken(){try{if(typeof firebase!=='undefined'&&firebase.auth){const u=firebase.auth().currentUser;if(u)return await u.getIdToken()}}catch(e){}try{if(accountSession&&typeof accountSession.getIdToken==='function'){return await accountSession.getIdToken()}}catch(e){}return''}
     function checkPasswordMatch(password,confirmEl,msgEl){const value=confirmEl&&typeof confirmEl.value==='string'?confirmEl.value:'';if(!value){if(msgEl)msgEl.textContent='Please confirm your password.';return false}if(password!==value){if(msgEl)msgEl.textContent='Passwords do not match. Please re-enter your confirmation.';return false}return true}
     /* ==== Google-first username signup ====
        Signup = Username + Password + Confirm -> Sign Up dabate hi Google
@@ -789,7 +801,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function getTimeBasedGreeting(name='there'){const hour=new Date().getHours();let prefix;if(hour>=4&&hour<12)prefix='Good Morning';else if(hour>=12&&hour<17)prefix='Good Afternoon';else if(hour>=17&&hour<21)prefix='Good Evening';else prefix='Good Night';return `${prefix}, ${name}!`}let greetingTimerId=null;function scheduleGreetingUpdate(){if(greetingTimerId)return;const now=new Date();const next=new Date(now);next.setHours(next.getHours()+1,0,0,0);const delay=Math.max(0,next-now);greetingTimerId=setTimeout(()=>{greetingTimerId=null;renderGreeting()},delay)}function renderGreeting(){const greeting=$('heroGreeting');const title=$('heroDefaultTitle');if(!greeting||!title)return;const isAuthed=accountSession||sessionStorage.getItem('bca-guest-mode')==='true';greeting.hidden=!isAuthed;title.hidden=!!isAuthed;$('heroGreetName').textContent=getTimeBasedGreeting(getUserName(accountSession)||'there');if(isAuthed)scheduleGreetingUpdate()}
     function setAccountMode(mode){accountMode=mode;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
     function renderAccount(){const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');$('accountAuth').innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="secondary" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
-    async function signInWithProvider(provider,messageId='accountMessage'){if(!firebaseApp){$(messageId).textContent='Firebase is not configured.';return}try{if(provider==='google'){await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());const user=firebase.auth().currentUser;if(pendingSignup)await applyPendingSignup(user);if(user)sendGoogleWelcome(user)}}catch(error){if(pendingSignup)pendingSignup=null;if(error.code==='auth/popup-closed-by-user'||error.code==='auth/cancelled-popup-request')return;$(messageId).textContent=error.message}}
+    async function signInWithProvider(provider,messageId='accountMessage'){if(!firebaseApp){$(messageId).textContent='Firebase is not configured.';return}try{if(provider==='google'){await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());const user=firebase.auth().currentUser;sessionStorage.removeItem('bca-guest-mode');if(user)accountSession=user;if(pendingSignup)await applyPendingSignup(user);if(user){sendGoogleWelcome(user);/* Fresh signup/login: session turant set karo + pending download/upload resume karo (observer race par bhi). Google users federated-verified hote hain, isliye gate bypass safe hai. */showAuthenticatedApp();resumeRestrictedAction()}}}catch(error){if(pendingSignup)pendingSignup=null;if(error.code==='auth/popup-closed-by-user'||error.code==='auth/cancelled-popup-request')return;$(messageId).textContent=error.message}}
     let gateMode='signup';
     function setGateMode(mode){gateMode=mode;$('gateAccountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('gateAccountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('gateAccountMessage').textContent='';$('gateNameLabel').hidden=mode!=='signup';$('gateConfirmLabel').hidden=mode!=='signup';$('gateEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('gateAccountName').setAttribute('required','');$('gateAccountConfirm').setAttribute('required','');$('gateAccountEmail').removeAttribute('required')}else{$('gateAccountName').removeAttribute('required');$('gateAccountConfirm').removeAttribute('required');$('gateAccountEmail').setAttribute('required','')}}
     async function submitGateAccount(event){event.preventDefault();if(!firebaseApp){$('gateAccountMessage').textContent='Firebase is not configured.';return}const password=$('gateAccountPassword').value;const msgEl=$('gateAccountMessage');if(gateMode==='signup'){const username=$('gateAccountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('gateAccountConfirm'),msgEl))return;const gateUsernameAvail=await checkUsernameAvailable(username);if(gateUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','gateAccountMessage');return}const loginEmail=await resolveLoginEmail($('gateAccountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{await firebase.auth().signInWithEmailAndPassword(loginEmail,password);accountSession=firebase.auth().currentUser;if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}}catch(error){$('gateAccountMessage').textContent=error.message;return}}
@@ -825,7 +837,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           }
           let changed=false;
           if(data.college&&data.college!=='all'){state.college=data.college;try{localStorage.setItem('bca-college',data.college)}catch(e){}changed=true}
-          if(data.semester!=null){state.sem=String(data.semester);try{localStorage.setItem('bca-sem',String(data.semester))}catch(e){}changed=true}
+          if(data.semester!=null){state.sem=String(data.semester);try{localStorage.setItem('bca-sem',String(data.semester));/* Account-bound ENROLLED semester — push targeting isi ko use karti hai (library filter alag cheez hai) */localStorage.setItem('bca-enrolled-sem',String(data.semester))}catch(e){}changed=true}
           if(changed){
             const lbl=$('collegeLabel');if(lbl)lbl.textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];
             try{updateSemesterOptions();const ss=$('semesterFilter');if(ss&&state.sem!=='all')ss.value=state.sem;}catch(e){}
@@ -859,7 +871,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const email=(accountSession&&accountSession.email)?accountSession.email:'';let storedUsername='';try{storedUsername=localStorage.getItem('bca-username')||''}catch(e){}const profileName=(accountSession&&accountSession.displayName)||storedUsername;
       let avatar='';try{avatar=localStorage.getItem(avatarStorageKey())||''}catch(e){}
       if(!avatar&&accountSession&&accountSession.photoURL)avatar=accountSession.photoURL;
-      try{await supabaseClient.from('user_profiles').upsert({uid,email,name:profileName,...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:state.college||'all',semester:sem,...(avatar?{avatar_url:avatar}:{}),is_email_verified:!!(accountSession&&isVerifiedUser(accountSession)),updated_at:new Date().toISOString()},{onConflict:'uid'})}catch(e){}
+      /* Default profile: har naye VERIFIED user ka user_profiles row DB me hona
+         chahiye (college='all', semester, is_email_verified) — is profile par
+         username login, profile sync aur push targeting depend karti hai.
+         Transient network/DB failure par EK baar retry (silent drop nahi). */
+      const profileRow={uid,email,name:profileName,...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:state.college||'all',semester:sem,...(avatar?{avatar_url:avatar}:{}),is_email_verified:!!(accountSession&&isVerifiedUser(accountSession)),updated_at:new Date().toISOString()};
+      try{const{error}=await supabaseClient.from('user_profiles').upsert(profileRow,{onConflict:'uid'});if(error)throw error}catch(e){try{await supabaseClient.from('user_profiles').upsert(profileRow,{onConflict:'uid'})}catch(e2){console.warn('[BCAPrime] user_profiles sync failed:',e2&&e2.message)}}
     }
     /* ================== WhatsApp-style new-device approval ==================
        Har device ka ek stable device_id (localStorage). Pehla device auto-
@@ -2324,7 +2341,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function backToOnboardingCollege(){state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2')}
     function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected');if(state.onboardingCollege&&!state.onboardingDone)setTimeout(()=>finishOnboarding(),400)}
     function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);const cf=$('collegeFilter');if(!college||!cf||cf.querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];cf.append(option)}
-    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
+    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-enrolled-sem',state.sem);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
     const tourSteps=[
@@ -2411,7 +2428,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         location.reload();
       });
             window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=30').then(reg=>{
+        navigator.serviceWorker.register('./sw.js?v=31').then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */

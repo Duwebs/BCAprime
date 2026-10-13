@@ -1,4 +1,4 @@
-﻿/* ---------------------------------------------------------------
+/* ---------------------------------------------------------------
    BCAPrime offline-first service worker
    Layers:
    1) App shell (same-origin static)  -> network-first, precache
@@ -6,7 +6,7 @@
    3) Supabase REST (library list)     -> network-first w/ cache fallback
    4) Trusted CDNs (firebase, supabase, fonts, font-awesome) -> network-first
    --------------------------------------------------------------- */
-const CACHE_NAME = 'bcaprime-app-v30';
+const CACHE_NAME = 'bcaprime-app-v31';
 const FILE_CACHE = 'bcaprime-files-v1';
 const CDN_CACHE  = 'bcaprime-cdn-v1';
 const SUPABASE_HOST = 'kjesjaakjddfxykisssh.supabase.co';

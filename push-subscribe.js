@@ -39,9 +39,13 @@
   }
   function enrolledSemester() {
     try {
-      var v = localStorage.getItem('bca-sem');
+      /* bca-enrolled-sem = ACCOUNT-bound semester (onboarding / profile sync se).
+         bca-sem sirf LIBRARY FILTER hai (user 'All semesters' par switch kar sakta
+         hai) — usse notification targeting kabhi decide nahi honi chahiye. */
+      var v = localStorage.getItem('bca-enrolled-sem');
+      if (!v || v === 'all') v = localStorage.getItem('bca-sem'); /* legacy fallback */
       var n = Number(v);
-      return (v && v !== 'all' && n >= 1 && n <= 6) ? n : null;
+      return (v && v !== 'all' && n >= 1 && n <= 8) ? n : null;
     } catch (e) { return null; }
   }
   // Account (Firebase uid) bhi save karo, taaki naye-device approval wali

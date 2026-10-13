@@ -105,6 +105,12 @@ Deno.serve(async (req) => {
   // ---- GUEST rules (na user, na admin) ----
   // Guest reading UNLIMITED hai; DOWNLOAD hamesha sign-up wall ke peeche.
   if (!user && !gotAdmin) {
+    // Token bheja gaya tha par verify nahi hua (expired/revoked/invalid) ->
+    // ye GUEST nahi, expired session hai. Alag code do (401) taaki client
+    // "log in again" dikha sake. Guest (bina token) ko 403 signup wall milti rahe.
+    if (firebaseToken) {
+      return json({ ok: false, error: 'token_invalid', message: 'Your session could not be verified. Please log in again to download.' }, 401);
+    }
     // Guest kabhi download nahi kar sakta.
     if (mode === 'download') {
       return json({ ok: false, error: 'signup_required', message: 'Sign up to download this file.' }, 403);

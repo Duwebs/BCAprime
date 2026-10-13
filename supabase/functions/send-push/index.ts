@@ -84,7 +84,17 @@ Deno.serve(async (req) => {
 
   // --- Targeting: optional college/semester/uid filters (broadcast when absent) ---
   const targetCollege = typeof body.college === 'string' && body.college.trim() ? body.college.trim() : null;
-  const targetSemester = body.semester == null || body.semester === '' ? null : Number(body.semester);
+  const targetSemesterRaw = body.semester == null || body.semester === '' ? null : Number(body.semester);
+  // STRICT semester targeting: agar semester diya gaya hai to valid number hona
+  // chahiye. Invalid value ko chupke se broadcast mat banao — 400 bhejo taaki
+  // galti se Sem X ki notification sabko na chali jaaye.
+  if (targetSemesterRaw != null && (Number.isNaN(targetSemesterRaw) || targetSemesterRaw < 1)) {
+    return new Response(JSON.stringify({ error: 'Invalid semester', hint: 'semester must be a number >= 1 (or omitted for an intentional broadcast).' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const targetSemester = targetSemesterRaw;
   const targetUid = typeof body.uid === 'string' && body.uid.trim() ? body.uid.trim() : null;
   const targetRole = typeof body.role === 'string' && body.role.trim() ? body.role.trim() : null;
 
@@ -105,9 +115,13 @@ Deno.serve(async (req) => {
     if (subCollege == null || subCollege === '' || subCollege === 'all') return true;
     return subCollege === targetCollege;
   }
+  // STRICT: semester-targeted push SIRF exact-match subscribers ko jaati hai.
+  // Jiske paas koi enrolled semester nahi (null/'') wo is push ko NAHI payega —
+  // Sem 1 wali notification sirf Sem 1 subscribers tak. Absent semester =
+  // intentional admin broadcast (uspar ye rule laagu nahi).
   function matchSemester(subSemester: any) {
-    if (targetSemester == null || Number.isNaN(targetSemester)) return true;
-    return subSemester != null && Number(subSemester) === targetSemester;
+    if (targetSemester == null) return true;
+    return subSemester != null && subSemester !== '' && Number(subSemester) === targetSemester;
   }
 
   const supabase = createClient(

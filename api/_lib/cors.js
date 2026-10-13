@@ -13,7 +13,9 @@ function applyCors(res, methods = 'POST, GET, OPTIONS') {
 
 function send(res, status, payload) {
   res.statusCode = status;
-  res.setHeader('Content-Type', 'application/json');
+  // charset=utf-8: accented/special characters (usernames, titles) kabhi
+  // mojibake na banein — client hamesha UTF-8 maane.
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.end(JSON.stringify(payload));
 }
 
