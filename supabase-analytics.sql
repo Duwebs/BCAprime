@@ -9,7 +9,7 @@ create table if not exists public.analytics_events (
   event_type text not null,              -- visit | view | download | upload | save | search | session_end
   visitor_id text not null default '',   -- anonymous device id (localStorage)
   session_id text not null default '',
-  user_id text not null default '',      -- Firebase uid (empty for guests)
+  user_id text not null default '',      -- Supabase uid (empty for guests)
   user_email text not null default '',
   user_name text not null default '',
   resource_title text not null default '',

@@ -6,7 +6,7 @@
    3) Supabase REST (library list)     -> network-first w/ cache fallback
    4) Trusted CDNs (firebase, supabase, fonts, font-awesome) -> network-first
    --------------------------------------------------------------- */
-const CACHE_NAME = 'bcaprime-app-v32';
+const CACHE_NAME = 'bcaprime-app-v33';
 const FILE_CACHE = 'bcaprime-files-v1';
 const CDN_CACHE  = 'bcaprime-cdn-v1';
 const SUPABASE_HOST = 'kjesjaakjddfxykisssh.supabase.co';
@@ -18,7 +18,7 @@ const APP_SHELL = [
   './whats-new.js',
   './push-subscribe.js',
   './manifest.webmanifest',
-  './firebase-config.js',
+  './env.js',
   './supabase-config.js',
   './lib/pdf.min.js',
   './lib/pdf.worker.min.js',

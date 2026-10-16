@@ -18,7 +18,7 @@
 -- ============================================================
 
 -- ------------------------------------------------------------
--- 1) Contributor ka live reference (Firebase uid) resources par
+-- 1) Contributor ka live reference (Supabase uid) resources par
 --    NULLABLE rakha gaya hai: anonymous / legacy rows bhi valid rehte hain,
 --    aur koi FK/constraint upload flow ko break nahi karta.
 -- ------------------------------------------------------------

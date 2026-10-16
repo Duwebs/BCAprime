@@ -1,12 +1,13 @@
 // ============================================================
 // BCAPrime — api/forgot-password.js
-// Emails a secure password-reset link (Firebase) with the branded
-// template. Never reveals whether an email exists (anti-enumeration).
+// Emails a secure password-reset link (Supabase recovery link)
+// with the branded template. Never reveals whether an email
+// exists (anti-enumeration).
 // ============================================================
 'use strict';
 
 const { withCors, send } = require('./_lib/cors');
-const { getAuth } = require('./_lib/firebaseAdmin');
+const { adminRecoveryLinkByEmail } = require('./_lib/supabaseAuth');
 const { sendEmail, APP_URL } = require('./_lib/email');
 
 module.exports = withCors(async (req, res) => {
@@ -22,16 +23,9 @@ module.exports = withCors(async (req, res) => {
   const email = String(body.email || '').trim().toLowerCase();
   if (!email) return send(res, 400, { error: 'Missing email' });
 
-  const auth = getAuth();
-  let user;
-  try {
-    user = await auth.getUserByEmail(email);
-  } catch (error) {
-    // Silent no-op: do not reveal whether this email is registered.
-    return send(res, 200, { ok: true, sent: false });
-  }
-
-  const resetUrl = await auth.generatePasswordResetLink(email, { url: APP_URL + '/' });
+  // Silent no-op: do not reveal whether this email is registered.
+  const resetUrl = await adminRecoveryLinkByEmail(email);
+  if (!resetUrl) return send(res, 200, { ok: true, sent: false });
 
   await sendEmail({
     to: email,

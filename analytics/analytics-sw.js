@@ -6,7 +6,7 @@ const OFFLINE_URLS = [
   './analytics.css',
   './analytics.js',
   '../supabase-config.js',
-  '../firebase-config.js'
+  '../env.js'
 ];
 
 self.addEventListener('install', event => {

@@ -2,27 +2,26 @@
 // BCAPrime — api/google-welcome.js
 // Called once after a user signs in with Google. Google already
 // verified their email, so we:
-//   1. Confirm the account is truly Google-federated (from the ID token).
-//   2. Generate a secure temporary password and set it on the account
-//      (server-side only — never in the browser).
-//   3. Email it with the user's Name + Email and a prominent
-//      "Set your own password" button (a Firebase reset link) so they
-//      can immediately replace it with their own.
-// Idempotent: a returning Google user is never re-emailed / re-issued
-// a temp password.
+//   1. Confirm the account is truly Google-federated (from the
+//      Supabase token's app_metadata.providers).
+//   2. For Google-first signups, set the password the user chose
+//      BEFORE the Google picker opened (admin REST — server only).
+//   3. Send a branded welcome email with a prominent
+//      "Set your own password" button (Supabase recovery link).
+// Idempotent: a returning Google user is never re-emailed
+// (tracked in app_metadata.welcome_sent).
 // ============================================================
 'use strict';
 
-const crypto = require('crypto');
 const { withCors, send } = require('./_lib/cors');
-const { getAuth } = require('./_lib/firebaseAdmin');
+const {
+  verifySupabaseToken,
+  adminSetAppMetadata,
+  adminSetPassword,
+  adminSetUserMetadata,
+  adminRecoveryLink,
+} = require('./_lib/supabaseAuth');
 const { sendEmail, APP_URL } = require('./_lib/email');
-
-function generateTempPassword() {
-  // ~12 chars of high entropy + required complexity (uppercase, digit, symbol).
-  const base = crypto.randomBytes(9).toString('base64url'); // 12 chars
-  return base.replace(/[-_]/g, 'X').slice(0, 11) + Math.floor(Math.random() * 10) + '!';
-}
 
 module.exports = withCors(async (req, res) => {
   if (req.method !== 'POST') return send(res, 405, { error: 'Method not allowed' });
@@ -34,57 +33,52 @@ module.exports = withCors(async (req, res) => {
     return send(res, 400, { error: 'Invalid JSON' });
   }
 
-  const idToken = body.idToken;
+  const idToken = body.idToken || body.accessToken;
   if (!idToken) return send(res, 400, { error: 'Missing idToken' });
 
   // Optional Google-first signup fields: the username + password the user
   // chose BEFORE the Google account picker opened. If present, we set THAT
-  // password (instead of a generated temp one) and store the username.
+  // password (instead of leaving the account OAuth-only) and store the username.
   const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
   const chosenPassword = typeof body.password === 'string' ? body.password : '';
   const validUsername = /^[a-z0-9_]{3,20}$/.test(username);
   const validPassword = chosenPassword.length >= 6 && chosenPassword.length <= 128;
 
-  const auth = getAuth();
-  let decoded;
-  try {
-    decoded = await auth.verifyIdToken(idToken);
-  } catch (error) {
-    return send(res, 401, { error: 'Invalid ID token' });
-  }
+  // Supabase access token verify karo (GoTrue /auth/v1/user se).
+  const decoded = await verifySupabaseToken(idToken);
+  if (!decoded) return send(res, 401, { error: 'Invalid ID token' });
 
-  const user = await auth.getUser(decoded.uid);
-  const isGoogle = !!(user.providerData && user.providerData.some((p) => p.providerId === 'google.com'));
+  const isGoogle = Array.isArray(decoded.providers) && decoded.providers.includes('google');
   if (!isGoogle) {
     return send(res, 400, { error: 'This account is not Google-federated.' });
   }
 
-  const email = (user.email || decoded.email || '').trim().toLowerCase();
+  const email = (decoded.email || '').trim().toLowerCase();
   if (!email) {
     return send(res, 400, { error: 'No email address is associated with this account.' });
   }
 
   // Idempotency guard: never re-email returning Google users.
-  const claims = user.customClaims || {};
-  if (claims.bcaWelcomeSent) {
+  if (decoded.appMetadata && decoded.appMetadata.welcome_sent) {
     return send(res, 200, { ok: true, alreadySent: true });
   }
 
-  // 1) Set the account password so they can use Email/Password later.
-  //    Google-first signup: use the user's OWN chosen password (they typed it
-  //    in the signup form). Plain "Continue with Google" logins (no pending
-  //    signup) get the secure temporary password + reset link email.
+  // 1) Google-first signup: use the user's OWN chosen password (they typed it
+  //    in the signup form) so Email/Password login also works later.
+  //    Plain "Continue with Google" logins stay OAuth-only until they pick a
+  //    password through the recovery link below.
   const usingChosen = validPassword;
-  const tempPassword = usingChosen ? chosenPassword : generateTempPassword();
-  await auth.updateUser(decoded.uid, { password: tempPassword });
+  if (usingChosen) {
+    await adminSetPassword(decoded.uid, chosenPassword);
+  }
   if (validUsername) {
-    try { await auth.updateUser(decoded.uid, { displayName: username }); } catch (e) {}
+    try { await adminSetUserMetadata(decoded.uid, { full_name: username }); } catch (e) {}
   }
 
-  // 2) A Firebase reset link = the prominent "Set your own password" button.
-  const resetUrl = await auth.generatePasswordResetLink(email, { url: APP_URL + '/' });
+  // 2) A Supabase recovery link = the prominent "Set your own password" button.
+  const resetUrl = (await adminRecoveryLink(decoded.uid)) || (APP_URL + '/');
 
-  const name = (user.displayName || body.name || username || '').trim();
+  const name = ((decoded.userMetadata && (decoded.userMetadata.full_name || decoded.userMetadata.name)) || body.name || username || '').trim();
   const first = name.split(/\s+/)[0] || 'there';
 
   // 3) Branded welcome email. When the user chose their own password we do
@@ -97,13 +91,13 @@ module.exports = withCors(async (req, res) => {
     : `
       <tr><td width="150" style="padding:6px 0;color:#7a8c98;font-size:13px;">Name</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${name || '—'}</td></tr>
       <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${email}</td></tr>
-      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Temporary password</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-family:Menlo,Consolas,monospace;font-weight:600;">${tempPassword}</td></tr>`;
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Next step</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">Tap the button below to choose your own password</td></tr>`;
   await sendEmail({
     to: email,
     subject: 'Your BCAPrime account is ready' + (usingChosen ? '' : ' — set your password'),
     preheader: usingChosen
       ? 'Welcome to BCAPrime! Your account is ready — here are your login details.'
-      : 'Welcome to BCAPrime! Here is a secure temporary password and a link to make it your own.',
+      : 'Welcome to BCAPrime! Choose a password to unlock email & password login.',
     eyebrow: 'Welcome',
     title: 'Welcome, ' + first + '!',
     bodyHtml: `
@@ -113,7 +107,7 @@ module.exports = withCors(async (req, res) => {
       </table>
       ${usingChosen
         ? '<p style="margin:0 0 6px;">Want to change your password anytime? Use the secure button below.</p>'
-        : '<p style="margin:0 0 6px;">Set your own password now — the temporary one stops working the moment you choose your own.</p>'}`,
+        : '<p style="margin:0 0 6px;">Tap the button below to choose your own password — you can do this any time.</p>'}`,
     ctaLabel: usingChosen ? 'Change your password' : 'Set your own password',
     ctaUrl: resetUrl,
     ctaNote: 'This link expires shortly. It opens a secure page to manage your password.',
@@ -133,16 +127,13 @@ module.exports = withCors(async (req, res) => {
       : [
           'Welcome to BCAPrime!',
           '',
-          'You signed up with Google. If you ever want to log in with email & password, use:',
+          'You signed up with Google. To also log in with email & password later:',
           '',
           '  Name:            ' + (name || '—'),
           '  Email:           ' + email,
-          '  Temp password:   ' + tempPassword,
           '',
-          'Set your own password here (the temp one stops working once you do):',
+          'Choose your password here:',
           resetUrl,
-          '',
-          'Store the temporary password somewhere safe until then.',
         ].join('\n'),
   });
 
@@ -173,7 +164,7 @@ module.exports = withCors(async (req, res) => {
   }
 
   // Mark as done AFTER a successful send so failures are retried later.
-  await auth.setCustomUserClaims(decoded.uid, { ...claims, bcaWelcomeSent: true });
+  await adminSetAppMetadata(decoded.uid, { welcome_sent: true });
 
   return send(res, 200, { ok: true, alreadySent: false, email });
 });

@@ -6,7 +6,7 @@
 'use strict';
 
 const { withCors, send } = require('./_lib/cors');
-const { getAuth } = require('./_lib/firebaseAdmin');
+const { verifySupabaseToken, getServiceProfile } = require('./_lib/supabaseAuth');
 const { sendEmail, APP_URL, BRAND } = require('./_lib/email');
 const { createOtp } = require('./_lib/otp');
 
@@ -20,23 +20,19 @@ module.exports = withCors(async (req, res) => {
     return send(res, 400, { error: 'Invalid JSON' });
   }
 
-  const idToken = body.idToken;
+  const idToken = body.idToken || body.accessToken;
   if (!idToken) return send(res, 400, { error: 'Missing idToken' });
 
-  const auth = getAuth();
-  let decoded;
-  try {
-    decoded = await auth.verifyIdToken(idToken);
-  } catch (error) {
-    return send(res, 401, { error: 'Invalid ID token' });
-  }
+  // Supabase access token verify karo (GoTrue /auth/v1/user se).
+  const decoded = await verifySupabaseToken(idToken);
+  if (!decoded) return send(res, 401, { error: 'Invalid ID token' });
 
-  const user = await auth.getUser(decoded.uid);
-  const email = (body.email || user.email || '').toString().trim().toLowerCase();
+  const email = (body.email || decoded.email || '').toString().trim().toLowerCase();
   if (!email) return send(res, 400, { error: 'No email address is associated with this account.' });
 
   // Already verified? No need to send another code.
-  if (user.emailVerified) return send(res, 200, { ok: true, alreadyVerified: true });
+  const profile = await getServiceProfile(decoded.uid);
+  if (profile && profile.is_email_verified) return send(res, 200, { ok: true, alreadyVerified: true });
 
   const code = await createOtp({ uid: decoded.uid, email });
 

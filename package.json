@@ -5,8 +5,8 @@
   "description": "BCAPrime — BCA study library (static site + Vercel serverless auth/email functions)",
   "type": "commonjs",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "npm run build:css && echo 'Static site: Tailwind CSS rebuilt.'",
+    "dev": "node scripts/generate-env.js && vercel dev",
+    "build": "npm run build:css && node scripts/generate-env.js && echo 'Static site: Tailwind CSS rebuilt + env.js generated.'",
     "build:css": "tailwindcss -i tailwind.input.css -o tailwind.css --minify",
     "docs:email": "vercel env add RESEND_API_KEY"
   },
@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
-    "firebase-admin": "^12.2.0",
     "resend": "^4.0.0"
   },
   "devDependencies": {

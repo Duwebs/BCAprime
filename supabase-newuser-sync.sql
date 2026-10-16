@@ -1,8 +1,8 @@
 -- ============================================================
--- BCAPrime — New-user Firebase -> Supabase sync / backfill
+-- BCAPrime — New-user Supabase profile sync / backfill
 -- ============================================================
--- Firebase = auth (login/signup). Supabase = data (user_profiles,
--- resources, storage). Har Firebase account ki Supabase me EK
+-- Supabase = auth (login/signup) + data (user_profiles,
+-- resources, storage). Har account ki Supabase me EK
 -- user_profiles row (uid + email + safe defaults) honi chahiye.
 --
 -- Normal flow ye row automatically banata hai:
@@ -52,7 +52,7 @@ alter table public.user_profiles
 -- from public.user_profiles
 -- where uid is null or uid = '' or email is null or email = '';
 
--- 4) MANUAL BACKFILL TEMPLATE: agar kisi naye user (Firebase UID pata ho)
+-- 4) MANUAL BACKFILL TEMPLATE: agar kisi naye user (uid pata ho)
 --    ki row phir bhi missing ho to ye chalao (uid + email bharo).
 --    Pehle ki row ko ye overwrite NAHI karta (ON CONFLICT DO NOTHING).
 --

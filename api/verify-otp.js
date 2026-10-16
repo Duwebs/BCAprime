@@ -1,13 +1,14 @@
 // ============================================================
 // BCAPrime — api/verify-otp.js
 // Verifies the 6-digit OTP a user typed.
-// On success the SERVER (Admin SDK) flips emailVerified to true —
-// the browser never gets to decide trust.
+// On success the SERVER (service role) flips
+// user_profiles.is_email_verified to true — the browser never
+// gets to decide trust.
 // ============================================================
 'use strict';
 
 const { withCors, send } = require('./_lib/cors');
-const { getAuth } = require('./_lib/firebaseAdmin');
+const { verifySupabaseToken, upsertProfileVerified } = require('./_lib/supabaseAuth');
 const { verifyOtp } = require('./_lib/otp');
 
 module.exports = withCors(async (req, res) => {
@@ -20,8 +21,12 @@ module.exports = withCors(async (req, res) => {
     return send(res, 400, { error: 'Invalid JSON' });
   }
 
-  const idToken = body.idToken;
+  const idToken = body.idToken || body.accessToken;
   if (!idToken) return send(res, 400, { error: 'Missing idToken' });
+
+  // Supabase access token verify karo (GoTrue /auth/v1/user se).
+  const decoded = await verifySupabaseToken(idToken);
+  if (!decoded) return send(res, 401, { error: 'Invalid ID token' });
 
   // Normalise the code (numeric 6-digit like we issue it; strip spaces).
   const code = String(body.code || '').replace(/\s/g, '');
@@ -29,16 +34,7 @@ module.exports = withCors(async (req, res) => {
     return send(res, 400, { error: 'Please enter the 6-digit code exactly as sent.' });
   }
 
-  const auth = getAuth();
-  let decoded;
-  try {
-    decoded = await auth.verifyIdToken(idToken);
-  } catch (error) {
-    return send(res, 401, { error: 'Invalid ID token' });
-  }
-
-  const user = await auth.getUser(decoded.uid);
-  const email = (body.email || user.email || '').toString().trim().toLowerCase();
+  const email = (body.email || decoded.email || '').toString().trim().toLowerCase();
 
   const failure = await verifyOtp({ uid: decoded.uid, email, code });
   if (failure) {
@@ -46,7 +42,8 @@ module.exports = withCors(async (req, res) => {
   }
 
   // Server-side authority: mark the account as verified.
-  await auth.updateUser(decoded.uid, { emailVerified: true });
+  // UPSERT (PATCH se safe — profile row abhi exist na bhi karti ho).
+  await upsertProfileVerified(decoded.uid, email);
 
   return send(res, 200, { ok: true, verified: true });
 });

@@ -6,17 +6,16 @@
 // call karta hai aur ek short-lived SIGNED URL paata hai.
 //
 // AUTH MODEL (important):
-//   App ki login Firebase Auth me hoti hai — Supabase ko sab 'anon'
-//   dikhte hain. Isliye is function ko caller ka FIREBASE ID token
-//   verify karna padta hai (identitytoolkit accounts:lookup se).
-//     - Valid Firebase session  -> full access (preview + download)
-//     - Guest (koi token nahi)  -> UNLIMITED READING (preview mode);
-//       DOWNLOAD hamesha sign-up wall ke peeche (403).
+//   App ki login Supabase Auth me hai — Supabase ko sab 'anon'
+//   dikhte hain. Isliye is function ko caller ka SUPABASE JWT
+//   verify karna padta hai (GoTrue /auth/v1/user se).
+//     - Valid Supabase session -> full access (preview + download)
+//     - Guest (koi user token nahi) -> UNLIMITED READING (preview
+//       mode); DOWNLOAD hamesha sign-up wall ke peeche (403).
 //
 // Deploy:
 //   supabase functions deploy sign-resource
 //   (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY automatic milte hain)
-//   Optional: supabase secrets set FIREBASE_API_KEY=<web api key>
 //
 // Body JSON: { "fileUrl": "https://.../object/public/resources/<path>",
 //              "mode": "preview" | "download", "resourceId": "123",
@@ -28,12 +27,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-firebase-token, x-admin-secret',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-// Firebase Web API key (public — same value firebase-config.js me hai).
-const FALLBACK_FIREBASE_API_KEY = 'AIzaSyCFYgD5VBIw0YEAkMhRcIV2VVQQGSN7xWs';
 
 // Signed URL lifetime — chhoti rakho taaki leak ho to bhi jaldi expire.
 const PREVIEW_TTL_SECONDS = 300;   // 5 min
@@ -86,11 +82,13 @@ Deno.serve(async (req) => {
   }
 
   // ---- Caller ki identity verify karo ----
-  // NOTE: Supabase gateway ko Bearer me Supabase JWT (publishable key)
-  // chahiye hota hai (verify_jwt on). Firebase token alag header me
-  // bhejte hain taaki gateway na toote.
-  const firebaseToken = (req.headers.get('x-firebase-token') ?? '').trim();
-  const user = await verifyFirebaseIdToken(firebaseToken);
+  // Bearer header me Supabase access token aata hai (gateway ke liye
+  // apikey header bhi wahi rehta hai). Publishable key (non-JWT) ya
+  // koi token nahi = GUEST.
+  const authHeader = (req.headers.get('authorization') ?? '').trim();
+  const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const attemptingUser = !!bearer && bearer.startsWith('eyJ');
+  const user = attemptingUser ? await verifySupabaseToken(bearer) : null;
 
   // ---- Admin secret (panel ke liye) — full access ----
   const adminSecret = (Deno.env.get('ADMIN_SECRET') ?? '').trim();
@@ -108,7 +106,7 @@ Deno.serve(async (req) => {
     // Token bheja gaya tha par verify nahi hua (expired/revoked/invalid) ->
     // ye GUEST nahi, expired session hai. Alag code do (401) taaki client
     // "log in again" dikha sake. Guest (bina token) ko 403 signup wall milti rahe.
-    if (firebaseToken) {
+    if (attemptingUser) {
       return json({ ok: false, error: 'token_invalid', message: 'Your session could not be verified. Please log in again to download.' }, 401);
     }
     // Guest kabhi download nahi kar sakta.
@@ -140,20 +138,20 @@ Deno.serve(async (req) => {
 });
 
 
-// Firebase ID token verify karo (server-side accounts:lookup se).
-async function verifyFirebaseIdToken(idToken) {
-  if (!idToken) return null;
-  const apiKey = (Deno.env.get('FIREBASE_API_KEY') ?? '').trim() || FALLBACK_FIREBASE_API_KEY;
+// Supabase access token verify karo (server-side GoTrue /auth/v1/user se).
+async function verifySupabaseToken(token) {
+  if (!token) return null;
+  const supabaseUrl = (Deno.env.get('SUPABASE_URL') ?? '').trim().replace(/\/$/, '');
+  const apikey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim();
+  if (!supabaseUrl || !apikey) return null;
   try {
-    const res = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) },
-    );
+    const res = await fetch(supabaseUrl + '/auth/v1/user', {
+      headers: { apikey, Authorization: 'Bearer ' + token },
+    });
     if (!res.ok) return null;
     const data = await res.json();
-    const user = data && data.users && data.users[0];
-    if (!user || !user.localId) return null;
-    return { uid: user.localId, email: user.email || '' };
+    if (!data || !data.id) return null;
+    return { uid: data.id, email: data.email || '' };
   } catch (e) {
     return null;
   }

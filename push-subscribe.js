@@ -48,7 +48,7 @@
       return (v && v !== 'all' && n >= 1 && n <= 8) ? n : null;
     } catch (e) { return null; }
   }
-  // Account (Firebase uid) bhi save karo, taaki naye-device approval wali
+  // Account (Supabase uid) bhi save karo, taaki naye-device approval wali
   // notification sirf is user ke devices ko targeting kar sake.
   function enrolledUid() {
     try {
