@@ -1,14 +1,14 @@
 ﻿// app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v54 loaded âœ”');
+console.info('[BCAPrime] app.js v54 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
        Subjects ab sirf database se aate hain (admin-approved / public).
-       Koi bhi hard-coded subject list nahi â€” college + semester ki
+       Koi bhi hard-coded subject list nahi — college + semester ki
        subjects admin approval ke baad hi dikhti hai. */
     /* Cloud-approved subjects so the whole app shares them across devices.
-       NOTE: student ke pending subjects screen par NAHI dikhte â€” sirf admin
+       NOTE: student ke pending subjects screen par NAHI dikhte — sirf admin
        approve karne ke baad public ho kar sabko dikhta hai. */
     let cloudSubjects=[];
     async function loadCloudSubjects(){
@@ -38,8 +38,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       try{return submitSubjectToCloud(sem,clean)}catch(error){return false}
     }
     const normSubject=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
-    /* ---- PrimeFinder robust matching â€” har user scenario cover karta hai ----
-       - Multi-word query: har word title/subject/college mein AND-hotÃ¡ hai (order irrelevant)
+    /* ---- PrimeFinder robust matching — har user scenario cover karta hai ----
+       - Multi-word query: har word title/subject/college mein AND-hotá hai (order irrelevant)
        - Subject: exact + normalized containment (partial/near subjects bhi milte hain)
        - Missing sem/college data: drop nahi karte, universal treat karte hain
        - '__add' (Add-subject UI state) ko filter nahi maante */
@@ -74,7 +74,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
        Har resource sirf `uploaderUid` (Supabase uid) rakhta hai; naam + DP
        hamesha user_profiles se aate hain. Profile update hote hi Realtime
        event aata hai aur us uid wale SAARE cards turant patch ho jaate hain
-       â€” na re-upload, na manual refresh, na page reload. */
+       — na re-upload, na manual refresh, na page reload. */
     const contributorCache=new Map(); /* uid -> {name,avatar,username} */
     let contributorChannel=null;
     const RESOURCE_FEED_COLUMNS='id,title,type,subject,college,semester,year,file_name,file_url,status,downloads,upvotes,created_at,uploader_email,uploader_name,uploader_uid,contributor_name,contributor_avatar';
@@ -89,11 +89,11 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function contributorAvatarFor(uid,fallback){const live=contributorCache.get(String(uid||''));return String((live&&live.avatar)||fallback||'')}
     /* Backend-populated read: `resources_feed` view (live join to user_profiles).
        View abhi deploy na hui ho to plain table + user_profiles ka client-side
-       populate chal jaata hai â€” site kabhi break nahi hoti. */
+       populate chal jaata hai — site kabhi break nahi hoti. */
     async function fetchApprovedResourceRows(){
       const primary=await supabaseClient.from('resources_feed').select(RESOURCE_FEED_COLUMNS).eq('status','approved').order('created_at',{ascending:false});
       if(!primary.error)return primary.data||[];
-      console.warn('[BCAPrime] resources_feed view unavailable â€” plain table fallback. supabase-contributor-profiles.sql run karo.');
+      console.warn('[BCAPrime] resources_feed view unavailable — plain table fallback. supabase-contributor-profiles.sql run karo.');
       const fallback=await supabaseClient.from('resources').select('*').eq('status','approved').order('created_at',{ascending:false});
       if(fallback.error)throw fallback.error;
       await hydrateContributorProfiles(fallback.data||[]);
@@ -118,7 +118,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
 
     /* uid -> DOM selector (Supabase uid alphanumeric hote hain; baaki safely skip) */
     function contributorSelector(uid){const value=String(uid||'');return /^[A-Za-z0-9_-]{1,80}$/.test(value)?value:''}
-    /* Card DOM ko bina full re-render patch karo â€” scroll position safe rehti hai */
+    /* Card DOM ko bina full re-render patch karo — scroll position safe rehti hai */
     function patchContributorInDom(uid,live,selfUid){
       const selector=contributorSelector(uid);if(!selector)return false;
       const name=(live&&live.name)||'';
@@ -191,7 +191,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       const collegeName = (colleges.find(c=>c[0]===state.college)||colleges[0])[1];
       $('collegeLabel').textContent = collegeName;
       const semText = state.sem==='all' ? 'All Semesters' : `Sem ${state.sem}`;
-      $('navSemBadge').textContent = `Â· ${semText}`;
+      $('navSemBadge').textContent = `· ${semText}`;
       $('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';
       renderColleges();
       renderSubjectFilter();
@@ -216,7 +216,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         return true;};
       let list=resources.filter(match);
       /* Search fallback: query active ho aur filters ke saath 0 results aayein
-         to college/semester/subject/type filters relax karke dobara dhoondo â€”
+         to college/semester/subject/type filters relax karke dobara dhoondo —
          warna user ko search broken lagta hai jab material exist karta hai. */
       let fallback=false;
       if(!list.length&&q.trim()){
@@ -224,13 +224,13 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         fallback=list.length>0;
       }
       $('count').textContent=`${list.length} result${list.length===1?'':'s'}${fallback?' (from all semesters & colleges)':''}`;
-      const notice=fallback?`<div class="search-fallback-note"><i class="fa-solid fa-circle-info"></i> No match in your current filters â€” showing results from <b>all semesters &amp; colleges</b>. <button class="secondary" onclick="clearSearchFilters()">Clear filters</button></div>`:'';
+      const notice=fallback?`<div class="search-fallback-note"><i class="fa-solid fa-circle-info"></i> No match in your current filters — showing results from <b>all semesters &amp; colleges</b>. <button class="secondary" onclick="clearSearchFilters()">Clear filters</button></div>`:'';
       $('resources').innerHTML=(fallback?notice:'')+(list.length?list.map(card).join(''):buildEmptyState())}
     /* ---- Empty state: upload it yourself or request from friends on WhatsApp ---- */
     function buildEmptyState(){
       const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
       return `<div class="empty"><i class="fa-regular fa-folder-open"></i><br>
-        <strong>${searching?'This material isn\'t in the library yet':'The library is quiet â€” be the first!'}</strong><br>
+        <strong>${searching?'This material isn\'t in the library yet':'The library is quiet — be the first!'}</strong><br>
         <small>${searching?'No Notes/PYQs match your filters right now. Be the first to upload it, or request it from your friends:':'You could be the first to share material here.'}</small>
         <div class="empty-actions">
           <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
@@ -243,11 +243,11 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       const semText=state.sem==='all'?'any semester':('Semester '+state.sem);
       const subjText=(!state.subject||state.subject==='all')?'':(' for '+state.subject);
       const typeText=state.type==='all'?'Notes or PYQs':(state.type==='notes'?'Notes':'PYQs');
-      const msg='ðŸ“š *BCAPrime* â€” Study Material Request ðŸ™\n\n'
-        +'Hey! I need '+typeText+subjText+' for '+semText+', but it\'s not available in the library yet. ðŸ˜…\n\n'
+      const msg='📚 *BCAPrime* — Study Material Request 🙏\n\n'
+        +'Hey! I need '+typeText+subjText+' for '+semText+', but it\'s not available in the library yet. 😅\n\n'
         +'If you have them, please take 2 minutes to upload here:\n'
-        +'ðŸ‘‰ https://bcaprime.vercel.app\n\n'
-        +'You upload first, everyone studies next! ðŸ’ªðŸš€';
+        +'👉 https://bcaprime.vercel.app\n\n'
+        +'You upload first, everyone studies next! 💪🚀';
       window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     }
     function uploaderSmallAvatar(name){const n=(name||'Student').trim();const letter=n.charAt(0).toUpperCase()||'S';const hues=[142,200,280,320,40,170];let h=0;for(const ch of n)h=(h*31+ch.charCodeAt(0))%360;const hue=hues[h%hues.length];return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="14" fill="hsl(${hue},55%,42%)"/><text x="14" y="19" font-family="Arial,sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${letter}</text></svg>`)}`}
@@ -261,7 +261,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         function getCounts(id){const c=loadCounts();return c[id]||{v:0,d:0}}
         function bumpView(id){if(!id)return;const c=loadCounts();const rec=c[id]||{v:0,d:0};rec.v=(rec.v||0)+1;c[id]=rec;saveCounts(c);const resource=resources.find(x=>rcId(x.title)===id);if(resource)resource.viewCount=rec.v;const el=document.getElementById('rcv-'+id);if(el)el.textContent=rec.v}
         function bumpDownload(id){if(!id)return;const c=loadCounts();const rec=c[id]||{v:0,d:0};rec.d=(rec.d||0)+1;c[id]=rec;saveCounts(c);const resource=resources.find(x=>rcId(x.title)===id);const total=((resource&&typeof resource.downloads==='number')?resource.downloads:0)+rec.d;if(resource)resource.downloadCount=total;const el=document.getElementById('rcd-'+id);if(el)el.textContent=total}
-        function bindCardViews(){/* Views are counted STRICTLY on the "Read" button click (readResource) â€” never on card tap, page load, mount or hover. */}
+        function bindCardViews(){/* Views are counted STRICTLY on the "Read" button click (readResource) — never on card tap, page load, mount or hover. */}
         async function shareResource(title){try{if(navigator.share){await navigator.share({title:'BCAPrime',text:title||'Check this on BCAPrime',url:location.href})}else if(navigator.clipboard){await navigator.clipboard.writeText(location.href);toast('Link copied')}else{toast('Share is not supported here')}}catch(e){}}
         async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);openReader(signed?{...resource,fileUrl:signed}:resource)}
     function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');renderSubjectFilter();render()}
@@ -341,7 +341,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       $('subjectFilter').value='all';
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
       applyFilters();
-      toast(ok?('"'+name+'" submitted â³ Admin approval ke baad dikhega'):('Could not submit "'+name+'". Please try again.'));
+      toast(ok?('"'+name+'" submitted ⏳ Admin approval ke baad dikhega'):('Could not submit "'+name+'". Please try again.'));
     }
     function cancelFinderAddSubject(){
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
@@ -357,7 +357,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        ...getCustomSubjects(sem)
       ].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
       const sorted=[...seen.values()].sort((a,b)=>a.localeCompare(b));
-      sel.innerHTML=sorted.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${escHtml(s)}</option>`).join('')+'<option value="__other">+ Other / new subjectâ€¦</option>';
+      sel.innerHTML=sorted.map(s=>`<option value="${s.replace(/"/g,'&quot;')}">${escHtml(s)}</option>`).join('')+'<option value="__other">+ Other / new subject…</option>';
       onUploadSubjectChange(sel);
     }
     function onUploadSubjectChange(sel){const custom=$('customSubjectField');if(custom)custom.hidden=sel.value!=='__other'}
@@ -390,7 +390,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const wrap=$('subjectCards');if(!wrap)return;
       let subjects=[].concat(getCustomSubjects(state.sem));
       getAvailableSubjects().forEach(s=>{if(!subjects.some(x=>normSubject(x)===normSubject(s)))subjects.push(s)});
-      if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester â€” all its subjects will show up here ðŸ“š</div>';return}
+      if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester — all its subjects will show up here 📚</div>';return}
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
       const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&semMatchesFilter(r.sem)).length;
       /* Har subject ke semesters: cloud subject + uploaded resources */
@@ -416,7 +416,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(input){input.value='';input.blur()}
       renderSubjectFilter();
       render();
-      toast(ok?('"'+name+'" submitted âœ‰ï¸ It will appear here once an admin approves it'):('Could not submit "'+name+'". Please try again.'));
+      toast(ok?('"'+name+'" submitted ✉️ It will appear here once an admin approves it'):('Could not submit "'+name+'". Please try again.'));
     }
     let pendingSubject='';
     function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
@@ -483,7 +483,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const message=form.querySelector('textarea[name="message"]').value.trim();
       if(message.length<5){toast('Please add a little more detail');return}
       const btn=form.querySelector('button[type="submit"]');
-      btn.disabled=true;btn.textContent='Sendingâ€¦';
+      btn.disabled=true;btn.textContent='Sending…';
       try{
         let screenshotUrl=null;
         const file=$('feedbackFile').files[0];
@@ -513,7 +513,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
         const thumbWrap=$('fbThumbWrap');if(thumbWrap)thumbWrap.hidden=true;
         if($('fbCount'))$('fbCount').textContent='0/1000';
-        toast('Thanks! Your feedback is in ðŸ™ We\'ll review it soon');
+        toast('Thanks! Your feedback is in 🙏 We\'ll review it soon');
       }catch(error){
         console.error('[BCAPrime] Feedback error:',error);
         toast('Feedback send failed: '+(error&&error.message||error));
@@ -613,7 +613,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     async function download(title){
       /* Strict auth guard: block the download completely and open the Login/Signup modal for guests.
-         Naya signup / session-restore race: Supabase ka LIVE session bhi accountSession maano â€”
+         Naya signup / session-restore race: Supabase ka LIVE session bhi accountSession maano —
          tabhi freshly signed-up user ka pending download resume hota hai (onAuthStateChange se
          pehle click karne par bhi). */
       if(!accountSession){
@@ -630,7 +630,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(!await ensureFileAvailable(resource,'download'))return;
         const fileName=resource.fileName||((title||'note').replace(/\W+/g,'-')+guessExt(resource));
         if(resource.fileData){
-          /* data: URL â€” convert to Blob for mobile browsers that reject large data: URL downloads */
+          /* data: URL — convert to Blob for mobile browsers that reject large data: URL downloads */
           const ok=await fetchBlobDownload(resource.fileData,fileName);
           if(!ok)saveUrlAs(resource.fileData,fileName,false);
           toast('Download started');
@@ -648,7 +648,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
               requireAccount('For secure downloads, log in with your account on this device.','download',title);
               return;
             }
-            toast('Could not start download â€” please try again.');
+            toast('Could not start download — please try again.');
             return;
           }
           const ok=await fetchBlobDownload(signed,fileName);
@@ -668,7 +668,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     let accountMode='signup';let accessAuthMode='signup';let accountSession=null;let authSuppress=false;let profileRealtimeChannel=null;
     /* ============ Guest Mode: welcome popup + signed URLs ============
-       Bucket PRIVATE hai â€” seedha public URL ab kaam nahi karta. Har Read/Preview/Download
+       Bucket PRIVATE hai — seedha public URL ab kaam nahi karta. Har Read/Preview/Download
        se pehle sign-resource Edge Function se ek chhota-lived SIGNED URL lete hain.
        Guest = UNLIMITED reading/viewing. Download + Upload = sign-up wall. */
     function getGuestId(){
@@ -680,15 +680,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     /* Legacy key cleanup: preview limits ab khatam, purane counters hata do. */
     try{ sessionStorage.removeItem('bca-guest-previews'); }catch(e){}
-    /* Unlimited reading â€” koi client-side preview limit nahi rahi. */
+    /* Unlimited reading — koi client-side preview limit nahi rahi. */
     function consumeGuestPreview(resource){ return true; }
-    /* (supabaseAccessToken ki duplicate declaration yahan se hata di gayi â€”
+    /* (supabaseAccessToken ki duplicate declaration yahan se hata di gayi —
        single hardened definition aur neeche, OTP section ke paas hai.) */
     /* Signed URL lo. Guest -> preview mode (server quota). Logged-in -> preview/download. */
     async function fetchSignedUrl(resource, mode){
       const raw = resource && (resource.fileUrl || '');
       if(!raw) return '';
-      if(!isRemoteFile(raw)) return raw;               /* data:/local â€” sign ki zaroorat nahi */
+      if(!isRemoteFile(raw)) return raw;               /* data:/local — sign ki zaroorat nahi */
       if(!supabaseClient || typeof SUPABASE_URL === 'undefined') return raw;
       try{
         const token = await supabaseAccessToken();
@@ -743,7 +743,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         try{
           if(!accountSession||!accountSession.uid){stopVerifyPolling();return}
           await refreshVerificationFlag(accountSession);
-          if(accountSession&&isVerifiedUser(accountSession)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');try{await tryClaimLegacyAccount(accountSession)}catch(e){}showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified âœ“')}
+          if(accountSession&&isVerifiedUser(accountSession)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');try{await tryClaimLegacyAccount(accountSession)}catch(e){}showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified ✓')}
         }catch(e){}
       },3000);
     }
@@ -755,7 +755,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function closeVerifyEmail(){stopVerifyPolling();const modal=$('verifyEmailModal');if(modal)modal.classList.remove('open')}
     async function resendVerificationEmail(event){if(event)event.preventDefault();const msg=$('verifyEmailMessage');if(!supabaseClient){if(msg)msg.textContent='Sign-in is not available right now.';return}try{const email=(accountSession&&accountSession.email)||'';await requestOtp(email);if(msg)msg.textContent='Verification code sent again. Check your inbox / spam.'}catch(error){if(msg)msg.textContent=(error&&error.message)||'Could not send verification email.'}}
-    async function confirmEmailVerified(event){if(event)event.preventDefault();const msg=$('verifyEmailMessage');try{if(!accountSession){closeVerifyEmail();return}await refreshVerificationFlag(accountSession);if(isVerifiedUser(accountSession)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');try{await tryClaimLegacyAccount(accountSession)}catch(e){}showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified âœ“');return}if(msg)msg.textContent='Not verified yet. Enter the 6-digit code we emailed to '+(accountSession.email?escHtml(accountSession.email):'your inbox')+', then try again.'}catch(error){if(msg)msg.textContent='Could not check verification status.'}}
+    async function confirmEmailVerified(event){if(event)event.preventDefault();const msg=$('verifyEmailMessage');try{if(!accountSession){closeVerifyEmail();return}await refreshVerificationFlag(accountSession);if(isVerifiedUser(accountSession)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');try{await tryClaimLegacyAccount(accountSession)}catch(e){}showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified ✓');return}if(msg)msg.textContent='Not verified yet. Enter the 6-digit code we emailed to '+(accountSession.email?escHtml(accountSession.email):'your inbox')+', then try again.'}catch(error){if(msg)msg.textContent='Could not check verification status.'}}
     /* Gate helper used by every email/password login handler.
        Returns true (granted) or shows the Verify screen and returns false. */
     async function ensureVerified(user){
@@ -763,7 +763,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       let sent=false,email='';
       if(user&&user.email){email=user.email;try{sent=await requestOtp(email)}catch(e){}}
       saveVerificationStatus(false);
-      showVerifyEmail(email,sent?'':'We could not send a new verification code right now â€” use the Resend option.');
+      showVerifyEmail(email,sent?'':'We could not send a new verification code right now — use the Resend option.');
       return false;
     }
     /* ===== OTP verification (dual option: link OR 6-digit code) =====
@@ -772,19 +772,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        issued + verified server-side only (api/send-otp, api/verify-otp). */
     let pendingOtpApproval=false,otpResendTimer=null,otpCountdownEnd=0,otpSubmitting=false;
     function getAuthApiUrl(name){try{return (typeof AUTH_API!=='undefined'&&AUTH_API&&AUTH_API[name])?AUTH_API[name]:''}catch(e){return''}}
-    /* Supabase access token â€” sign-resource server ise verify karta hai. Pehle LIVE
+    /* Supabase access token — sign-resource server ise verify karta hai. Pehle LIVE
        Supabase session (har normal signup/login), warna accountSession (QR-linked
        synthetic session, jahan getIdToken hota hai). Dono fail ho to '' (guest). */
     async function supabaseAccessToken(){try{if(supabaseClient){const {data}=await supabaseClient.auth.getSession();if(data&&data.session&&data.session.access_token)return data.session.access_token}}catch(e){}try{if(accountSession&&typeof accountSession.getIdToken==='function'){return await accountSession.getIdToken()}}catch(e){}return''}
     /* OTP ke liye send-otp API call (modal state ALAG se handle hota hai).
        true = code bhej diya, false = token/url missing, throw = API error. */
-    async function requestOtp(email){const url=getAuthApiUrl('sendOtp');if(!url||!email)return false;const token=await supabaseAccessToken();if(!token)return false;setOtpStatus('Sending your codeâ€¦','');const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error('HTTP '+res.status+(data.error?(' - '+data.error):''));return true}
+    async function requestOtp(email){const url=getAuthApiUrl('sendOtp');if(!url||!email)return false;const token=await supabaseAccessToken();if(!token)return false;setOtpStatus('Sending your code…','');const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error('HTTP '+res.status+(data.error?(' - '+data.error):''));return true}
     function checkPasswordMatch(password,confirmEl,msgEl){const value=confirmEl&&typeof confirmEl.value==='string'?confirmEl.value:'';if(!value){if(msgEl)msgEl.textContent='Please confirm your password.';return false}if(password!==value){if(msgEl)msgEl.textContent='Passwords do not match. Please re-enter your confirmation.';return false}return true}
     /* ==== Google-first username signup ====
        Signup = Username + Password + Confirm -> Sign Up dabate hi Google
        account-picker khulta hai. Google select karne par user ka chosen
        password Firebase par set hota hai (server-side) aur username/email/name
-       Supabase me save hota hai. Password kabhi plaintext me store nahi hota â€”
+       Supabase me save hota hai. Password kabhi plaintext me store nahi hota —
        sirf Firebase (hashed) me rehta hai. */
     function setLabelText(labelEl,text){if(labelEl&&labelEl.childNodes&&labelEl.childNodes[0])labelEl.childNodes[0].nodeValue=text}
     let pendingSignup=null,usernameCheckTimer=null;
@@ -810,16 +810,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function focusOtp(index){const boxes=document.querySelectorAll('.otp-digit');const el=boxes[index];if(el)el.focus()}
     function stopOtpCountdown(){if(otpResendTimer){clearInterval(otpResendTimer);otpResendTimer=null}const c=$('otpCountdown');if(c)c.textContent='';const b=$('otpResendBtn');if(b)b.hidden=true}
     function startOtpCountdown(totalSeconds){stopOtpCountdown();otpCountdownEnd=Date.now()+totalSeconds*1000;const tick=()=>{const remain=Math.max(0,Math.round((otpCountdownEnd-Date.now())/1000));const c=$('otpCountdown');const b=$('otpResendBtn');if(remain<=0){if(c)c.textContent='';if(b){b.textContent='\u21ba Resend code';b.hidden=false}if(otpResendTimer){clearInterval(otpResendTimer);otpResendTimer=null}}else{if(c){const m=Math.floor(remain/60),s=remain%60;c.textContent='Resend code in '+m+':'+String(s).padStart(2,'0')}if(b)b.hidden=true}};tick();otpResendTimer=setInterval(tick,1000)}
-    async function resendOtp(){const email=(accountSession&&accountSession.email?accountSession.email:'');const url=getAuthApiUrl('sendOtp');const btn=$('otpResendBtn');if(btn)btn.hidden=true;setOtpStatus('Sending a new codeâ€¦','');try{const token=await supabaseAccessToken();if(!url||!token)throw new Error('Unavailable');const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Could not resend code.');clearOtpBoxes();setOtpStatus('A new code was sent.','is-ok');startOtpCountdown(12*60);focusOtp(0)}catch(error){setOtpStatus(error.message||'Could not resend code.','is-error');if(btn)btn.hidden=false}}
-    async function submitOtp(){if(otpSubmitting)return;const code=currentOtpCode();const wrap=$('otpBoxes');if(wrap)wrap.classList.remove('is-error');if(code.length!==6){setOtpStatus('Please enter all 6 digits.','is-error');if(wrap)wrap.classList.add('is-error');document.querySelectorAll('.otp-digit').forEach(b=>{if(!b.value)b.classList.add('has-value')});return}const email=(accountSession&&accountSession.email?accountSession.email:'');const url=getAuthApiUrl('verifyOtp');if(!url){setOtpStatus('Verification is unavailable right now.','is-error');return}otpSubmitting=true;const btn=$('otpVerifyBtn');if(btn){btn.disabled=true;btn.textContent='Verifyingâ€¦'}try{const token=await supabaseAccessToken();const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email,code})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'That code did not match.');completeEmailVerification()}catch(error){otpSubmitting=false;if(btn){btn.disabled=false;btn.textContent='Verify & continue'}setOtpStatus(error.message||'That code did not match.','is-error');if(wrap){wrap.classList.add('is-error');setTimeout(()=>wrap.classList.remove('is-error'),600)}}}
-    function completeEmailVerification(){stopOtpCountdown();pendingOtpApproval=false;otpSubmitting=false;(async()=>{try{await refreshVerificationFlag(accountSession)}catch(e){}saveVerificationStatus(true);stopVerifyPolling();const vm=$('verifyEmailModal');if(vm)vm.classList.remove('open');const om=$('otpModal');if(om)om.classList.remove('open');sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount();toast('Email verified âœ“')})()}
+    async function resendOtp(){const email=(accountSession&&accountSession.email?accountSession.email:'');const url=getAuthApiUrl('sendOtp');const btn=$('otpResendBtn');if(btn)btn.hidden=true;setOtpStatus('Sending a new code…','');try{const token=await supabaseAccessToken();if(!url||!token)throw new Error('Unavailable');const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'Could not resend code.');clearOtpBoxes();setOtpStatus('A new code was sent.','is-ok');startOtpCountdown(12*60);focusOtp(0)}catch(error){setOtpStatus(error.message||'Could not resend code.','is-error');if(btn)btn.hidden=false}}
+    async function submitOtp(){if(otpSubmitting)return;const code=currentOtpCode();const wrap=$('otpBoxes');if(wrap)wrap.classList.remove('is-error');if(code.length!==6){setOtpStatus('Please enter all 6 digits.','is-error');if(wrap)wrap.classList.add('is-error');document.querySelectorAll('.otp-digit').forEach(b=>{if(!b.value)b.classList.add('has-value')});return}const email=(accountSession&&accountSession.email?accountSession.email:'');const url=getAuthApiUrl('verifyOtp');if(!url){setOtpStatus('Verification is unavailable right now.','is-error');return}otpSubmitting=true;const btn=$('otpVerifyBtn');if(btn){btn.disabled=true;btn.textContent='Verifying…'}try{const token=await supabaseAccessToken();const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email,code})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||'That code did not match.');completeEmailVerification()}catch(error){otpSubmitting=false;if(btn){btn.disabled=false;btn.textContent='Verify & continue'}setOtpStatus(error.message||'That code did not match.','is-error');if(wrap){wrap.classList.add('is-error');setTimeout(()=>wrap.classList.remove('is-error'),600)}}}
+    function completeEmailVerification(){stopOtpCountdown();pendingOtpApproval=false;otpSubmitting=false;(async()=>{try{await refreshVerificationFlag(accountSession)}catch(e){}saveVerificationStatus(true);stopVerifyPolling();const vm=$('verifyEmailModal');if(vm)vm.classList.remove('open');const om=$('otpModal');if(om)om.classList.remove('open');sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp();resumeRestrictedAction();if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount();toast('Email verified ✓')})()}
     function bindOtpInputs(){const boxes=[...document.querySelectorAll('.otp-digit')];boxes.forEach((box,i)=>{box.addEventListener('input',()=>{const val=box.value.replace(/\D/g,'');box.value=val.slice(0,1);box.classList.toggle('has-value',box.value.length>0);if(box.value.length===1&&i<boxes.length-1)boxes[i+1].focus();if(currentOtpCode().length===6&&!otpSubmitting)submitOtp()});box.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!box.value&&i>0){boxes[i-1].value='';boxes[i-1].classList.remove('has-value');boxes[i-1].focus()}else if(e.key==='ArrowLeft'&&i>0)boxes[i-1].focus();else if(e.key==='ArrowRight'&&i<boxes.length-1)boxes[i+1].focus()});box.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData&&e.clipboardData.getData('text')||'').replace(/\D/g,'').slice(0,6);boxes.forEach((b,j)=>{b.value=text[j]||'';b.classList.toggle('has-value',!!text[j])});if(text.length>=6)submitOtp();else boxes[Math.min(text.length,boxes.length-1)].focus()})})}
     function sendGoogleWelcome(user){const url=getAuthApiUrl('googleWelcome');if(!url||!user)return;(async()=>{try{const token=await user.getIdToken();if(!token)return;await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({idToken:token,email:user.email,name:user.displayName})})}catch(e){console.warn('[BCAPrime] Google welcome email not sent.',e)}})()}
     function getUserName(user){user=user||accountSession;if(user&&user.displayName&&user.displayName.trim())return user.displayName.trim();if(user&&user.email){const local=user.email.split('@')[0]||'';const parts=local.split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1));if(parts.length)return parts.join(' ')}return 'there'}
     function getTimeBasedGreeting(name='there'){const hour=new Date().getHours();let prefix;if(hour>=4&&hour<12)prefix='Good Morning';else if(hour>=12&&hour<17)prefix='Good Afternoon';else if(hour>=17&&hour<21)prefix='Good Evening';else prefix='Good Night';return `${prefix}, ${name}!`}let greetingTimerId=null;function scheduleGreetingUpdate(){if(greetingTimerId)return;const now=new Date();const next=new Date(now);next.setHours(next.getHours()+1,0,0,0);const delay=Math.max(0,next-now);greetingTimerId=setTimeout(()=>{greetingTimerId=null;renderGreeting()},delay)}function renderGreeting(){const greeting=$('heroGreeting');const title=$('heroDefaultTitle');if(!greeting||!title)return;const isAuthed=accountSession||sessionStorage.getItem('bca-guest-mode')==='true';greeting.hidden=!isAuthed;title.hidden=!!isAuthed;$('heroGreetName').textContent=getTimeBasedGreeting(getUserName(accountSession)||'there');if(isAuthed)scheduleGreetingUpdate()}
     function setAccountMode(mode){accountMode=mode;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
     function renderAccount(){const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');$('accountAuth').innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="secondary" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
-    async function signInWithProvider(provider,messageId='accountMessage'){if(!supabaseClient){$(messageId).textContent='Sign-in is not available right now.';return}try{if(pendingSignup){try{sessionStorage.setItem('bca-pending-signup',JSON.stringify(pendingSignup))}catch(e){}pendingSignup=null}if(restrictedAction){try{sessionStorage.setItem('bca-pending-action',JSON.stringify(restrictedAction))}catch(e){}}const providerLabel=provider.charAt(0).toUpperCase()+provider.slice(1);$(messageId).textContent='Opening '+providerLabel+' sign-inâ€¦';/* Supabase OAuth = full-page redirect; pending state sessionStorage me save hai â€” wapas aane par onAuthStateChange consume karega. */const{error}=await supabaseClient.auth.signInWithOAuth({provider,options:{redirectTo:location.origin+(location.pathname||'/')}});if(error)throw error}catch(error){if(pendingSignup)pendingSignup=null;$(messageId).textContent=(error&&error.message)||'Could not start '+providerLabel+' sign-in.'}}
+    async function signInWithProvider(provider,messageId='accountMessage'){if(!supabaseClient){$(messageId).textContent='Sign-in is not available right now.';return}try{if(pendingSignup){try{sessionStorage.setItem('bca-pending-signup',JSON.stringify(pendingSignup))}catch(e){}pendingSignup=null}if(restrictedAction){try{sessionStorage.setItem('bca-pending-action',JSON.stringify(restrictedAction))}catch(e){}}const providerLabel=provider.charAt(0).toUpperCase()+provider.slice(1);$(messageId).textContent='Opening '+providerLabel+' sign-in…';/* Supabase OAuth = full-page redirect; pending state sessionStorage me save hai — wapas aane par onAuthStateChange consume karega. */const{error}=await supabaseClient.auth.signInWithOAuth({provider,options:{redirectTo:location.origin+(location.pathname||'/')}});if(error)throw error}catch(error){if(pendingSignup)pendingSignup=null;$(messageId).textContent=(error&&error.message)||'Could not start '+providerLabel+' sign-in.'}}
     let gateMode='signup';
     function setGateMode(mode){gateMode=mode;$('gateAccountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('gateAccountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('gateAccountMessage').textContent='';$('gateNameLabel').hidden=mode!=='signup';$('gateConfirmLabel').hidden=mode!=='signup';$('gateEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('gateAccountName').setAttribute('required','');$('gateAccountConfirm').setAttribute('required','');$('gateAccountEmail').removeAttribute('required')}else{$('gateAccountName').removeAttribute('required');$('gateAccountConfirm').removeAttribute('required');$('gateAccountEmail').setAttribute('required','')}}
     async function submitGateAccount(event){event.preventDefault();if(!supabaseClient){$('gateAccountMessage').textContent='Sign-in is not available right now.';return}const password=$('gateAccountPassword').value;const msgEl=$('gateAccountMessage');if(gateMode==='signup'){const username=$('gateAccountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('gateAccountConfirm'),msgEl))return;const gateUsernameAvail=await checkUsernameAvailable(username);if(gateUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','gateAccountMessage');return}const loginEmail=await resolveLoginEmail($('gateAccountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}}catch(error){$('gateAccountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
@@ -837,7 +837,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ================== Account-bound college & semester ==================
        Ab account (Supabase uid) ki ek server-side profile hoti hai (college +
        semester). Login par is profile se sync hota hai, taaki SAME account har
-       device par SAME college + semester rakhe â€” 'DU laptop / Glocal phone'
+       device par SAME college + semester rakhe — 'DU laptop / Glocal phone'
        wala data-conflict ab possible nahi hai. Server = source of truth. */
     function accountUid(){return(accountSession&&accountSession.uid)?accountSession.uid:''}
     window.__bcaSessionUid=accountUid;
@@ -855,7 +855,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           }
           let changed=false;
           if(data.college&&data.college!=='all'){state.college=data.college;try{localStorage.setItem('bca-college',data.college)}catch(e){}changed=true}
-          if(data.semester!=null){state.sem=String(data.semester);try{localStorage.setItem('bca-sem',String(data.semester));/* Account-bound ENROLLED semester â€” push targeting isi ko use karti hai (library filter alag cheez hai) */localStorage.setItem('bca-enrolled-sem',String(data.semester))}catch(e){}changed=true}
+          if(data.semester!=null){state.sem=String(data.semester);try{localStorage.setItem('bca-sem',String(data.semester));/* Account-bound ENROLLED semester — push targeting isi ko use karti hai (library filter alag cheez hai) */localStorage.setItem('bca-enrolled-sem',String(data.semester))}catch(e){}changed=true}
           if(changed){
             const lbl=$('collegeLabel');if(lbl)lbl.textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];
             try{updateSemesterOptions();const ss=$('semesterFilter');if(ss&&state.sem!=='all')ss.value=state.sem;}catch(e){}
@@ -887,12 +887,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        (uid + email + safe defaults). Asli creation google-welcome API karti
        hai, par agar wo call fail ho jaaye to naya user bina profile row ke
        reh jaata tha (verification writes bhi silently drop hoti thin).
-       Ye upsert har verified login par chalti hai â€”
+       Ye upsert har verified login par chalti hai —
        EXISTING row ko kabhi overwrite nahi karti (pehle select guard),
        sirf missing row banati hai ya missing verification flag repair karti
        hai. RLS "Anyone can create/update user profiles" se allowed hai.
        NOTE: downloads Edge Function (service role) se authorize hote hain,
-       isliye kisi extra role/permission ki zaroorat nahi â€” row ka hona hi
+       isliye kisi extra role/permission ki zaroorat nahi — row ka hona hi
        profile sync + notification targeting ke liye kaafi hai. */
     async function ensureDefaultProfile(){
       if(!supabaseClient||!accountSession||!accountSession.uid)return false;
@@ -900,13 +900,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{
         const{data}=await supabaseClient.from('user_profiles').select('uid,college,semester,is_email_verified,name,username').eq('uid',uid).maybeSingle();
         if(data&&data.uid){
-          /* Row maujood hai â€” sirf verification flag sync karo agar user ab verified hai. */
+          /* Row maujood hai — sirf verification flag sync karo agar user ab verified hai. */
           if(isVerifiedUser(accountSession)&&!data.is_email_verified){
             try{await supabaseClient.from('user_profiles').update({is_email_verified:true,updated_at:new Date().toISOString()}).eq('uid',uid)}catch(e2){}
           }
           return true;
         }
-      }catch(e){/* select fail â€” neeche upsert se aage badho */}
+      }catch(e){/* select fail — neeche upsert se aage badho */}
       const email=(accountSession.email||'').toLowerCase();
       let storedUsername='';try{storedUsername=localStorage.getItem('bca-username')||''}catch(e){}
       const row={uid,email,name:(accountSession.displayName||storedUsername||''),...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:'all',semester:null,is_email_verified:!!isVerifiedUser(accountSession),updated_at:new Date().toISOString()};
@@ -924,7 +924,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       let avatar='';try{avatar=localStorage.getItem(avatarStorageKey())||''}catch(e){}
       if(!avatar&&accountSession&&accountSession.photoURL)avatar=accountSession.photoURL;
       /* Default profile: har naye VERIFIED user ka user_profiles row DB me hona
-         chahiye (college='all', semester, is_email_verified) â€” is profile par
+         chahiye (college='all', semester, is_email_verified) — is profile par
          username login, profile sync aur push targeting depend karti hai.
          Transient network/DB failure par EK baar retry (silent drop nahi). */
       const profileRow={uid,email,name:profileName,...(storedUsername?{username:storedUsername.toLowerCase()}:{}),college:state.college||'all',semester:sem,...(avatar?{avatar_url:avatar}:{}),is_email_verified:!!(accountSession&&isVerifiedUser(accountSession)),updated_at:new Date().toISOString()};
@@ -981,7 +981,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       devicePollTimer=setInterval(async()=>{
         try{
           const {data}=await supabaseClient.from('device_sessions').select('status').eq('uid',uid).eq('device_id',devId).maybeSingle();
-          if(data&&data.status==='approved'){stopDevicePolling();modal.classList.remove('open');toast('This device has been approved âœ“')}
+          if(data&&data.status==='approved'){stopDevicePolling();modal.classList.remove('open');toast('This device has been approved ✓')}
           else if(data&&data.status==='denied'){stopDevicePolling();modal.classList.remove('open');toast('Device request denied')}
         }catch(e){}
       },3000);
@@ -1018,7 +1018,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function approveDeviceReq(){
       const id=$('deviceReqId');if(!id||!id.value)return;
       try{await supabaseClient.from('device_sessions').update({status:'approved',approved_at:new Date().toISOString()}).eq('id',id.value)}catch(e){}
-      hideDeviceRequestBanner();currentRequestId=null;toast('New device approved âœ…');
+      hideDeviceRequestBanner();currentRequestId=null;toast('New device approved ✅');
     }
     async function denyDeviceReq(){
       const id=$('deviceReqId');if(!id||!id.value)return;
@@ -1028,7 +1028,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ================== WhatsApp-style QR login (desktop) ==================
        Desktop ek qr_login_sessions row banata hai (3 min expiry) aur approval
        ko Supabase Realtime broadcast + polling (fallback) dono se sunta hai.
-       Logged-in phone QR ke URL (?qr=<id>) se approve karta hai â€” desktop
+       Logged-in phone QR ke URL (?qr=<id>) se approve karta hai — desktop
        automatic login + device approved. Single-use + expiry enforced. */
     const QR_TTL_MS=300000;
     let qrSession=null;
@@ -1057,8 +1057,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       qrSession={id,deadline:Date.now()+QR_TTL_MS};
       const box=$('qrBox');if(box)box.innerHTML='';
       const okLib=await loadQrLib();
-      if(okLib&&window.QRCode&&box){try{new window.QRCode(box,{text:payload,width:188,height:188,colorDark:'#101216',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M})}catch(e){console.error('QRCode render error:',e);if(box)box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">QR code error â€” phone par ye link kholo: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}}
-      else if(box){box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">The QR library failed to load â€” open this link on your phone: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}
+      if(okLib&&window.QRCode&&box){try{new window.QRCode(box,{text:payload,width:188,height:188,colorDark:'#101216',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M})}catch(e){console.error('QRCode render error:',e);if(box)box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">QR code error — phone par ye link kholo: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}}
+      else if(box){box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">The QR library failed to load — open this link on your phone: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}
       setQrUi('waiting');
       try{
         const ch=supabaseClient.channel('qr-'+id,{config:{broadcast:{self:false}}});
@@ -1096,7 +1096,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const p=document.querySelector('.auth-qr-panel');
       if(p){p.classList.remove('is-waiting','is-expired','is-success','is-denied');p.classList.add('is-'+state)}
       const st=$('qrStatus');
-      if(st)st.textContent=state==='waiting'?'Scan with your phone â€” you will be signed in instantly':state==='success'?'Login approved! Opening your dashboardâ€¦':state==='expired'?'Code expired â€” tap Refresh':state==='denied'?'Request denied':'';
+      if(st)st.textContent=state==='waiting'?'Scan with your phone — you will be signed in instantly':state==='success'?'Login approved! Opening your dashboard…':state==='expired'?'Code expired — tap Refresh':state==='denied'?'Request denied':'';
       const rf=$('qrRefresh');if(rf)rf.hidden=state!=='expired';
     }
     function qrExpire(){setQrUi('expired')}
@@ -1107,7 +1107,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{if(qrSession.channel)supabaseClient.removeChannel(qrSession.channel)}catch(e){}
       qrSession=null;
     }
-    /* Purane (auto-refresh hue) session id ke liye chhota watcher â€” taaki
+    /* Purane (auto-refresh hue) session id ke liye chhota watcher — taaki
        agar phone ne abhi-abhi replace hue code ko approve kiya ho to wo
        approval bhi login me convert ho jaye, ignore na ho. */
     function watchLegacyQr(id){
@@ -1131,35 +1131,35 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const dbg=t=>{if(stEl)stEl.textContent='[QR] '+t};
       stopQrSession();
       try{
-        dbg('approval mili, verify kar rahe hainâ€¦');
-        /* Broadcast payload me status/expires_at nahi hote â€” sirf account
+        dbg('approval mili, verify kar rahe hain…');
+        /* Broadcast payload me status/expires_at nahi hote — sirf account
            info hoti hai. Isliye pehle DB se full row lene ki koshish karo,
            aur na mile (SELECT policy block) to payload se hi approve maano. */
         let dbRow=null;
         try{dbRow=(await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at,uid,email,display_name').eq('session_id',id).maybeSingle()).data}catch(e){}
         let row=dbRow;
         if(!row&&preRow&&(preRow.uid||preRow.display_name)){
-          console.warn('[qr-login] row select nahi hui (SELECT policy missing?) â€” broadcast payload se login kar rahe hain');
+          console.warn('[qr-login] row select nahi hui (SELECT policy missing?) — broadcast payload se login kar rahe hain');
           row={status:'approved',uid:preRow.uid||'',email:preRow.email||'',display_name:preRow.display_name||preRow.displayName||'',expires_at:null,consumed_at:null,__fromPayload:true,profile:preRow.profile,avatar:preRow.avatar};
         }
         if(!row&&preRow&&preRow.sessionId===id){
-          /* Purana-style broadcast bina account info ke â€” DB row hi sach hai */
+          /* Purana-style broadcast bina account info ke — DB row hi sach hai */
           row=dbRow;
         }
-        /* 30s ka grace â€” sirf minor clock-skew/delay tolerate karo */
+        /* 30s ka grace — sirf minor clock-skew/delay tolerate karo */
         const expired=row&&row.expires_at&&(Date.now()-new Date(row.expires_at).getTime()>30000);
         if(!row||row.status!=='approved'||row.consumed_at||expired){
           console.warn('[qr-login] approval verify fail:',{found:!!row,status:row&&row.status,consumed:!!(row&&row.consumed_at),expired});
           dbg('verify fail: '+(row?('status='+(row.status||'?')+(row.consumed_at?' (already used)':'')+(expired?' (expired)':'')):'row DB me nahi mili'));
           setQrUi('expired');return
         }
-        dbg('verify OK, session set kar rahe hainâ€¦');
+        dbg('verify OK, session set kar rahe hain…');
         await supabaseClient.from('qr_login_sessions').update({consumed_at:new Date().toISOString()}).eq('session_id',id);
         try{await supabaseClient.from('device_sessions').upsert({uid:row.uid,device_id:getDeviceId(),device_name:getDeviceName(),status:'approved',approved_at:new Date().toISOString()},{onConflict:'uid,device_id'})}catch(e){}
         sessionStorage.setItem('bca-qr-linked','true');
         sessionStorage.setItem('bca-qr-account',JSON.stringify({uid:row.uid,email:row.email||'',displayName:row.display_name||'',emailVerified:true}));
         accountSession={uid:row.uid,email:row.email||'',displayName:row.display_name||'',photoURL:null,emailVerified:true};
-        /* Dusre device wala pura data apply karo â€” college, semester, avatar.
+        /* Dusre device wala pura data apply karo — college, semester, avatar.
            (Server user_profiles bhi afterAccountAuth me sync hoti hai, ye
            instant local sync hai taaki dashboard turant personalized dikhe.) */
         try{
@@ -1184,7 +1184,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             /* Verify: dashboard sach me khula? */
             setTimeout(()=>{
               const shell=document.getElementById('appShell');
-              if(!shell||shell.hidden){dbg('Dashboard nahi khula â€” appShell hidden hai. Console check karo.');console.error('[qr-login] appShell still hidden after showAuthenticatedApp')}
+              if(!shell||shell.hidden){dbg('Dashboard nahi khula — appShell hidden hai. Console check karo.');console.error('[qr-login] appShell still hidden after showAuthenticatedApp')}
             },400);
           }catch(err){
             console.error('[qr-login] showAuthenticatedApp error:',err);
@@ -1215,23 +1215,23 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const id=sessionStorage.getItem('bca-active-qr');
       if(!id||!accountUid()||!supabaseClient)return;
       const msg=$('qrApproveMsg');
-      /* Pehle row verify karo â€” expired/consumed/denied session ko approve
+      /* Pehle row verify karo — expired/consumed/denied session ko approve
          karne se desktop par fake "expired" nahi dikhega, phone ko seedha
          sahi message milega. */
       let row=null,rowErr=null;
       try{const r=await supabaseClient.from('qr_login_sessions').select('status,expires_at,consumed_at').eq('session_id',id).maybeSingle();row=r.data;rowErr=r.error}catch(e){rowErr=e}
-      /* NOTE: agar live DB me SELECT policy missing hai to row null ayega â€”
+      /* NOTE: agar live DB me SELECT policy missing hai to row null ayega —
          hum yahin rukte nahi, approve + broadcast aage karte hain (fallback). */
       if(!rowErr&&row){
-        if(row.status==='denied'){if(msg)msg.textContent='This request was denied â€” generate a new code on the computer.';return}
-        if(row.consumed_at){if(msg)msg.textContent='This code has already been used â€” scan the new code shown on the computer.';return}
-        if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='The code has expired â€” a new QR code is shown on the computer, please scan it again.';return}
+        if(row.status==='denied'){if(msg)msg.textContent='This request was denied — generate a new code on the computer.';return}
+        if(row.consumed_at){if(msg)msg.textContent='This code has already been used — scan the new code shown on the computer.';return}
+        if(row.expires_at&&new Date(row.expires_at)<new Date()){if(msg)msg.textContent='The code has expired — a new QR code is shown on the computer, please scan it again.';return}
       }else if(rowErr){
         console.warn('[qr-login] phone-side select fail (SELECT policy?), fallback to broadcast:',rowErr);
       }
       /* Approve karte waqt expires_at thoda aage badha do taaki desktop ko
          poll/broadcast pakadne ka buffer mil jaye.
-         IMPORTANT: DB update me sirf table ke asli columns â€” profile/avatar
+         IMPORTANT: DB update me sirf table ke asli columns — profile/avatar
          sirf broadcast payload me jaate hain (DB me unke columns nahi hain). */
       const acct={uid:accountUid(),email:(accountSession&&accountSession.email)||'',display_name:getUserName(accountSession),device_name:getDeviceName()};
       const dbUpdate=Object.assign({status:'approved'},acct,{expires_at:new Date(Date.now()+120000).toISOString()});
@@ -1241,9 +1241,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(av&&av.length<=150000)acct.avatar=av; /* chhota avatar hi bhejo (payload limit) */
       }catch(e){}
       const {error}=await supabaseClient.from('qr_login_sessions').update(dbUpdate).eq('session_id',id);
-      if(error){console.error('[qr-login] approve update fail:',error);if(msg)msg.textContent='Could not approve â€” the computer may have gone offline.';return}
+      if(error){console.error('[qr-login] approve update fail:',error);if(msg)msg.textContent='Could not approve — the computer may have gone offline.';return}
       sendQrBroadcast(id,'LOGIN_SUCCESS',acct);
-      if(msg)msg.textContent='Approved âœ… The computer has been signed in.';
+      if(msg)msg.textContent='Approved ✅ The computer has been signed in.';
       setTimeout(()=>{const m=$('qrApproveModal');if(m)m.classList.remove('open');sessionStorage.removeItem('bca-active-qr')},1600);
     }
     async function denyQrLogin(){
@@ -1262,7 +1262,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function maybeStartQrLogin(){if(isDesktopViewport()&&!accountUid()&&sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')setAuthMode('qr')}
     /* ================== In-app QR Scanner (mobile) ==================
-       User ko alag scanner app kholne ki zaroorat nahi â€” web app ke andar hi
+       User ko alag scanner app kholne ki zaroorat nahi — web app ke andar hi
        camera se desktop ka QR scan karke approve/deny kar sakta hai.
        BarcodeDetector API (native, fast) + jsQR fallback (CDN lazy-load). */
     let qrScanStream=null,qrScanTimer=null;
@@ -1301,19 +1301,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       hideProfileCard();
       closeModals();
       modal.classList.add('open');
-      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(msg)msg.textContent='This browser does not support the camera â€” please use your phone\'s default camera app instead.';return}
+      if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(msg)msg.textContent='This browser does not support the camera — please use your phone\'s default camera app instead.';return}
       try{
         qrScanStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false});
       }catch(err){
         console.warn('[qr-scan] camera error:',err);
-        if(msg)msg.textContent='Could not open the camera â€” please grant permission, or scan using your phone\'s camera app.';
+        if(msg)msg.textContent='Could not open the camera — please grant permission, or scan using your phone\'s camera app.';
         return;
       }
       const video=document.getElementById('qrScanVideo');
       if(!video){stopQrScannerCamera();return}
       video.srcObject=qrScanStream;
       try{await video.play()}catch(e){}
-      if(msg)msg.textContent='Point the camera at the QR codeâ€¦';
+      if(msg)msg.textContent='Point the camera at the QR code…';
       /* Native BarcodeDetector pehle (fast), warna jsQR canvas par */
       let detector=null;
       try{if('BarcodeDetector' in window){detector=new window.BarcodeDetector({formats:['qr_code']})}}catch(e){}
@@ -1341,7 +1341,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
               done=true;
               stopQrScannerCamera();
               modal.classList.remove('open');
-              toast('QR code scanned âœ“');
+              toast('QR code scanned ✓');
               maybePromptQrApproval(id);
             }
           }
@@ -1360,7 +1360,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
-    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads âœ“')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
+    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
     /* ---- Display name (contributor name) edit ----
        Naam badalne par Firebase displayName + user_profiles.name dono update
        hote hain, aur applyContributorProfileLive turant mere saare resource
@@ -1387,7 +1387,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
         applyContributorProfileLive(accountUid(),{uid:accountUid(),name:name,avatar_url:contributorAvatarFor(accountUid(),getAvatar())});
         renderAvatar();renderGreeting();render();
-        toast('Display name updated on all your uploads âœ“');
+        toast('Display name updated on all your uploads ✓');
       }catch(error){toast('Could not update the name. Please try again.')}
       finally{if(btn)btn.disabled=false}
     }
@@ -1404,7 +1404,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     /* Rebuild uploadFiles from a FileList (or null to clear), then re-render UI */
     function refreshUploadFiles(fileList){
-      if(!fileList||!fileList.length){uploadFiles=[];$('fileName').textContent='Choose files or drag & drop â€” PDF, DOCX, PPTX, images';$('uploadFileBadges').hidden=true;renderPhotoGrid();return}
+      if(!fileList||!fileList.length){uploadFiles=[];$('fileName').textContent='Choose files or drag & drop — PDF, DOCX, PPTX, images';$('uploadFileBadges').hidden=true;renderPhotoGrid();return}
       const files=Array.from(fileList);
       const MAX_BATCH_BYTES=15*1024*1024;let totalSize=0;for(let i=0;i<files.length;i++)totalSize+=files[i].size;
       if(totalSize>MAX_BATCH_BYTES){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');return}
@@ -1413,7 +1413,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       for(let i=0;i<files.length;i++){const n=files[i].name.toLowerCase();if(/\.(jpe?g|png|webp|heic)$/i.test(n))imgCount++;else if(/\.(pdf|docx?|pptx?)$/i.test(n))docCount++;else otherCount++}
       if(files.length===1){$('fileName').textContent=files[0].name}else{$('fileName').textContent=files.length+' files selected'}
       const badgesEl=$('uploadFileBadges');badgesEl.innerHTML='';badgesEl.hidden=false;
-      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>ðŸ“¸ '+imgCount+' Photo'+(imgCount>1?'s':'')+' selected <span class="upt">â†’</span> Will be auto-merged into 1 clean PDF</span>';
+      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>📸 '+imgCount+' Photo'+(imgCount>1?'s':'')+' selected <span class="upt">→</span> Will be auto-merged into 1 clean PDF</span>';
       if(docCount>0)badgesEl.innerHTML+='<span class="upload-badge doc"><i class="fa-solid fa-file-lines"></i>'+docCount+' Document'+(docCount>1?'s':'')+'</span>';
       if(otherCount>0)badgesEl.innerHTML+='<span class="upload-badge other"><i class="fa-solid fa-file-zipper"></i>'+otherCount+' file'+(otherCount>1?'s':'')+'</span>';
       renderPhotoGrid();
@@ -1424,7 +1424,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const imgs=uploadFiles.filter(f=>window.isImageFile?window.isImageFile(f):/\.(jpe?g|png|webp|heic)$/i.test(f.name.toLowerCase()));
       if(!imgs.length){wrap.hidden=true;wrap.innerHTML='';return}
       wrap.hidden=false;
-      const header='<div class="photo-grid-head"><span>ðŸ“¸ '+imgs.length+' photo'+(imgs.length>1?'s':'')+'</span><small>Reorder so Page 1, 2, 3 stays in order</small></div>';
+      const header='<div class="photo-grid-head"><span>📸 '+imgs.length+' photo'+(imgs.length>1?'s':'')+'</span><small>Reorder so Page 1, 2, 3 stays in order</small></div>';
       const cards=imgs.map((f,idx)=>`
         <div class="photo-card" data-idx="${idx}">
           <div class="photo-thumb"><img alt="photo ${idx+1}" data-fileidx="${uploadFiles.indexOf(f)}"></div>
@@ -1476,7 +1476,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ---- Google Drive import (Picker API + drive.readonly OAuth) ----
        User apni Drive se notes/PYQ select karta hai; file bytes Drive API
        se fetch hoti hain aur existing upload batch (uploadFiles) mein add
-       ho jaati hain â€” uske baad normal submit flow (pending approval) chalta hai. */
+       ho jaati hain — uske baad normal submit flow (pending approval) chalta hai. */
     const DRIVE_MIME_TYPES='application/pdf,image/jpeg,image/png,image/webp,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation';
     let driveTokenClient=null,driveAccessToken='',drivePickerLoaded=false;
     function loadScriptOnce(src){
@@ -1492,9 +1492,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function openDrivePicker(){
       const clientId=(typeof GOOGLE_CLIENT_ID!=='undefined')?GOOGLE_CLIENT_ID:'';
       const apiKey=(typeof GOOGLE_API_KEY!=='undefined')?GOOGLE_API_KEY:'';
-      if(!clientId||!apiKey){toast('Drive import abhi configured nahi hai â€” supabase-config.js mein GOOGLE_CLIENT_ID & GOOGLE_API_KEY bharo');return}
+      if(!clientId||!apiKey){toast('Drive import abhi configured nahi hai — supabase-config.js mein GOOGLE_CLIENT_ID & GOOGLE_API_KEY bharo');return}
       try{
-        toast('Connecting to Google Driveâ€¦');
+        toast('Connecting to Google Drive…');
         await loadScriptOnce('https://apis.google.com/js/api.js');
         if(!drivePickerLoaded){
           await new Promise((resolve,reject)=>{gapi.load('picker',{callback:resolve,onerror:reject})});
@@ -1537,19 +1537,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function onDrivePicked(data){
       if(!data||data.action!==google.picker.Action.PICKED||!data.docs||!data.docs.length)return;
       let imported=0;
-      showUploadProgress(true,'Importing from Google Driveâ€¦',10);
+      showUploadProgress(true,'Importing from Google Drive…',10);
       try{
         for(const doc of data.docs){
           try{
             if(doc.mimeType&&doc.mimeType.indexOf('application/vnd.google-apps')===0){
-              toast(doc.name+' is a Google Docs file â€” Drive se PDF/DOCX export karke import karo');
+              toast(doc.name+' is a Google Docs file — Drive se PDF/DOCX export karke import karo');
               continue;
             }
-            showUploadProgress(true,'Importing '+doc.name+'â€¦',40);
+            showUploadProgress(true,'Importing '+doc.name+'…',40);
             const res=await fetch('https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(doc.id)+'?alt=media',{
               headers:{'Authorization':'Bearer '+driveAccessToken}
             });
-            if(!res.ok)throw new Error('Drive fetch failed (HTTP '+res.status+') â€” file permission check karo');
+            if(!res.ok)throw new Error('Drive fetch failed (HTTP '+res.status+') — file permission check karo');
             const blob=await res.blob();
             const file=new File([blob],doc.name||'drive-file',{type:doc.mimeType||blob.type||'application/octet-stream'});
             if(addFilesToUploadBatch([file]))imported++;
@@ -1560,7 +1560,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       }finally{
         showUploadProgress(false,'',0);
-        toast(imported?('Imported '+imported+' file'+(imported>1?'s':'')+' from Drive âœ…'):'No files imported');
+        toast(imported?('Imported '+imported+' file'+(imported>1?'s':'')+' from Drive ✅'):'No files imported');
       }
     }
     /* Merge Drive files into the existing client-managed upload batch with the
@@ -1571,7 +1571,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       let total=existing.reduce((s,f)=>s+f.size,0);
       let addedCount=0;
       for(const f of newFiles){
-        if(total+f.size>MAX){toast(f.name+' skipped â€” 15MB batch limit');continue}
+        if(total+f.size>MAX){toast(f.name+' skipped — 15MB batch limit');continue}
         existing.push(f);total+=f.size;addedCount++;
       }
       if(!addedCount)return false;
@@ -1580,7 +1580,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       for(const f of uploadFiles){const n=f.name.toLowerCase();if(/\.(jpe?g|png|webp|heic)$/i.test(n))imgCount++;else if(/\.(pdf|docx?|pptx?)$/i.test(n))docCount++;else otherCount++}
       if(uploadFiles.length===1){$('fileName').textContent=uploadFiles[0].name}else{$('fileName').textContent=uploadFiles.length+' files selected'}
       const badgesEl=$('uploadFileBadges');badgesEl.innerHTML='';badgesEl.hidden=false;
-      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>ðŸ“¸ '+imgCount+' Photo'+(imgCount>1?'s':'')+' selected <span class="upt">â†’</span> Will be auto-merged into 1 clean PDF</span>';
+      if(imgCount>0)badgesEl.innerHTML+='<span class="upload-badge img"><i class="fa-solid fa-image"></i>📸 '+imgCount+' Photo'+(imgCount>1?'s':'')+' selected <span class="upt">→</span> Will be auto-merged into 1 clean PDF</span>';
       if(docCount>0)badgesEl.innerHTML+='<span class="upload-badge doc"><i class="fa-solid fa-file-lines"></i>'+docCount+' Document'+(docCount>1?'s':'')+'</span>';
       if(otherCount>0)badgesEl.innerHTML+='<span class="upload-badge other"><i class="fa-solid fa-file-zipper"></i>'+otherCount+' file'+(otherCount>1?'s':'')+'</span>';
       renderPhotoGrid();
@@ -1596,7 +1596,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         e.preventDefault();e.stopPropagation();box.classList.remove('drag-over');
         const files=e.dataTransfer&&e.dataTransfer.files;
         if(files&&files.length){showFile({files:files})}
-        else{toast('That doesn\'t look like a file â€” drag a PDF/photo here')}
+        else{toast('That doesn\'t look like a file — drag a PDF/photo here')}
       });
     }
     async function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
@@ -1612,7 +1612,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function showPreview(resource){const src=resource.fileUrl||resource.fileData;
       $('previewTitle').textContent=resource.title;
       const kindLabel=resource.type==='pyq'?'Previous year paper':'Notes';
-      $('previewMeta').textContent=`${kindLabel} Â· Semester ${resource.sem}${resource.fileName?' Â· '+resource.fileName:''}`;
+      $('previewMeta').textContent=`${kindLabel} · Semester ${resource.sem}${resource.fileName?' · '+resource.fileName:''}`;
       const body=$('previewBody');body.innerHTML='';body.classList.remove('secure-body');
       const lower=((resource.fileName||'')+' '+src.split('?')[0].split('#')[0]).toLowerCase();
       const isDocx=/\.docx(\?|$)/.test(lower);
@@ -1657,8 +1657,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             method:'POST',
             headers:{'Content-Type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY},
             body:JSON.stringify({
-              title:'New '+typeLabel+' uploaded ðŸ“¥',
-              body:(upload.title||'Untitled')+' â€” '+(upload.uploader||'Anonymous')+' | Sem '+upload.sem+' | waiting for review',
+              title:'New '+typeLabel+' uploaded 📥',
+              body:(upload.title||'Untitled')+' — '+(upload.uploader||'Anonymous')+' | Sem '+upload.sem+' | waiting for review',
               url:'/admin/admin.html',
               tag:'admin-new-upload',
               alertType:'upload',
@@ -1718,10 +1718,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const items=await loadMyUploads();
       const pending=items.filter(item=>item.status==='pending').length;
       const approved=items.filter(item=>item.status==='approved').length;
-      summaryEl.textContent=`${items.length} total Â· ${pending} in review Â· ${approved} live`;
+      summaryEl.textContent=`${items.length} total · ${pending} in review · ${approved} live`;
       if(!items.length){listEl.innerHTML='<p class="my-uploads-empty">No uploads yet. Share your first note or PYQ!</p>';return}
       const labels={pending:'In review',approved:'Live',rejected:'Rejected',archived:'Archived'};
-      listEl.innerHTML=items.map(item=>`<div class="my-upload-item"><div><strong>${String(item.title).replace(/[<>&"]/g,'')}</strong><small>Semester ${item.semester} Â· ${item.type==='pyq'?'PYQ':'Notes'} Â· ${new Date(item.created_at).toLocaleDateString()}</small></div><span class="my-upload-badge ${item.status}">${labels[item.status]||item.status}</span></div>`).join('');
+      listEl.innerHTML=items.map(item=>`<div class="my-upload-item"><div><strong>${String(item.title).replace(/[<>&"]/g,'')}</strong><small>Semester ${item.semester} · ${item.type==='pyq'?'PYQ':'Notes'} · ${new Date(item.created_at).toLocaleDateString()}</small></div><span class="my-upload-badge ${item.status}">${labels[item.status]||item.status}</span></div>`).join('');
     }
     function startLibrarySync(){
       if(!supabaseClient)return;
@@ -1765,7 +1765,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       let existing=null;
       try{existing=await findExistingUpload(payload)}catch(error){}
       if(existing){toast('Duplicate! This material has already been uploaded ('+existing.status+')');return}
-      if(isLocalDuplicate(payload)){toast('Duplicate! Ye material aapne pehle hi submit kiya hai â€” review mein hai');return}
+      if(isLocalDuplicate(payload)){toast('Duplicate! Ye material aapne pehle hi submit kiya hai — review mein hai');return}
       /* ---- Classify files: images vs other ---- */
       const classified=window.classifyUploadFiles?window.classifyUploadFiles(allFiles):{images:[],others:allFiles};
       const imageFiles=classified.images;
@@ -1782,33 +1782,33 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         trackEvent('upload',{title:rec.title,type:rec.type,subject:rec.subject,sem:rec.sem});
         return rec;
       }
-      showUploadProgress(true,'Preparing filesâ€¦',0);
+      showUploadProgress(true,'Preparing files…',0);
       const submitBtn=form.querySelector('button[type="submit"]');
       if(submitBtn)submitBtn.disabled=true;
       try{
         /* ---- If images present: auto-convert to single PDF ---- */
         if(imageFiles.length>0&&window.convertImagesToPdf){
-          showUploadProgress(true,'Merging '+imageFiles.length+' photo'+(imageFiles.length>1?'s':'')+' into PDFâ€¦',5);
+          showUploadProgress(true,'Merging '+imageFiles.length+' photo'+(imageFiles.length>1?'s':'')+' into PDF…',5);
           let convResult;
           try{
             convResult=await window.convertImagesToPdf(imageFiles,(pct,msg)=>{showUploadProgress(true,msg,10+pct*0.5)},{subject:subject});
           }catch(convErr){
             console.error('[BCAPrime] Image conversion failed:',convErr);
-            toast('Image conversion failed. Uploading images as-isâ€¦');
+            toast('Image conversion failed. Uploading images as-is…');
             for(const imgF of imageFiles){await uploadSingleFile(imgF)}
             convResult=null;
           }
           if(convResult&&convResult.blob){
-            showUploadProgress(true,'Uploading notes to BCAPrimeâ€¦',65);
+            showUploadProgress(true,'Uploading notes to BCAPrime…',65);
             const convFile=new File([convResult.blob],convResult.filename,{type:'application/pdf'});
             await uploadSingleFile(convFile);
           }
         }
         /* ---- Upload non-image files ---- */
         if(otherFiles.length){
-          showUploadProgress(true,'Uploading notes to BCAPrimeâ€¦',80);
+          showUploadProgress(true,'Uploading notes to BCAPrime…',80);
           for(const f of otherFiles){
-            showUploadProgress(true,'Uploading '+f.name+'â€¦',80);
+            showUploadProgress(true,'Uploading '+f.name+'…',80);
             await uploadSingleFile(f);
           }
         }
@@ -1847,10 +1847,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       location.reload();
     }
     function toast(message){const node=document.createElement('div');node.className='toast';node.textContent=message;$('toastRoot').append(node);setTimeout(()=>node.remove(),2300)}
-    /* HTML escaping â€” user-supplied strings (college/subject names etc.) ko
+    /* HTML escaping — user-supplied strings (college/subject names etc.) ko
        innerHTML me daalne se pehle escape karo, warna XSS possible hai */
     /* ===== Founder credit config =====
-       Jab Instagram link add karna ho bas yahan URL daal do â€” footer me
+       Jab Instagram link add karna ho bas yahan URL daal do — footer me
        button khud dikhne lagega. Khaali ('') rahega to link hidden rahega. */
     const FOUNDER_INSTAGRAM_URL='';
     try{
@@ -1863,7 +1863,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let __searchTimeout=null;
     /* ===== Supabase session adapter + bootstrap =====
        (Replaces the old Firebase onAuthStateChanged init + the
-        IndexedDB restore-wait helper â€” Supabase persists sessions
+        IndexedDB restore-wait helper — Supabase persists sessions
         synchronously, so getSession() answers immediately.) */
 
     /* Firebase-shape session object banao taaki app ke baaki saare consumers
@@ -1888,7 +1888,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     /* Claim-on-login: pehli baar Supabase login par purane Firebase-uid wali
        data (user_profiles / resources / device_sessions / push_subscriptions /
-       lostfound) naye Supabase uid par re-key ho jaye â€” claim_legacy_account
+       lostfound) naye Supabase uid par re-key ho jaye — claim_legacy_account
        RPC (SECURITY DEFINER, idempotent) se. Fail hone par chup-chaap skip. */
     let __legacyClaimTried=false;
     function tryClaimLegacyAccount(user){
@@ -1927,7 +1927,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           sessionStorage.removeItem('bca-guest-mode');
           await refreshVerificationFlag(accountSession);
           /* Purana Firebase-uid data pehle claim ho jaye (gaalat order me
-             ensureDefaultProfile nayi row na bana de) â€” isliye yahin await.
+             ensureDefaultProfile nayi row na bana de) — isliye yahin await.
              CLAIM GATE: sirf tab jab email proven ho (federated / OTP-done). */
           if(isVerifiedUser(accountSession))await tryClaimLegacyAccount(accountSession);
           if(isVerifiedUser(accountSession)){showAuthenticatedApp()}
@@ -1951,7 +1951,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(user){
         sessionStorage.removeItem('bca-guest-mode');
         /* CLAIM GATE (security): legacy data tabhi claim karo jab email
-           ownership proven ho â€” Google/OAuth login ya pehle OTP-verify. */
+           ownership proven ho — Google/OAuth login ya pehle OTP-verify. */
         const claimDone=(isFederatedUser(user)||user.emailVerified===true)?tryClaimLegacyAccount(user):Promise.resolve();
         /* Google-first signup finalize (bca-pending-signup OAuth redirect se wapas) */
         (async function(){
@@ -1987,7 +1987,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ================= Offline / online UX (offline-first PWA) =================
        Big-tech pattern (Google/Netflix ki tarah):
        - Jab user offline ho -> top par dismissible notification banner (ek baar)
-       - Net wapas aaye -> ek hi baar "back online âœ¨" toast (bar-bar nag nahi)
+       - Net wapas aaye -> ek hi baar "back online ✨" toast (bar-bar nag nahi)
        - Jo file pehle kholi/download ki -> cache-first, offline bhi khulti hai
        - Jo file cache nahi hai aur offline hai -> dialog + WiFi/data setting option
        ================================================================= */
@@ -1998,7 +1998,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       __offlineEl=document.createElement('aside');
       __offlineEl.className='offline-banner';
       __offlineEl.setAttribute('aria-live','polite');
-      __offlineEl.innerHTML='<i class="fa-solid fa-wifi"></i><span><strong>You\'re offline</strong>&nbsp;Â·&nbsp;showing your saved library â€” files you opened before still work.</span><button type="button" class="offline-dismiss" aria-label="Dismiss" onclick="dismissOfflineBanner()"><i class="fa-solid fa-xmark"></i></button>';
+      __offlineEl.innerHTML='<i class="fa-solid fa-wifi"></i><span><strong>You\'re offline</strong>&nbsp;·&nbsp;showing your saved library — files you opened before still work.</span><button type="button" class="offline-dismiss" aria-label="Dismiss" onclick="dismissOfflineBanner()"><i class="fa-solid fa-xmark"></i></button>';
       document.body.appendChild(__offlineEl);
       requestAnimationFrame(()=>{if(__offlineEl)__offlineEl.classList.add('show')});
     }
@@ -2020,7 +2020,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         dismissOfflineBanner();
         if(cameBack&&Date.now()-__onlineToastAt>5000){
           __onlineToastAt=Date.now();
-          toast('You\'re back online âœ¨');
+          toast('You\'re back online ✨');
         }
       }
     }
@@ -2028,7 +2028,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       updateOfflineUI();
       window.addEventListener('offline',updateOfflineUI);
       window.addEventListener('online',updateOfflineUI);
-      /* Offline reload ki case mein direct library render â€” navigator.onLine par bharosa */
+      /* Offline reload ki case mein direct library render — navigator.onLine par bharosa */
       if(!navigator.onLine)setTimeout(()=>{try{render()}catch(e){}},300);
     }
 
@@ -2058,7 +2058,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const {resource,action}=__pendingOfflineAction;__pendingOfflineAction=null;
       const m=$('offlineModal');if(m)m.classList.remove('open');
       if(navigator.onLine){try{if(action==='preview')previewResource(resource.title.replace(/\W/g,''));else download(resource.title)}catch(e){}}
-      else toast('Still offline â€” turn on WiFi or mobile data, then Retry.');
+      else toast('Still offline — turn on WiFi or mobile data, then Retry.');
     }
     function openNetworkSettings(){
       const m=$('offlineModal');if(m)m.classList.remove('open');
@@ -2074,10 +2074,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
     /* ===== NEW FEATURES =====
-       1) Save for offline (Netflix-style) â€” files device pe cache
-       2) Library skeleton loading â€” jaldi dikhe
-       3) Upvotes / ratings â€” community vote
-       4) In-app PDF reader â€” full-screen, zoom + offline */
+       1) Save for offline (Netflix-style) — files device pe cache
+       2) Library skeleton loading — jaldi dikhe
+       3) Upvotes / ratings — community vote
+       4) In-app PDF reader — full-screen, zoom + offline */
     const OFFLINE_CACHE='bcaprime-files-v1';
     const OFFLINE_SAVED_KEY='bca-offline-saved';
     const MY_UPVOTES_KEY='bca-my-upvotes';
@@ -2097,7 +2097,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
       if(!src){toast('Nothing to save for this item');return}
       if(isRemoteFile(src)){
-        if(!navigator.onLine){toast('Offline â€” connect once to save this file');return}
+        if(!navigator.onLine){toast('Offline — connect once to save this file');return}
         try{
           const cache=await caches.open(OFFLINE_CACHE);
           const res=await fetch(src);
@@ -2107,7 +2107,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
       saved.push(id);
       _setJsonList(OFFLINE_SAVED_KEY,saved);
-      toast('Saved for offline âœ…');
+      toast('Saved for offline ✅');
       render();
     }
     /* 2) Skeleton loading */
@@ -2125,14 +2125,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const liked=list.includes(id);
       _setJsonList(MY_UPVOTES_KEY,liked?list.filter(x=>x!==id):[...list,id]);
       render();
-      toast(liked?'Upvote removed':'Upvoted ðŸ‘');
+      toast(liked?'Upvote removed':'Upvoted 👍');
       try{if(supabaseClient){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(resource){const delta=liked?-1:1;const newCount=(typeof resource.upvotes==='number'?resource.upvotes:0)+delta;resource.upvotes=newCount;await supabaseClient.from('resources').update({upvotes:newCount}).eq('title',resource.title)}}}catch(e){}
     }
-    /* 4) In-app PDF reader â€” SECURE CANVAS RENDERER
+    /* 4) In-app PDF reader — SECURE CANVAS RENDERER
        ---------------------------------------------------------------
        PDF bytes fetch -> pdf.js se har page CANVAS par render -> DOM me
        sirf <canvas> pixels. Na iframe, na <img src=file>, na download
-       link â€” browser "Save page as" aur PDF extensions ke paas koi
+       link — browser "Save page as" aur PDF extensions ke paas koi
        document nahi bachta (sirf screenshot possible hai).
        - Watermark har page par (CSS overlay, pointer-events:none)
        - Chunked rendering (3 pages ke baad event loop free) */
@@ -2142,7 +2142,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function renderSecurePdf(container,src,opts){
       opts=opts||{};
       const token=++secureRenderToken;
-      container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>Preparing secure readerâ€¦</span></div>';
+      container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>Preparing secure reader…</span></div>';
       try{
         const pdfjs=await window.loadPdfJs();
         if(token!==secureRenderToken)return;
@@ -2172,7 +2172,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
         if(opts.maxPages&&doc.numPages>opts.maxPages){
           const note=document.createElement('p');note.className='secure-more';
-          note.textContent='Preview shows first '+opts.maxPages+' of '+doc.numPages+' pages â€” open Read for the full document.';
+          note.textContent='Preview shows first '+opts.maxPages+' of '+doc.numPages+' pages — open Read for the full document.';
           pages.appendChild(note);
         }
       }catch(err){
@@ -2182,7 +2182,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
     }
     async function renderSecureImage(container,src){
-      container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>Preparing secure viewerâ€¦</span></div>';
+      container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-spinner fa-spin"></i><span>Preparing secure viewer…</span></div>';
       try{
         const img=new Image();img.decoding='async';
         await new Promise((res,rej)=>{img.onload=res;img.onerror=()=>rej(new Error('img load'));img.src=src});
@@ -2218,7 +2218,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       readerZoom=1;
       currentReaderResource=resource;
       $('readerTitle').textContent=resource.title;
-      /* SECURE: raw URL kabhi DOM me expose nahi hoti â€” canvas rendering. */
+      /* SECURE: raw URL kabhi DOM me expose nahi hoti — canvas rendering. */
       const ro=$('readerOpen');if(ro){try{ro.removeAttribute('href');ro.removeAttribute('download')}catch(e){}}
       if(frm){frm.hidden=true;frm.src='about:blank'}
       if(docxPane){docxPane.hidden=true;docxPane.innerHTML=''}
@@ -2234,7 +2234,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         /* DOCX: Mammoth se HTML (no download path) */
         if(docxPane){
           docxPane.hidden=false;
-          docxPane.innerHTML='<p class="docx-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading documentâ€¦</p>';
+          docxPane.innerHTML='<p class="docx-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading document…</p>';
           fetch(src).then(r=>{if(!r.ok)throw new Error('fetch failed');return r.arrayBuffer()})
             .then(buf=>window.mammoth.convertToHtml({arrayBuffer:buf}))
             .then(res=>{docxPane.innerHTML=res.value||'<p class="docx-error">This document appears to be empty.</p>';applyReaderZoom()})
@@ -2260,12 +2260,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}const vp=$('readerViewport')||document.querySelector('.reader-viewport');if(vp){try{vp.scrollTop=0}catch(e){}}disableSecureGuards()}
     /* ======= Secure-view guards (sirf reader/preview open hone par) =======
-       - right-click (context menu) block â€” viewport ke andar
-       - text select/copy/drag block â€” DOCX pane ke andar
+       - right-click (context menu) block — viewport ke andar
+       - text select/copy/drag block — DOCX pane ke andar
        - Ctrl/Cmd+S, Ctrl/Cmd+P, Ctrl/Cmd+U, Ctrl/Cmd+Shift+S block
        - beforeprint: agar secure view open hai to print hone hi mat do
        NOTE: ye client-side rokk hai (casual copy rokta hai). File bytes
-       server-side signed URL se hi milti hain â€” real enforcement wahi hai. */
+       server-side signed URL se hi milti hain — real enforcement wahi hai. */
     let __secureGuardsOn=false;
     function secureViewOpen(){try{const r=$('readerModal'),p=$('previewModal');return !!((r&&r.classList.contains('open'))||(p&&p.classList.contains('open')))}catch(e){return false}}
     function onSecureContextMenu(e){if(!secureViewOpen())return;try{if(e&&e.target&&e.target.closest&&(e.target.closest('.reader-viewport')||e.target.closest('#previewBody')))e.preventDefault()}catch(err){}}
@@ -2373,7 +2373,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function readerZoomIn(){readerZoom=Math.min(3,+(readerZoom+0.25).toFixed(2));applyReaderZoom()}
     function readerZoomOut(){readerZoom=Math.max(0.5,+(readerZoom-0.25).toFixed(2));applyReaderZoom()}
     /* In-reader download button AB HATA DIYA GAYA HAI (secure view).
-       Purana call kahin bacha ho to normal gated download flow me bhejo â€” seedha blob leak nahi. */
+       Purana call kahin bacha ho to normal gated download flow me bhejo — seedha blob leak nahi. */
     async function downloadCurrentReaderFile(){
       const resource=currentReaderResource;if(!resource)return;
       if(!accountSession){requireAccount('Sign up or login to download this note.','download',resource.title||'');return}
@@ -2392,7 +2392,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function openSeniorRequest(){
       if(!accountSession){requireAccount('Log in to ask your seniors for notes/PYQs.','feedback');return}
       if(!canRequestSenior()){toast('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');return}
-      const rg=$('srRange');if(rg)rg.textContent=String(mySemNumber()+1)+'â€“6';
+      const rg=$('srRange');if(rg)rg.textContent=String(mySemNumber()+1)+'–6';
       $('srSubject').value='';$('srMessage').value='';
       const t=document.querySelector('.sr-type.active');if(t){t.classList.remove('active')}
       const def=document.querySelector('.sr-type[data-type="notes"]');if(def)def.classList.add('active');
@@ -2409,7 +2409,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!subject){toast('Please enter the subject or notes name');return}
       const typeBtn=document.querySelector('.sr-type.active')||document.querySelector('.sr-type');
       const type=typeBtn?typeBtn.dataset.type:'notes';
-      const btn=$('srSubmit');if(btn){btn.disabled=true;btn.textContent='Sendingâ€¦'}
+      const btn=$('srSubmit');if(btn){btn.disabled=true;btn.textContent='Sending…'}
       try{
         if(!supabaseClient)throw new Error('no-db');
         const {data:inserted,error}=await supabaseClient.from(SENIOR_TABLE).insert({
@@ -2419,7 +2419,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(error)throw error;
         const rid=inserted&&inserted.id;
         closeSeniorRequest();
-        toast('Request sent to your seniors ðŸ””');
+        toast('Request sent to your seniors 🔔');
         if(rid){try{fetch(NOTIFY_SENIORS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:rid})}).catch(()=>{})}catch(e){}}
         loadSeniorHelpDelayed();
       }catch(e){toast('Could not send request right now')}
@@ -2439,7 +2439,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!seniorHelpVisible()){host.hidden=true;return}
       host.hidden=false;
       const listEl=$('helpJuniorsList');if(!listEl)return;
-      listEl.innerHTML='<p class="help-loading">Checking for junior requestsâ€¦</p>';
+      listEl.innerHTML='<p class="help-loading">Checking for junior requests…</p>';
       try{
         if(!supabaseClient){listEl.innerHTML='<p class="help-empty">Setup needed.</p>';return}
         const {data,error}=await supabaseClient.from(SENIOR_TABLE)
@@ -2449,7 +2449,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const mine=(data||[]).filter(r=>myCollegeKey()==='all'||r.college==='all'||r.college===myCollegeKey());
         const countEl=$('helpJuniorsCount');
         if(countEl)countEl.textContent=mine.length?`${mine.length} junior${mine.length===1?'':'s'}`:'';
-        if(!mine.length){listEl.innerHTML='<p class="help-empty">ðŸŽ‰ No junior requests right now. When a junior asks for material, it will appear here.</p>';return}
+        if(!mine.length){listEl.innerHTML='<p class="help-empty">🎉 No junior requests right now. When a junior asks for material, it will appear here.</p>';return}
         listEl.innerHTML=mine.map(r=>{
           helpJuniorCache[r.id]=r;
           const semLabel='Semester '+r.semester;
@@ -2472,13 +2472,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function loadSeniorHelpDelayed(){if(seniorHelpTimer)clearTimeout(seniorHelpTimer);seniorHelpTimer=setTimeout(loadSeniorRequests,900)}
     function timeAgo(iso){try{const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
     async function markSeniorDone(id,btn){
-      if(btn){btn.disabled=true;btn.textContent='Savingâ€¦'}
+      if(btn){btn.disabled=true;btn.textContent='Saving…'}
       try{if(supabaseClient)await supabaseClient.from(SENIOR_TABLE).update({status:'done'}).eq('id',id)}catch(e){}
       fulfillJuniorRequest(helpJuniorCache[id],'done');
-      toast('Marked done â€” junior ko notification chali ðŸ””');
+      toast('Marked done — junior ko notification chali 🔔');
       setTimeout(loadSeniorRequests,600);
     }
-    /* Junior ko fulfillment push bhejo (best-effort â€” fail ho to chup rehna) */
+    /* Junior ko fulfillment push bhejo (best-effort — fail ho to chup rehna) */
     function fulfillJuniorRequest(r,kind){
       try{
         if(!r||!r.id)return;
@@ -2508,7 +2508,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           if(!matched){const custom=document.querySelector('#uploadModal input[name="customSubject"]');if(custom)custom.value=subj;}
         }
         const titleInput=document.querySelector('#uploadModal input[name="title"]');
-        if(titleInput&&!titleInput.value.trim())titleInput.value=subj?`${subj} â€” ${r.type==='pyq'?'PYQ':'Notes'} (Sem ${r.semester})`:'';
+        if(titleInput&&!titleInput.value.trim())titleInput.value=subj?`${subj} — ${r.type==='pyq'?'PYQ':'Notes'} (Sem ${r.semester})`:'';
       }catch(e){}
     }
 
@@ -2595,7 +2595,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       /* ===== PWA Auto-update =====
          Har load par + har ghante + tab wapas khulne par update check hota hai.
          Naya SW install hote hi (skipWaiting) controller badal jata hai aur page
-         ek baar khud reload ho jata hai â€” installed PWA users ko naya code milta
+         ek baar khud reload ho jata hai — installed PWA users ko naya code milta
          rehta hai bina manual kuch kiye. */
       let __bcaReloading=false;
       navigator.serviceWorker.addEventListener('controllerchange',()=>{
@@ -2613,12 +2613,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           reg.addEventListener('updatefound',()=>{
             const nw=reg.installing;if(!nw)return;
             nw.addEventListener('statechange',()=>{
-              if(nw.state==='installed'&&navigator.serviceWorker.controller)console.info('[BCAPrime] naya version install ho raha haiâ€¦');
+              if(nw.state==='installed'&&navigator.serviceWorker.controller)console.info('[BCAPrime] naya version install ho raha hai…');
             });
           });
         }).catch(error => console.info('PWA service worker unavailable.', error.message));
       });
-      try{if(sessionStorage.getItem('bca-auto-updated')==='true'){sessionStorage.removeItem('bca-auto-updated');setTimeout(()=>toast('App updated âœ…'),1200)}}catch(e){}
+      try{if(sessionStorage.getItem('bca-auto-updated')==='true'){sessionStorage.removeItem('bca-auto-updated');setTimeout(()=>toast('App updated ✅'),1200)}}catch(e){}
     }
     setTimeout(() => {
       showOnboardingIfNeeded();
@@ -2764,15 +2764,15 @@ async function submitLostFoundPost(event){
       image_url=(pub&&pub.publicUrl)?pub.publicUrl:'';
     }
     const row={type:lfPostMode,category:cat,custom_category:custom,description:desc,location:location,image_url:image_url,college:lfCurrentCollege(),poster_uid:accountUid(),poster_name:getUserName(accountSession)||'A student',poster_avatar:(accountSession.photoURL||''),contact:contact,status:'pending'};
-    /* NOTE: .select() ka use nahi karte â€” pending rows anon ko select
+    /* NOTE: .select() ka use nahi karte — pending rows anon ko select
        policy se visible nahi hain, isliye RETURNING fail hota hai.
        Insert silent success hi kaafi hai (push admin approve par hoga). */
     const {error}=await supabaseClient.from(LOST_FOUND_TABLE).insert(row);
     if(error)throw error;
     closeLostFoundModal();
-    toast('Post sent for review â€” approve hone par sabko alert jayega âœ…');
+    toast('Post sent for review — approve hone par sabko alert jayega ✅');
     loadLostFound(true);
-    /* Push admin APPROVE karne par jaata hai (notify-lostfound) â€” yahan nahi */
+    /* Push admin APPROVE karne par jaata hai (notify-lostfound) — yahan nahi */
   }catch(e){
     if(msg)msg.textContent='Could not post right now.';
     if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}
