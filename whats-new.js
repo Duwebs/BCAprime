@@ -11,10 +11,10 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.1.2";
+const CURRENT_APP_VERSION = "3.1.3";
 
 const LATEST_RELEASE = {
-  version: "3.1.2",
+  version: "3.1.3",
   date: "October 2026",
   title: "Smoother, more reliable — under the hood",
   subtitle: "Downloads, the in-app reader and notifications all got a reliability pass this month.",
