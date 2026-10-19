@@ -34,9 +34,9 @@ const $ = id => document.getElementById(id);
    does not collide with the main BCAPrime user session. */
 function createIsolatedStorage(prefix) {
   return {
-    getItem: (key) => localStorage.getItem(prefix + key),
-    setItem: (key, value) => localStorage.setItem(prefix + key, value),
-    removeItem: (key) => localStorage.removeItem(prefix + key),
+    getItem: async (key) => localStorage.getItem(prefix + key),
+    setItem: async (key, value) => { localStorage.setItem(prefix + key, value); },
+    removeItem: async (key) => { localStorage.removeItem(prefix + key); },
   };
 }
 const adminSupabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
