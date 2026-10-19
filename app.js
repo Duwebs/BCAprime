@@ -757,14 +757,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function resendVerificationEmail(event){if(event)event.preventDefault();const msg=$('verifyEmailMessage');if(!supabaseClient){if(msg)msg.textContent='Sign-in is not available right now.';return}try{const email=(accountSession&&accountSession.email)||'';await requestOtp(email);if(msg)msg.textContent='Verification code sent again. Check your inbox / spam.'}catch(error){if(msg)msg.textContent=(error&&error.message)||'Could not send verification email.'}}
     async function confirmEmailVerified(event){if(event)event.preventDefault();const msg=$('verifyEmailMessage');try{if(!accountSession){closeVerifyEmail();return}await refreshVerificationFlag(accountSession);if(isVerifiedUser(accountSession)){stopVerifyPolling();closeVerifyEmail();saveVerificationStatus(true);sessionStorage.removeItem('bca-guest-mode');try{await tryClaimLegacyAccount(accountSession)}catch(e){}showAuthenticatedApp();resumeRestrictedAction();if($('profileModal').classList.contains('open'))renderAccount();toast('Email verified ✓');return}if(msg)msg.textContent='Not verified yet. Enter the 6-digit code we emailed to '+(accountSession.email?escHtml(accountSession.email):'your inbox')+', then try again.'}catch(error){if(msg)msg.textContent='Could not check verification status.'}}
     /* Gate helper used by every email/password login handler.
-       Returns true (granted) or shows the Verify screen and returns false. */
+       Email verification gate removed — users get direct access on login. */
     async function ensureVerified(user){
-      if(isVerifiedUser(user)){saveVerificationStatus(true);return true}
-      let sent=false,email='';
-      if(user&&user.email){email=user.email;try{sent=await requestOtp(email)}catch(e){}}
-      saveVerificationStatus(false);
-      showVerifyEmail(email,sent?'':'We could not send a new verification code right now — use the Resend option.');
-      return false;
+      saveVerificationStatus(true);
+      return true;
     }
     /* ===== OTP verification (dual option: link OR 6-digit code) =====
        Modern auto-popup flow: after a password signup the user stays
@@ -1930,8 +1926,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
              ensureDefaultProfile nayi row na bana de) — isliye yahin await.
              CLAIM GATE: sirf tab jab email proven ho (federated / OTP-done). */
           if(isVerifiedUser(accountSession))await tryClaimLegacyAccount(accountSession);
-          if(isVerifiedUser(accountSession)){showAuthenticatedApp()}
-          else{saveVerificationStatus(false);hideAuthenticatedApp();showVerifyEmail(accountSession.email||'')}
+          /* Email verification gate removed — always show the app on login. */
+          saveVerificationStatus(true);showAuthenticatedApp();
         }
         __pendQr=readQrParam();
         supabaseClient.auth.onAuthStateChange(function(event,session){
@@ -1964,16 +1960,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         })();
         const finish=async function(){
           try{await claimDone}catch(e){}
-          if(isVerifiedUser(user)){
-            saveVerificationStatus(true);showAuthenticatedApp();maybeResumePendingAction();
-            const pq=sessionStorage.getItem('bca-pending-qr');
-            if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(function(){maybePromptQrApproval(pq)},400)}
-          }else{
-            saveVerificationStatus(false);
-            if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();
-            const vm=$('verifyEmailModal');
-            if(!pendingOtpApproval&&!(vm&&vm.classList.contains('open')))showVerifyEmail(user.email||'');
-          }
+          /* Email verification gate removed — always show the app on auth state change. */
+          saveVerificationStatus(true);showAuthenticatedApp();maybeResumePendingAction();
+          const pq=sessionStorage.getItem('bca-pending-qr');
+          if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(function(){maybePromptQrApproval(pq)},400)}
         };
         refreshVerificationFlag(user).then(finish,finish);
       }else{

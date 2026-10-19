@@ -29,6 +29,24 @@ const selectedIds = new Set();
 
 const $ = id => document.getElementById(id);
 
+/* ---- Isolated Supabase client for the Admin panel ----.
+   Uses a separate localStorage prefix ('bca-admin-') so admin login
+   does not collide with the main BCAPrime user session. */
+function createIsolatedStorage(prefix) {
+  return {
+    getItem: (key) => localStorage.getItem(prefix + key),
+    setItem: (key, value) => localStorage.setItem(prefix + key, value),
+    removeItem: (key) => localStorage.removeItem(prefix + key),
+  };
+}
+const adminSupabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: createIsolatedStorage('bca-admin-'),
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+}) : null;
+
 /* ---- Admin alert helpers (new-upload / new-signup detection) ---- */
 let lastPendingCount = 0;
 let adminBellInitialized = false;
@@ -114,8 +132,8 @@ async function submitAuth(event) {
 
   // Security: sirf Supabase admin accounts (app_metadata.role='admin') allowed.
   // Direct password bypass removed — dekh: supabase-security-fix.sql
-  if (!supabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
-  const result = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (!adminSupabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
+  const result = await adminSupabaseClient.auth.signInWithPassword({ email, password });
   if (result.error) { setAuthMessage(result.error.message); return; }
   await showAdmin(result.data.session);
 }
@@ -125,7 +143,7 @@ async function submitAuth(event) {
 async function showAdmin(session) {
   const role = session?.user?.app_metadata?.role;
   if (role !== 'admin') {
-    await supabaseClient.auth.signOut();
+    await adminSupabaseClient.auth.signOut();
     setAuthMessage('Access denied: This account does not have admin privileges.');
     return;
   }
@@ -138,7 +156,7 @@ async function showAdmin(session) {
 }
 
 async function logout() {
-  if (supabaseClient) await supabaseClient.auth.signOut();
+  if (adminSupabaseClient) await adminSupabaseClient.auth.signOut();
   resetToAuthScreen();
 }
 
@@ -163,7 +181,7 @@ function escapeHtml(value) {
 }
 
 async function load() {
-  if (!supabaseClient) {
+  if (!adminSupabaseClient) {
     uploads = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
     if (!uploads.length) uploads = [...demoUploads];
     render();
@@ -174,11 +192,11 @@ async function load() {
        (user_profiles se join). Isse admin table bhi hamesha latest naam/DP
        dikhata hai. View na ho (migration pending) to plain table fallback. */
     let data = null;
-    const primary = await supabaseClient.from('resources_feed').select('*').order('created_at', { ascending: false });
+    const primary = await adminSupabaseClient.from('resources_feed').select('*').order('created_at', { ascending: false });
     if (!primary.error) {
       data = primary.data;
     } else {
-      const fallback = await supabaseClient.from('resources').select('*').order('created_at', { ascending: false });
+      const fallback = await adminSupabaseClient.from('resources').select('*').order('created_at', { ascending: false });
       if (fallback.error) throw fallback.error;
       data = fallback.data;
     }
@@ -217,9 +235,9 @@ function scheduleAdminReload() {
   adminReloadTimer = setTimeout(() => { load().catch(() => {}); }, 600);
 }
 function startAdminLiveSync() {
-  if (!supabaseClient || adminLiveChannel) return;
+  if (!adminSupabaseClient || adminLiveChannel) return;
   try {
-    adminLiveChannel = supabaseClient.channel('admin-live')
+    adminLiveChannel = adminSupabaseClient.channel('admin-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, scheduleAdminReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleAdminReload)
       .subscribe();
@@ -314,8 +332,8 @@ function saveLocalMirror() {
 async function updateStatus(id, status) {
   const item = uploads.find(entry => String(entry.id) === String(id));
   if (!item) return;
-  if (supabaseClient && !id.startsWith('demo-') && !id.startsWith('local-')) {
-    const { error } = await supabaseClient.from('resources').update({ status }).eq('id', id);
+  if (adminSupabaseClient && !id.startsWith('demo-') && !id.startsWith('local-')) {
+    const { error } = await adminSupabaseClient.from('resources').update({ status }).eq('id', id);
     if (error) { alert('Update failed: ' + error.message); load(); return; }
   }
   item.status = status;
@@ -329,8 +347,8 @@ async function updateStatus(id, status) {
 async function bulkUpdateStatus(status) {
   if (!selectedIds.size) return;
   const cloudIds = [...selectedIds].filter(id => !id.startsWith('demo-') && !id.startsWith('local-'));
-  if (supabaseClient && cloudIds.length) {
-    const { error } = await supabaseClient.from('resources').update({ status }).in('id', cloudIds);
+  if (adminSupabaseClient && cloudIds.length) {
+    const { error } = await adminSupabaseClient.from('resources').update({ status }).in('id', cloudIds);
     if (error) { alert('Bulk update failed: ' + error.message); return; }
   }
   const newlyApproved = status === 'approved'
@@ -375,8 +393,8 @@ async function bulkDelete() {
   if (!selectedIds.size) return;
   openSafeDelete(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`, async () => {
     const cloudIds = [...selectedIds].filter(id => !id.startsWith('demo-') && !id.startsWith('local-'));
-    if (supabaseClient && cloudIds.length) {
-      const { error } = await supabaseClient.from('resources').delete().in('id', cloudIds);
+    if (adminSupabaseClient && cloudIds.length) {
+      const { error } = await adminSupabaseClient.from('resources').delete().in('id', cloudIds);
       if (error) { alert('Delete failed: ' + error.message); return; }
     }
     uploads = uploads.filter(item => !selectedIds.has(String(item.id)));
@@ -388,7 +406,7 @@ async function bulkDelete() {
 
 /* ---- Auto refresh while the dashboard is visible ---- */
 setInterval(() => {
-  if (supabaseClient && document.visibilityState === 'visible' && $('adminShell') && $('adminShell').hidden === false) load();
+  if (adminSupabaseClient && document.visibilityState === 'visible' && $('adminShell') && $('adminShell').hidden === false) load();
 }, 20000);
 
 /* ---- Broadcast push notifications (Web Push via Edge Function) ---- */
@@ -489,8 +507,8 @@ $('notifyForm').addEventListener('submit', handleNotifyFormSubmit);
 async function loadFeedback(){
   const list=$('feedbackList');if(!list)return;
   list.innerHTML='<p class="note">Loading&hellip;</p>';
-  if(typeof supabaseClient==='undefined'||!supabaseClient){list.innerHTML='<p class="note">Supabase is not configured.</p>';return}
-  const {data,error}=await supabaseClient.from('feedback').select('*').order('created_at',{ascending:false}).limit(50);
+  if(typeof adminSupabaseClient==='undefined'||!adminSupabaseClient){list.innerHTML='<p class="note">Supabase is not configured.</p>';return}
+  const {data,error}=await adminSupabaseClient.from('feedback').select('*').order('created_at',{ascending:false}).limit(50);
   if(error){list.innerHTML='<p class="note">Load failed: '+error.message+'</p>';return}
     if(!data||!data.length){list.innerHTML='<p class="note">No feedback yet. 🎉</p>';return}
   list.innerHTML=data.map(item=>{
@@ -509,16 +527,16 @@ async function loadFeedback(){
     </div>`}).join('');
 }
 async function resolveFeedback(id){
-  if(typeof supabaseClient==='undefined'||!supabaseClient)return;
-  await supabaseClient.from('feedback').update({status:'resolved'}).eq('id',id);
+  if(typeof adminSupabaseClient==='undefined'||!adminSupabaseClient)return;
+  await adminSupabaseClient.from('feedback').update({status:'resolved'}).eq('id',id);
   loadFeedback();
 }
 async function deleteFeedback(id){
   openSafeDelete('This feedback entry will be permanently removed. This cannot be undone.', async () => doDeleteFeedback(id));
 }
 async function doDeleteFeedback(id){
-  if(typeof supabaseClient==='undefined'||!supabaseClient)return;
-  await supabaseClient.from('feedback').delete().eq('id',id);
+  if(typeof adminSupabaseClient==='undefined'||!adminSupabaseClient)return;
+  await adminSupabaseClient.from('feedback').delete().eq('id',id);
   loadFeedback();
 }
 
@@ -564,10 +582,10 @@ function findSubject(id){ return subjects.find(s => String(s.id) === String(id))
 async function loadSubjects(){
   const grid = $('subjectGrid'); if (grid) grid.innerHTML = '<p class="note">Loading&hellip;</p>';
   subjects = [];
-  if (!supabaseClient) { $('subjectGrid').innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  if (!adminSupabaseClient) { $('subjectGrid').innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
   if (!$('subjectCollege').options.length) populateSubjectFilters();
   try {
-    const { data, error } = await supabaseClient.from('subjects').select('*').order('created_at', { ascending: false });
+    const { data, error } = await adminSupabaseClient.from('subjects').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     subjects = data || [];
   } catch (error) {
@@ -640,8 +658,8 @@ async function saveSubject(event){
   const payload = { name, code, semester, college };
   const btn = $('subjectSaveBtn'); btn.disabled = true;
   try {
-    if (!supabaseClient) throw new Error('Supabase is not configured.');
-    await supabaseClient.from('subjects').update(payload).eq('id', id);
+    if (!adminSupabaseClient) throw new Error('Supabase is not configured.');
+    await adminSupabaseClient.from('subjects').update(payload).eq('id', id);
     closeSubjectModal();
     await loadSubjects();
   } catch (error) {
@@ -655,7 +673,7 @@ if ($('subjectForm')) $('subjectForm').addEventListener('submit', saveSubject);
 function deleteSubject(id){
   const s = findSubject(id);
   openSafeDelete(`Subject "${s ? s.name : '#' + id}" will be permanently deleted from all students. This cannot be undone.`, async () => {
-    if (supabaseClient) await supabaseClient.from('subjects').delete().eq('id', id);
+    if (adminSupabaseClient) await adminSupabaseClient.from('subjects').delete().eq('id', id);
     await loadSubjects();
   });
 }
@@ -669,10 +687,10 @@ function updatePendingBadge(){
 async function loadPendingSubjects(){
   const queue = $('pendingQueue'); if (queue) queue.innerHTML = '<p class="note">Loading&hellip;</p>';
   updatePendingBadge();
-  if (!supabaseClient) { if (queue) queue.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  if (!adminSupabaseClient) { if (queue) queue.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
   let pending = subjects.filter(s => s.status === 'pending');
   if (!subjects.length) {
-    const { data, error } = await supabaseClient.from('subjects').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+    const { data, error } = await adminSupabaseClient.from('subjects').select('*').eq('status', 'pending').order('created_at', { ascending: false });
     if (error) { if (queue) queue.innerHTML = '<p class="note">Load failed: ' + escapeHtml(error.message) + '</p>'; return; }
     pending = data || [];
   }
@@ -693,15 +711,15 @@ async function loadPendingSubjects(){
 }
 
 async function approvePendingSubject(id){
-  if (!supabaseClient) return;
-  await supabaseClient.from('subjects').update({ status: 'approved', is_public: true }).eq('id', id);
+  if (!adminSupabaseClient) return;
+  await adminSupabaseClient.from('subjects').update({ status: 'approved', is_public: true }).eq('id', id);
   await loadSubjects();
 }
 
 function rejectPendingSubject(id){
   const s = subjects.find(sub => String(sub.id) === String(id));
   openSafeDelete(`Pending subject request "${s ? s.name : '#' + id}" will be fully deleted (rejected). This cannot be undone.`, async () => {
-    if (supabaseClient) await supabaseClient.from('subjects').delete().eq('id', id);
+    if (adminSupabaseClient) await adminSupabaseClient.from('subjects').delete().eq('id', id);
     await loadSubjects();
   });
 }
@@ -751,8 +769,8 @@ function lfAdmCatName(v){return LOST_FOUND_ADMIN_CATS[v]||v||'Other'}
 function lfAdmStatusBadge(st){return '<span class="lf-adm-status" data-st="'+st+'">'+String(st||'active').replace(/^./,c=>c.toUpperCase())+'</span>'}
 async function loadLostFoundAdmin(){
   const host=$('lostfoundQueue');if(!host)return;
-  if(!supabaseClient){host.innerHTML='<p class="note">Supabase is not configured.</p>';return}
-  const {data,error}=await supabaseClient.from('lost_found').select('*').order('created_at',{ascending:false}).limit(100);
+  if(!adminSupabaseClient){host.innerHTML='<p class="note">Supabase is not configured.</p>';return}
+  const {data,error}=await adminSupabaseClient.from('lost_found').select('*').order('created_at',{ascending:false}).limit(100);
   if(error){host.innerHTML='<p class="note">Could not load posts. ('+escapeHtml(error.message)+')</p>';return}
   const rows=data||[];
   if(!rows.length){host.innerHTML='<p class="note">No Lost &amp; Found posts yet.</p>';return}
@@ -789,8 +807,8 @@ async function loadLostFoundAdmin(){
   }).join('');
 }
 async function approveLostFoundPost(id){
-  if(!supabaseClient)return;
-  const {error}=await supabaseClient.from('lost_found').update({status:'active'}).eq('id',id);
+  if(!adminSupabaseClient)return;
+  const {error}=await adminSupabaseClient.from('lost_found').update({status:'active'}).eq('id',id);
   if(error){ alert('Approve failed: ' + error.message); return; }
   /* Approve hote hi college ko push (notify-lostfound Edge Function) */
   try{
@@ -812,8 +830,8 @@ async function approveLostFoundPost(id){
   loadLostFoundAdmin();
 }
 async function removeLostFoundPost(id){
-  if(!supabaseClient)return;
-  await supabaseClient.from('lost_found').update({status:'removed'}).eq('id',id);
+  if(!adminSupabaseClient)return;
+  await adminSupabaseClient.from('lost_found').update({status:'removed'}).eq('id',id);
   loadLostFoundAdmin();
 }
 /* ---- Boot ---- */
@@ -821,8 +839,8 @@ document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'd
 $('authForm').addEventListener('submit', submitAuth);
 
 async function initAuth() {
-  if (!supabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
-  const { data } = await supabaseClient.auth.getSession();
+  if (!adminSupabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
+  const { data } = await adminSupabaseClient.auth.getSession();
   if (data.session) await showAdmin(data.session);
 }
 
@@ -859,7 +877,7 @@ function setAdminNotifyButton() {
 }
 
 async function saveAdminSubscription(subscription, uid) {
-  if (!supabaseClient) return;
+  if (!adminSupabaseClient) return;
   const json = subscription.toJSON();
   const row = {
     endpoint: json.endpoint,
@@ -870,7 +888,7 @@ async function saveAdminSubscription(subscription, uid) {
     uid: uid || null,
     role: 'admin'
   };
-  const { error } = await supabaseClient
+  const { error } = await adminSupabaseClient
     .from('push_subscriptions')
     .upsert(row, { onConflict: 'endpoint' });
   if (error) console.info('Admin subscription save failed:', error.message);
@@ -881,7 +899,7 @@ async function adminSubscribeToPush() {
     alert('Push notifications are not supported in this browser.');
     return;
   }
-  if (!supabaseClient) {
+  if (!adminSupabaseClient) {
     alert('Supabase is not configured — cannot save admin alerts.');
     return;
   }
@@ -894,7 +912,7 @@ async function adminSubscribeToPush() {
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe();
-        await supabaseClient.from('push_subscriptions').delete().eq('endpoint', endpoint);
+        await adminSupabaseClient.from('push_subscriptions').delete().eq('endpoint', endpoint);
       }
     } catch (e) { /* best effort */ }
     localStorage.removeItem(ADMIN_ALERT_PREF_KEY);
@@ -920,7 +938,7 @@ async function adminSubscribeToPush() {
     }
     let uid = null;
     try {
-      const { data } = await supabaseClient.auth.getSession();
+      const { data } = await adminSupabaseClient.auth.getSession();
       uid = data && data.session ? data.session.user.id : null;
     } catch (e) { /* uid optional */ }
     await saveAdminSubscription(subscription, uid);
@@ -941,6 +959,7 @@ async function adminSubscribeToPush() {
 }
 
 setAdminNotifyButton();
+
 
 
 

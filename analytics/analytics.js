@@ -6,6 +6,25 @@ console.info('[BCAPrime Analytics] v1 loaded');
 
 /* ---- Supabase Client ---- */
 const $ = id => document.getElementById(id);
+
+/* ---- Isolated Supabase client for Analytics ----.
+   Uses a separate localStorage prefix ('bca-analytics-') so analytics/admin
+   login does not collide with the main BCAPrime user session. */
+function createIsolatedStorage(prefix) {
+  return {
+    getItem: (key) => localStorage.getItem(prefix + key),
+    setItem: (key, value) => localStorage.setItem(prefix + key, value),
+    removeItem: (key) => localStorage.removeItem(prefix + key),
+  };
+}
+const analyticsSupabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: createIsolatedStorage('bca-analytics-'),
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+}) : null;
+
 let session = null;
 let currentRange = 1; // days (1 = today)
 let refreshTimer = null;
@@ -20,7 +39,7 @@ function safeSupabaseState(message) {
 }
 
 function ensureSupabaseReady(showMessage = false) {
-  if (supabaseClient) return true;
+  if (analyticsSupabaseClient) return true;
   if (showMessage) safeSupabaseState('Supabase is not configured.');
   return false;
 }
@@ -48,14 +67,14 @@ $('authForm').addEventListener('submit', async (e) => {
   const email = $('authEmail').value.trim();
   const password = $('authPassword').value;
 
-  if (!supabaseClient) { msg.textContent = 'Supabase is not configured.'; return; }
+  if (!analyticsSupabaseClient) { msg.textContent = 'Supabase is not configured.'; return; }
 
-  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  const { data, error } = await analyticsSupabaseClient.auth.signInWithPassword({ email, password });
   if (error) { msg.textContent = error.message; return; }
 
   const role = data.session?.user?.app_metadata?.role;
   if (role !== 'admin') {
-    await supabaseClient.auth.signOut();
+    await analyticsSupabaseClient.auth.signOut();
     msg.textContent = 'Access denied: This account is not an administrator.';
     return;
   }
@@ -65,7 +84,7 @@ $('authForm').addEventListener('submit', async (e) => {
 });
 
 async function signOut() {
-  if (supabaseClient) await supabaseClient.auth.signOut();
+  if (analyticsSupabaseClient) await analyticsSupabaseClient.auth.signOut();
   session = null;
   $('authGate').style.display = '';
   $('dashboard').hidden = true;
@@ -74,11 +93,11 @@ async function signOut() {
 
 /* Check existing session on load */
 (async () => {
-  if (!supabaseClient) {
+  if (!analyticsSupabaseClient) {
     $('authMsg').textContent = 'Supabase is not configured.';
     return;
   }
-  const { data } = await supabaseClient.auth.getSession();
+  const { data } = await analyticsSupabaseClient.auth.getSession();
   if (data.session && data.session.user?.app_metadata?.role === 'admin') {
     session = data.session;
     showDashboard();
@@ -190,7 +209,7 @@ async function loadOverview() {
 
   try {
     // Use RPC for optimized aggregation
-    const { data: summary, error: sumErr } = await supabaseClient.rpc('get_analytics_summary', {
+    const { data: summary, error: sumErr } = await analyticsSupabaseClient.rpc('get_analytics_summary', {
       p_start: start,
       p_end: end
     });
@@ -216,11 +235,11 @@ async function loadOverview() {
     }
 
     // Load trend chart
-    const { data: trend } = await supabaseClient.rpc('get_daily_trend', { p_days: currentRange || 30 });
+    const { data: trend } = await analyticsSupabaseClient.rpc('get_daily_trend', { p_days: currentRange || 30 });
     if (trend) renderTrendChart(trend);
 
     // Load top resources
-    const { data: topRes } = await supabaseClient.rpc('get_top_resources', { p_limit: 10 });
+    const { data: topRes } = await analyticsSupabaseClient.rpc('get_top_resources', { p_limit: 10 });
     if (topRes) renderTopResources(topRes);
 
   } catch (err) {
@@ -231,7 +250,7 @@ async function loadOverview() {
 
 /* Fallback: query events directly when RPC not deployed */
 async function loadOverviewFallback() {
-  let query = supabaseClient.from('analytics_events').select('*').order('created_at', { ascending: false }).limit(5000);
+  let query = analyticsSupabaseClient.from('analytics_events').select('*').order('created_at', { ascending: false }).limit(5000);
   if (currentRange > 0) query = query.gte('created_at', new Date(Date.now() - currentRange * 86400000).toISOString());
   const { data: events } = await query;
   if (!events || !events.length) {
@@ -310,7 +329,7 @@ async function loadActiveUsers() {
   if (!ensureSupabaseReady()) return;
 
   try {
-    const { data } = await supabaseClient.rpc('get_active_users', { p_minutes: 5 });
+    const { data } = await analyticsSupabaseClient.rpc('get_active_users', { p_minutes: 5 });
     if (data) {
       $('activeUserCount').textContent = data.active_count || 0;
       $('navLiveBadge').textContent = data.active_count || 0;
@@ -319,7 +338,7 @@ async function loadActiveUsers() {
   } catch (err) {
     // Fallback
     const fiveMinAgo = new Date(Date.now() - 5 * 60000).toISOString();
-    const { count } = await supabaseClient.from('analytics_events')
+    const { count } = await analyticsSupabaseClient.from('analytics_events')
       .select('visitor_id', { count: 'exact', head: true })
       .gte('created_at', fiveMinAgo);
     const c = count || 0;
@@ -336,7 +355,7 @@ async function loadLiveFeed() {
   if (!stream) return;
 
   try {
-    const { data: feed } = await supabaseClient.rpc('get_live_feed', { p_limit: 40 });
+    const { data: feed } = await analyticsSupabaseClient.rpc('get_live_feed', { p_limit: 40 });
     if (feed && feed.length) {
       stream.innerHTML = feed.map(renderLiveEvent).join('');
     } else {
@@ -345,7 +364,7 @@ async function loadLiveFeed() {
   } catch (err) {
     // Fallback: direct query
     const twentyFourHrsAgo = new Date(Date.now() - 86400000).toISOString();
-    const { data } = await supabaseClient.from('analytics_events')
+    const { data } = await analyticsSupabaseClient.from('analytics_events')
       .select('*')
       .gte('created_at', twentyFourHrsAgo)
       .order('created_at', { ascending: false })
@@ -397,12 +416,12 @@ async function loadContentMatrix() {
   if (!ensureSupabaseReady()) return;
 
   try {
-    const { data } = await supabaseClient.rpc('get_top_resources', { p_limit: 50 });
+    const { data } = await analyticsSupabaseClient.rpc('get_top_resources', { p_limit: 50 });
     allContentData = data || [];
   } catch (err) {
     // Fallback
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-    const { data: events } = await supabaseClient.from('analytics_events')
+    const { data: events } = await analyticsSupabaseClient.from('analytics_events')
       .select('resource_title, resource_type, subject, semester, event_type')
       .gte('created_at', thirtyDaysAgo)
       .in('event_type', ['view', 'download'])
@@ -465,7 +484,7 @@ function sortBy(field) {
 
 async function loadContentTrendChart() {
   try {
-    const { data: trend } = await supabaseClient.rpc('get_daily_trend', { p_days: currentRange || 30 });
+    const { data: trend } = await analyticsSupabaseClient.rpc('get_daily_trend', { p_days: currentRange || 30 });
     if (trend) renderContentTrendChart(trend);
   } catch (err) {
     console.warn('Content trend fallback needed');
@@ -531,12 +550,12 @@ async function loadSearchIntel() {
   if (!ensureSupabaseReady()) return;
 
   try {
-    const { data } = await supabaseClient.rpc('get_search_trends', { p_limit: 60 });
+    const { data } = await analyticsSupabaseClient.rpc('get_search_trends', { p_limit: 60 });
     allSearchData = data || [];
   } catch (err) {
     // Fallback
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
-    const { data: events } = await supabaseClient.from('analytics_events')
+    const { data: events } = await analyticsSupabaseClient.from('analytics_events')
       .select('resource_title, results_count, created_at, visitor_id')
       .eq('event_type', 'search')
       .gte('created_at', thirtyDaysAgo)
@@ -614,7 +633,7 @@ async function loadFunnel() {
 
   try {
     const { start, end } = getDateRange();
-    const { data } = await supabaseClient.rpc('get_conversion_funnel', { p_start: start, p_end: end });
+    const { data } = await analyticsSupabaseClient.rpc('get_conversion_funnel', { p_start: start, p_end: end });
     if (data) {
       $('funnelGuests').textContent = fmtNum(data.total_guests || 0);
       $('funnelReads').textContent = fmtNum(data.pdf_reads || 0);
@@ -649,7 +668,7 @@ async function loadFunnel() {
 }
 
 async function loadFunnelFallback() {
-  let query = supabaseClient.from('analytics_events').select('visitor_id, event_type, user_email');
+  let query = analyticsSupabaseClient.from('analytics_events').select('visitor_id, event_type, user_email');
   if (currentRange > 0) query = query.gte('created_at', new Date(Date.now() - currentRange * 86400000).toISOString());
   const { data: events } = await query;
   if (!events) return;
@@ -695,7 +714,7 @@ async function loadSystemHealth() {
   if (!ensureSupabaseReady()) return;
 
   try {
-    const { data: summary } = await supabaseClient.rpc('get_analytics_summary', { p_start: null, p_end: null });
+    const { data: summary } = await analyticsSupabaseClient.rpc('get_analytics_summary', { p_start: null, p_end: null });
     if (summary) {
       $('sysTotalEvents').textContent = fmtNum((summary.visits || 0) + (summary.views || 0) + (summary.downloads || 0) + (summary.uploads || 0) + (summary.saves || 0) + (summary.searches || 0) + (summary.sessions || 0));
       $('sysLastEvent').textContent = summary.last_event_at ? timeAgo(summary.last_event_at) : '—';
@@ -703,7 +722,7 @@ async function loadSystemHealth() {
     }
 
     // Recent event log
-    const { data: recent } = await supabaseClient.from('analytics_events')
+    const { data: recent } = await analyticsSupabaseClient.from('analytics_events')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(25);
@@ -726,7 +745,7 @@ async function loadSystemHealth() {
 }
 
 function refreshAnalyticsCache() {
-  supabaseClient.rpc('refresh_analytics_cache').then(() => {
+  analyticsSupabaseClient.rpc('refresh_analytics_cache').then(() => {
     toast('Analytics cache refreshed');
   }).catch(err => {
     toast('Cache refresh failed: ' + err.message);
