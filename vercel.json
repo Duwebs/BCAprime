@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": null,
-  "buildCommand": "npm run build:css",
+  "buildCommand": "npm run build",
   "outputDirectory": ".",
   "headers": [
     {
@@ -42,9 +42,6 @@
     { "source": "/resource/:id", "destination": "/api/resource?id=:id" }
   ],
   "functions": {
-    "api/og.jsx": {
-      "runtime": "edge"
-    },
     "api/*.js": {
       "maxDuration": 30
     }
