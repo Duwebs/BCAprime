@@ -37,7 +37,9 @@
   ],
   "rewrites": [
     { "source": "/analytics", "destination": "/analytics/index.html" },
-    { "source": "/analytics/(.*)", "destination": "/analytics/index.html" }
+    { "source": "/analytics/(.*)", "destination": "/analytics/index.html" },
+    { "source": "/resource/:id/og", "destination": "/api/og?id=:id" },
+    { "source": "/resource/:id", "destination": "/api/resource?id=:id" }
   ],
   "functions": {
     "api/*.js": {

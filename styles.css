@@ -1570,3 +1570,19 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
 #reportModal textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);padding:10px 12px;font:inherit;outline:0;resize:vertical}
 #reportModal textarea:focus,#reportModal input:focus,#reportModal select:focus{border-color:#ef4444}
 
+/* ================= Direct Resource Link Highlight & Share ================= */
+.rc-icon.rc-share-btn{transition:color .18s ease,background .18s ease,transform .16s ease}
+.rc-icon.rc-share-btn:hover{color:var(--brand);background:color-mix(in srgb,var(--brand) 14%,transparent);transform:scale(1.08)}
+.rc-icon.rc-share-btn:active{transform:scale(0.95)}
+
+.resource.resource-shared-highlight{
+  border-color:var(--brand)!important;
+  box-shadow:0 0 0 2px var(--brand),0 12px 36px rgba(0,112,243,.35)!important;
+  animation:cardSharePulse 2.4s ease-in-out infinite;
+}
+@keyframes cardSharePulse{
+  0%,100%{box-shadow:0 0 0 2px var(--brand),0 8px 24px rgba(0,112,243,.25)}
+  50%{box-shadow:0 0 0 4px var(--brand),0 14px 44px rgba(0,112,243,.5)}
+}
+
+
