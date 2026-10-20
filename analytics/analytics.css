@@ -285,6 +285,19 @@ body::before {
   color: var(--ink-dim);
 }
 
+.sidebar-link.logout-btn,
+.sidebar-link[onclick*="signOut"],
+button[onclick*="signOut"] {
+  color: #ee0000;
+}
+
+.sidebar-link.logout-btn:hover,
+.sidebar-link[onclick*="signOut"]:hover,
+button[onclick*="signOut"]:hover {
+  background: color-mix(in srgb, #ee0000 12%, transparent);
+  color: #ff4d4f;
+}
+
 /* ---- Main Area ---- */
 .main {
   flex: 1;

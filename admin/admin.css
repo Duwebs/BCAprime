@@ -226,7 +226,17 @@ body {
 .brand span span { color: var(--brand); }
 
 .actions { display: flex; gap: 8px; align-items: center; }
-.logout-button { display: none; }
+.logout-button, button[onclick*="logout"] {
+  display: none;
+  color: #ee0000;
+  border-color: color-mix(in srgb, #ee0000 40%, var(--line));
+  background: color-mix(in srgb, #ee0000 8%, transparent);
+}
+.logout-button:hover, button[onclick*="logout"]:hover {
+  background: color-mix(in srgb, #ee0000 16%, transparent);
+  border-color: #ee0000;
+  color: #ee0000;
+}
 
 /* ============================================================
    Buttons

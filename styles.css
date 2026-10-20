@@ -129,7 +129,7 @@ html.auth-known #appTabs{display:grid!important}
     .profile-pop{position:absolute;top:62px;right:0;z-index:45;width:min(300px,calc(100vw - 40px));display:grid;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}.profile-pop[hidden]{display:none}
     .profile-pop-head{display:flex;align-items:center;gap:12px}.profile-pop-head img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--brand-2);background:var(--surface)}.profile-pop-copy{min-width:0;flex:1}.profile-pop-copy strong{display:block;font:600 15px 'Geist';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profile-pop-copy small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .profile-pop-meta{display:grid;gap:8px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--bg)}.profile-pop-meta span{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}.profile-pop-meta span i{color:var(--brand);width:14px;text-align:center}.profile-pop-meta b{margin-left:auto;color:var(--ink);font-weight:600;font-size:12.5px;text-align:right}
-    .danger-logout{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px 12px;border-radius:9px;border:1px solid color-mix(in srgb,#e5484d 45%,var(--line));background:color-mix(in srgb,#e5484d 10%,transparent);color:#e5484d;font-weight:700;font-size:13px;transition:background .18s ease}.danger-logout:hover{background:color-mix(in srgb,#e5484d 20%,transparent)}
+    .danger-logout,.account-logout-btn,.danger-logout-btn,button[onclick*="signOutAccount"],button[onclick*="logoutFromPop"],button[onclick*="leaveDeviceGate"]{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:9px;border:1px solid color-mix(in srgb,#ee0000 45%,var(--line));background:color-mix(in srgb,#ee0000 10%,transparent);color:#ee0000;font-weight:700;font-size:13px;transition:background .18s ease,border-color .18s ease,color .18s ease}.danger-logout{width:100%}.danger-logout:hover,.account-logout-btn:hover,.danger-logout-btn:hover,button[onclick*="signOutAccount"]:hover,button[onclick*="logoutFromPop"]:hover,button[onclick*="leaveDeviceGate"]:hover{background:color-mix(in srgb,#ee0000 20%,transparent);border-color:#ee0000;color:#ee0000}.account-user .danger-logout,.account-user .account-logout-btn,.account-user button[onclick*="signOutAccount"]{width:auto;padding:6px 14px;font-size:13px}
     html{color-scheme:light}[data-theme=dark]{color-scheme:dark}
     body{-webkit-tap-highlight-color:transparent}
     button,a,input,select,label{touch-action:manipulation}
@@ -419,8 +419,8 @@ html.auth-known #appTabs{display:grid!important}
     .eyebrow,.onboarding-kicker,.tour-kicker{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:500}
     .section-head h2{letter-spacing:-.03em}
     .dialog h2{letter-spacing:-.02em}
-    .danger-logout{border-color:color-mix(in srgb,#ee0000 40%,var(--line));background:color-mix(in srgb,#ee0000 8%,transparent);color:#ee0000}
-    .danger-logout:hover{background:color-mix(in srgb,#ee0000 16%,transparent)}
+    .danger-logout,.account-logout-btn,.danger-logout-btn,button[onclick*="signOutAccount"],button[onclick*="logoutFromPop"],button[onclick*="leaveDeviceGate"]{border-color:color-mix(in srgb,#ee0000 40%,var(--line));background:color-mix(in srgb,#ee0000 8%,transparent);color:#ee0000}
+    .danger-logout:hover,.account-logout-btn:hover,.danger-logout-btn:hover,button[onclick*="signOutAccount"]:hover,button[onclick*="logoutFromPop"]:hover,button[onclick*="leaveDeviceGate"]:hover{background:color-mix(in srgb,#ee0000 16%,transparent)}
     @media(max-width:700px){.hero::before{filter:blur(24px)}}
     /* ---- Responsive hardening (mobile PWA) ---- */
     html,body{overflow-x:clip}

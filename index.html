@@ -340,7 +340,7 @@
   </div></div>
 
   <!-- New-device approval gate (WhatsApp-style linking) -->
-  <div class="modal" id="deviceGateModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-qrcode"></i></div><p class="st-kicker">New device detected</p><h2 id="deviceGateTitle">Approve this login</h2><p class="st-sub">This is a new device. Enter this code on an approved device to approve the login, or <b>scan the QR</b>.</p><div class="device-gate-code"><span id="deviceCode">------</span><small>Enter this code on your approved device</small></div><div class="device-gate-actions"><button class="secondary" onclick="leaveDeviceGate()">Cancel &amp; logout</button><button class="primary" onclick="stopDevicePolling()">I'm waiting</button></div></div></div>
+  <div class="modal" id="deviceGateModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-qrcode"></i></div><p class="st-kicker">New device detected</p><h2 id="deviceGateTitle">Approve this login</h2><p class="st-sub">This is a new device. Enter this code on an approved device to approve the login, or <b>scan the QR</b>.</p><div class="device-gate-code"><span id="deviceCode">------</span><small>Enter this code on your approved device</small></div><div class="device-gate-actions"><button class="secondary danger-logout-btn" onclick="leaveDeviceGate()">Cancel &amp; logout</button><button class="primary" onclick="stopDevicePolling()">I'm waiting</button></div></div></div>
 
   <!-- Existing approved device: naye device ki approval request -->
   <aside class="device-request-banner" id="deviceRequestBanner" aria-live="polite">
