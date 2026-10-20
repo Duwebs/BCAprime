@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="admin.css?v=12">
+  <link rel="stylesheet" href="admin.css?v=14">
 </head>
 <body>
 
@@ -81,6 +81,7 @@
       <button class="tab" data-tab="subjects" onclick="switchTab('subjects')"><i class="fa-solid fa-book"></i> Subjects</button>
       <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
       <button class="tab" data-tab="lostfound" onclick="switchTab('lostfound')"><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</button>
+      <button class="tab" data-tab="reports" onclick="switchTab('reports')"><i class="fa-solid fa-flag"></i> Reports<span class="tab-badge" id="reportsBadge" hidden>0</span></button>
     </nav>
 
         <!-- ============ TAB: Material ============ -->
@@ -265,6 +266,57 @@
 
     </section>
 
+    <!-- ============ TAB: Resource Reports ============ -->
+    <section class="tab-panel" id="tab-reports" hidden>
+
+      <!-- New report banner -->
+      <div class="upload-banner report-alert-banner" id="reportAlertBanner" hidden>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>
+        <span id="reportAlertBannerText">New resource report submitted</span>
+        <button class="button primary" onclick="dismissReportBanner()">Acknowledge</button>
+      </div>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Resource Reports</h2>
+            <p style="margin:4px 0 0;color:var(--muted);font-size:13px;">Issues reported by students on study materials (broken links, wrong files, corrupted pages).</p>
+          </div>
+          <div class="filters">
+            <select class="select" id="reportStatusFilter" onchange="renderReports()">
+              <option value="all">All statuses</option>
+              <option value="open" selected>Open only</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="resolved">Resolved</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+            <button class="button" onclick="loadReports()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- Reports stats bar -->
+        <div class="rep-stats-bar">
+          <div class="rep-stat-item">
+            <span class="rep-stat-val" id="repStatTotal">0</span>
+            <span class="rep-stat-lbl">Total Reports</span>
+          </div>
+          <div class="rep-stat-item open">
+            <span class="rep-stat-val" id="repStatOpen">0</span>
+            <span class="rep-stat-lbl">Open Issues</span>
+          </div>
+          <div class="rep-stat-item resolved">
+            <span class="rep-stat-val" id="repStatResolved">0</span>
+            <span class="rep-stat-lbl">Resolved</span>
+          </div>
+        </div>
+
+        <div id="reportsQueue" class="reports-queue">
+          <p class="note">Loading reports&hellip;</p>
+        </div>
+      </section>
+
+    </section>
+
   </main>
 
   <!-- ================= Subject edit / add modal ================= -->
@@ -326,6 +378,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
-  <script src="admin.js?v=13"></script>
+  <script src="admin.js?v=14"></script>
 </body>
 </html>

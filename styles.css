@@ -1555,5 +1555,18 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   .gw-hero{padding:30px 28px 24px}
   .gw-hero h2{font-size:22px}
   .gw-list{padding:20px 22px}
-  .gw-foot{padding:16px 22px 20px}
 }
+
+/* ================= Resource Report Button & Modal ================= */
+.rc-icon.rc-report-btn{transition:color .18s ease,background .18s ease,transform .16s ease}
+.rc-icon.rc-report-btn:hover{color:#ef4444;background:color-mix(in srgb,#ef4444 14%,transparent);transform:scale(1.08)}
+.rc-icon.rc-report-btn:active{transform:scale(0.95)}
+.report-dialog{width:min(100%,460px);border-radius:18px;border:1px solid color-mix(in srgb,#ef4444 26%,var(--line));box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 0 1px rgba(239,68,68,.08)}
+.report-target-box{padding:12px 14px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.report-target-icon{width:36px;height:36px;border-radius:9px;background:color-mix(in srgb,#ef4444 14%,transparent);color:#ef4444;display:grid;place-items:center;flex-shrink:0;font-size:15px}
+.report-target-meta{min-width:0;flex:1}
+.report-target-title{display:block;font-weight:600;font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.report-target-sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+#reportModal textarea{width:100%;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink);padding:10px 12px;font:inherit;outline:0;resize:vertical}
+#reportModal textarea:focus,#reportModal input:focus,#reportModal select:focus{border-color:#ef4444}
+

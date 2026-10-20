@@ -1,4 +1,4 @@
-﻿// app.js - BCAPrime app logic (extracted from index.html).
+// app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
 console.info('[BCAPrime] app.js v54 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
@@ -113,7 +113,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function mapCloudResourceRow(item){
       const uid=item.uploader_uid?String(item.uploader_uid):'';
       const email=item.uploader_email||'';
-      return {title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploaderUid:uid,uploader:item.contributor_name||contributorNameFor(uid,item.uploader_name||(email?nameFromEmail(email):'')),uploaderAvatar:item.contributor_avatar||contributorAvatarFor(uid,''),uploaderEmail:email,date:item.created_at?String(item.created_at).slice(0,10):''};
+      return {dbId:item.id||null,title:item.title,type:item.type,sem:item.semester,year:item.year,subject:item.subject,college:item.college,fileName:item.file_name,fileUrl:item.file_url,downloads:item.downloads||0,upvotes:item.upvotes||0,status:item.status,uploaderUid:uid,uploader:item.contributor_name||contributorNameFor(uid,item.uploader_name||(email?nameFromEmail(email):'')),uploaderAvatar:item.contributor_avatar||contributorAvatarFor(uid,''),uploaderEmail:email,date:item.created_at?String(item.created_at).slice(0,10):''};
     }
 
     /* uid -> DOM selector (Supabase uid alphanumeric hote hain; baaki safely skip) */
@@ -251,7 +251,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
     }
     function uploaderSmallAvatar(name){const n=(name||'Student').trim();const letter=n.charAt(0).toUpperCase()||'S';const hues=[142,200,280,320,40,170];let h=0;for(const ch of n)h=(h*31+ch.charCodeAt(0))%360;const hue=hues[h%hues.length];return `data:image/svg+xml;utf8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28"><rect width="28" height="28" rx="14" fill="hsl(${hue},55%,42%)"/><text x="14" y="19" font-family="Arial,sans-serif" font-size="14" font-weight="700" text-anchor="middle" fill="#fff">${letter}</text></svg>`)}`}
-function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject||'Community upload');const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const cUid=contributorSelector(r.uploaderUid||'');const cLive=cUid?contributorCache.get(cUid):null;const cName=(cLive&&cLive.name)||r.uploader||'';const sUploader=cName?escHtml(cName):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const cnt=getCounts(id);const views=((cnt&&cnt.v)||0);const downloads=((typeof r.downloads==='number')?r.downloads:0)+((cnt&&cnt.d)||0);const isAdmin=(r.role==='admin'||r.uploaderRole==='admin');const avatar=(cLive&&cLive.avatar)||r.uploaderAvatar||(isAdmin?'/assets/logo.png':uploaderSmallAvatar(cName||'S'));const saveBtn=`<button class="rc-icon ${saved?'on':''}" aria-label="Save resource" onclick="toggleSave('${id}')" title="Save"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button>`;const shareBtn=`<button class="rc-icon" aria-label="Share" onclick="shareResource('${dlTitle}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;const roleBadge=isAdmin?`<span class="rc-role rc-role-admin"><i class="fa-solid fa-circle-check"></i> Admin</span>`:`<span class="rc-role">Contributor</span>`;const fileExt=(r.fileName&&(r.fileName.match(/\.(\w+)$/)||[])[1])?escHtml(r.fileName.match(/\.(\w+)$/)[1].toUpperCase()):(r.type==='pyq'?'PYQ':'Notes');return `<article class="resource${isPending?' pending-resource':''}" data-id="${id}"><div class="rc-top"><div class="rc-top-left"><span class="badge">${r.type==='pyq'?'PYQ':'Notes'}</span><span class="rc-file">${fileExt}</span></div><div class="rc-top-actions">${saveBtn}${shareBtn}</div></div>${isPending?`<span class="rc-pending"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<h3 class="rc-title">${sTitle}</h3><div class="rc-subject"><span class="rc-subject-badge"><i class="fa-solid fa-book-open"></i> ${sSubject}</span><span class="rc-sem-badge"><i class="fa-solid fa-layer-group"></i> Sem ${(r.sem!=null&&r.sem!=='')?escHtml(String(r.sem)):''}</span></div><div class="rc-meta"><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span>${r.date?`<span><i class="fa-regular fa-clock"></i>${escHtml(r.date)}</span>`:''}</div><div class="rc-uploader"><img class="rc-uploader-avatar"${cUid?` data-contributor-uid="${cUid}"`:''} src="${avatar}" alt="${sUploader||'BCAPrime'}" width="24" height="24">${(sUploader||cUid)?`<span class="rc-uploader-name"${cUid?` data-contributor-uid="${cUid}"`:''}>${sUploader}</span>`:''}${roleBadge}</div><div class="rc-stats"><button type="button" class="rc-stat rc-like${up?' on':''}" title="${up?'Unlike':'Like'}" onclick="toggleUpvote('${id}')"><i class="fa-${up?'solid':'regular'} fa-heart"></i><b>${upvoteDisplay(r)}</b> ${up?'Liked':'Likes'}</button><span class="rc-stat" title="Views"><i class="fa-regular fa-eye"></i><b id="rcv-${id}">${views}</b> Views</span><span class="rc-stat" title="Downloads"><i class="fa-solid fa-download"></i><b id="rcd-${id}">${downloads}</b> Downloads</span></div><div class="resource-actions"><button class="view read" onclick="readResource('${id}')"><i class="fa-solid fa-book-open"></i> Read</button>${isGuestMode()?`<button class="download guest-locked" onclick="guestSignupPrompt('${dlTitle}')" title="Sign up to download"><i class="fa-solid fa-lock"></i> Sign up to download</button>`:`<button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button>`}</div></article>`}
+function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.includes(id);const up=didUpvote(id);const sTitle=escHtml(r.title);const sSubject=escHtml(r.subject||'Community upload');const sCollege=r.college==='all'?'All colleges':escHtml((colleges.find(c=>c[0]===r.college)||['','College'])[1]);const cUid=contributorSelector(r.uploaderUid||'');const cLive=cUid?contributorCache.get(cUid):null;const cName=(cLive&&cLive.name)||r.uploader||'';const sUploader=cName?escHtml(cName):'';const dlTitle=escJsStr(r.title);const isPending=r.status==='pending';const cnt=getCounts(id);const views=((cnt&&cnt.v)||0);const downloads=((typeof r.downloads==='number')?r.downloads:0)+((cnt&&cnt.d)||0);const isAdmin=(r.role==='admin'||r.uploaderRole==='admin');const avatar=(cLive&&cLive.avatar)||r.uploaderAvatar||(isAdmin?'/assets/logo.png':uploaderSmallAvatar(cName||'S'));const saveBtn=`<button class="rc-icon ${saved?'on':''}" aria-label="Save resource" onclick="toggleSave('${id}')" title="Save"><i class="fa-${saved?'solid':'regular'} fa-bookmark"></i></button>`;const shareBtn=`<button class="rc-icon" aria-label="Share" onclick="shareResource('${dlTitle}')" title="Share"><i class="fa-solid fa-share-nodes"></i></button>`;const reportBtn=`<button class="rc-icon rc-report-btn" aria-label="Report issue" onclick="openReportModal(${r.dbId||0},'${dlTitle}')" title="Report an issue"><i class="fa-solid fa-flag"></i></button>`;const roleBadge=isAdmin?`<span class="rc-role rc-role-admin"><i class="fa-solid fa-circle-check"></i> Admin</span>`:`<span class="rc-role">Contributor</span>`;const fileExt=(r.fileName&&(r.fileName.match(/\.(\w+)$/)||[])[1])?escHtml(r.fileName.match(/\.(\w+)$/)[1].toUpperCase()):(r.type==='pyq'?'PYQ':'Notes');return `<article class="resource${isPending?' pending-resource':''}" data-id="${id}"><div class="rc-top"><div class="rc-top-left"><span class="badge">${r.type==='pyq'?'PYQ':'Notes'}</span><span class="rc-file">${fileExt}</span></div><div class="rc-top-actions">${saveBtn}${shareBtn}${reportBtn}</div></div>${isPending?`<span class="rc-pending"><i class="fa-solid fa-clock"></i> Under review</span>`:''}<h3 class="rc-title">${sTitle}</h3><div class="rc-subject"><span class="rc-subject-badge"><i class="fa-solid fa-book-open"></i> ${sSubject}</span><span class="rc-sem-badge"><i class="fa-solid fa-layer-group"></i> Sem ${(r.sem!=null&&r.sem!=='')?escHtml(String(r.sem)):''}</span></div><div class="rc-meta"><span><i class="fa-solid fa-building-columns"></i>${sCollege}</span>${r.date?`<span><i class="fa-regular fa-clock"></i>${escHtml(r.date)}</span>`:''}</div><div class="rc-uploader"><img class="rc-uploader-avatar"${cUid?` data-contributor-uid="${cUid}"`:''} src="${avatar}" alt="${sUploader||'BCAPrime'}" width="24" height="24">${(sUploader||cUid)?`<span class="rc-uploader-name"${cUid?` data-contributor-uid="${cUid}"`:''}>${sUploader}</span>`:''}${roleBadge}</div><div class="rc-stats"><button type="button" class="rc-stat rc-like${up?' on':''}" title="${up?'Unlike':'Like'}" onclick="toggleUpvote('${id}')"><i class="fa-${up?'solid':'regular'} fa-heart"></i><b>${upvoteDisplay(r)}</b> ${up?'Liked':'Likes'}</button><span class="rc-stat" title="Views"><i class="fa-regular fa-eye"></i><b id="rcv-${id}">${views}</b> Views</span><span class="rc-stat" title="Downloads"><i class="fa-solid fa-download"></i><b id="rcd-${id}">${downloads}</b> Downloads</span></div><div class="resource-actions"><button class="view read" onclick="readResource('${id}')"><i class="fa-solid fa-book-open"></i> Read</button>${isGuestMode()?`<button class="download guest-locked" onclick="guestSignupPrompt('${dlTitle}')" title="Sign up to download"><i class="fa-solid fa-lock"></i> Sign up to download</button>`:`<button class="download" onclick="download('${dlTitle}')"><i class="fa-solid fa-download"></i> Download</button>`}</div></article>`}
+
 
     /* ================= Resource Card counters & helpers ================= */
         const RC_KEY='bca-rc-counts';
@@ -2835,3 +2836,75 @@ async function resolveLostFound(id){
 function handleLostFoundHash(){try{const h=location.hash||'';const m=h.match(/^#lostfound-(\d+)$/);if(m)openLostFoundDetail(Number(m[1]))}catch(e){}}
 window.addEventListener('hashchange',handleLostFoundHash);
 setTimeout(handleLostFoundHash,1100);
+
+/* ================= Resource Report modal & submission ================= */
+function openReportModal(dbId, rawTitle){
+  const resource=resources.find(x=>(dbId&&x.dbId===dbId)||rcId(x.title)===rcId(rawTitle)||x.title===rawTitle);
+  const targetId=(resource&&resource.dbId)||dbId||null;
+  const title=(resource&&resource.title)||rawTitle||'Resource';
+  const modal=$('reportModal');
+  if(!modal)return;
+  const idInput=$('reportResourceId');if(idInput)idInput.value=targetId||'';
+  const titleEl=$('reportResourceTitle');if(titleEl)titleEl.textContent=title;
+  const reasonSel=$('reportReason');if(reasonSel)reasonSel.value='';
+  const customWrap=$('reportCustomReasonWrap');if(customWrap)customWrap.hidden=true;
+  const customInput=$('reportCustomReason');if(customInput)customInput.value='';
+  const detailsInput=$('reportDetails');if(detailsInput)detailsInput.value='';
+  const msgEl=$('reportMessage');if(msgEl){msgEl.textContent='';msgEl.className='account-message';}
+  const btn=$('reportSubmitBtn');if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Submit Report';}
+  closeModals();
+  modal.classList.add('open');
+}
+function closeReportModal(){const m=$('reportModal');if(m)m.classList.remove('open')}
+function onReportReasonChange(selectEl){
+  const wrap=$('reportCustomReasonWrap');if(!wrap)return;
+  wrap.hidden=selectEl.value!=='Other';
+  if(!wrap.hidden){const input=$('reportCustomReason');if(input)input.focus();}
+}
+async function submitResourceReport(event){
+  event.preventDefault();
+  const resId=$('reportResourceId').value;
+  const resTitle=($('reportResourceTitle').textContent||'').trim();
+  const selectReason=$('reportReason').value;
+  const customReason=($('reportCustomReason')&&$('reportCustomReason').value||'').trim();
+  const reason=(selectReason==='Other'&&customReason)?customReason:selectReason;
+  const details=($('reportDetails').value||'').trim();
+  const msgEl=$('reportMessage');
+  const btn=$('reportSubmitBtn');
+  if(!reason){if(msgEl){msgEl.textContent='Please select or describe the issue.';msgEl.className='account-message error';}return;}
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Submitting\u2026';}
+  if(msgEl)msgEl.textContent='';
+  try{
+    if(!supabaseClient)throw new Error('Database service unavailable.');
+    let targetResourceId=resId?Number(resId):null;
+    if(!targetResourceId&&resTitle){
+      const match=resources.find(x=>x.title===resTitle||rcId(x.title)===rcId(resTitle));
+      if(match&&match.dbId)targetResourceId=match.dbId;
+    }
+    const reporterUid=accountUid()||'';
+    const sessionName=(accountSession&&(accountSession.displayName||(accountSession.user_metadata&&accountSession.user_metadata.name)))||'';
+    const reporterName=String(sessionName||(accountSession?'Student':'Guest student')).slice(0,120);
+    const reporterEmail=getUploaderEmail()||(accountSession&&accountSession.email)||'';
+    const payload={
+      resource_id:targetResourceId,
+      resource_title:resTitle,
+      reason:reason,
+      details:details.slice(0,500),
+      reporter_uid:reporterUid,
+      reporter_name:reporterName,
+      reporter_email:reporterEmail,
+      status:'open'
+    };
+    const {error}=await supabaseClient.from('resource_reports').insert(payload);
+    if(error)throw error;
+    closeReportModal();
+    toast('Report submitted \u{1F64F} Thank you! Our team will review and fix it.');
+  }catch(err){
+    console.error('[BCAPrime] Report submit error:',err);
+    if(msgEl){msgEl.textContent='Submission failed: '+(err&&err.message?err.message:'Please try again.');msgEl.className='account-message error';}
+    else{toast('Could not submit report right now.');}
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Submit Report';}
+  }
+}
+

@@ -40,7 +40,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=54">
+  <link rel="stylesheet" href="styles.css?v=55">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -248,6 +248,50 @@
   <!-- Feedback / bug report -->
   <div class="modal" id="feedbackModal"><div class="dialog feedback-dialog"><div class="dialog-head"><h2>Feedback or a bug?</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Ran into a problem or have a great idea? Tell us &mdash; we'll fix it right away! 🙏</p><form class="upload-form" autocomplete="off" onsubmit="submitFeedback(event)"><div class="fb-kinds"><button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">&#128027; Bug</button><button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">&#128161; Idea</button><button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">&#10067; Question</button></div><div class="field"><label>What's the issue? *</label><textarea name="message" rows="3" required maxlength="1000" placeholder="e.g. Notes won't download..." oninput="updateFbCount(this.value)"></textarea><span class="fb-count" id="fbCount">0/1000</span></div><div class="field"><label>Screenshot (optional)</label><label class="file-box fb-file" for="feedbackFile"><i class="fa-solid fa-image"></i><span id="feedbackFileName">Attach screenshot</span><input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)"></label><div class="fb-thumb-wrap" id="fbThumbWrap" hidden><img id="fbThumb" alt="Screenshot preview"><button type="button" class="fb-thumb-remove" onclick="removeFeedbackFile(event)" aria-label="Remove screenshot">&times;</button></div></div><p class="fb-note">Your logged-in account is attached automatically so we can reply to you.</p><button class="primary" type="submit">Send feedback</button></form></div></div>
 
+  <!-- Resource Report Modal -->
+  <div class="modal" id="reportModal"><div class="dialog report-dialog">
+    <div class="dialog-head">
+      <h2><i class="fa-solid fa-flag" style="color:#ef4444;margin-right:8px;font-size:18px;"></i>Report Issue</h2>
+      <button class="close" aria-label="Close dialog" onclick="closeReportModal()">&times;</button>
+    </div>
+    <form class="upload-form" id="reportForm" autocomplete="off" onsubmit="submitResourceReport(event)">
+      <input type="hidden" id="reportResourceId" value="">
+      <div class="report-target-box">
+        <div class="report-target-icon"><i class="fa-solid fa-book-open"></i></div>
+        <div class="report-target-meta">
+          <strong class="report-target-title" id="reportResourceTitle">Resource</strong>
+          <small class="report-target-sub">Let us know what's wrong with this material</small>
+        </div>
+      </div>
+      <div class="field">
+        <label for="reportReason">Issue Type <span style="color:#ef4444">*</span></label>
+        <select id="reportReason" required onchange="onReportReasonChange(this)">
+          <option value="">Select the issue&hellip;</option>
+          <option value="File not opening / corrupted">&#128196; File not opening or corrupted</option>
+          <option value="Download link broken">&#128279; Download link broken / not downloading</option>
+          <option value="Wrong content or subject">&#10060; Wrong content or wrong subject</option>
+          <option value="Incomplete or missing pages">&#128211; Incomplete or missing pages</option>
+          <option value="Blurry or unreadable">&#128269; Blurry, low quality or unreadable</option>
+          <option value="Inappropriate or copyright material">&#9888;&#65039; Inappropriate or copyright issue</option>
+          <option value="Other">&#9999;&#65039; Other issue (describe below)</option>
+        </select>
+      </div>
+      <div class="field" id="reportCustomReasonWrap" hidden>
+        <label for="reportCustomReason">Specify Issue</label>
+        <input type="text" id="reportCustomReason" maxlength="100" placeholder="e.g. Unit 3 is missing, questions cut off">
+      </div>
+      <div class="field">
+        <label for="reportDetails">Additional Details <small>(optional)</small></label>
+        <textarea id="reportDetails" rows="3" maxlength="400" placeholder="Provide any extra details so our team can fix it quickly&hellip;"></textarea>
+      </div>
+      <p class="account-message" id="reportMessage" aria-live="polite"></p>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button type="button" class="secondary" onclick="closeReportModal()" style="flex:1;">Cancel</button>
+        <button type="submit" class="primary" id="reportSubmitBtn" style="flex:1.2;background:#e5484d;border-color:#e5484d;color:#fff;"><i class="fa-solid fa-paper-plane"></i> Submit Report</button>
+      </div>
+    </form>
+  </div></div>
+
   <!-- Lost & Found: post form -->
   <div class="modal" id="lostFoundModal"><div class="dialog lf-dialog">
     <div class="dialog-head"><h2>Lost &amp; Found</h2><button class="close" aria-label="Close dialog" onclick="closeLostFoundModal()">&times;</button></div>
@@ -367,7 +411,7 @@
     return window.__pdfjsReady
   }</script>
   <script src="whats-new.js?v=16"></script>
-  <script src="app.js?v=54"></script>
+  <script src="app.js?v=55"></script>
 </body>
 </html>
 

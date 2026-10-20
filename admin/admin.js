@@ -152,6 +152,7 @@ async function showAdmin(session) {
   $('logoutButton').style.display = 'inline-block';
   load();
   loadSubjects();
+  loadReports();
   startAdminLiveSync();
 }
 
@@ -240,6 +241,21 @@ function startAdminLiveSync() {
     adminLiveChannel = adminSupabaseClient.channel('admin-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, scheduleAdminReload)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleAdminReload)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'resource_reports' }, (payload) => {
+        loadReports();
+        if (payload.eventType === 'INSERT') {
+          playAdminAlertSound();
+          showReportAlertBanner(payload.new);
+          try {
+            if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+              new Notification('BCAPrime: Resource Reported', {
+                body: `Report: "${payload.new.resource_title || 'Material'}" — ${payload.new.reason}`,
+                icon: '../assets/logo.png'
+              });
+            }
+          } catch(e) {}
+        }
+      })
       .subscribe();
   } catch (error) { console.warn('Admin live sync unavailable.', error); }
 }
@@ -545,13 +561,14 @@ async function doDeleteFeedback(id){
    ============================================================ */
 function switchTab(tab){
   document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['material','subjects','pending','lostfound'].forEach(id => {
+  ['material','subjects','pending','lostfound','reports'].forEach(id => {
     const el = $('tab-' + id);
     if (el) el.hidden = (id !== tab);
   });
   if (tab === 'subjects') { if (!$('subjectCollege').options.length) populateSubjectFilters(); renderSubjects(); }
   if (tab === 'pending') loadPendingSubjects();
   if (tab === 'lostfound') loadLostFoundAdmin();
+  if (tab === 'reports') loadReports();
 }
 
 /* ============================================================
@@ -959,6 +976,184 @@ async function adminSubscribeToPush() {
 }
 
 setAdminNotifyButton();
+
+/* ============================================================
+   Resource Reports moderation & alert system
+   ============================================================ */
+let reports = [];
+
+function showReportAlertBanner(rep) {
+  const banner = $('reportAlertBanner');
+  if (!banner) return;
+  const text = $('reportAlertBannerText');
+  if (text) {
+    const title = rep && rep.resource_title ? `"${rep.resource_title}"` : 'A resource';
+    const reason = rep && rep.reason ? ` (${rep.reason})` : '';
+    text.textContent = `New Report: ${title}${reason}`;
+  }
+  banner.hidden = false;
+  banner.classList.add('show');
+}
+
+function dismissReportBanner() {
+  const banner = $('reportAlertBanner');
+  if (banner) {
+    banner.classList.remove('show');
+    banner.hidden = true;
+  }
+}
+
+async function loadReports() {
+  const queue = $('reportsQueue');
+  if (!adminSupabaseClient) {
+    if (queue) queue.innerHTML = '<p class="note">Supabase is not configured.</p>';
+    return;
+  }
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('resource_reports')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    reports = data || [];
+  } catch (err) {
+    console.warn('Could not load resource reports:', err.message);
+    if (queue) queue.innerHTML = '<p class="note">Failed to load reports: ' + escapeHtml(err.message) + '</p>';
+    return;
+  }
+
+  // Update report statistics
+  const total = reports.length;
+  const openCount = reports.filter(r => r.status === 'open').length;
+  const resolvedCount = reports.filter(r => r.status === 'resolved').length;
+
+  const repTot = $('repStatTotal'); if (repTot) repTot.textContent = total;
+  const repOp = $('repStatOpen'); if (repOp) repOp.textContent = openCount;
+  const repRes = $('repStatResolved'); if (repRes) repRes.textContent = resolvedCount;
+
+  // Update tab badge
+  const badge = $('reportsBadge');
+  if (badge) {
+    badge.textContent = openCount;
+    badge.hidden = (openCount === 0);
+  }
+
+  renderReports();
+}
+
+function renderReports() {
+  const queue = $('reportsQueue');
+  if (!queue) return;
+  const filter = ($('reportStatusFilter') && $('reportStatusFilter').value) || 'open';
+  const list = reports.filter(r => {
+    if (filter === 'all') return true;
+    return r.status === filter;
+  });
+
+  if (!list.length) {
+    queue.innerHTML = `<div class="rep-empty-card">
+      <i class="fa-solid fa-circle-check" style="color:var(--good);font-size:32px;margin-bottom:10px;"></i>
+      <h3>No ${filter === 'all' ? '' : filter} reports found</h3>
+      <p class="note">Everything looks good! When students report an issue with notes or PYQs, it will appear here.</p>
+    </div>`;
+    return;
+  }
+
+  queue.innerHTML = list.map(item => {
+    const st = item.status || 'open';
+    const statusClass = {
+      open: 'rep-st-open',
+      reviewed: 'rep-st-reviewed',
+      resolved: 'rep-st-resolved',
+      dismissed: 'rep-st-dismissed'
+    }[st] || 'rep-st-open';
+
+    const whoLine = [item.reporter_name, item.reporter_email].filter(Boolean).join(' · ');
+    const timeFormatted = item.created_at ? new Date(item.created_at).toLocaleString() : '';
+
+    const matchedUpload = uploads.find(u => String(u.id) === String(item.resource_id) || u.title === item.resource_title);
+    const viewMaterialBtn = matchedUpload && matchedUpload.fileUrl ?
+      `<a href="${escapeHtml(matchedUpload.fileUrl)}" target="_blank" rel="noopener" class="button" title="Open source file"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open file</a>` : '';
+
+    return `<div class="report-card ${statusClass}" data-id="${item.id}">
+      <div class="rep-card-head">
+        <span class="rep-badge ${statusClass}">${escapeHtml(st.toUpperCase())}</span>
+        <span class="rep-reason-badge"><i class="fa-solid fa-triangle-exclamation"></i> ${escapeHtml(item.reason)}</span>
+        <small class="rep-time">${timeFormatted}</small>
+      </div>
+
+      <div class="rep-res-title">
+        <i class="fa-solid fa-file-lines" style="color:var(--brand);margin-right:6px;"></i>
+        <strong>${escapeHtml(item.resource_title || 'Untitled resource')}</strong>
+        ${item.resource_id ? `<span class="rep-res-id">ID: #${item.resource_id}</span>` : ''}
+      </div>
+
+      ${item.details ? `<p class="rep-details">"${escapeHtml(item.details)}"</p>` : ''}
+
+      <div class="rep-meta-footer">
+        <div class="rep-who">
+          <i class="fa-regular fa-user"></i>
+          <span>Reported by: <b>${escapeHtml(whoLine || 'Student')}</b></span>
+          ${item.reporter_uid ? `<small>(${escapeHtml(item.reporter_uid.slice(0, 8))}&hellip;)</small>` : ''}
+        </div>
+
+        <div class="rep-actions">
+          ${viewMaterialBtn}
+          ${st === 'open' ? `<button class="button" onclick="updateReportStatus(${item.id}, 'reviewed')"><i class="fa-solid fa-eye"></i> Mark Reviewed</button>` : ''}
+          ${st !== 'resolved' ? `<button class="button primary" onclick="updateReportStatus(${item.id}, 'resolved')"><i class="fa-solid fa-check"></i> Mark Resolved</button>` : ''}
+          ${st !== 'dismissed' && st !== 'resolved' ? `<button class="button" onclick="updateReportStatus(${item.id}, 'dismissed')"><i class="fa-solid fa-ban"></i> Dismiss</button>` : ''}
+          ${st === 'resolved' || st === 'dismissed' ? `<button class="button" onclick="updateReportStatus(${item.id}, 'open')"><i class="fa-solid fa-rotate-left"></i> Reopen</button>` : ''}
+          <button class="button danger" onclick="deleteReport(${item.id})" title="Delete report record"><i class="fa-solid fa-trash-can"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function updateReportStatus(id, newStatus) {
+  if (!adminSupabaseClient) return;
+  try {
+    const updatePayload = {
+      status: newStatus,
+      resolved_at: (newStatus === 'resolved' ? new Date().toISOString() : null)
+    };
+    const { error } = await adminSupabaseClient
+      .from('resource_reports')
+      .update(updatePayload)
+      .eq('id', id);
+    if (error) throw error;
+    const rep = reports.find(r => r.id === id);
+    if (rep) {
+      rep.status = newStatus;
+      rep.resolved_at = updatePayload.resolved_at;
+    }
+    loadReports();
+  } catch (err) {
+    console.error('Failed to update report status:', err);
+    alert('Could not update status: ' + err.message);
+  }
+}
+
+async function deleteReport(id) {
+  openSafeDelete('This resource report record will be permanently deleted.', async () => doDeleteReport(id));
+}
+
+async function doDeleteReport(id) {
+  if (!adminSupabaseClient) return;
+  try {
+    const { error } = await adminSupabaseClient
+      .from('resource_reports')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    reports = reports.filter(r => r.id !== id);
+    loadReports();
+  } catch (err) {
+    console.error('Failed to delete report:', err);
+    alert('Could not delete report: ' + err.message);
+  }
+}
+
 
 
 
