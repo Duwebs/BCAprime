@@ -115,7 +115,7 @@ module.exports = async function handler(req, res) {
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="${escapeHtml(title)} — BCAPrime">
   <!-- Fallback preview image -->
-  <meta property="og:image" content="${origin}/assets/og-image.png">
+  <meta property="og:image" content="${origin}/assets/og-image.jpg">
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image">
