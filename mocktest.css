@@ -1289,3 +1289,14 @@ body:not(.dark) .mt-guest-lock-overlay {
     font-size: 12px;
   }
 }
+
+/* ============================================================
+   Priority Layer for Auth / Sign Up Modals over Mock Test Player
+   Ensures Sign Up & Login dialogs appear on top of mock test screen
+   ============================================================ */
+#accessAuthModal,
+#verifyEmailModal,
+#otpModal,
+.modal.auth-modal-priority {
+  z-index: 9999 !important;
+}
