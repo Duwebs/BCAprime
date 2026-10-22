@@ -911,49 +911,65 @@
 /* Review Container & Blurred Guest Lock */
 .mt-review-container {
   position: relative;
-  border-radius: 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 380px;
 }
 
 #mtReviewQuestionsList.is-blurred {
-  filter: blur(8px);
+  filter: blur(6px);
+  -webkit-filter: blur(6px);
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;
-  opacity: 0.45;
-  max-height: 480px;
+  opacity: 0.35;
+  max-height: 440px;
   overflow: hidden;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 65%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.4) 65%, rgba(0, 0, 0, 0) 100%);
 }
 
-.mt-guest-lock-card {
+.mt-guest-lock-overlay {
   position: absolute;
   inset: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  background: radial-gradient(circle at center, rgba(14, 18, 24, 0.88), rgba(8, 12, 18, 0.96));
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 24px 20px;
-  z-index: 5;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-  animation: mtIn .3s ease both;
+  padding: 20px;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10, 10, 10, 0.65);
+  animation: mtIn .25s ease both;
 }
 
-body:not(.dark) .mt-guest-lock-card {
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.92), rgba(245, 246, 250, 0.98));
+body:not(.dark) .mt-guest-lock-overlay {
+  background: rgba(250, 250, 250, 0.72);
+}
+
+.mt-guest-lock-card {
+  width: min(100%, 450px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 26px 22px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .mt-lock-icon-bubble {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background: var(--brand-2);
   color: var(--brand);
   display: grid;
   place-items: center;
-  font-size: 19px;
+  font-size: 18px;
   margin-bottom: 12px;
 }
 
@@ -961,30 +977,57 @@ body:not(.dark) .mt-guest-lock-card {
   font: 700 17px/1.3 'Geist', sans-serif;
   color: var(--ink);
   margin: 0 0 6px;
+  letter-spacing: -0.01em;
 }
 
 .mt-lock-desc {
   font-size: 13px;
   color: var(--muted);
-  max-width: 440px;
-  margin: 0 0 14px;
+  max-width: 380px;
+  margin: 0 0 16px;
   line-height: 1.45;
 }
 
 .mt-lock-benefits {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--ink);
+  gap: 8px;
   margin-bottom: 18px;
   text-align: left;
+  box-sizing: border-box;
 }
 
 .mt-lock-benefits span {
   display: flex;
   align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.mt-lock-benefits span i {
+  color: #10b981;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.mt-lock-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+  cursor: pointer;
 }
 
 .mt-review-item {
@@ -1107,5 +1150,34 @@ body:not(.dark) .mt-guest-lock-card {
 
   .mt-question-area {
     padding: 12px 0;
+  }
+
+  .mt-guest-lock-overlay {
+    padding: 12px;
+  }
+
+  .mt-guest-lock-card {
+    padding: 20px 14px;
+    width: 100%;
+  }
+
+  .mt-lock-title {
+    font-size: 15.5px;
+  }
+
+  .mt-lock-desc {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .mt-lock-benefits {
+    padding: 10px 12px;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .mt-lock-benefits span {
+    font-size: 11.5px;
+    gap: 7px;
   }
 }
