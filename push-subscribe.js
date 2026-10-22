@@ -79,9 +79,47 @@
     try { await subscription.unsubscribe(); } catch (error) { /* ignore */ }
   }
 
+  /* ---------- Auth & Guest mode guard helpers ---------- */
+  function isUserAuthenticated() {
+    try {
+      if (sessionStorage.getItem('bca-guest-mode') === 'true') return false;
+      if (typeof window.__bcaIsGuest === 'function' && window.__bcaIsGuest()) return false;
+      if (typeof window.__bcaIsAuthenticated === 'function') {
+        return !!window.__bcaIsAuthenticated();
+      }
+      if (typeof window.__bcaSessionUid === 'function') {
+        const uid = window.__bcaSessionUid();
+        return !!(uid && typeof uid === 'string' && uid.trim().length > 0);
+      }
+    } catch (e) {
+      return false;
+    }
+    return false;
+  }
+
+  let bannerTimeoutId = null;
+
+  function clearBannerTimeout() {
+    if (bannerTimeoutId) {
+      clearTimeout(bannerTimeoutId);
+      bannerTimeoutId = null;
+    }
+  }
+
+  function hideAllNotificationUI() {
+    clearBannerTimeout();
+    const bell = document.getElementById('notifyBell');
+    if (bell) bell.hidden = true;
+    const banner = document.getElementById('notifyBanner');
+    if (banner) banner.remove();
+  }
+
   /* ---------- Core enable / disable ---------- */
   async function enableNotifications() {
-    if (!supported) { showToast('Notifications', 'This browser does not support push notifications.', 'warn'); return false; }
+    if (!supported || !isUserAuthenticated()) {
+      hideAllNotificationUI();
+      return false;
+    }
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       showToast('Notifications off', 'Allow notifications from your browser settings to get alerts.', 'warn');
@@ -122,7 +160,10 @@
 
   /* Core: notifications ko pakka ON state mein pahunchao (silent re-enforce) */
   async function ensureNotificationsEnabled(interactive) {
-    if (!supported) { updateBell(false); return false; }
+    if (!supported || !isUserAuthenticated()) {
+      hideAllNotificationUI();
+      return false;
+    }
     if (Notification.permission === 'denied') {
       updateBell(false);
       if (interactive) showEnableBanner(true);
@@ -158,6 +199,10 @@
   /* Called from the bell button in the topbar — sirf ON karne ke liye */
   window.toggleNotifications = async function (event) {
     if (event) event.preventDefault();
+    if (!isUserAuthenticated()) {
+      hideAllNotificationUI();
+      return;
+    }
     if (Notification.permission === 'denied') {
       showEnableBanner(true);
       return;
@@ -169,16 +214,52 @@
     const bell = document.getElementById('notifyBell');
     const icon = document.getElementById('bellIcon');
     if (!bell) return;
+    /* Unauthenticated / guest users ke liye notification option strictly hidden */
+    if (!isUserAuthenticated()) {
+      bell.hidden = true;
+      return;
+    }
     /* ON hote hi bell gayab — mute option hi nahi dikhega */
     bell.hidden = !!enabled;
     if (icon) icon.className = enabled ? 'fa-solid fa-bell' : 'fa-regular fa-bell';
     if (!enabled) bell.title = 'Notifications are OFF — tap to enable';
   }
 
+  async function syncNotificationState() {
+    if (!isUserAuthenticated()) {
+      hideAllNotificationUI();
+      return;
+    }
+    if (!supported) {
+      const bell = document.getElementById('notifyBell');
+      if (bell) bell.hidden = true;
+      return;
+    }
+
+    if (Notification.permission === 'granted') {
+      await ensureNotificationsEnabled(false);
+      const banner = document.getElementById('notifyBanner');
+      if (banner) banner.remove();
+      updateBell(true);
+    } else {
+      /* Logged-in user ke liye bell button make available */
+      updateBell(false);
+
+      /* Agar dismiss nahi kiya hai to logged-in user ko notification prompt schedule karo */
+      if (sessionStorage.getItem('bca-notify-dismissed') !== '1') {
+        clearBannerTimeout();
+        bannerTimeoutId = setTimeout(() => {
+          if (isUserAuthenticated()) {
+            showEnableBanner(false);
+          }
+        }, 8000);
+      }
+    }
+  }
+  window.bcaSyncNotificationState = syncNotificationState;
+
   async function initBellState() {
-    /* Agar permission granted hai par subscription/PREF gir gaya ho to silently
-       repair ho jayega; warna bell OFF dikhkar enable ka rasta dega. */
-    await ensureNotificationsEnabled(false);
+    await syncNotificationState();
   }
 
   /* ---------- Premium in-app toast + chime (app open hone par) ---------- */
@@ -242,7 +323,10 @@
 
   /* ---------- Enable banner (har visit par, jab tak ON nahi hota) ---------- */
   function showEnableBanner(denied) {
-    if (!supported) return;
+    if (!supported || !isUserAuthenticated()) {
+      hideAllNotificationUI();
+      return;
+    }
     /* Already granted ho to banner ki zaroorat nahi — silently ensure karo */
     if (Notification.permission === 'granted') { ensureNotificationsEnabled(false); return; }
     /* "Later" sirf is session ke liye — agli visit par banner wapas */
@@ -268,6 +352,10 @@
     document.body.appendChild(banner);
     requestAnimationFrame(() => banner.classList.add('visible'));
     banner.querySelector('#notifyAllowBtn').addEventListener('click', async () => {
+      if (!isUserAuthenticated()) {
+        hideAllNotificationUI();
+        return;
+      }
       if (blocked) {
         /* Denied permission ko JS se re-request nahi kar sakte — settings guide do */
         banner.classList.add('leaving');
@@ -287,16 +375,20 @@
 
   /* ---------- Boot ---------- */
   function boot() {
-    initBellState();
-    /* Har visit par banner (jab tak ON nahi hota) — thodi der baad taaki
-       splash/onboarding pehle complete ho jaye */
-    setTimeout(showEnableBanner, supported ? 12000 : 100000000);
+    hideAllNotificationUI();
+    syncNotificationState();
+
     /* Re-enforce loop: tab focus / har 60s mein check karo ki subscription
-       zinda hai. Permission granted hai par subscription gir gayi ho to
-       silently re-subscribe ho jata hai — notifications kabhi off nahi rahengi. */
-    setInterval(() => { if (document.visibilityState === 'visible') ensureNotificationsEnabled(false); }, 60000);
+       zinda hai — SIRF logged-in accounts ke liye. */
+    setInterval(() => {
+      if (document.visibilityState === 'visible' && isUserAuthenticated()) {
+        ensureNotificationsEnabled(false);
+      }
+    }, 60000);
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') ensureNotificationsEnabled(false);
+      if (document.visibilityState === 'visible' && isUserAuthenticated()) {
+        ensureNotificationsEnabled(false);
+      }
     });
   }
 

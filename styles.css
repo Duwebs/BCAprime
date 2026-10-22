@@ -262,6 +262,7 @@ html.auth-known #appTabs{display:grid!important}
    BCAPrime — Web Push notifications (bell, banner, toast)
    ============================================================ */
 .notify-bell { position: relative }
+.notify-bell[hidden] { display: none !important; }
 .notify-bell.is-on { color: var(--brand) }
 .notify-bell.is-on::after {
   content: '';
