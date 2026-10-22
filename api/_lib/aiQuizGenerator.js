@@ -43,7 +43,8 @@ async function callGemini(apiKey, model, prompt, subject, semNum, topic) {
   const systemInstructionText = `You are a strict, senior Computer Science University Examiner for BCA (Bachelor of Computer Applications) Semester ${semNum}.
 CRITICAL CONSTRAINT: You must generate questions EXCLUSIVELY and STRICTLY for the subject "${subject}"${topic ? ' (Topic: ' + topic + ')' : ''}.
 DO NOT include questions from any other subject (for example, if the subject is "${subject}", DO NOT ask C programming, pointers, database, or hardware questions unless they are explicitly in the syllabus of "${subject}").
-Every question must test core concepts, definitions, algorithms, methodologies, or standard syllabus topics of "${subject}". Output strictly a valid JSON array.`;
+Every question must test core concepts, definitions, algorithms, methodologies, or standard syllabus topics of "${subject}".
+CRITICAL REQUIREMENT: Randomize the correct answer position naturally and evenly across options (A, B, C, or D). DO NOT always set option A as the correct answer. Output strictly a valid JSON array.`;
 
   try {
     const res = await fetch(url, {
@@ -94,6 +95,7 @@ async function callGroq(apiKey, model, prompt, subject, semNum, topic) {
   const systemPrompt = `You are a strict academic university examiner for BCA (Bachelor of Computer Applications) Semester ${semNum}.
 MANDATORY: You must generate questions EXCLUSIVELY and STRICTLY for the subject "${subject}"${topic ? ' (Topic: ' + topic + ')' : ''}.
 DO NOT mix questions from other unrelated computer science subjects.
+CRITICAL: Randomize the correct answer letter evenly across options (A, B, C, D) so that correct answers are realistically distributed. DO NOT always make Option A the correct answer.
 Output strictly a valid JSON array of objects.`;
 
   try {
@@ -144,7 +146,8 @@ async function callOpenAI(apiKey, model, prompt, subject, semNum, topic) {
   const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   const systemPrompt = `You are an academic BCA Computer Science professor. Output strictly valid JSON format only.
-Every question must test the subject "${subject}" for BCA Semester ${semNum}. Do NOT include unrelated subjects.`;
+Every question must test the subject "${subject}" for BCA Semester ${semNum}. Do NOT include unrelated subjects.
+CRITICAL: Randomize the correct answer letter evenly across options (A, B, C, D) so that correct answers are realistically distributed. DO NOT always make Option A the correct answer.`;
 
   try {
     const res = await fetch(url, {
@@ -220,11 +223,26 @@ function parseQuizJson(text) {
 }
 
 /**
- * Standardize question structure to ensure all fields are present & validated
+ * Fisher-Yates array shuffle helper
+ */
+function shuffleArray(arr) {
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/**
+ * Standardize question structure, randomize option positions (A, B, C, D)
+ * and remap correct_answer accordingly. Guarantees zero option bias.
  */
 function normalizeQuestions(items) {
+  if (!Array.isArray(items)) return [];
+
   return items.map((q, idx) => {
-    const qText = String(q.question_text || q.question || q.prompt || `Question ${idx + 1}`).trim();
+    const qText = String(q.question_text || q.question || q.prompt || q.q || `Question ${idx + 1}`).trim();
     
     let optA = '', optB = '', optC = '', optD = '';
     if (q.options && typeof q.options === 'object') {
@@ -246,25 +264,47 @@ function normalizeQuestions(items) {
       optD = String(q.option_d || 'Option D').trim();
     }
 
-    let correct = String(q.correct_answer || q.answer || q.correct || 'A').trim().toUpperCase();
-    if (!['A', 'B', 'C', 'D'].includes(correct)) {
-      if (correct.includes('A') || correct === optA.toUpperCase()) correct = 'A';
-      else if (correct.includes('B') || correct === optB.toUpperCase()) correct = 'B';
-      else if (correct.includes('C') || correct === optC.toUpperCase()) correct = 'C';
-      else if (correct.includes('D') || correct === optD.toUpperCase()) correct = 'D';
-      else correct = 'A';
+    // Determine which option was originally marked as correct
+    let originalCorrect = String(q.correct_answer || q.answer || q.ans || q.correct || 'A').trim().toUpperCase();
+    if (!['A', 'B', 'C', 'D'].includes(originalCorrect)) {
+      if (originalCorrect.includes('A') || originalCorrect === optA.toUpperCase()) originalCorrect = 'A';
+      else if (originalCorrect.includes('B') || originalCorrect === optB.toUpperCase()) originalCorrect = 'B';
+      else if (originalCorrect.includes('C') || originalCorrect === optC.toUpperCase()) originalCorrect = 'C';
+      else if (originalCorrect.includes('D') || originalCorrect === optD.toUpperCase()) originalCorrect = 'D';
+      else originalCorrect = 'A';
     }
 
-    const explanation = String(q.explanation || q.reason || 'Refer to BCA standard curriculum for this topic.').trim();
+    const optionEntries = [
+      { text: optA, isCorrect: originalCorrect === 'A' },
+      { text: optB, isCorrect: originalCorrect === 'B' },
+      { text: optC, isCorrect: originalCorrect === 'C' },
+      { text: optD, isCorrect: originalCorrect === 'D' }
+    ];
+
+    // Shuffle the 4 options using Fisher-Yates
+    const shuffled = shuffleArray(optionEntries);
+    const keys = ['A', 'B', 'C', 'D'];
+    let newCorrect = 'A';
+
+    shuffled.forEach((entry, i) => {
+      if (entry.isCorrect) newCorrect = keys[i];
+    });
+
+    const finalA = shuffled[0].text;
+    const finalB = shuffled[1].text;
+    const finalC = shuffled[2].text;
+    const finalD = shuffled[3].text;
+
+    const explanation = String(q.explanation || q.exp || q.reason || 'Refer to BCA standard curriculum for this topic.').trim();
 
     return {
       question_text: qText,
-      option_a: optA,
-      option_b: optB,
-      option_c: optC,
-      option_d: optD,
-      options: { A: optA, B: optB, C: optC, D: optD },
-      correct_answer: correct,
+      option_a: finalA,
+      option_b: finalB,
+      option_c: finalC,
+      option_d: finalD,
+      options: { A: finalA, B: finalB, C: finalC, D: finalD },
+      correct_answer: newCorrect,
       explanation
     };
   });
@@ -746,7 +786,7 @@ function generateCurriculumFallback(subject, semester, count = 10, difficulty = 
     }
   }
 
-  return results.slice(0, count);
+  return normalizeQuestions(results.slice(0, count));
 }
 
 /**
@@ -814,10 +854,11 @@ Required Question Count: Exactly ${count}
 INSTRUCTIONS FOR UNIVERSITY EXAMINER:
 1. Every single question MUST strictly belong to the syllabus and domain of "${subject}".
 2. ABSOLUTE CONSTRAINT: DO NOT include questions from other subjects (for example, if the subject is "${subject}", DO NOT generate questions about unrelated subjects like C programming or pointer arithmetic unless "${subject}" is specifically a C programming course).
-3. Provide exactly 4 clear choices: option_a, option_b, option_c, option_d.
-4. Mark the accurate correct_answer ("A", "B", "C", or "D").
-5. Provide a clear 1-2 sentence explanation clarifying the correct concept.
-6. Return ONLY a valid JSON array of objects with the exact schema:
+3. Provide exactly 4 clear, plausible choices: option_a, option_b, option_c, option_d.
+4. CRITICAL: Randomize the correct answer position naturally and evenly across choices A, B, C, and D for each question. DO NOT always place the correct answer in option A.
+5. Mark the accurate correct_answer ("A", "B", "C", or "D").
+6. Provide a clear 1-2 sentence explanation clarifying the correct concept.
+7. Return ONLY a valid JSON array of objects with the exact schema:
 [
   {
     "question_text": "...",
@@ -825,7 +866,7 @@ INSTRUCTIONS FOR UNIVERSITY EXAMINER:
     "option_b": "...",
     "option_c": "...",
     "option_d": "...",
-    "correct_answer": "A",
+    "correct_answer": "C",
     "explanation": "..."
   }
 ]

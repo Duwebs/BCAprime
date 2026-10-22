@@ -553,9 +553,55 @@
     }
   };
 
+  /**
+   * Randomize question option order for fair testing while preserving correct answer linkage
+   */
+  function shuffleQuestionOptionsForPlayer(q) {
+    if (!q || q._optionsShuffled) return q;
+    const originalKey = String(q.correct_answer || 'A').trim().toUpperCase();
+    const opts = [
+      { isCorrect: originalKey === 'A', text: q.option_a || (q.options && q.options.A) || '' },
+      { isCorrect: originalKey === 'B', text: q.option_b || (q.options && q.options.B) || '' },
+      { isCorrect: originalKey === 'C', text: q.option_c || (q.options && q.options.C) || '' },
+      { isCorrect: originalKey === 'D', text: q.option_d || (q.options && q.options.D) || '' }
+    ];
+
+    if (!opts.some(o => o.isCorrect)) {
+      opts[0].isCorrect = true;
+    }
+
+    // Fisher-Yates shuffle
+    for (let i = opts.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [opts[i], opts[j]] = [opts[j], opts[i]];
+    }
+
+    const keys = ['A', 'B', 'C', 'D'];
+    let newAns = 'A';
+    opts.forEach((o, i) => {
+      if (o.isCorrect) newAns = keys[i];
+    });
+
+    return {
+      ...q,
+      option_a: opts[0].text,
+      option_b: opts[1].text,
+      option_c: opts[2].text,
+      option_d: opts[3].text,
+      options: {
+        A: opts[0].text,
+        B: opts[1].text,
+        C: opts[2].text,
+        D: opts[3].text
+      },
+      correct_answer: newAns,
+      _optionsShuffled: true
+    };
+  }
+
   function startTestWithData(quiz, questions) {
     mtState.activeQuiz = quiz;
-    mtState.activeQuestions = questions;
+    mtState.activeQuestions = (questions || []).map(shuffleQuestionOptionsForPlayer);
     mtState.currentIndex = 0;
     mtState.selectedAnswers = {};
     mtState.skippedQuestions = new Set();
