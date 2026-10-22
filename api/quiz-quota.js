@@ -1,6 +1,8 @@
 // ============================================================
 // BCAPrime — api/quiz-quota.js
-// Check current user's daily AI quiz generation quota
+// Check daily mock test generation quota:
+// - Guest (unauthenticated): 3 tests/day
+// - Logged-in user: 9 tests/day
 // ============================================================
 'use strict';
 
@@ -13,17 +15,34 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || proce
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const DAILY_LIMIT = 3;
+const LOGGED_IN_LIMIT = 9;
+const GUEST_LIMIT = 3;
 
 module.exports = withCors(async (req, res) => {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.query.token;
-  if (!token) {
-    return send(res, 401, { error: 'Authentication required' });
+  let user = null;
+
+  if (token) {
+    try {
+      user = await verifySupabaseToken(token);
+    } catch (e) {
+      user = null;
+    }
   }
 
-  const user = await verifySupabaseToken(token);
-  if (!user || !user.uid) {
-    return send(res, 401, { error: 'Invalid token' });
+  const isGuest = !user || !user.uid;
+  let userId;
+  let limit;
+
+  if (!isGuest) {
+    userId = user.uid;
+    limit = LOGGED_IN_LIMIT; // 9 tests/day for authenticated users
+  } else {
+    const clientIp = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || 'guest').split(',')[0].trim();
+    const clientGuestId = String(req.query.guestId || req.headers['x-guest-id'] || '').trim().slice(0, 64);
+    const guestKey = clientGuestId || clientIp.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    userId = `guest:${guestKey}`;
+    limit = GUEST_LIMIT; // 3 tests/day for guest users
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -35,7 +54,7 @@ module.exports = withCors(async (req, res) => {
     const { data } = await supabase
       .from('ai_quiz_usage')
       .select('count')
-      .eq('user_id', user.uid)
+      .eq('user_id', userId)
       .eq('usage_date', today)
       .maybeSingle();
 
@@ -48,9 +67,10 @@ module.exports = withCors(async (req, res) => {
 
   return send(res, 200, {
     ok: true,
+    isGuest,
     used,
-    limit: DAILY_LIMIT,
-    remaining: Math.max(0, DAILY_LIMIT - used),
+    limit,
+    remaining: Math.max(0, limit - used),
     resetAt: tomorrowMidnight.toISOString()
   });
 });

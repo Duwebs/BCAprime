@@ -566,19 +566,23 @@
             <div class="mt-stats-pills">
               <div class="mt-stat-pill correct">
                 <span>Correct</span>
-                <strong id="mtStatCorrect">8</strong>
+                <strong id="mtStatCorrect">0</strong>
               </div>
               <div class="mt-stat-pill incorrect">
                 <span>Incorrect</span>
-                <strong id="mtStatIncorrect">2</strong>
+                <strong id="mtStatIncorrect">0</strong>
+              </div>
+              <div class="mt-stat-pill skipped">
+                <span>Skipped</span>
+                <strong id="mtStatSkipped">0</strong>
               </div>
               <div class="mt-stat-pill">
                 <span>Time Taken</span>
-                <strong id="mtStatTime">6m 42s</strong>
+                <strong id="mtStatTime">0m 0s</strong>
               </div>
               <div class="mt-stat-pill">
                 <span>Accuracy</span>
-                <strong id="mtStatAccuracy">80%</strong>
+                <strong id="mtStatAccuracy">0%</strong>
               </div>
             </div>
 
@@ -593,13 +597,32 @@
           </div>
 
           <!-- Detailed Solution & Concept Explanation Review -->
-          <div>
+          <div id="mtReviewSection">
             <div class="mt-review-head">
               <h3><i class="fa-solid fa-list-check" style="color:var(--brand)"></i> Question Review &amp; Explanations</h3>
-              <span style="font-size:12.5px;color:var(--muted)">Green = Correct Answer &middot; Red = Your Selection</span>
+              <span id="mtReviewSubLegend" style="font-size:12.5px;color:var(--muted)">Green = Correct Answer &middot; Red = Your Selection</span>
             </div>
 
-            <div id="mtReviewQuestionsList"></div>
+            <div class="mt-review-container">
+              <div id="mtReviewQuestionsList"></div>
+
+              <!-- Guest Lock Overlay -->
+              <div class="mt-guest-lock-card" id="mtGuestLockCard" hidden>
+                <div class="mt-lock-icon-bubble"><i class="fa-solid fa-lock"></i></div>
+                <h3 class="mt-lock-title">Sign up or Login to view full detailed analysis</h3>
+                <p class="mt-lock-desc">
+                  Create a free BCAPrime account to reveal complete question-wise answers, step-by-step explanations, and unlock <strong>9 practice tests per day</strong>.
+                </p>
+                <div class="mt-lock-benefits">
+                  <span><i class="fa-solid fa-circle-check" style="color:#10b981"></i> Question-by-question breakdown &amp; correct answers</span>
+                  <span><i class="fa-solid fa-circle-check" style="color:#10b981"></i> Clear concept explanations for every MCQ</span>
+                  <span><i class="fa-solid fa-circle-check" style="color:#10b981"></i> 9 daily practice tests (vs 3 free guest tests)</span>
+                </div>
+                <button class="button primary" style="padding:10px 22px;font-size:13.5px;border-radius:10px;font-weight:600" onclick="requireAccount('Sign up or login to view full detailed analysis and solutions.', 'mocktest')">
+                  <i class="fa-solid fa-user-plus"></i> Sign Up or Log In
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 

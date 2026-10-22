@@ -1,7 +1,9 @@
 // ============================================================
 // BCAPrime — api/generate-quiz.js
-// On-the-fly AI Quiz Generator with Strict Daily Quota (Max 3/day)
-// and Automatic Backend Failover
+// On-the-fly Practice Test Generator with Tiered Daily Quota:
+// - Guest (unauthenticated): 3 tests/day
+// - Logged-in user: 9 tests/day
+// Automatic Backend Failover (Multi-key Gemini -> Groq -> HuggingFace -> Syllabus Engine)
 // ============================================================
 'use strict';
 
@@ -15,7 +17,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || proce
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-const DAILY_LIMIT = 3;
+const LOGGED_IN_LIMIT = 9;
+const GUEST_LIMIT = 3;
 
 module.exports = withCors(async (req, res) => {
   if (req.method !== 'POST') {
@@ -29,23 +32,37 @@ module.exports = withCors(async (req, res) => {
     return send(res, 400, { error: 'Invalid JSON request' });
   }
 
-  // 1. Verify User Authentication
+  // 1. Verify User Authentication or Guest ID
   const idToken = body.accessToken || body.idToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
-  if (!idToken) {
-    return send(res, 401, { error: 'Authentication required. Please log in to generate mock tests.' });
+  let user = null;
+  if (idToken) {
+    try {
+      user = await verifySupabaseToken(idToken);
+    } catch (e) {
+      user = null;
+    }
   }
 
-  const user = await verifySupabaseToken(idToken);
-  if (!user || !user.uid) {
-    return send(res, 401, { error: 'Invalid or expired user session. Please log in again.' });
+  const isGuest = !user || !user.uid;
+  let userId;
+  let dailyLimit;
+
+  if (!isGuest) {
+    userId = user.uid;
+    dailyLimit = LOGGED_IN_LIMIT; // 9
+  } else {
+    const clientIp = (req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket?.remoteAddress || 'guest').split(',')[0].trim();
+    const clientGuestId = String(body.guestId || req.headers['x-guest-id'] || '').trim().slice(0, 64);
+    const guestKey = clientGuestId || clientIp.replace(/[^a-zA-Z0-9_.-]/g, '_');
+    userId = `guest:${guestKey}`;
+    dailyLimit = GUEST_LIMIT; // 3
   }
 
-  const userId = user.uid;
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   const tomorrowMidnight = new Date();
   tomorrowMidnight.setUTCHours(24, 0, 0, 0);
 
-  // 2. Check Daily Limit (Max 3/day)
+  // 2. Check Daily Limit (3 for guest, 9 for logged in)
   let currentUsage = 0;
   try {
     const { data: usageRow } = await supabase
@@ -62,14 +79,19 @@ module.exports = withCors(async (req, res) => {
     console.warn('[Quota Check Error]', err.message);
   }
 
-  if (currentUsage >= DAILY_LIMIT) {
+  if (currentUsage >= dailyLimit) {
+    const limitMsg = isGuest
+      ? `You have reached your free guest limit of ${GUEST_LIMIT} practice tests today. Sign up or log in to get 9 tests per day and full detailed analysis!`
+      : `You have reached your daily quota of ${LOGGED_IN_LIMIT} practice tests. Your limit resets at midnight.`;
+
     return send(res, 429, {
       ok: false,
       error: 'quota_exceeded',
-      message: `You have reached your daily quota of ${DAILY_LIMIT} practice tests. Your limit resets at midnight.`,
+      message: limitMsg,
       quota: {
+        isGuest,
         used: currentUsage,
-        limit: DAILY_LIMIT,
+        limit: dailyLimit,
         remaining: 0,
         resetAt: tomorrowMidnight.toISOString()
       }
@@ -151,7 +173,7 @@ module.exports = withCors(async (req, res) => {
 
     if (qInsertError) throw qInsertError;
 
-    // 6. Atomically Increment User's Daily Quota
+    // 6. Atomically Increment Daily Quota
     const newUsage = currentUsage + 1;
     await supabase
       .from('ai_quiz_usage')
@@ -166,41 +188,23 @@ module.exports = withCors(async (req, res) => {
       quiz: createdQuiz,
       questions: insertedQuestions || questionRows,
       quota: {
+        isGuest,
         used: newUsage,
-        limit: DAILY_LIMIT,
-        remaining: Math.max(0, DAILY_LIMIT - newUsage),
+        limit: dailyLimit,
+        remaining: Math.max(0, dailyLimit - newUsage),
         resetAt: tomorrowMidnight.toISOString()
       },
       generatorMeta: {
         provider: aiResult.provider,
-        model: aiResult.model,
-        tier: aiResult.tier
+        cached: !!aiResult.cached,
+        difficulty
       }
     });
-  } catch (dbError) {
-    console.error('[Database Save Error]', dbError);
-    // If database insertion failed, return the generated quiz in-memory so user can still take the test!
-    return send(res, 200, {
-      ok: true,
-      quiz: {
-        id: 'temp-' + Date.now(),
-        title: `${subject} (Sem ${semester}) AI Mock Test`,
-        subject,
-        semester,
-        total_questions: questions.length,
-        time_limit_minutes: timeLimitMinutes,
-        difficulty,
-        is_ai_generated: true,
-        created_by: userId
-      },
-      questions: questions.map((q, i) => ({ id: 'temp-q-' + i, ...q })),
-      quota: {
-        used: currentUsage + 1,
-        limit: DAILY_LIMIT,
-        remaining: Math.max(0, DAILY_LIMIT - (currentUsage + 1)),
-        resetAt: tomorrowMidnight.toISOString()
-      },
-      note: 'Rendered in instant mode.'
+  } catch (dbErr) {
+    console.error('[Supabase Quiz Save Error]', dbErr);
+    return send(res, 500, {
+      ok: false,
+      error: 'Failed to persist generated quiz in database: ' + dbErr.message
     });
   }
 });

@@ -47,6 +47,20 @@
   // DOM Helper
   const $id = (id) => document.getElementById(id);
 
+  // Guest Device Tracking & Auth Check
+  function getGuestId() {
+    let gid = localStorage.getItem('bca_mocktest_guest_id');
+    if (!gid) {
+      gid = 'g_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+      localStorage.setItem('bca_mocktest_guest_id', gid);
+    }
+    return gid;
+  }
+
+  function isUserLoggedIn() {
+    return typeof accountSession !== 'undefined' && !!accountSession && !!accountSession.uid;
+  }
+
   /* ---- Initialize & Open Mock Test Hub ---- */
   window.openMockTestHub = async function (preferredSubject = '') {
     const modal = $id('mockTestModal');
@@ -175,27 +189,33 @@
   }
 
   async function fetchAiQuota() {
-    if (typeof accountSession === 'undefined' || !accountSession || !accountSession.uid) {
-      renderQuotaPill({ used: 0, limit: 3, remaining: 3 });
-      return;
-    }
+    const isLogged = isUserLoggedIn();
+    const guestId = getGuestId();
 
     try {
-      const token = await getAuthToken();
-      if (!token) return;
+      let endpoint = (typeof AUTH_API !== 'undefined' && AUTH_API.quizQuota) ? AUTH_API.quizQuota : '/api/quiz-quota';
+      let headers = {};
 
-      const endpoint = (typeof AUTH_API !== 'undefined' && AUTH_API.quizQuota) ? AUTH_API.quizQuota : '/api/quiz-quota';
-      const res = await fetch(endpoint, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      if (isLogged) {
+        const token = await getAuthToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        endpoint += (endpoint.includes('?') ? '&' : '?') + 'guestId=' + encodeURIComponent(guestId);
+        headers['x-guest-id'] = guestId;
+      }
+
+      const res = await fetch(endpoint, { headers });
 
       if (res.ok) {
         const data = await res.json();
         mtState.quota = data;
         renderQuotaPill(data);
+      } else {
+        renderQuotaPill({ used: 0, limit: isLogged ? 9 : 3, remaining: isLogged ? 9 : 3, isGuest: !isLogged });
       }
     } catch (e) {
       console.warn('[MockTest] Quota fetch failed:', e.message);
+      renderQuotaPill({ used: 0, limit: isLogged ? 9 : 3, remaining: isLogged ? 9 : 3, isGuest: !isLogged });
     }
   }
 
@@ -205,17 +225,27 @@
     const genBtn = $id('mtGenerateBtn');
     if (!pill) return;
 
+    const isLogged = isUserLoggedIn();
     const used = quota.used || 0;
-    const limit = quota.limit || 3;
+    const limit = quota.limit || (isLogged ? 9 : 3);
     const remaining = typeof quota.remaining === 'number' ? quota.remaining : Math.max(0, limit - used);
+    const isGuest = typeof quota.isGuest === 'boolean' ? quota.isGuest : !isLogged;
 
-    pill.innerHTML = `<i class="fa-solid fa-calendar-day"></i> Daily Limit: <strong>${used}/${limit}</strong>`;
+    if (isGuest) {
+      pill.innerHTML = `<i class="fa-solid fa-calendar-day"></i> Free Guest Limit: <strong>${used}/${limit}</strong>`;
+    } else {
+      pill.innerHTML = `<i class="fa-solid fa-calendar-day"></i> Daily Limit: <strong>${used}/${limit}</strong>`;
+    }
     
     if (remaining <= 0) {
       pill.classList.add('limit-reached');
       if (alertBox) {
         alertBox.hidden = false;
-        alertBox.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> You have reached your daily limit of ${limit} custom tests. Limit resets at midnight. You can take any library mock tests below without limits!`;
+        if (isGuest) {
+          alertBox.innerHTML = `<i class="fa-solid fa-lock"></i> You've reached your free daily guest limit (${limit}/${limit} tests). <a href="javascript:void(0)" onclick="requireAccount('Sign up for 9 daily mock tests & full detailed analysis!','mocktest')" style="color:var(--brand);font-weight:700;text-decoration:underline">Sign up or Log In</a> to unlock <strong>9 tests per day</strong> and full detailed solutions!`;
+        } else {
+          alertBox.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> You have reached your daily limit of ${limit} practice tests. Limit resets at midnight. You can take any library mock tests below without limits!`;
+        }
       }
       if (genBtn) genBtn.disabled = true;
     } else {
@@ -396,19 +426,19 @@
 
   /* ---- On-the-Fly Practice Test Generation ---- */
   window.triggerGenerateAiQuiz = async function () {
-    // 1. Authenticated user check
-    if (typeof accountSession === 'undefined' || !accountSession || !accountSession.uid) {
-      if (typeof requireAccount === 'function') {
-        requireAccount('Log in to create custom practice tests.', 'mocktest');
-      } else {
-        alert('Please log in to create practice tests.');
-      }
-      return;
-    }
+    const isLogged = isUserLoggedIn();
 
-    // 2. Daily Quota Check
+    // Daily Quota Check
     if (mtState.quota.remaining <= 0) {
-      alert('You have reached your daily limit of 3 custom practice tests. Quota resets at midnight!');
+      if (!isLogged) {
+        if (typeof requireAccount === 'function') {
+          requireAccount('You have reached your free daily limit of 3 tests. Sign up or log in to get 9 tests per day & full detailed analysis!', 'mocktest');
+        } else {
+          alert('You have reached your daily guest limit of 3 tests. Please log in for 9 tests daily!');
+        }
+      } else {
+        alert('You have reached your daily limit of 9 practice tests. Quota resets at midnight!');
+      }
       return;
     }
 
@@ -430,22 +460,29 @@
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing Test...';
 
     try {
-      const token = await getAuthToken();
       const endpoint = (typeof AUTH_API !== 'undefined' && AUTH_API.generateQuiz) ? AUTH_API.generateQuiz : '/api/generate-quiz';
+      const headers = { 'Content-Type': 'application/json' };
+      const reqPayload = {
+        subject,
+        semester: sem,
+        topic,
+        questionCount: count,
+        difficulty
+      };
+
+      if (isLogged) {
+        const token = await getAuthToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      } else {
+        const gid = getGuestId();
+        headers['x-guest-id'] = gid;
+        reqPayload.guestId = gid;
+      }
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          subject,
-          semester: sem,
-          topic,
-          questionCount: count,
-          difficulty
-        })
+        headers,
+        body: JSON.stringify(reqPayload)
       });
 
       const result = await response.json();
@@ -454,7 +491,11 @@
         if (result.error === 'quota_exceeded') {
           mtState.quota.remaining = 0;
           renderQuotaPill(mtState.quota);
-          alert(result.message || 'Daily practice test quota reached! Quota resets at midnight.');
+          if (!isLogged && typeof requireAccount === 'function') {
+            requireAccount(result.message || 'You have reached your free daily limit. Sign up for 9 daily tests & full detailed analysis!', 'mocktest');
+          } else {
+            alert(result.message || 'Daily practice test quota reached! Quota resets at midnight.');
+          }
           return;
         }
         throw new Error(result.error || result.message || 'Failed to generate quiz');
@@ -479,15 +520,6 @@
 
   /* ---- Start Test (Existing or Generated) ---- */
   window.startQuizById = async function (quizId) {
-    if (typeof accountSession === 'undefined' || !accountSession || !accountSession.uid) {
-      if (typeof requireAccount === 'function') {
-        requireAccount('Log in to start this mock test and save your score.', 'mocktest');
-      } else {
-        alert('Please log in to start this mock test.');
-      }
-      return;
-    }
-
     const quiz = mtState.quizzes.find(q => q.id === quizId);
     if (!quiz) return;
 
@@ -692,14 +724,22 @@
     stopTimer();
 
     // Calculate score
-    let score = 0;
+    let correctCount = 0;
+    let incorrectCount = 0;
+    let skippedCount = 0;
     const total = mtState.activeQuestions.length;
     const answersRecord = [];
 
     mtState.activeQuestions.forEach((q, idx) => {
       const userPick = mtState.selectedAnswers[idx] || null;
       const isCorrect = (userPick === q.correct_answer);
-      if (isCorrect) score++;
+      if (userPick === null) {
+        skippedCount++;
+      } else if (isCorrect) {
+        correctCount++;
+      } else {
+        incorrectCount++;
+      }
 
       answersRecord.push({
         question_id: q.id,
@@ -711,13 +751,21 @@
       });
     });
 
+    const score = correctCount;
     const percentage = Number(((score / total) * 100).toFixed(2));
+    const accuracy = (correctCount + incorrectCount > 0)
+      ? Math.round((correctCount / (correctCount + incorrectCount)) * 100)
+      : 0;
     const timeTaken = mtState.timeTakenSeconds;
 
     mtState.evalResult = {
       score,
+      correctCount,
+      incorrectCount,
+      skippedCount,
       total,
       percentage,
+      accuracy,
       timeTaken,
       answers: answersRecord,
       quiz: mtState.activeQuiz
@@ -727,7 +775,7 @@
     renderScoreSummary(mtState.evalResult);
     setMtView('result');
 
-    // Save result to Supabase
+    // Save result to Supabase if logged in
     saveResultToSupabase(score, total, percentage, answersRecord, timeTaken);
   };
 
@@ -753,13 +801,18 @@
     const secs = res.timeTaken % 60;
     const timeStr = `${mins}m ${secs}s`;
 
-    if ($id('mtStatCorrect')) $id('mtStatCorrect').textContent = res.score;
-    if ($id('mtStatIncorrect')) $id('mtStatIncorrect').textContent = res.total - res.score;
+    if ($id('mtStatCorrect')) $id('mtStatCorrect').textContent = res.correctCount;
+    if ($id('mtStatIncorrect')) $id('mtStatIncorrect').textContent = res.incorrectCount;
+    if ($id('mtStatSkipped')) $id('mtStatSkipped').textContent = res.skippedCount;
     if ($id('mtStatTime')) $id('mtStatTime').textContent = timeStr;
-    if ($id('mtStatAccuracy')) $id('mtStatAccuracy').textContent = `${Math.round(res.percentage)}%`;
+    if ($id('mtStatAccuracy')) $id('mtStatAccuracy').textContent = `${res.accuracy}%`;
 
     // Render detailed questions review
     const revContainer = $id('mtReviewQuestionsList');
+    const guestLock = $id('mtGuestLockCard');
+    const revLegend = $id('mtReviewSubLegend');
+    const isGuest = !isUserLoggedIn();
+
     if (revContainer) {
       revContainer.innerHTML = res.answers.map((ans, idx) => {
         const q = mtState.activeQuestions[idx];
@@ -775,7 +828,7 @@
         return `
           <div class="mt-review-item">
             <h5 class="mt-review-q-title">
-              <span style="color:#818cf8;margin-right:6px">Q${idx + 1}.</span> ${escapeHtml(q.question_text)}
+              <span style="color:var(--brand);margin-right:6px">Q${idx + 1}.</span> ${escapeHtml(q.question_text)}
             </h5>
 
             <div class="mt-review-options">
@@ -809,8 +862,43 @@
           </div>
         `;
       }).join('');
+
+      if (isGuest) {
+        revContainer.classList.add('is-blurred');
+        if (guestLock) guestLock.hidden = false;
+        if (revLegend) revLegend.textContent = 'Sign up to unlock question-wise answers & full explanations';
+      } else {
+        revContainer.classList.remove('is-blurred');
+        if (guestLock) guestLock.hidden = true;
+        if (revLegend) revLegend.textContent = 'Green = Correct Answer · Red = Your Selection';
+      }
     }
   }
+
+  // Dynamic unlock listener when user logs in or registers
+  window.unlockDetailedAnalysisIfLoggedIn = function () {
+    if (isUserLoggedIn()) {
+      const guestLock = $id('mtGuestLockCard');
+      const revContainer = $id('mtReviewQuestionsList');
+      const revLegend = $id('mtReviewSubLegend');
+
+      if (guestLock) guestLock.hidden = true;
+      if (revContainer) revContainer.classList.remove('is-blurred');
+      if (revLegend) revLegend.textContent = 'Green = Correct Answer · Red = Your Selection';
+
+      // Persist active result to Supabase if not yet saved
+      if (mtState.evalResult && !mtState.evalResult.saved) {
+        const res = mtState.evalResult;
+        saveResultToSupabase(res.score, res.total, res.percentage, res.answers, res.timeTaken);
+        mtState.evalResult.saved = true;
+      }
+
+      // Refresh quota to show 9 tests limit
+      fetchAiQuota();
+    }
+  };
+
+  window.addEventListener('focus', window.unlockDetailedAnalysisIfLoggedIn);
 
   async function saveResultToSupabase(score, total, percentage, answersRecord, timeTaken) {
     if (typeof accountSession === 'undefined' || !accountSession || !accountSession.uid) return;
