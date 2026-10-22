@@ -46,6 +46,10 @@ alter table public.user_profiles
   alter column college set default 'all';
 alter table public.user_profiles
   alter column is_email_verified set default false;
+alter table public.user_profiles
+  add column if not exists welcome_email_sent boolean not null default false;
+alter table public.user_profiles
+  alter column welcome_email_sent set default false;
 
 -- 3) AUDIT: aise rows jinme email/uid missing hai (kabhi nahi hona chahiye).
 -- select uid, email, college, semester, is_email_verified, updated_at

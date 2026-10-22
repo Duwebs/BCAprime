@@ -147,12 +147,14 @@ create table if not exists public.user_profiles (
   college text not null default 'all',
   semester integer,
   is_email_verified boolean not null default false,
+  welcome_email_sent boolean not null default false,
   updated_at timestamptz not null default now()
 );
 
 -- Migration for already-deployed DBs (safe, idempotent):
 alter table public.user_profiles add column if not exists is_email_verified boolean not null default false;
 alter table public.user_profiles add column if not exists avatar_url text;
+alter table public.user_profiles add column if not exists welcome_email_sent boolean not null default false;
 
 -- Keep profile avatar changes available to every active device immediately.
 do $$

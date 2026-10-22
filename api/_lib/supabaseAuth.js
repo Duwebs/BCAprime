@@ -80,7 +80,7 @@ async function getServiceProfile(uid) {
   try { ({ url, key } = baseUrl()); } catch (e) { return null; }
   try {
     const res = await fetch(
-      url + '/rest/v1/user_profiles?uid=eq.' + encodeURIComponent(uid) + '&select=uid,email,is_email_verified,username,name&limit=1',
+      url + '/rest/v1/user_profiles?uid=eq.' + encodeURIComponent(uid) + '&select=uid,email,is_email_verified,username,name,welcome_email_sent&limit=1',
       {
         method: 'GET',
         headers: { apikey: key, Authorization: 'Bearer ' + key },
@@ -268,6 +268,34 @@ async function adminRecoveryLinkByEmail(email) {
   }
 }
 
+/* Service-role mark welcome_email_sent on public.user_profiles. */
+async function markProfileWelcomeSent(uid) {
+  if (!uid) return false;
+  let url, key;
+  try { ({ url, key } = baseUrl()); } catch (e) { return false; }
+  try {
+    const res = await fetch(
+      url + '/rest/v1/user_profiles?uid=eq.' + encodeURIComponent(uid),
+      {
+        method: 'PATCH',
+        headers: {
+          apikey: key,
+          Authorization: 'Bearer ' + key,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify({
+          welcome_email_sent: true,
+          updated_at: new Date().toISOString(),
+        }),
+      },
+    );
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
 module.exports = {
   verifySupabaseToken,
   getServiceUser,
@@ -279,4 +307,5 @@ module.exports = {
   adminRecoveryLink,
   adminRecoveryLinkByEmail,
   upsertProfileVerified,
+  markProfileWelcomeSent,
 };

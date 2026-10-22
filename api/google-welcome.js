@@ -1,15 +1,10 @@
 // ============================================================
 // BCAPrime — api/google-welcome.js
-// Called once after a user signs in with Google. Google already
-// verified their email, so we:
-//   1. Confirm the account is truly Google-federated (from the
-//      Supabase token's app_metadata.providers).
-//   2. For Google-first signups, set the password the user chose
-//      BEFORE the Google picker opened (admin REST — server only).
-//   3. Send a branded welcome email with a prominent
-//      "Set your own password" button (Supabase recovery link).
-// Idempotent: a returning Google user is never re-emailed
-// (tracked in app_metadata.welcome_sent).
+// Welcome email endpoint for new user registration:
+//   1. Supports both Google/OAuth and Email/Password signups.
+//   2. Strictly idempotent: checks database (user_profiles.welcome_email_sent)
+//      and app_metadata to ensure welcome email is sent ONLY ONCE per account.
+//   3. Sends a pure branded welcome email with zero password reset emails/links.
 // ============================================================
 'use strict';
 
@@ -19,7 +14,8 @@ const {
   adminSetAppMetadata,
   adminSetPassword,
   adminSetUserMetadata,
-  adminRecoveryLink,
+  getServiceProfile,
+  markProfileWelcomeSent,
 } = require('./_lib/supabaseAuth');
 const { sendEmail, APP_URL } = require('./_lib/email');
 
@@ -36,108 +32,94 @@ module.exports = withCors(async (req, res) => {
   const idToken = body.idToken || body.accessToken;
   if (!idToken) return send(res, 400, { error: 'Missing idToken' });
 
-  // Optional Google-first signup fields: the username + password the user
-  // chose BEFORE the Google account picker opened. If present, we set THAT
-  // password (instead of leaving the account OAuth-only) and store the username.
+  // Optional chosen username + password (set before OAuth or on signup)
   const username = typeof body.username === 'string' ? body.username.trim().toLowerCase() : '';
   const chosenPassword = typeof body.password === 'string' ? body.password : '';
   const validUsername = /^[a-z0-9_]{3,20}$/.test(username);
   const validPassword = chosenPassword.length >= 6 && chosenPassword.length <= 128;
 
-  // Supabase access token verify karo (GoTrue /auth/v1/user se).
+  // Verify caller's token with Supabase GoTrue
   const decoded = await verifySupabaseToken(idToken);
   if (!decoded) return send(res, 401, { error: 'Invalid ID token' });
 
-  const isGoogle = Array.isArray(decoded.providers) && decoded.providers.includes('google');
-  if (!isGoogle) {
-    return send(res, 400, { error: 'This account is not Google-federated.' });
-  }
-
-  const email = (decoded.email || '').trim().toLowerCase();
+  const email = (decoded.email || body.email || '').trim().toLowerCase();
   if (!email) {
     return send(res, 400, { error: 'No email address is associated with this account.' });
   }
 
-  // Idempotency guard: never re-email returning Google users.
-  if (decoded.appMetadata && decoded.appMetadata.welcome_sent) {
+  // 1) Idempotency Check 1: Auth user app_metadata
+  if (decoded.appMetadata && (decoded.appMetadata.welcome_sent || decoded.appMetadata.welcome_email_sent)) {
     return send(res, 200, { ok: true, alreadySent: true });
   }
 
-  // 1) Google-first signup: use the user's OWN chosen password (they typed it
-  //    in the signup form) so Email/Password login also works later.
-  //    Plain "Continue with Google" logins stay OAuth-only until they pick a
-  //    password through the recovery link below.
-  const usingChosen = validPassword;
-  if (usingChosen) {
-    await adminSetPassword(decoded.uid, chosenPassword);
+  // 2) Idempotency Check 2: Database check on public.user_profiles.welcome_email_sent
+  const existingProfile = await getServiceProfile(decoded.uid);
+  if (existingProfile && existingProfile.welcome_email_sent) {
+    // Sync metadata as well so future token refreshes catch it immediately
+    try { await adminSetAppMetadata(decoded.uid, { welcome_sent: true, welcome_email_sent: true }); } catch (e) {}
+    return send(res, 200, { ok: true, alreadySent: true });
+  }
+
+  const providers = Array.isArray(decoded.providers) ? decoded.providers : [];
+  const isGoogle = providers.includes('google');
+  const isOAuth = providers.some((p) => p !== 'email');
+
+  // If user signed up via Google-first flow and set a custom password, store it for future email/password logins
+  if (validPassword && isGoogle) {
+    try { await adminSetPassword(decoded.uid, chosenPassword); } catch (e) {}
   }
   if (validUsername) {
     try { await adminSetUserMetadata(decoded.uid, { full_name: username }); } catch (e) {}
   }
 
-  // 2) A Supabase recovery link = the prominent "Set your own password" button.
-  const resetUrl = (await adminRecoveryLink(decoded.uid)) || (APP_URL + '/');
+  const name = ((decoded.userMetadata && (decoded.userMetadata.full_name || decoded.userMetadata.name)) || (existingProfile && existingProfile.name) || body.name || username || '').trim();
+  const first = name ? name.split(/\s+/)[0] : 'there';
 
-  const name = ((decoded.userMetadata && (decoded.userMetadata.full_name || decoded.userMetadata.name)) || body.name || username || '').trim();
-  const first = name.split(/\s+/)[0] || 'there';
+  const providerLabel = isGoogle ? 'Google' : (isOAuth ? 'Social Login' : 'Email & Password');
 
-  // 3) Branded welcome email. When the user chose their own password we do
-  //    NOT print it — we just confirm the account and offer the reset link.
-  const credRows = usingChosen
+  // Build clean account details table (NO password reset / recovery links)
+  const credRows = username
     ? `
-      <tr><td width="150" style="padding:6px 0;color:#7a8c98;font-size:13px;">Username</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${username || '—'}</td></tr>
+      <tr><td width="140" style="padding:6px 0;color:#7a8c98;font-size:13px;">Username</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${username}</td></tr>
       <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${email}</td></tr>
-      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Password</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">The one you chose at sign-up ✓ (never shared, stored securely)</td></tr>`
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Sign-in method</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${providerLabel}</td></tr>`
     : `
-      <tr><td width="150" style="padding:6px 0;color:#7a8c98;font-size:13px;">Name</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${name || '—'}</td></tr>
+      <tr><td width="140" style="padding:6px 0;color:#7a8c98;font-size:13px;">Name</td><td style="padding:6px 0;font-size:14px;color:#0f2530;font-weight:600;">${name || '—'}</td></tr>
       <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Email</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${email}</td></tr>
-      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Next step</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">Tap the button below to choose your own password</td></tr>`;
+      <tr><td style="padding:6px 0;color:#7a8c98;font-size:13px;">Sign-in method</td><td style="padding:6px 0;font-size:14px;color:#0f2530;">${providerLabel}</td></tr>`;
+
+  // 3) Send pure branded welcome message (only once)
   await sendEmail({
     to: email,
-    subject: 'Your BCAPrime account is ready' + (usingChosen ? '' : ' — set your password'),
-    preheader: usingChosen
-      ? 'Welcome to BCAPrime! Your account is ready — here are your login details.'
-      : 'Welcome to BCAPrime! Choose a password to unlock email & password login.',
-    eyebrow: 'Welcome',
+    subject: 'Welcome to BCAPrime! Your BCA study library is ready',
+    preheader: 'Welcome to BCAPrime! Explore BCA notes, previous year question papers, and study resources.',
+    eyebrow: 'Welcome to BCAPrime',
     title: 'Welcome, ' + first + '!',
     bodyHtml: `
-      <p style="margin:0 0 12px;">You're all set — your BCA study library is ready. You signed up with <strong>Google</strong>, but you can also log in later with your username or email &amp; password using the details below.</p>
+      <p style="margin:0 0 14px;">You're all set &mdash; your BCA study library is ready. Welcome to BCAPrime! You can access all your notes, previous year question papers, syllabus, and AI practice quizzes anytime.</p>
       <table role="presentation" cellpadding="0" cellspacing="0" style="background:#f2f7f9;border:1px solid #e2eaee;border-radius:10px;padding:14px 20px;margin:16px 0;width:100%;">
         ${credRows}
       </table>
-      ${usingChosen
-        ? '<p style="margin:0 0 6px;">Want to change your password anytime? Use the secure button below.</p>'
-        : '<p style="margin:0 0 6px;">Tap the button below to choose your own password — you can do this any time.</p>'}`,
-    ctaLabel: usingChosen ? 'Change your password' : 'Set your own password',
-    ctaUrl: resetUrl,
-    ctaNote: 'This link expires shortly. It opens a secure page to manage your password.',
-    plainText: usingChosen
-      ? [
-          'Welcome to BCAPrime!',
-          '',
-          'You signed up with Google. You can also log in with:',
-          '',
-          '  Username:        ' + (username || '—'),
-          '  Email:           ' + email,
-          '  Password:        the one you chose at sign-up',
-          '',
-          'Change your password here:',
-          resetUrl,
-        ].join('\n')
-      : [
-          'Welcome to BCAPrime!',
-          '',
-          'You signed up with Google. To also log in with email & password later:',
-          '',
-          '  Name:            ' + (name || '—'),
-          '  Email:           ' + email,
-          '',
-          'Choose your password here:',
-          resetUrl,
-        ].join('\n'),
+      <p style="margin:14px 0 6px;">Tap the button below to start exploring your semester notes and PYQs.</p>`,
+    ctaLabel: 'Start Studying',
+    ctaUrl: APP_URL + '/',
+    ctaNote: 'Free notes, PYQs, and study resources for every semester.',
+    plainText: [
+      'Welcome to BCAPrime, ' + first + '!',
+      '',
+      'Your BCA study desk is ready. You can access notes, PYQs, and syllabus anytime.',
+      '',
+      'Account Details:',
+      '  Email:          ' + email,
+      '  Username:       ' + (username || '—'),
+      '  Sign-in method: ' + providerLabel,
+      '',
+      'Start studying now at:',
+      APP_URL,
+    ].join('\n'),
   });
 
-  // 4) Save username/email/name in Supabase (server-side, service role).
+  // 4) Save username/email/name and mark welcome_email_sent in Supabase (server-side, service role)
   try {
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -155,16 +137,18 @@ module.exports = withCors(async (req, res) => {
           email,
           name: username || name,
           ...(validUsername ? { username } : {}),
+          welcome_email_sent: true,
           updated_at: new Date().toISOString(),
         }),
       });
     }
   } catch (e) {
-    // Non-fatal: profile sync is best-effort here; client also upserts.
+    // Non-fatal: profile sync is best-effort here
   }
 
-  // Mark as done AFTER a successful send so failures are retried later.
-  await adminSetAppMetadata(decoded.uid, { welcome_sent: true });
+  // Double-ensure database flag & app_metadata are marked
+  await markProfileWelcomeSent(decoded.uid);
+  await adminSetAppMetadata(decoded.uid, { welcome_sent: true, welcome_email_sent: true });
 
   return send(res, 200, { ok: true, alreadySent: false, email });
 });

@@ -76,7 +76,7 @@ function renderLayout(opts) {
         <!-- Footer -->
         <tr><td style="background:#f6f9fb;padding:20px 32px;text-align:center;">
           <p style="margin:0 0 8px;font-size:12px;color:#8898aa;line-height:1.6;">${footer}</p>
-          <p style="margin:0;font-size:12px;color:#9fb0bd;">BCAPrime · Your entire BCA library in one place<br>Questions? Reply to this email or contact support@bcaprime.com</p>
+          <p style="margin:0;font-size:12px;color:#9fb0bd;">BCAPrime · Your entire BCA library in one place<br>Questions? Reply to this email or contact openmailon@gmail.com</p>
         </td></tr>
       </table>
     </td></tr>
