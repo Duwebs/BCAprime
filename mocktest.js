@@ -68,9 +68,70 @@
       stopTimer();
     }
     const modal = $id('mockTestModal');
-    if (modal) modal.classList.remove('open');
+    if (modal) {
+      modal.classList.remove('open');
+      modal.classList.remove('is-fullscreen');
+      const dialog = modal.querySelector('.mt-dialog');
+      if (dialog) dialog.classList.remove('is-fullscreen');
+    }
     stopTimer();
+
+    // Exit browser fullscreen if active
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+    updateFullscreenButtons();
   };
+
+  /* ---- Fullscreen / Immersive Mode ---- */
+  window.toggleMtFullscreen = function () {
+    const modal = $id('mockTestModal');
+    const dialog = modal ? modal.querySelector('.mt-dialog') : null;
+    if (!modal || !dialog) return;
+
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || dialog.classList.contains('is-fullscreen'));
+
+    if (!isFs) {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen().catch(() => {});
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      }
+      dialog.classList.add('is-fullscreen');
+      modal.classList.add('is-fullscreen');
+    } else {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+      dialog.classList.remove('is-fullscreen');
+      modal.classList.remove('is-fullscreen');
+    }
+    updateFullscreenButtons();
+  };
+
+  function updateFullscreenButtons() {
+    const modal = $id('mockTestModal');
+    const dialog = modal ? modal.querySelector('.mt-dialog') : null;
+    const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || (dialog && dialog.classList.contains('is-fullscreen')));
+
+    document.querySelectorAll('#mtFullscreenBtn, .mt-fs-btn').forEach(btn => {
+      btn.innerHTML = isFs ? '<i class="fa-solid fa-compress"></i>' : '<i class="fa-solid fa-expand"></i>';
+      btn.setAttribute('title', isFs ? 'Exit Full-Screen' : 'Full-Screen Mode');
+      btn.setAttribute('aria-label', isFs ? 'Exit Full-Screen' : 'Full-Screen Mode');
+    });
+  }
+
+  document.addEventListener('fullscreenchange', updateFullscreenButtons);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenButtons);
 
   /* ---- View Switching ---- */
   function setMtView(viewName) {
@@ -148,13 +209,13 @@
     const limit = quota.limit || 3;
     const remaining = typeof quota.remaining === 'number' ? quota.remaining : Math.max(0, limit - used);
 
-    pill.innerHTML = `<i class="fa-solid fa-sparkles"></i> AI Tests Today: <strong>${used}/${limit}</strong>`;
+    pill.innerHTML = `<i class="fa-solid fa-calendar-day"></i> Daily Limit: <strong>${used}/${limit}</strong>`;
     
     if (remaining <= 0) {
       pill.classList.add('limit-reached');
       if (alertBox) {
         alertBox.hidden = false;
-        alertBox.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> You have reached your daily limit of ${limit} AI mock tests. Daily quota resets at midnight. You can take any library mock tests below without limits!`;
+        alertBox.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> You have reached your daily limit of ${limit} custom tests. Limit resets at midnight. You can take any library mock tests below without limits!`;
       }
       if (genBtn) genBtn.disabled = true;
     } else {
@@ -221,7 +282,7 @@
         <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-2);border-radius:16px;border:1px dashed var(--line)">
           <i class="fa-solid fa-graduation-cap" style="font-size:32px;color:var(--muted);margin-bottom:10px"></i>
           <h4 style="margin:0 0 6px;color:var(--ink)">No mock tests found</h4>
-          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Generate a custom AI mock test above or search for another subject.</p>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Create a custom practice test above or search for another subject.</p>
         </div>`;
       return;
     }
@@ -236,7 +297,7 @@
           <div class="mt-card-top">
             <div class="mt-badge-row">
               <span class="mt-badge sem"><i class="fa-solid fa-graduation-cap"></i> Sem ${q.semester}</span>
-              ${isAi ? '<span class="mt-badge ai"><i class="fa-solid fa-sparkles"></i> AI Generated</span>' : '<span class="mt-badge"><i class="fa-solid fa-check"></i> Standard</span>'}
+              ${isAi ? '<span class="mt-badge sem"><i class="fa-solid fa-sliders"></i> Practice Test</span>' : '<span class="mt-badge"><i class="fa-solid fa-check"></i> Standard</span>'}
             </div>
             <h4 class="mt-card-title">${escapeHtml(q.title)}</h4>
             <div class="mt-card-subject">
@@ -333,21 +394,21 @@
     }
   }
 
-  /* ---- On-the-Fly AI Quiz Generation ---- */
+  /* ---- On-the-Fly Practice Test Generation ---- */
   window.triggerGenerateAiQuiz = async function () {
     // 1. Authenticated user check
     if (typeof accountSession === 'undefined' || !accountSession || !accountSession.uid) {
       if (typeof requireAccount === 'function') {
-        requireAccount('Log in to generate personalized AI mock tests.', 'mocktest');
+        requireAccount('Log in to create custom practice tests.', 'mocktest');
       } else {
-        alert('Please log in to generate AI mock tests.');
+        alert('Please log in to create practice tests.');
       }
       return;
     }
 
     // 2. Daily Quota Check
     if (mtState.quota.remaining <= 0) {
-      alert('You have reached your daily limit of 3 AI mock tests. Quota resets at midnight!');
+      alert('You have reached your daily limit of 3 custom practice tests. Quota resets at midnight!');
       return;
     }
 
@@ -366,7 +427,7 @@
     const difficulty = $id('mtAiDifficulty') ? $id('mtAiDifficulty').value : 'medium';
 
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating with AI Failover...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing Test...';
 
     try {
       const token = await getAuthToken();
@@ -393,7 +454,7 @@
         if (result.error === 'quota_exceeded') {
           mtState.quota.remaining = 0;
           renderQuotaPill(mtState.quota);
-          alert(result.message || 'Daily AI quiz quota reached! Quota resets at midnight.');
+          alert(result.message || 'Daily practice test quota reached! Quota resets at midnight.');
           return;
         }
         throw new Error(result.error || result.message || 'Failed to generate quiz');
@@ -409,10 +470,10 @@
       startTestWithData(result.quiz, result.questions);
     } catch (err) {
       console.error('[MockTest] Generation Error:', err);
-      alert('AI Generation error: ' + err.message);
+      alert('Could not generate test: ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-sparkles"></i> Generate AI Test';
+      btn.innerHTML = '<i class="fa-solid fa-play"></i> Generate Test';
     }
   };
 

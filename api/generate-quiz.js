@@ -32,7 +32,7 @@ module.exports = withCors(async (req, res) => {
   // 1. Verify User Authentication
   const idToken = body.accessToken || body.idToken || req.headers.authorization?.replace(/^Bearer\s+/i, '');
   if (!idToken) {
-    return send(res, 401, { error: 'Authentication required. Please log in to generate AI mock tests.' });
+    return send(res, 401, { error: 'Authentication required. Please log in to generate mock tests.' });
   }
 
   const user = await verifySupabaseToken(idToken);
@@ -66,7 +66,7 @@ module.exports = withCors(async (req, res) => {
     return send(res, 429, {
       ok: false,
       error: 'quota_exceeded',
-      message: `You have reached your daily quota of ${DAILY_LIMIT} AI mock tests. Your limit resets at midnight.`,
+      message: `You have reached your daily quota of ${DAILY_LIMIT} practice tests. Your limit resets at midnight.`,
       quota: {
         used: currentUsage,
         limit: DAILY_LIMIT,
@@ -95,7 +95,7 @@ module.exports = withCors(async (req, res) => {
       difficulty
     });
   } catch (genError) {
-    console.error('[AI Generation Error]', genError);
+    console.error('[Generation Error]', genError);
     return send(res, 500, {
       ok: false,
       error: 'Failed to generate quiz questions. Please try again.',
@@ -111,14 +111,14 @@ module.exports = withCors(async (req, res) => {
   // 5. Store Quiz and Questions in Supabase
   let createdQuiz = null;
   try {
-    const quizTitle = `${subject} (Sem ${semester}) AI Mock Test${topic ? ' - ' + topic : ''}`;
+    const quizTitle = `${subject} (Sem ${semester}) Mock Test${topic ? ' - ' + topic : ''}`;
     const { data: quizData, error: quizError } = await supabase
       .from('quizzes')
       .insert({
         title: quizTitle,
         subject,
         semester,
-        description: `Custom AI-generated mock test covering core BCA Semester ${semester} syllabus standards.`,
+        description: `Practice mock test covering BCA Semester ${semester} syllabus standards.`,
         total_questions: questions.length,
         time_limit_minutes: timeLimitMinutes,
         difficulty,
