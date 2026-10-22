@@ -51,6 +51,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
   <link rel="stylesheet" href="styles.css?v=57">
+  <link rel="stylesheet" href="mocktest.css?v=1">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -121,7 +122,7 @@
         <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" aria-label="Search notes, subjects or PYQs" placeholder="Search notes, subjects or PYQs&#8230;" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
       </div>
     </section>
-    <section class="desk-strip" aria-label="Your study desk" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr"><button class="desk-card" onclick="selectTab('semesters',document.querySelectorAll('.bottom-tab')[1])"><span class="desk-icon"><i class="fa-solid fa-layer-group"></i></span><span><strong>Semesters</strong><small>Browse by semester</small></span></button><button class="desk-card primary-desk" onclick="openUpload()"><span class="desk-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span><strong>Share with students</strong><small>Upload notes or a PYQ</small></span></button><button class="desk-card" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[3])"><span class="desk-icon"><i class="fa-solid fa-bookmark"></i></span><span><strong>Your saved resources</strong><small id="savedSummary">Keep important notes close</small></span></button><button class="desk-card" onclick="openSeniorRequest()"><span class="desk-icon"><i class="fa-solid fa-users"></i></span><span><strong>Ask seniors</strong><small>Request notes &amp; PYQs</small></span></button><button class="desk-card" onclick="scrollToLostFound()"><span class="desk-icon"><i class="fa-solid fa-circle-question"></i></span><span><strong>Lost &amp; Found</strong><small>Report lost items</small></span></button></section>
+    <section class="desk-strip" aria-label="Your study desk" style="grid-template-columns:repeat(auto-fit, minmax(160px, 1fr))"><button class="desk-card" onclick="openMockTestHub()" style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.12));border-color:rgba(99,102,241,0.3)"><span class="desk-icon" style="background:rgba(99,102,241,0.18);color:#818cf8"><i class="fa-solid fa-graduation-cap"></i></span><span><strong>Mock Tests &amp; AI Quiz</strong><small>Instant BCA MCQ practice</small></span></button><button class="desk-card" onclick="selectTab('semesters',document.querySelectorAll('.bottom-tab')[1])"><span class="desk-icon"><i class="fa-solid fa-layer-group"></i></span><span><strong>Semesters</strong><small>Browse by semester</small></span></button><button class="desk-card primary-desk" onclick="openUpload()"><span class="desk-icon"><i class="fa-solid fa-cloud-arrow-up"></i></span><span><strong>Share with students</strong><small>Upload notes or a PYQ</small></span></button><button class="desk-card" onclick="selectTab('saved',document.querySelectorAll('.bottom-tab')[3])"><span class="desk-icon"><i class="fa-solid fa-bookmark"></i></span><span><strong>Your saved resources</strong><small id="savedSummary">Keep important notes close</small></span></button><button class="desk-card" onclick="openSeniorRequest()"><span class="desk-icon"><i class="fa-solid fa-users"></i></span><span><strong>Ask seniors</strong><small>Request notes &amp; PYQs</small></span></button><button class="desk-card" onclick="scrollToLostFound()"><span class="desk-icon"><i class="fa-solid fa-circle-question"></i></span><span><strong>Lost &amp; Found</strong><small>Report lost items</small></span></button></section>
 
     <section class="section" id="library"><div class="section-head"><div><h2>PrimeFinder</h2></div></div><div class="finder prime-finder" id="bca-prime-finder"><div class="finder-top"><span class="finder-badge"><i class="fa-solid fa-wand-magic-sparkles"></i>Smart Finder</span><span class="finder-hint"><i class="fa-solid fa-lightbulb"></i>Match College + Semester + Subject — perfect material found</span></div><div class="finder-grid"><div class="field"><label for="semesterFilter">Semester</label><select id="semesterFilter" onchange="applyFilters()"><option value="all">All semesters</option><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label for="subjectFilter">Subject</label><select id="subjectFilter" onchange="onSubjectFilterChange(this)"><option value="all">All subjects</option></select></div><button class="primary finder-action" onclick="applyFilters()"><i class="fa-solid fa-magnifying-glass"></i> Find</button><button class="secondary finder-reset" onclick="resetFinder()"><i class="fa-solid fa-rotate-left"></i> Reset</button></div><div class="chips" id="typeChips"><button class="chip active" onclick="setType('all',this)">All</button><button class="chip" onclick="setType('notes',this)">Notes</button><button class="chip" onclick="setType('pyq',this)">PYQs</button></div><div class="add-subject-row finder-add-row" id="finderAddSubjectRow" hidden><input id="finderNewSubjectInput" type="text" maxlength="80" placeholder="Type a new subject&#8230;" onkeydown="if(event.key==='Enter')confirmFinderAddSubject()"><button class="primary" onclick="confirmFinderAddSubject()">Add</button><button class="secondary" onclick="cancelFinderAddSubject()" aria-label="Cancel">&times;</button></div></div>
       <div class="section-head" style="margin-top:20px"><div><h2>Your subjects</h2></div><span class="count">Tap a subject - choose Notes or PYQ</span></div>
@@ -388,6 +389,217 @@
     </div>
   </div></div>
 
+  <!-- ================= Mock Test & AI Quiz Modal ================= -->
+  <div class="mt-modal" id="mockTestModal" role="dialog" aria-modal="true" aria-labelledby="mtModalTitle">
+    <div class="mt-dialog">
+      <!-- Header -->
+      <div class="mt-header">
+        <div class="mt-header-left">
+          <div class="mt-header-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div>
+            <h2 class="mt-header-title" id="mtModalTitle">BCA MCQ Mock Tests</h2>
+            <p class="mt-header-sub">University syllabus practice, timed tests &amp; AI quiz generator</p>
+          </div>
+        </div>
+        <button class="mt-close-btn" onclick="closeMockTestModal()" aria-label="Close mock test dialog">&times;</button>
+      </div>
+
+      <!-- Content Views -->
+      <div class="mt-content">
+
+        <!-- VIEW 1: MOCK TEST HUB -->
+        <div id="mtHubView">
+          <!-- AI Mock Test Generator Banner -->
+          <div class="mt-ai-banner">
+            <div class="mt-ai-banner-head">
+              <h3 class="mt-ai-banner-title">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Custom AI Mock Test
+              </h3>
+              <div class="mt-quota-pill" id="mtQuotaPill">
+                <i class="fa-solid fa-sparkles"></i> AI Tests Today: <strong>0/3</strong>
+              </div>
+            </div>
+
+            <div class="mt-ai-form-grid">
+              <div class="mt-ai-form-field">
+                <label for="mtAiSem">Semester</label>
+                <select id="mtAiSem">
+                  <option value="1">Semester 1</option>
+                  <option value="2">Semester 2</option>
+                  <option value="3" selected>Semester 3</option>
+                  <option value="4">Semester 4</option>
+                  <option value="5">Semester 5</option>
+                  <option value="6">Semester 6</option>
+                </select>
+              </div>
+
+              <div class="mt-ai-form-field">
+                <label for="mtAiSubject">Subject</label>
+                <select id="mtAiSubject"></select>
+              </div>
+
+              <div class="mt-ai-form-field">
+                <label for="mtAiDifficulty">Difficulty</label>
+                <select id="mtAiDifficulty">
+                  <option value="easy">Easy (Fundamentals)</option>
+                  <option value="medium" selected>Medium (Exam Standard)</option>
+                  <option value="hard">Hard (Advanced / PYQ)</option>
+                </select>
+              </div>
+
+              <button class="mt-generate-btn" id="mtGenerateBtn" type="button" onclick="triggerGenerateAiQuiz()">
+                <i class="fa-solid fa-sparkles"></i> Generate AI Test
+              </button>
+            </div>
+
+            <!-- Optional Custom Subject Input -->
+            <div id="mtAiCustomSubWrap" hidden style="margin-top:12px">
+              <input class="search" id="mtAiCustomSubInput" placeholder="Enter custom subject name (e.g. Cloud Computing)" style="width:100%;height:40px;border-radius:10px;padding:0 12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);">
+            </div>
+
+            <!-- Optional Topic Input -->
+            <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <input class="search" id="mtAiTopic" placeholder="Optional specific topic (e.g. Trees, SQL Joins, Memory Management)" style="flex:1;min-width:200px;height:38px;border-radius:8px;padding:0 12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:12.5px">
+              <select id="mtAiCount" style="height:38px;border-radius:8px;padding:0 10px;background:var(--surface);color:var(--ink);border:1px solid var(--line);font-size:12.5px">
+                <option value="5">5 Questions (Quick)</option>
+                <option value="10" selected>10 Questions (Standard)</option>
+                <option value="15">15 Questions (Full Test)</option>
+              </select>
+            </div>
+
+            <!-- Daily Quota Alert Box -->
+            <div class="mt-quota-alert" id="mtQuotaAlert" hidden></div>
+          </div>
+
+          <!-- Library Mock Tests Toolbar -->
+          <div class="mt-hub-toolbar" style="margin-top:24px">
+            <div class="mt-tabs">
+              <button class="mt-tab active" data-tab="all" onclick="setMtHubTab('all')">All Tests</button>
+              <button class="mt-tab" data-tab="sem" onclick="setMtHubTab('sem')">My Semester</button>
+              <button class="mt-tab" data-tab="my" onclick="setMtHubTab('my')">My Attempts</button>
+            </div>
+
+            <div class="mt-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input id="mtSearchInput" placeholder="Search tests by subject..." oninput="renderLibraryQuizzes()">
+            </div>
+          </div>
+
+          <!-- Quizzes Grid -->
+          <div class="mt-quiz-grid" id="mtQuizGrid" style="margin-top:16px">
+            <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading BCA Mock Tests...</div>
+          </div>
+        </div>
+
+        <!-- VIEW 2: ACTIVE TEST PLAYER -->
+        <div id="mtPlayerView" hidden class="mt-player-shell">
+          <div class="mt-player-topbar">
+            <div class="mt-player-info">
+              <strong id="mtPlayerTitle">Mock Test</strong>
+              <small id="mtPlayerSubject">Semester 3 &middot; Operating Systems</small>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="mt-timer" id="mtTimerDisplay">
+                <i class="fa-solid fa-stopwatch"></i> 15:00
+              </div>
+              <button class="button danger" style="padding:6px 12px;font-size:12px;border-radius:8px" onclick="closeMockTestModal()">
+                <i class="fa-solid fa-arrow-right-from-bracket"></i> Exit
+              </button>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="mt-progress-track">
+            <div class="mt-progress-fill" id="mtProgressFill" style="width:10%"></div>
+          </div>
+
+          <!-- Question Body -->
+          <div class="mt-question-area">
+            <div>
+              <span class="mt-q-counter" id="mtQCounter">Question 1 of 10</span>
+              <h3 class="mt-q-text" id="mtQText">Loading question statement...</h3>
+              <div class="mt-options-list" id="mtOptionsList"></div>
+            </div>
+
+            <!-- Question Palette Dropdown / Grid -->
+            <div>
+              <div class="mt-palette-grid" id="mtPaletteGrid" hidden></div>
+
+              <div class="mt-player-foot">
+                <button class="mt-palette-btn" type="button" onclick="toggleMtPalette()">
+                  <i class="fa-solid fa-border-all"></i> Question Palette
+                </button>
+
+                <div class="mt-foot-actions">
+                  <button class="mt-nav-btn" id="mtPrevBtn" onclick="mtPrev()">
+                    <i class="fa-solid fa-arrow-left"></i> Previous
+                  </button>
+                  <button class="mt-nav-btn primary" id="mtNextBtn" onclick="mtNext()">
+                    Next <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 3: SCORE SUMMARY & INSTANT EVALUATION REVIEW -->
+        <div id="mtResultView" hidden>
+          <div class="mt-result-card">
+            <div class="mt-score-circle">
+              <div>
+                <span class="mt-score-val" id="mtScoreNum">8/10</span>
+                <span class="mt-score-pct" id="mtScorePct">80%</span>
+              </div>
+            </div>
+
+            <h3 class="mt-result-title" id="mtResultTitle">Outstanding Mastery!</h3>
+            <p class="mt-result-msg" id="mtResultMsg">You scored higher than 85% of BCA students on this topic.</p>
+
+            <div class="mt-stats-pills">
+              <div class="mt-stat-pill correct">
+                <span>Correct</span>
+                <strong id="mtStatCorrect">8</strong>
+              </div>
+              <div class="mt-stat-pill incorrect">
+                <span>Incorrect</span>
+                <strong id="mtStatIncorrect">2</strong>
+              </div>
+              <div class="mt-stat-pill">
+                <span>Time Taken</span>
+                <strong id="mtStatTime">6m 42s</strong>
+              </div>
+              <div class="mt-stat-pill">
+                <span>Accuracy</span>
+                <strong id="mtStatAccuracy">80%</strong>
+              </div>
+            </div>
+
+            <div class="mt-result-actions">
+              <button class="button primary" onclick="retakeActiveTest()">
+                <i class="fa-solid fa-rotate-right"></i> Retake Test
+              </button>
+              <button class="button" onclick="backToMockTestHub()">
+                <i class="fa-solid fa-layer-group"></i> More Mock Tests
+              </button>
+            </div>
+          </div>
+
+          <!-- Detailed Solution & Concept Explanation Review -->
+          <div>
+            <div class="mt-review-head">
+              <h3><i class="fa-solid fa-list-check" style="color:var(--brand)"></i> Question Review &amp; Explanations</h3>
+              <span style="font-size:12.5px;color:var(--muted)">Green = Correct Answer &middot; Red = Your Selection</span>
+            </div>
+
+            <div id="mtReviewQuestionsList"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
 
   <script src="env.js?v=1"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js?v=13"></script><script src="push-subscribe.js?v=5"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
@@ -422,6 +634,7 @@
   }</script>
   <script src="whats-new.js?v=17"></script>
   <script src="app.js?v=57"></script>
+  <script src="mocktest.js?v=1"></script>
 </body>
 </html>
 

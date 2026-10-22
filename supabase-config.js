@@ -33,6 +33,8 @@ const AUTH_API = {
   verifyOtp: AUTH_API_ORIGIN + '/api/verify-otp',
   googleWelcome: AUTH_API_ORIGIN + '/api/google-welcome',
   forgotPassword: AUTH_API_ORIGIN + '/api/forgot-password',
+  generateQuiz: AUTH_API_ORIGIN + '/api/generate-quiz',
+  quizQuota: AUTH_API_ORIGIN + '/api/quiz-quota',
 };
 
 /* ---- Web Push (VAPID) ----

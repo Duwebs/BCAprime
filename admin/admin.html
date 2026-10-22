@@ -82,6 +82,7 @@
       <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
       <button class="tab" data-tab="lostfound" onclick="switchTab('lostfound')"><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</button>
       <button class="tab" data-tab="reports" onclick="switchTab('reports')"><i class="fa-solid fa-flag"></i> Reports<span class="tab-badge" id="reportsBadge" hidden>0</span></button>
+      <button class="tab" data-tab="quizzes" onclick="switchTab('quizzes')"><i class="fa-solid fa-graduation-cap"></i> Mock Tests &amp; MCQs</button>
     </nav>
 
         <!-- ============ TAB: Material ============ -->
@@ -317,6 +318,56 @@
 
     </section>
 
+    <!-- ============ TAB: Mock Tests & MCQs ============ -->
+    <section class="tab-panel" id="tab-quizzes" hidden>
+      <div class="toolbar">
+        <div>
+          <h2>Mock Tests &amp; MCQs</h2>
+          <p class="desc" style="color:var(--muted);font-size:13px;margin:3px 0 0">Curate BCA curriculum mock tests, bulk import questions via JSON/CSV, and inspect engagement.</p>
+        </div>
+        <div class="actions">
+          <button class="button" onclick="loadAdminQuizzes()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          <button class="button primary" onclick="openBulkImportModal()"><i class="fa-solid fa-file-import"></i> Bulk Import MCQs</button>
+          <button class="button" onclick="openManualQuizModal()"><i class="fa-solid fa-plus"></i> New Quiz</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <section class="stats">
+        <div class="stat">
+          <strong id="quizStatTotal">0</strong>
+          <span>Total Mock Tests</span>
+        </div>
+        <div class="stat">
+          <strong id="quizStatQuestions">0</strong>
+          <span>Total Questions</span>
+        </div>
+        <div class="stat">
+          <strong id="quizStatAi">0</strong>
+          <span>AI Quizzes Created</span>
+        </div>
+      </section>
+
+      <!-- Filters -->
+      <div class="filters" style="margin-bottom:14px;flex-wrap:wrap">
+        <select class="select" id="quizFilterSem" onchange="renderAdminQuizzes()">
+          <option value="all">All Semesters</option>
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+          <option value="5">Semester 5</option>
+          <option value="6">Semester 6</option>
+        </select>
+        <input class="search" id="quizSearch" placeholder="Search by quiz title or subject&hellip;" oninput="renderAdminQuizzes()" style="max-width:320px">
+      </div>
+
+      <!-- Quizzes Grid -->
+      <div class="quiz-grid" id="adminQuizGrid">
+        <p class="note">Loading mock tests&hellip;</p>
+      </div>
+    </section>
+
   </main>
 
   <!-- ================= Subject edit / add modal ================= -->
@@ -371,6 +422,153 @@
           <button class="button danger" id="safeDeleteConfirm" disabled onclick="confirmSafeDelete()">Confirm Delete</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ================= Bulk Import MCQs Modal ================= -->
+  <div class="modal-overlay" id="bulkImportModal" hidden>
+    <div class="modal-card" style="max-width:760px">
+      <div class="modal-head">
+        <h3><i class="fa-solid fa-file-import" style="color:var(--brand)"></i> Bulk Import MCQs</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeBulkImportModal()">&times;</button>
+      </div>
+
+      <div class="modal-form">
+        <!-- Target Quiz -->
+        <label>Target Quiz
+          <select class="select" id="importQuizTarget" onchange="toggleImportTargetFields()">
+            <option value="new">+ Create New Quiz for these MCQs</option>
+          </select>
+        </label>
+
+        <!-- New Quiz Fields Container -->
+        <div id="importNewQuizFields">
+          <div class="modal-grid-2">
+            <label>Quiz Title *
+              <input class="search" id="importQuizTitle" placeholder="e.g. Operating Systems End-Sem Mock Test">
+            </label>
+            <label>Subject *
+              <input class="search" id="importQuizSubject" placeholder="e.g. Operating Systems">
+            </label>
+          </div>
+          <div class="modal-grid-2">
+            <label>Semester
+              <select class="select" id="importQuizSem">
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3" selected>Semester 3</option>
+                <option value="4">Semester 4</option>
+                <option value="5">Semester 5</option>
+                <option value="6">Semester 6</option>
+              </select>
+            </label>
+            <label>Time Limit (minutes)
+              <input class="search" id="importQuizTime" type="number" value="15" min="5" max="180">
+            </label>
+          </div>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="import-dropzone" id="importDropzone" onclick="$('importFileInput').click()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p id="importDropzoneTitle">Choose a JSON or CSV file to parse</p>
+          <small>Supports JSON array or CSV with question, options A/B/C/D, correct_answer &amp; explanation</small>
+          <input type="file" id="importFileInput" accept=".json,.csv" hidden onchange="handleImportFileSelect(this)">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button type="button" class="button" onclick="downloadSampleJson()"><i class="fa-solid fa-download"></i> Sample JSON Template</button>
+          <button type="button" class="button" onclick="downloadSampleCsv()"><i class="fa-solid fa-download"></i> Sample CSV Template</button>
+        </div>
+
+        <!-- Live Parsed Questions Preview Box -->
+        <div id="importPreviewContainer" hidden>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <strong style="color:var(--ink);font-size:13px"><i class="fa-solid fa-list-check"></i> Parsed MCQs Preview</strong>
+            <span class="quiz-badge" id="importCountBadge" style="background:rgba(112,209,169,0.18);color:var(--good)">0 valid questions</span>
+          </div>
+          <div class="import-preview-box">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th style="width:30px">#</th>
+                  <th>Question</th>
+                  <th>Options</th>
+                  <th style="width:60px">Ans</th>
+                  <th>Explanation</th>
+                </tr>
+              </thead>
+              <tbody id="importPreviewTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <p class="sd-error" id="importError" style="margin-top:8px"></p>
+
+        <div class="modal-actions">
+          <button type="button" class="button" onclick="closeBulkImportModal()">Cancel</button>
+          <button type="button" class="button primary" id="btnConfirmImport" disabled onclick="executeBulkImport()"><i class="fa-solid fa-check"></i> Import to Supabase</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= View Questions Modal ================= -->
+  <div class="modal-overlay" id="quizQuestionsModal" hidden>
+    <div class="modal-card" style="max-width:820px">
+      <div class="modal-head">
+        <div>
+          <h3 id="viewQuizTitle">Quiz Questions</h3>
+          <p id="viewQuizSubtitle" style="color:var(--muted);font-size:12.5px;margin:2px 0 0"></p>
+        </div>
+        <button class="modal-close" aria-label="Close" onclick="closeQuizQuestionsModal()">&times;</button>
+      </div>
+
+      <div style="max-height:60vh;overflow-y:auto;padding-right:4px;margin-top:10px" id="quizQuestionsList">
+        <p class="note">Loading questions&hellip;</p>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px">
+        <button type="button" class="button" onclick="closeQuizQuestionsModal()">Close</button>
+        <button type="button" class="button primary" id="btnExportQuizJson" onclick="exportCurrentQuizJson()"><i class="fa-solid fa-file-export"></i> Export JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= New Quiz Modal ================= -->
+  <div class="modal-overlay" id="manualQuizModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Create New Mock Test</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeManualQuizModal()">&times;</button>
+      </div>
+      <form class="modal-form" id="manualQuizForm" onsubmit="handleManualQuizSubmit(event)">
+        <label>Quiz Title *
+          <input class="search" id="manualQuizTitle" required placeholder="e.g. C Programming End-Term Mock">
+        </label>
+        <label>Subject *
+          <input class="search" id="manualQuizSubject" required placeholder="e.g. Programming Principles &amp; C">
+        </label>
+        <div class="modal-grid-2">
+          <label>Semester
+            <select class="select" id="manualQuizSem">
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+            </select>
+          </label>
+          <label>Time Limit (minutes)
+            <input class="search" id="manualQuizTime" type="number" value="15" min="5" max="180">
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button" onclick="closeManualQuizModal()">Cancel</button>
+          <button type="submit" class="button primary" id="btnSaveManualQuiz">Create Quiz</button>
+        </div>
+      </form>
     </div>
   </div>
 

@@ -33,7 +33,7 @@ async function verifySupabaseToken(token) {
   const raw = String(token || '').trim();
   if (!raw) return null;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return null; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return null; }
   try {
     const res = await fetch(url + '/auth/v1/user', {
       method: 'GET',
@@ -59,7 +59,7 @@ async function verifySupabaseToken(token) {
 async function getServiceUser(uid) {
   if (!uid) return null;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return null; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return null; }
   try {
     const res = await fetch(url + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
       method: 'GET',
@@ -77,7 +77,7 @@ async function getServiceUser(uid) {
 async function getServiceProfile(uid) {
   if (!uid) return null;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return null; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return null; }
   try {
     const res = await fetch(
       url + '/rest/v1/user_profiles?uid=eq.' + encodeURIComponent(uid) + '&select=uid,email,is_email_verified,username,name&limit=1',
@@ -99,7 +99,7 @@ async function getServiceProfile(uid) {
 async function upsertProfileVerified(uid, email) {
   if (!uid) return false;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return false; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return false; }
   try {
     const res = await fetch(url + '/rest/v1/user_profiles', {
       method: 'POST',
@@ -126,7 +126,7 @@ async function upsertProfileVerified(uid, email) {
 async function updateProfile(uid, patch) {
   if (!uid || !patch) return false;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return false; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return false; }
   try {
     const res = await fetch(
       url + '/rest/v1/user_profiles?uid=eq.' + encodeURIComponent(uid),
@@ -151,7 +151,7 @@ async function updateProfile(uid, patch) {
 async function adminSetPassword(uid, password) {
   if (!uid || !password) return false;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return false; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return false; }
   try {
     const res = await fetch(url + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
       method: 'PUT',
@@ -174,7 +174,7 @@ async function adminSetUserMetadata(uid, patch) {
   const user = await getServiceUser(uid);
   if (!user) return false;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return false; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return false; }
   try {
     const merged = Object.assign({}, user.user_metadata || {}, patch);
     const res = await fetch(url + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
@@ -198,7 +198,7 @@ async function adminSetAppMetadata(uid, patch) {
   const user = await getServiceUser(uid);
   if (!user) return false;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return false; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return false; }
   try {
     const merged = Object.assign({}, user.app_metadata || {}, patch);
     const res = await fetch(url + '/auth/v1/admin/users/' + encodeURIComponent(uid), {
@@ -220,7 +220,7 @@ async function adminSetAppMetadata(uid, patch) {
 async function adminRecoveryLink(uid) {
   if (!uid) return null;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return null; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return null; }
   try {
     const res = await fetch(
       url + '/auth/v1/admin/users/' + encodeURIComponent(uid) + '/links',
@@ -249,7 +249,7 @@ async function adminRecoveryLinkByEmail(email) {
   const clean = String(email || '').trim().toLowerCase();
   if (!clean) return null;
   let url, key;
-  try { ({ url, key } = baseUrl(); } catch (e) { return null; }
+  try { ({ url, key } = baseUrl()); } catch (e) { return null; }
   try {
     const res = await fetch(url + '/auth/v1/admin/generate_link', {
       method: 'POST',

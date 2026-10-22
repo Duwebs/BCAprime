@@ -561,7 +561,7 @@ async function doDeleteFeedback(id){
    ============================================================ */
 function switchTab(tab){
   document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['material','subjects','pending','lostfound','reports'].forEach(id => {
+  ['material','subjects','pending','lostfound','reports','quizzes'].forEach(id => {
     const el = $('tab-' + id);
     if (el) el.hidden = (id !== tab);
   });
@@ -569,6 +569,7 @@ function switchTab(tab){
   if (tab === 'pending') loadPendingSubjects();
   if (tab === 'lostfound') loadLostFoundAdmin();
   if (tab === 'reports') loadReports();
+  if (tab === 'quizzes') loadAdminQuizzes();
 }
 
 /* ============================================================
@@ -1153,6 +1154,728 @@ async function doDeleteReport(id) {
     alert('Could not delete report: ' + err.message);
   }
 }
+
+/* ============================================================
+   Mock Tests & MCQ Admin Logic
+   ============================================================ */
+let adminQuizzes = [];
+let parsedImportQuestions = [];
+let currentViewingQuiz = null;
+let currentViewingQuestions = [];
+
+async function loadAdminQuizzes() {
+  const grid = $('adminQuizGrid');
+  if (grid) grid.innerHTML = '<p class="note">Loading mock tests&hellip;</p>';
+  if (!adminSupabaseClient) {
+    if (grid) grid.innerHTML = '<p class="note">Supabase is not configured.</p>';
+    return;
+  }
+
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('quizzes')
+      .select('*, questions(count)')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    adminQuizzes = data || [];
+    renderAdminQuizzes();
+    updateQuizStats();
+  } catch (err) {
+    console.error('Failed to load admin quizzes:', err);
+    if (grid) grid.innerHTML = `<p class="note">Load failed: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function updateQuizStats() {
+  const total = adminQuizzes.length;
+  let totalQuestions = 0;
+  let aiCount = 0;
+
+  adminQuizzes.forEach(q => {
+    const count = (q.questions && q.questions[0] && q.questions[0].count) || q.total_questions || 0;
+    totalQuestions += count;
+    if (q.is_ai_generated) aiCount++;
+  });
+
+  if ($('quizStatTotal')) $('quizStatTotal').textContent = total;
+  if ($('quizStatQuestions')) $('quizStatQuestions').textContent = totalQuestions;
+  if ($('quizStatAi')) $('quizStatAi').textContent = aiCount;
+}
+
+function renderAdminQuizzes() {
+  const grid = $('adminQuizGrid');
+  if (!grid) return;
+
+  const semFilter = $('quizFilterSem') ? $('quizFilterSem').value : 'all';
+  const query = ($('quizSearch') ? $('quizSearch').value : '').toLowerCase().trim();
+
+  let filtered = adminQuizzes.filter(q => {
+    if (semFilter !== 'all' && String(q.semester) !== String(semFilter)) return false;
+    if (query) {
+      const matchTitle = (q.title || '').toLowerCase().includes(query);
+      const matchSub = (q.subject || '').toLowerCase().includes(query);
+      if (!matchTitle && !matchSub) return false;
+    }
+    return true;
+  });
+
+  if (!filtered.length) {
+    grid.innerHTML = `
+      <div class="rep-empty-card" style="grid-column: 1 / -1;">
+        <i class="fa-solid fa-list-check" style="font-size:32px;color:var(--muted);margin-bottom:10px"></i>
+        <h3>No mock tests found</h3>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Create a quiz manually or bulk import questions using CSV/JSON.</p>
+        <button class="button primary" onclick="openBulkImportModal()"><i class="fa-solid fa-file-import"></i> Bulk Import MCQs</button>
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(q => {
+    const qCount = (q.questions && q.questions[0] && q.questions[0].count) || q.total_questions || 0;
+    const timeLimit = q.time_limit_minutes || 15;
+    const isAi = q.is_ai_generated;
+    const createdDate = q.created_at ? new Date(q.created_at).toLocaleDateString() : 'Recent';
+
+    return `
+      <div class="quiz-card" id="quiz-card-${q.id}">
+        <div>
+          <div class="quiz-card-head">
+            <div class="quiz-badges">
+              <span class="quiz-badge sem"><i class="fa-solid fa-graduation-cap"></i> Sem ${q.semester}</span>
+              ${isAi ? '<span class="quiz-badge ai"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Generated</span>' : '<span class="quiz-badge"><i class="fa-solid fa-user-tie"></i> Verified</span>'}
+            </div>
+            <span style="font-size:11.5px;color:var(--muted)">${createdDate}</span>
+          </div>
+
+          <h3 class="quiz-title" style="margin-top:8px">${escapeHtml(q.title)}</h3>
+          <div class="quiz-subject">
+            <i class="fa-solid fa-book-bookmark" style="color:var(--brand)"></i>
+            <span>${escapeHtml(q.subject)}</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="quiz-meta-row">
+            <span>Questions: <strong>${qCount}</strong></span>
+            <span>Duration: <strong>${timeLimit} mins</strong></span>
+          </div>
+
+          <div class="quiz-actions" style="margin-top:12px">
+            <button class="button" onclick="viewQuizQuestions(${q.id})"><i class="fa-solid fa-eye"></i> Questions</button>
+            <button class="button" onclick="appendQuestionsToQuiz(${q.id})"><i class="fa-solid fa-plus"></i> Import More</button>
+            <button class="button danger" onclick="deleteQuiz(${q.id})" title="Delete Quiz"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ---- Bulk Import Modal Logic ---- */
+function openBulkImportModal() {
+  parsedImportQuestions = [];
+  const modal = $('bulkImportModal');
+  if (!modal) return;
+
+  // Populate Target Quiz Select
+  const sel = $('importQuizTarget');
+  if (sel) {
+    sel.innerHTML = '<option value="new">+ Create New Quiz for these MCQs</option>' +
+      adminQuizzes.map(q => `<option value="${q.id}">Append to: [Sem ${q.semester}] ${escapeHtml(q.title)}</option>`).join('');
+  }
+
+  if ($('importQuizTitle')) $('importQuizTitle').value = '';
+  if ($('importQuizSubject')) $('importQuizSubject').value = '';
+  if ($('importQuizSem')) $('importQuizSem').value = '3';
+  if ($('importQuizTime')) $('importQuizTime').value = '15';
+  if ($('importFileInput')) $('importFileInput').value = '';
+  if ($('importError')) $('importError').textContent = '';
+  if ($('importDropzoneTitle')) $('importDropzoneTitle').textContent = 'Choose a JSON or CSV file to parse';
+  if ($('importPreviewContainer')) $('importPreviewContainer').hidden = true;
+  if ($('btnConfirmImport')) $('btnConfirmImport').disabled = true;
+
+  toggleImportTargetFields();
+  setupImportDropzone();
+  modal.hidden = false;
+}
+
+function appendQuestionsToQuiz(quizId) {
+  openBulkImportModal();
+  const sel = $('importQuizTarget');
+  if (sel) {
+    sel.value = String(quizId);
+    toggleImportTargetFields();
+  }
+}
+
+function closeBulkImportModal() {
+  const modal = $('bulkImportModal');
+  if (modal) modal.hidden = true;
+  parsedImportQuestions = [];
+}
+
+function toggleImportTargetFields() {
+  const target = $('importQuizTarget') ? $('importQuizTarget').value : 'new';
+  const newFields = $('importNewQuizFields');
+  if (newFields) newFields.hidden = (target !== 'new');
+}
+
+function setupImportDropzone() {
+  const dz = $('importDropzone');
+  if (!dz || dz.__hasDropEvents) return;
+  dz.__hasDropEvents = true;
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dz.addEventListener(eventName, e => {
+      e.preventDefault();
+      e.stopPropagation();
+      dz.classList.add('dragover');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dz.addEventListener(eventName, e => {
+      e.preventDefault();
+      e.stopPropagation();
+      dz.classList.remove('dragover');
+    }, false);
+  });
+
+  dz.addEventListener('drop', e => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files && files.length) {
+      handleImportFile(files[0]);
+    }
+  }, false);
+}
+
+function handleImportFileSelect(input) {
+  if (input.files && input.files.length) {
+    handleImportFile(input.files[0]);
+  }
+}
+
+function handleImportFile(file) {
+  if (!file) return;
+  const dzTitle = $('importDropzoneTitle');
+  if (dzTitle) dzTitle.textContent = `Selected: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const content = e.target.result;
+    parseBulkQuestions(content, file.name);
+  };
+  reader.onerror = function() {
+    if ($('importError')) $('importError').textContent = 'Could not read the uploaded file.';
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+/* CSV & JSON Parser */
+function parseBulkQuestions(rawText, fileName) {
+  const isCsv = fileName.toLowerCase().endsWith('.csv');
+  const errEl = $('importError');
+  if (errEl) errEl.textContent = '';
+
+  parsedImportQuestions = [];
+
+  try {
+    if (isCsv) {
+      parsedImportQuestions = parseCsvQuestions(rawText);
+    } else {
+      parsedImportQuestions = parseJsonQuestions(rawText);
+    }
+
+    if (!parsedImportQuestions.length) {
+      throw new Error('No valid questions found in file. Please ensure columns or keys match the required format.');
+    }
+
+    // Render preview
+    renderImportPreview(parsedImportQuestions);
+    if ($('btnConfirmImport')) $('btnConfirmImport').disabled = false;
+  } catch (err) {
+    console.warn('Import parse error:', err);
+    if (errEl) errEl.textContent = 'Parse error: ' + err.message;
+    if ($('importPreviewContainer')) $('importPreviewContainer').hidden = true;
+    if ($('btnConfirmImport')) $('btnConfirmImport').disabled = true;
+  }
+}
+
+function parseJsonQuestions(text) {
+  let data = JSON.parse(text);
+  if (!Array.isArray(data) && data.questions && Array.isArray(data.questions)) {
+    data = data.questions;
+  }
+  if (!Array.isArray(data)) throw new Error('JSON root must be an array of question objects.');
+
+  return data.map((item, idx) => {
+    const qText = String(item.question || item.question_text || '').trim();
+    if (!qText) return null;
+
+    let optA = '', optB = '', optC = '', optD = '';
+    if (item.options && typeof item.options === 'object') {
+      if (Array.isArray(item.options)) {
+        optA = item.options[0] || '';
+        optB = item.options[1] || '';
+        optC = item.options[2] || '';
+        optD = item.options[3] || '';
+      } else {
+        optA = item.options.A || item.options.a || '';
+        optB = item.options.B || item.options.b || '';
+        optC = item.options.C || item.options.c || '';
+        optD = item.options.D || item.options.d || '';
+      }
+    } else {
+      optA = item.option_a || item.optionA || '';
+      optB = item.option_b || item.optionB || '';
+      optC = item.option_c || item.optionC || '';
+      optD = item.option_d || item.optionD || '';
+    }
+
+    let correct = String(item.correct_answer || item.answer || item.correct || 'A').trim().toUpperCase();
+    if (!['A', 'B', 'C', 'D'].includes(correct)) correct = 'A';
+
+    const exp = String(item.explanation || item.reason || '').trim();
+
+    return {
+      question_text: qText,
+      option_a: String(optA).trim(),
+      option_b: String(optB).trim(),
+      option_c: String(optC).trim(),
+      option_d: String(optD).trim(),
+      options: { A: String(optA).trim(), B: String(optB).trim(), C: String(optC).trim(), D: String(optD).trim() },
+      correct_answer: correct,
+      explanation: exp
+    };
+  }).filter(Boolean);
+}
+
+function parseCsvQuestions(text) {
+  const rows = [];
+  let currentRow = [];
+  let currentField = '';
+  let insideQuote = false;
+
+  const clean = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const nextChar = clean[i + 1];
+
+    if (char === '"') {
+      if (insideQuote && nextChar === '"') {
+        currentField += '"';
+        i++;
+      } else {
+        insideQuote = !insideQuote;
+      }
+    } else if (char === ',' && !insideQuote) {
+      currentRow.push(currentField);
+      currentField = '';
+    } else if (char === '\n' && !insideQuote) {
+      currentRow.push(currentField);
+      rows.push(currentRow);
+      currentRow = [];
+      currentField = '';
+    } else {
+      currentField += char;
+    }
+  }
+
+  if (currentField || currentRow.length) {
+    currentRow.push(currentField);
+    rows.push(currentRow);
+  }
+
+  if (rows.length < 2) throw new Error('CSV file contains no question data rows.');
+
+  // Header mapping
+  const headers = rows[0].map(h => String(h || '').trim().toLowerCase().replace(/[\s_-]+/g, ''));
+  const getIdx = (keys) => headers.findIndex(h => keys.includes(h));
+
+  const qIdx = getIdx(['question', 'questiontext', 'prompt', 'q']);
+  const aIdx = getIdx(['optiona', 'a', 'choicea', 'opt1', 'option1']);
+  const bIdx = getIdx(['optionb', 'b', 'choiceb', 'opt2', 'option2']);
+  const cIdx = getIdx(['optionc', 'c', 'choicec', 'opt3', 'option3']);
+  const dIdx = getIdx(['optiond', 'd', 'choiced', 'opt4', 'option4']);
+  const ansIdx = getIdx(['correctanswer', 'answer', 'correct', 'ans']);
+  const expIdx = getIdx(['explanation', 'explain', 'reason']);
+
+  if (qIdx === -1 || aIdx === -1 || bIdx === -1) {
+    throw new Error('CSV must have at least "question", "option_a", and "option_b" headers.');
+  }
+
+  const results = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    if (!row || !row[qIdx] || !row[qIdx].trim()) continue;
+
+    const qText = row[qIdx].trim();
+    const optA = (row[aIdx] || '').trim();
+    const optB = (row[bIdx] || '').trim();
+    const optC = (cIdx !== -1 && row[cIdx] ? row[cIdx] : '').trim();
+    const optD = (dIdx !== -1 && row[dIdx] ? row[dIdx] : '').trim();
+
+    let ans = (ansIdx !== -1 && row[ansIdx] ? row[ansIdx] : 'A').trim().toUpperCase();
+    if (!['A', 'B', 'C', 'D'].includes(ans)) {
+      if (ans.startsWith('A')) ans = 'A';
+      else if (ans.startsWith('B')) ans = 'B';
+      else if (ans.startsWith('C')) ans = 'C';
+      else if (ans.startsWith('D')) ans = 'D';
+      else ans = 'A';
+    }
+
+    const exp = expIdx !== -1 && row[expIdx] ? row[expIdx].trim() : '';
+
+    results.push({
+      question_text: qText,
+      option_a: optA,
+      option_b: optB,
+      option_c: optC,
+      option_d: optD,
+      options: { A: optA, B: optB, C: optC, D: optD },
+      correct_answer: ans,
+      explanation: exp
+    });
+  }
+
+  return results;
+}
+
+function renderImportPreview(questions) {
+  const container = $('importPreviewContainer');
+  const tbody = $('importPreviewTableBody');
+  const badge = $('importCountBadge');
+  if (!container || !tbody) return;
+
+  badge.textContent = `${questions.length} valid question${questions.length === 1 ? '' : 's'}`;
+
+  tbody.innerHTML = questions.slice(0, 50).map((q, i) => `
+    <tr>
+      <td style="color:var(--muted)">${i + 1}</td>
+      <td style="font-weight:500">${escapeHtml(q.question_text)}</td>
+      <td style="font-size:11.5px;color:var(--muted)">
+        A: ${escapeHtml(q.option_a)}<br>
+        B: ${escapeHtml(q.option_b)}<br>
+        C: ${escapeHtml(q.option_c)}<br>
+        D: ${escapeHtml(q.option_d)}
+      </td>
+      <td><span class="correct-pill">${q.correct_answer}</span></td>
+      <td style="font-size:11.5px;color:var(--muted)">${escapeHtml(q.explanation || '—')}</td>
+    </tr>
+  `).join('');
+
+  if (questions.length > 50) {
+    tbody.innerHTML += `<tr><td colspan="5" style="text-align:center;color:var(--muted);font-style:italic">...and ${questions.length - 50} more questions</td></tr>`;
+  }
+
+  container.hidden = false;
+}
+
+async function executeBulkImport() {
+  if (!parsedImportQuestions.length) return;
+  const btn = $('btnConfirmImport');
+  const errEl = $('importError');
+  if (errEl) errEl.textContent = '';
+
+  const target = $('importQuizTarget') ? $('importQuizTarget').value : 'new';
+  let quizId = null;
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importing&hellip;';
+
+  try {
+    if (target === 'new') {
+      const title = ($('importQuizTitle') ? $('importQuizTitle').value : '').trim();
+      const subject = ($('importQuizSubject') ? $('importQuizSubject').value : '').trim();
+      const semester = parseInt($('importQuizSem') ? $('importQuizSem').value : '1', 10);
+      const timeLimit = parseInt($('importQuizTime') ? $('importQuizTime').value : '15', 10) || 15;
+
+      if (!title || !subject) {
+        throw new Error('Please specify both a Quiz Title and Subject.');
+      }
+
+      // Insert quiz row
+      const { data: newQuiz, error: qErr } = await adminSupabaseClient
+        .from('quizzes')
+        .insert({
+          title,
+          subject,
+          semester,
+          description: `BCA Semester ${semester} MCQ practice set for ${subject}.`,
+          total_questions: parsedImportQuestions.length,
+          time_limit_minutes: timeLimit,
+          is_ai_generated: false,
+          created_by: 'admin'
+        })
+        .select()
+        .single();
+
+      if (qErr) throw qErr;
+      quizId = newQuiz.id;
+    } else {
+      quizId = target;
+    }
+
+    // Insert questions in chunks of 50
+    const questionRows = parsedImportQuestions.map(q => ({
+      quiz_id: quizId,
+      question_text: q.question_text,
+      option_a: q.option_a,
+      option_b: q.option_b,
+      option_c: q.option_c,
+      option_d: q.option_d,
+      options: q.options,
+      correct_answer: q.correct_answer,
+      explanation: q.explanation || ''
+    }));
+
+    const chunkSize = 50;
+    for (let i = 0; i < questionRows.length; i += chunkSize) {
+      const chunk = questionRows.slice(i, i + chunkSize);
+      const { error: insErr } = await adminSupabaseClient.from('questions').insert(chunk);
+      if (insErr) throw insErr;
+    }
+
+    // Update total questions count on quiz
+    const { count: freshCount } = await adminSupabaseClient
+      .from('questions')
+      .select('id', { count: 'exact', head: true })
+      .eq('quiz_id', quizId);
+
+    if (typeof freshCount === 'number') {
+      await adminSupabaseClient.from('quizzes').update({ total_questions: freshCount }).eq('id', quizId);
+    }
+
+    alert(`Success! Imported ${parsedImportQuestions.length} questions into the mock test.`);
+    closeBulkImportModal();
+    loadAdminQuizzes();
+  } catch (err) {
+    console.error('Import execution error:', err);
+    if (errEl) errEl.textContent = 'Failed to import: ' + err.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Import to Supabase';
+  }
+}
+
+/* Sample File Generators */
+function downloadSampleJson() {
+  const sample = [
+    {
+      "question": "Which data structure follows the LIFO (Last In First Out) principle?",
+      "option_a": "Queue",
+      "option_b": "Stack",
+      "option_c": "Binary Search Tree",
+      "option_d": "Linked List",
+      "correct_answer": "B",
+      "explanation": "Stack elements are inserted and removed strictly from the top (Last-In First-Out)."
+    },
+    {
+      "question": "What is the worst-case time complexity of QuickSort?",
+      "option_a": "O(n log n)",
+      "option_b": "O(n)",
+      "option_c": "O(n^2)",
+      "option_d": "O(1)",
+      "correct_answer": "C",
+      "explanation": "When an unbalanced pivot is picked repeatedly, QuickSort degrades to O(n^2)."
+    }
+  ];
+
+  const blob = new Blob([JSON.stringify(sample, null, 2)], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bcaprime-mcqs-sample.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadSampleCsv() {
+  const csvContent =
+`question,option_a,option_b,option_c,option_d,correct_answer,explanation
+"Which memory area in the JVM stores static variables and method bytecode?","Method Area / Metaspace","Heap","JVM Stack","Program Counter","A","Metaspace/Method Area stores per-class structures and static variables."
+"Which SQL command is used to remove all records from a table without logging individual deletes?","DROP","DELETE","TRUNCATE","ALTER","C","TRUNCATE is a DDL command that deallocates all data pages instantly."`;
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bcaprime-mcqs-sample.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Question Viewer Modal */
+async function viewQuizQuestions(quizId) {
+  const modal = $('quizQuestionsModal');
+  const listEl = $('quizQuestionsList');
+  if (!modal || !listEl) return;
+
+  const quiz = adminQuizzes.find(q => q.id === quizId);
+  currentViewingQuiz = quiz;
+  if ($('viewQuizTitle')) $('viewQuizTitle').textContent = quiz ? quiz.title : 'Quiz Questions';
+  if ($('viewQuizSubtitle')) $('viewQuizSubtitle').textContent = quiz ? `Semester ${quiz.semester} · ${quiz.subject}` : '';
+
+  modal.hidden = false;
+  listEl.innerHTML = '<p class="note">Loading questions&hellip;</p>';
+
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('questions')
+      .select('*')
+      .eq('quiz_id', quizId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    currentViewingQuestions = data || [];
+
+    if (!currentViewingQuestions.length) {
+      listEl.innerHTML = '<p class="note">No questions found in this quiz. Use "Bulk Import" to add questions.</p>';
+      return;
+    }
+
+    listEl.innerHTML = currentViewingQuestions.map((q, idx) => `
+      <div style="background:var(--surface2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+          <strong style="color:var(--ink);font-size:13.5px">Q${idx + 1}. ${escapeHtml(q.question_text)}</strong>
+          <button class="button danger" style="padding:4px 8px;font-size:11px" onclick="deleteSingleQuestion(${q.id}, ${quizId})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0;font-size:12.5px">
+          <div style="${q.correct_answer === 'A' ? 'color:var(--good);font-weight:600' : 'color:var(--muted)'}">A) ${escapeHtml(q.option_a)}</div>
+          <div style="${q.correct_answer === 'B' ? 'color:var(--good);font-weight:600' : 'color:var(--muted)'}">B) ${escapeHtml(q.option_b)}</div>
+          <div style="${q.correct_answer === 'C' ? 'color:var(--good);font-weight:600' : 'color:var(--muted)'}">C) ${escapeHtml(q.option_c)}</div>
+          <div style="${q.correct_answer === 'D' ? 'color:var(--good);font-weight:600' : 'color:var(--muted)'}">D) ${escapeHtml(q.option_d)}</div>
+        </div>
+
+        ${q.explanation ? `<div style="font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px"><i class="fa-solid fa-circle-info" style="color:var(--brand)"></i> ${escapeHtml(q.explanation)}</div>` : ''}
+      </div>
+    `).join('');
+  } catch (err) {
+    listEl.innerHTML = `<p class="note">Failed to load questions: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+function closeQuizQuestionsModal() {
+  const modal = $('quizQuestionsModal');
+  if (modal) modal.hidden = true;
+  currentViewingQuiz = null;
+  currentViewingQuestions = [];
+}
+
+async function deleteSingleQuestion(qId, quizId) {
+  if (!confirm('Are you sure you want to delete this question?')) return;
+  try {
+    const { error } = await adminSupabaseClient.from('questions').delete().eq('id', qId);
+    if (error) throw error;
+    // Decrement total_questions on quiz
+    const { count: freshCount } = await adminSupabaseClient.from('questions').select('id', { count: 'exact', head: true }).eq('quiz_id', quizId);
+    if (typeof freshCount === 'number') {
+      await adminSupabaseClient.from('quizzes').update({ total_questions: freshCount }).eq('id', quizId);
+    }
+    viewQuizQuestions(quizId);
+    loadAdminQuizzes();
+  } catch (err) {
+    alert('Could not delete question: ' + err.message);
+  }
+}
+
+function deleteQuiz(quizId) {
+  openSafeDelete('This mock test and all its questions will be permanently deleted.', async () => {
+    try {
+      const { error } = await adminSupabaseClient.from('quizzes').delete().eq('id', quizId);
+      if (error) throw error;
+      adminQuizzes = adminQuizzes.filter(q => q.id !== quizId);
+      renderAdminQuizzes();
+      updateQuizStats();
+    } catch (err) {
+      alert('Could not delete quiz: ' + err.message);
+    }
+  });
+}
+
+function exportCurrentQuizJson() {
+  if (!currentViewingQuiz || !currentViewingQuestions.length) return;
+  const exportData = {
+    quiz: {
+      title: currentViewingQuiz.title,
+      subject: currentViewingQuiz.subject,
+      semester: currentViewingQuiz.semester,
+      time_limit_minutes: currentViewingQuiz.time_limit_minutes
+    },
+    questions: currentViewingQuestions.map(q => ({
+      question: q.question_text,
+      option_a: q.option_a,
+      option_b: q.option_b,
+      option_c: q.option_c,
+      option_d: q.option_d,
+      correct_answer: q.correct_answer,
+      explanation: q.explanation
+    }))
+  };
+
+  const filename = `${(currentViewingQuiz.title || 'quiz').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-export.json`;
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Manual Quiz Creation Modal */
+function openManualQuizModal() {
+  const modal = $('manualQuizModal');
+  if (modal) {
+    if ($('manualQuizTitle')) $('manualQuizTitle').value = '';
+    if ($('manualQuizSubject')) $('manualQuizSubject').value = '';
+    modal.hidden = false;
+  }
+}
+
+function closeManualQuizModal() {
+  const modal = $('manualQuizModal');
+  if (modal) modal.hidden = true;
+}
+
+async function handleManualQuizSubmit(event) {
+  event.preventDefault();
+  const title = ($('manualQuizTitle') ? $('manualQuizTitle').value : '').trim();
+  const subject = ($('manualQuizSubject') ? $('manualQuizSubject').value : '').trim();
+  const semester = parseInt($('manualQuizSem') ? $('manualQuizSem').value : '1', 10);
+  const timeLimit = parseInt($('manualQuizTime') ? $('manualQuizTime').value : '15', 10) || 15;
+
+  if (!title || !subject) return;
+
+  const btn = $('btnSaveManualQuiz');
+  btn.disabled = true;
+
+  try {
+    const { error } = await adminSupabaseClient.from('quizzes').insert({
+      title,
+      subject,
+      semester,
+      description: `BCA Semester ${semester} MCQ practice set for ${subject}.`,
+      total_questions: 0,
+      time_limit_minutes: timeLimit,
+      is_ai_generated: false,
+      created_by: 'admin'
+    });
+
+    if (error) throw error;
+    closeManualQuizModal();
+    loadAdminQuizzes();
+  } catch (err) {
+    alert('Could not create quiz: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 
 
 
