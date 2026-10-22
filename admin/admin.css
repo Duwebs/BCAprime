@@ -826,34 +826,45 @@ body {
 .sc-code { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
 .sc-meta { font-size: 12px; color: var(--muted); }
 /* ============================================================
-   Modals (Subject editor + Safe Delete)
+   Modals (Subject editor + Safe Delete + Bulk Import)
    ============================================================ */
 .modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 200;
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  background: rgba(5, 8, 11, .72);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 8, 11, .75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .modal-card {
   width: min(100%, 460px);
+  max-height: min(90vh, 90dvh);
+  display: flex;
+  flex-direction: column;
   padding: 22px;
   background: var(--surface-solid);
   border: 1px solid var(--line);
   border-radius: 14px;
   box-shadow: var(--shadow);
   animation: fadeUp .3s ease both;
+  margin: auto;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
 }
 .modal-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
 }
 .modal-head h3 { font: 600 18px var(--font-display); margin: 0; }
 .modal-head h3 i { color: var(--danger); margin-right: 6px; }
@@ -867,9 +878,20 @@ body {
   font-size: 18px;
   cursor: pointer;
   line-height: 1;
+  flex-shrink: 0;
 }
 .modal-close:hover { color: var(--ink); }
-.modal-form { display: grid; gap: 13px; }
+.modal-form {
+  display: grid;
+  gap: 13px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .modal-form label {
   display: flex;
   flex-direction: column;
@@ -883,7 +905,19 @@ body {
 .modal-form label small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted-dim); }
 .modal-form .search, .modal-form .select { width: 100%; min-width: 0; }
 .modal-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-solid);
+  z-index: 10;
+}
 .modal-actions .button { flex: 1; }
 
 /* Safe delete specifics */
@@ -1003,8 +1037,17 @@ body {
 
 @media (max-width: 600px) {
   .subject-grid { grid-template-columns: 1fr; }
-  .modal-overlay { padding: 14px; }
-  .modal-card { padding: 18px; }
+  .modal-overlay { padding: 10px; }
+  .modal-card {
+    padding: 16px 14px;
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 14px;
+  }
+  .modal-actions {
+    margin-top: 10px;
+    padding-top: 10px;
+  }
   .admin-tabs .tab { padding: 10px 8px; font-size: 12.5px; }
 }
 
@@ -1409,12 +1452,12 @@ tr.new-pending td:first-child {
 .import-dropzone {
   border: 2px dashed var(--line);
   border-radius: var(--radius);
-  padding: 28px 20px;
+  padding: 20px 16px;
   text-align: center;
   background: var(--surface2);
   cursor: pointer;
   transition: all .2s ease;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .import-dropzone.dragover,
@@ -1424,32 +1467,32 @@ tr.new-pending td:first-child {
 }
 
 .import-dropzone i {
-  font-size: 32px;
+  font-size: 28px;
   color: var(--brand);
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: block;
 }
 
 .import-dropzone p {
-  margin: 0 0 6px;
+  margin: 0 0 4px;
   color: var(--ink);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13.5px;
 }
 
 .import-dropzone small {
   color: var(--muted);
   display: block;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .import-preview-box {
-  max-height: 280px;
+  max-height: 240px;
   overflow-y: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   background: var(--surface2);
-  margin-top: 12px;
+  margin-top: 10px;
   font-size: 12.5px;
 }
 
