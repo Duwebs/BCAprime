@@ -242,9 +242,20 @@
       if (alertBox) {
         alertBox.hidden = false;
         if (isGuest) {
-          alertBox.innerHTML = `<i class="fa-solid fa-lock"></i> You've reached your free daily guest limit (${limit}/${limit} tests). <a href="javascript:void(0)" onclick="requireAccount('Sign up for 9 daily mock tests & full detailed analysis!','mocktest')" style="color:var(--brand);font-weight:700;text-decoration:underline">Sign up or Log In</a> to unlock <strong>9 tests per day</strong> and full detailed solutions!`;
+          alertBox.innerHTML = `
+            <i class="fa-solid fa-lock mt-alert-icon"></i>
+            <div class="mt-alert-body">
+              You've reached your free daily guest limit (<strong>${limit}/${limit} tests</strong>).
+              <a href="javascript:void(0)" onclick="requireAccount('Sign up for 9 daily mock tests & full detailed analysis!','mocktest')">Sign up or Log In</a> to unlock <strong>9 tests per day</strong> and full detailed solutions!
+            </div>
+          `;
         } else {
-          alertBox.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> You have reached your daily limit of ${limit} practice tests. Limit resets at midnight. You can take any library mock tests below without limits!`;
+          alertBox.innerHTML = `
+            <i class="fa-solid fa-clock-rotate-left mt-alert-icon"></i>
+            <div class="mt-alert-body">
+              You have reached your daily limit of ${limit} practice tests. Limit resets at midnight. You can take any library mock tests below without limits!
+            </div>
+          `;
         }
       }
       if (genBtn) genBtn.disabled = true;
@@ -547,6 +558,7 @@
     mtState.activeQuestions = questions;
     mtState.currentIndex = 0;
     mtState.selectedAnswers = {};
+    mtState.skippedQuestions = new Set();
     mtState.evalResult = null;
 
     // Time setup
@@ -604,8 +616,17 @@
 
     // Nav buttons
     const prevBtn = $id('mtPrevBtn');
+    const skipBtn = $id('mtSkipBtn');
     const nextBtn = $id('mtNextBtn');
+
     if (prevBtn) prevBtn.disabled = (mtState.currentIndex === 0);
+    if (skipBtn) {
+      if (curNum === total) {
+        skipBtn.innerHTML = '<i class="fa-solid fa-forward"></i> Skip & End';
+      } else {
+        skipBtn.innerHTML = '<i class="fa-solid fa-forward"></i> Skip';
+      }
+    }
     if (nextBtn) {
       if (curNum === total) {
         nextBtn.innerHTML = '<i class="fa-solid fa-check"></i> Submit Test';
@@ -621,7 +642,24 @@
 
   window.selectOption = function (key) {
     mtState.selectedAnswers[mtState.currentIndex] = key;
+    if (mtState.skippedQuestions) {
+      mtState.skippedQuestions.delete(mtState.currentIndex);
+    }
     renderCurrentQuestion();
+  };
+
+  window.mtSkip = function () {
+    if (!mtState.skippedQuestions) mtState.skippedQuestions = new Set();
+    mtState.skippedQuestions.add(mtState.currentIndex);
+    delete mtState.selectedAnswers[mtState.currentIndex];
+
+    if (mtState.currentIndex < mtState.activeQuestions.length - 1) {
+      mtState.currentIndex++;
+      renderCurrentQuestion();
+    } else {
+      renderCurrentQuestion();
+      submitActiveTest();
+    }
   };
 
   window.mtNext = function () {
@@ -658,12 +696,14 @@
 
     grid.innerHTML = mtState.activeQuestions.map((q, i) => {
       const isAnswered = !!mtState.selectedAnswers[i];
+      const isSkipped = !isAnswered && (mtState.skippedQuestions && mtState.skippedQuestions.has(i));
       const isCurrent = (i === mtState.currentIndex);
       let cls = 'mt-pal-chip';
       if (isAnswered) cls += ' answered';
+      else if (isSkipped) cls += ' skipped';
       if (isCurrent) cls += ' current';
 
-      return `<button class="${cls}" onclick="jumpToQuestion(${i})">${i + 1}</button>`;
+      return `<button class="${cls}" onclick="jumpToQuestion(${i})" title="Question ${i + 1}${isAnswered ? ' (Answered)' : (isSkipped ? ' (Skipped)' : '')}">${i + 1}</button>`;
     }).join('');
   }
 
@@ -817,6 +857,16 @@
       revContainer.innerHTML = res.answers.map((ans, idx) => {
         const q = mtState.activeQuestions[idx];
         const isUserCorrect = ans.is_correct;
+        const isSkipped = !ans.user_answer;
+
+        let badgeHtml = '';
+        if (isSkipped) {
+          badgeHtml = '<span class="mt-rev-badge skipped"><i class="fa-solid fa-forward"></i> Skipped</span>';
+        } else if (isUserCorrect) {
+          badgeHtml = '<span class="mt-rev-badge correct"><i class="fa-solid fa-check"></i> Correct</span>';
+        } else {
+          badgeHtml = '<span class="mt-rev-badge wrong"><i class="fa-solid fa-xmark"></i> Incorrect</span>';
+        }
 
         const options = [
           { key: 'A', text: q.option_a },
@@ -827,9 +877,12 @@
 
         return `
           <div class="mt-review-item">
-            <h5 class="mt-review-q-title">
-              <span style="color:var(--brand);margin-right:6px">Q${idx + 1}.</span> ${escapeHtml(q.question_text)}
-            </h5>
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+              <h5 class="mt-review-q-title" style="margin:0;flex:1;min-width:200px">
+                <span style="color:var(--brand);margin-right:6px">Q${idx + 1}.</span> ${escapeHtml(q.question_text)}
+              </h5>
+              ${badgeHtml}
+            </div>
 
             <div class="mt-review-options">
               ${options.map(opt => {

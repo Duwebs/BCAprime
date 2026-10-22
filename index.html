@@ -538,10 +538,13 @@
                 </button>
 
                 <div class="mt-foot-actions">
-                  <button class="mt-nav-btn" id="mtPrevBtn" onclick="mtPrev()">
+                  <button class="mt-nav-btn" id="mtPrevBtn" type="button" onclick="mtPrev()">
                     <i class="fa-solid fa-arrow-left"></i> Previous
                   </button>
-                  <button class="mt-nav-btn primary" id="mtNextBtn" onclick="mtNext()">
+                  <button class="mt-nav-btn skip" id="mtSkipBtn" type="button" onclick="mtSkip()" title="Skip this question">
+                    <i class="fa-solid fa-forward"></i> Skip
+                  </button>
+                  <button class="mt-nav-btn primary" id="mtNextBtn" type="button" onclick="mtNext()">
                     Next <i class="fa-solid fa-arrow-right"></i>
                   </button>
                 </div>

@@ -332,10 +332,35 @@
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.22);
   color: #ef4444;
-  font-size: 12px;
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 10px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.mt-alert-icon {
+  font-size: 14px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.mt-alert-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.mt-alert-body a {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  display: inline;
 }
 
 /* Hub Section Tabs & Filters */
@@ -749,6 +774,17 @@
   filter: brightness(1.08);
 }
 
+.mt-nav-btn.skip {
+  background: var(--surface);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+.mt-nav-btn.skip:hover:not(:disabled) {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
 .mt-nav-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -790,6 +826,42 @@
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
+}
+
+.mt-pal-chip.skipped {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+/* Review Badges for Solutions Breakdown */
+.mt-rev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.mt-rev-badge.skipped {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.mt-rev-badge.correct {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.mt-rev-badge.wrong {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 /* ============================================================
@@ -1179,5 +1251,41 @@ body:not(.dark) .mt-guest-lock-overlay {
   .mt-lock-benefits span {
     font-size: 11.5px;
     gap: 7px;
+  }
+
+  .mt-quota-alert {
+    padding: 8px 10px;
+    font-size: 11.5px;
+    gap: 8px;
+  }
+
+  .mt-alert-body {
+    font-size: 11.5px;
+    line-height: 1.4;
+  }
+
+  .mt-player-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 10px;
+  }
+
+  .mt-palette-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mt-foot-actions {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+  }
+
+  .mt-foot-actions .mt-nav-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 6px;
+    font-size: 12px;
   }
 }
