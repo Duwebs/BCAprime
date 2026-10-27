@@ -58,8 +58,24 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       return r===f||r.includes(f)||f.includes(r);
     }
     let resources=[...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
-    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',sem:localStorage.getItem('bca-sem')||'all',subject:'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:''};
+    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',sem:localStorage.getItem('bca-sem')||'all',subject:'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:'',hasSeniorNotification:true};
     const $=id=>document.getElementById(id);
+    /* Quick Actions Config & State Controls */
+    window.QUICK_ACTIONS_CONFIG = {
+      showMockTestNewBadge: true
+    };
+    function setSeniorNotificationDot(show){
+      state.hasSeniorNotification = !!show;
+      const dot = document.getElementById('qaSeniorRedDot');
+      if (dot) dot.style.display = state.hasSeniorNotification ? 'block' : 'none';
+    }
+    window.setSeniorNotificationDot = setSeniorNotificationDot;
+    function setMockTestNewBadge(show){
+      window.QUICK_ACTIONS_CONFIG.showMockTestNewBadge = !!show;
+      const badge = document.getElementById('qaMockNewBadge');
+      if (badge) badge.style.display = window.QUICK_ACTIONS_CONFIG.showMockTestNewBadge ? 'inline-flex' : 'none';
+    }
+    window.setMockTestNewBadge = setMockTestNewBadge;
     /* ---- Analytics tracking (fire-and-forget, UI kabhi block nahi karta) ---- */
     const visitorId=(()=>{try{let v=localStorage.getItem('bca-vid');if(!v){v='v-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);localStorage.setItem('bca-vid',v)}return v}catch(e){return 'anon'}})();
     const analyticsSessionId=(()=>{try{let s=sessionStorage.getItem('bca-sid');if(!s){s='s-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);sessionStorage.setItem('bca-sid',s)}return s}catch(e){return 'sess'}})();
@@ -192,7 +208,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       $('collegeLabel').textContent = collegeName;
       const semText = state.sem==='all' ? 'All Semesters' : `Sem ${state.sem}`;
       $('navSemBadge').textContent = `· ${semText}`;
-      $('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';
+      if($('savedSummary')) $('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';
+      try{setMockTestNewBadge(window.QUICK_ACTIONS_CONFIG.showMockTestNewBadge);setSeniorNotificationDot(state.hasSeniorNotification);}catch(e){}
       renderColleges();
       renderSubjectFilter();
       render();
@@ -2459,7 +2476,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const def=document.querySelector('.sr-type[data-type="notes"]');if(def)def.classList.add('active');
       $('seniorReqModal').classList.add('open');
     }
-    function closeSeniorRequest(){const m=$('seniorReqModal');if(m)m.classList.remove('open')}
+    function closeSeniorRequest(){const m=$('seniorReqModal');if(m)m.classList.remove('open');if(location.hash==='#ask-seniors'||location.hash==='#seniors'){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}}
     function setSrType(btn){document.querySelectorAll('.sr-type').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active')}
     async function submitSeniorRequest(event){
       event.preventDefault();
@@ -2508,6 +2525,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           .order('created_at',{ascending:false}).limit(20);
         if(error)throw error;
         const mine=(data||[]).filter(r=>myCollegeKey()==='all'||r.college==='all'||r.college===myCollegeKey());
+        if(mine.length>0) try{setSeniorNotificationDot(true);}catch(e){}
         const countEl=$('helpJuniorsCount');
         if(countEl)countEl.textContent=mine.length?`${mine.length} junior${mine.length===1?'':'s'}`:'';
         if(!mine.length){listEl.innerHTML='<p class="help-empty">🎉 No junior requests right now. When a junior asks for material, it will appear here.</p>';return}
@@ -2977,4 +2995,176 @@ async function submitResourceReport(event){
     if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Submit Report';}
   }
 }
+
+/* ============================================================
+   Quick Actions Routes & Juniors Request Modal Handlers
+   ============================================================ */
+function openMockTestsRoute() {
+  try {
+    if (location.hash !== '#mocktests') {
+      history.pushState(null, '', '#mocktests');
+    }
+  } catch (e) { location.hash = '#mocktests'; }
+  if (typeof openMockTestHub === 'function') {
+    openMockTestHub();
+  }
+}
+window.openMockTestsRoute = openMockTestsRoute;
+
+function openSeniorRequestRoute() {
+  setSeniorNotificationDot(false);
+  try {
+    if (location.hash !== '#ask-seniors') {
+      history.pushState(null, '', '#ask-seniors');
+    }
+  } catch (e) { location.hash = '#ask-seniors'; }
+  openSeniorRequest();
+}
+window.openSeniorRequestRoute = openSeniorRequestRoute;
+
+function openLostFoundRoute() {
+  try {
+    if (location.hash !== '#lostfound') {
+      history.pushState(null, '', '#lostfound');
+    }
+  } catch (e) { location.hash = '#lostfound'; }
+  scrollToLostFound();
+}
+window.openLostFoundRoute = openLostFoundRoute;
+
+function openJuniorsRequestRoute() {
+  try {
+    if (location.hash !== '#juniors-request') {
+      history.pushState(null, '', '#juniors-request');
+    }
+  } catch (e) { location.hash = '#juniors-request'; }
+  openJuniorsRequest();
+}
+window.openJuniorsRequestRoute = openJuniorsRequestRoute;
+
+function openJuniorsRequest() {
+  const modal = $('juniorsReqModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  renderJuniorsModal();
+}
+window.openJuniorsRequest = openJuniorsRequest;
+
+function closeJuniorsRequest() {
+  const modal = $('juniorsReqModal');
+  if (modal) modal.classList.remove('open');
+  if (location.hash === '#juniors-request' || location.hash === '#juniors') {
+    try {
+      history.replaceState(null, '', location.pathname + location.search);
+    } catch (e) {}
+  }
+}
+window.closeJuniorsRequest = closeJuniorsRequest;
+
+async function renderJuniorsModal() {
+  const container = $('juniorsReqContent');
+  if (!container) return;
+  const mySem = mySemNumber();
+
+  if (mySem === 1) {
+    container.innerHTML = `
+      <div class="jr-placeholder-card">
+        <div class="jr-placeholder-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h3>You're in Semester 1!</h3>
+        <p>As a first-semester student, you don't have junior batches yet. You can ask your seniors for notes and PYQs whenever you need help.</p>
+        <button class="primary" type="button" onclick="closeJuniorsRequest();openSeniorRequest()"><i class="fa-solid fa-users"></i> Ask seniors for notes</button>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = '<p class="help-loading" style="padding:24px 0;text-align:center"><i class="fa-solid fa-spinner fa-spin"></i> Checking for junior requests…</p>';
+
+  try {
+    if (!supabaseClient) {
+      container.innerHTML = `
+        <div class="jr-placeholder-card">
+          <div class="jr-placeholder-icon"><i class="fa-solid fa-circle-info"></i></div>
+          <h3>Offline Mode</h3>
+          <p>Please connect to internet to view real-time junior requests.</p>
+        </div>`;
+      return;
+    }
+
+    const query = supabaseClient.from(SENIOR_TABLE)
+      .select('*')
+      .in('status', ['pending', 'notified'])
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (mySem >= 2) {
+      query.lt('semester', mySem);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const mine = (data || []).filter(r => myCollegeKey() === 'all' || r.college === 'all' || r.college === myCollegeKey());
+
+    if (!mine.length) {
+      container.innerHTML = `
+        <div class="jr-placeholder-card">
+          <div class="jr-placeholder-icon"><i class="fa-solid fa-circle-check" style="color:#22c55e"></i></div>
+          <h3>All caught up! 🎉</h3>
+          <p>No junior requests right now. When a junior asks for material, it will appear here so you can help.</p>
+          <button class="primary" type="button" onclick="closeJuniorsRequest();openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Share study material</button>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = mine.map(r => {
+      helpJuniorCache[r.id] = r;
+      const semLabel = 'Semester ' + r.semester;
+      const subject = String(r.subject || 'notes/PYQ').replace(/[<>&"]/g, '');
+      const msg = String(r.message || '').replace(/[<>&"]/g, '');
+      const typeLabel = r.type === 'pyq' ? 'PYQ' : 'Notes';
+      const rName = String(r.requester_name || 'A student').replace(/[<>&"]/g, '');
+      return `<div class="help-item">
+        <div class="help-item-head">
+          <span class="badge">${typeLabel}</span>
+          <span class="help-sem">${semLabel}</span>
+          <span class="help-by"><i class="fa-solid fa-user-graduate"></i> ${rName}</span>
+          <span class="help-time">${timeAgo(r.created_at)}</span>
+        </div>
+        <strong class="help-subject">${subject}</strong>
+        ${msg ? `<p class="help-msg">${msg}</p>` : ''}
+        <div class="help-actions">
+          <button class="primary" type="button" onclick="closeJuniorsRequest();openUploadForJunior(${r.id})"><i class="fa-solid fa-cloud-arrow-up"></i> Upload</button>
+          <button class="secondary" type="button" onclick="markSeniorDone(${r.id},this)"><i class="fa-solid fa-check"></i> Done</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    container.innerHTML = `
+      <div class="jr-placeholder-card">
+        <div class="jr-placeholder-icon"><i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i></div>
+        <h3>Could not load requests</h3>
+        <p>There was an issue loading requests. Please try again in a moment.</p>
+        <button class="secondary" type="button" onclick="renderJuniorsModal()"><i class="fa-solid fa-rotate-right"></i> Retry</button>
+      </div>`;
+  }
+}
+window.renderJuniorsModal = renderJuniorsModal;
+
+function handleQuickActionRoutes() {
+  try {
+    const h = (location.hash || '').toLowerCase();
+    if (h === '#mocktests' || h === '#mocktest') {
+      if (typeof openMockTestHub === 'function') openMockTestHub();
+    } else if (h === '#juniors-request' || h === '#juniors') {
+      openJuniorsRequest();
+    } else if (h === '#ask-seniors' || h === '#seniors') {
+      openSeniorRequest();
+    } else if (h === '#lostfound' || h === '#lost-and-found') {
+      scrollToLostFound();
+    }
+  } catch (e) {}
+}
+window.addEventListener('hashchange', handleQuickActionRoutes);
+setTimeout(handleQuickActionRoutes, 1200);
+
 

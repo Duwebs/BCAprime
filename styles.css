@@ -1286,10 +1286,8 @@ html.auth-known #appTabs{display:grid!important}
   .topbar{gap:7px;padding:0 10px}
   .topbar .brand strong{font-size:15px}
 
-  /* Desk cards: horizontal scroll instead of stacked squeeze */
-  .desk-strip{display:flex;flex-flow:row nowrap;overflow-x:auto;gap:9px;margin:12px -14px 0;padding:0 14px 3px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .desk-strip::-webkit-scrollbar{display:none}
-  .desk-card{min-width:215px;width:auto;flex:0 0 auto}
+  /* Quick actions compact adjustments for mobile */
+  .quick-actions-section{margin:12px 0 20px;max-width:100%}
 
   /* Modals: mobile pe full-width, thumb-friendly */
   .modal{padding:12px;align-items:end}
@@ -1585,5 +1583,343 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   0%,100%{box-shadow:0 0 0 2px var(--brand),0 8px 24px rgba(0,112,243,.25)}
   50%{box-shadow:0 0 0 4px var(--brand),0 14px 44px rgba(0,112,243,.5)}
 }
+
+/* ============================================================
+   Quick Actions Section (Reference Redesign)
+   ============================================================ */
+.quick-actions-section {
+  width: 100%;
+  max-width: 620px;
+  margin: 16px 0 24px;
+}
+
+/* Full-width Pill Button: Share with students */
+.qa-share-btn {
+  width: 100%;
+  height: 56px;
+  min-height: 56px;
+  border-radius: 9999px;
+  background: #2979d6;
+  border: none;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 22px 0 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
+  box-shadow: 0 4px 14px rgba(41, 121, 214, 0.25);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.qa-share-btn:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(41, 121, 214, 0.38);
+}
+.qa-share-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.96);
+}
+.qa-share-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.qa-share-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-size: 17px;
+  flex: 0 0 40px;
+}
+.qa-share-title {
+  font-family: 'Geist', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qa-share-arrow {
+  color: #ffffff;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: transform .18s ease;
+}
+.qa-share-btn:hover .qa-share-arrow {
+  transform: translateX(3px);
+}
+
+/* 2x2 Grid */
+.qa-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* Card Button */
+.qa-card {
+  position: relative;
+  width: 100%;
+  min-height: 56px;
+  border-radius: 9999px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  color: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.qa-card:hover {
+  background: #242424;
+  border-color: #383838;
+  transform: translateY(-1px);
+}
+.qa-card:active {
+  transform: translateY(0);
+  background: #1e1e1e;
+}
+
+/* Left Icon Container */
+.qa-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  font-size: 15px;
+}
+
+/* Mock tests: Blue */
+.qa-icon-mock {
+  background: rgba(41, 121, 214, 0.22);
+  color: #3b82f6;
+}
+/* Ask seniors: Purple */
+.qa-icon-seniors {
+  background: rgba(168, 85, 247, 0.22);
+  color: #a855f7;
+}
+/* Juniors request: Green */
+.qa-icon-juniors {
+  background: rgba(34, 197, 94, 0.22);
+  color: #22c55e;
+}
+/* Lost & Found: Amber / Orange */
+.qa-icon-lostfound {
+  background: rgba(245, 158, 11, 0.22);
+  color: #f59e0b;
+}
+
+/* Card Content / Label */
+.qa-card-content {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+}
+.qa-card-title {
+  font-family: 'Geist', sans-serif;
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.18;
+  color: #ffffff;
+  text-align: left;
+}
+
+/* "New" Badge */
+.qa-new-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 197, 94, 0.16);
+  color: #4ade80;
+  font-family: 'Geist', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+/* Red Notification Dot */
+.qa-red-dot {
+  position: absolute;
+  top: 9px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.75);
+  pointer-events: none;
+}
+
+/* Light Theme Adaptations (if user switches to light theme) */
+[data-theme="light"] .qa-card {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+[data-theme="light"] .qa-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+[data-theme="light"] .qa-card-title {
+  color: #0f172a;
+}
+[data-theme="light"] .qa-icon-mock {
+  background: rgba(41, 121, 214, 0.12);
+  color: #2563eb;
+}
+[data-theme="light"] .qa-icon-seniors {
+  background: rgba(168, 85, 247, 0.14);
+  color: #9333ea;
+}
+[data-theme="light"] .qa-icon-juniors {
+  background: rgba(34, 197, 94, 0.14);
+  color: #16a34a;
+}
+[data-theme="light"] .qa-icon-lostfound {
+  background: rgba(245, 158, 11, 0.14);
+  color: #d97706;
+}
+[data-theme="light"] .qa-new-badge {
+  background: rgba(34, 197, 94, 0.14);
+  color: #15803d;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .quick-actions-section {
+    margin: 14px 0 20px;
+  }
+  .qa-share-btn {
+    height: 52px;
+    min-height: 52px;
+    padding: 0 18px 0 8px;
+  }
+  .qa-share-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+    flex: 0 0 36px;
+  }
+  .qa-share-title {
+    font-size: 15px;
+  }
+  .qa-grid {
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .qa-card {
+    min-height: 52px;
+    padding: 6px 10px 6px 8px;
+    gap: 8px;
+  }
+  .qa-icon-wrap {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    font-size: 14px;
+  }
+  .qa-card-title {
+    font-size: 13.5px;
+  }
+  .qa-new-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+  .qa-red-dot {
+    top: 7px;
+    right: 11px;
+    width: 7px;
+    height: 7px;
+  }
+}
+
+@media (max-width: 360px) {
+  .qa-card-title {
+    font-size: 12.5px;
+  }
+  .qa-card {
+    padding: 6px 8px 6px 6px;
+    gap: 6px;
+  }
+}
+
+/* Juniors Request Modal & Placeholders */
+.juniors-dialog {
+  width: min(100%, 540px);
+  max-height: min(88dvh, 640px);
+  display: flex;
+  flex-direction: column;
+}
+.juniors-req-content {
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding: 4px 0;
+  max-height: 60dvh;
+}
+.jr-placeholder-card {
+  text-align: center;
+  padding: 32px 20px;
+  background: var(--surface-2);
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.jr-placeholder-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.15);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  color: #22c55e;
+}
+.jr-placeholder-card h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--ink);
+}
+.jr-placeholder-card p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 380px;
+  line-height: 1.5;
+}
+
 
 

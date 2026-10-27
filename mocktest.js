@@ -215,6 +215,9 @@
       }
     }
     updateFullscreenButtons();
+    if (location.hash === '#mocktests' || location.hash === '#mocktest') {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    }
   };
 
   /* ---- Fullscreen / Immersive Mode ---- */
