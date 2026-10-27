@@ -275,11 +275,9 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         <strong>${searching?'This material isn\'t in the library yet':'The library is quiet — be the first!'}</strong><br>
         <small>${searching?'No Notes/PYQs match your filters right now. Be the first to upload it, or clear filters:':'You could be the first to share material here.'}</small>
         <div class="empty-actions">
-          ${searching?`<button class="primary pf-empty-clear-btn" onclick="clearAllPrimeFilters()"><i class="fa-solid fa-rotate-left"></i> Filters clear karo</button>`:''}
           <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
           <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Request from friends</button>
           ${canRequestSenior()?`<button class="sr-request" onclick="openSeniorRequest()"><i class="fa-solid fa-users"></i> Request from seniors</button>`:''}
-          ${searching?`<button class="secondary" onclick="clearSearchFilters()"><i class="fa-solid fa-filter-circle-xmark"></i> Clear search &amp; filters</button>`:''}
         </div></div>`;
     }
     function requestMaterialOnWhatsApp(){
@@ -666,14 +664,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       syncPrimeFinderUI();
     }
     function resetFinder(){clearAllPrimeFilters()}
-    /* Search results aane ke baad filters aur search query dono reset karo. */
-    function clearSearchFilters(){
-      const __search=$('search');
-      if(__search)__search.value='';
-      state.query='';
-      clearAllPrimeFilters();
-      closeSuggestions();
-    }
     let lastSearchTrack={query:'',ts:0};
     function searchResources(value){clearTimeout(__searchTimeout);__searchTimeout=setTimeout(()=>{state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count})}}catch(error){}},200)}
     /* ---- Subject filter engine ----
