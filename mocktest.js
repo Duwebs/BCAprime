@@ -11,15 +11,130 @@
 'use strict';
 
 (function () {
-  // BCA Standard Curriculum Subjects by Semester
-  const BCA_SUBJECTS = {
-    1: ['Programming Principles & C', 'Digital Electronics & Computer Architecture', 'Discrete Mathematics', 'Business Communication', 'Environmental Studies'],
-    2: ['Data Structures using C', 'Object Oriented Programming with C++', 'Organization Behavior', 'Financial Accounting & Management', 'Mathematics II'],
-    3: ['Database Management Systems', 'Computer Networks', 'Java Programming', 'Operating Systems', 'Software Engineering'],
-    4: ['Web Technologies & PHP', 'Python Programming', 'Information Security & Cyber Law', 'Design & Analysis of Algorithms', 'Computer Graphics'],
-    5: ['Mobile Application Development', 'Cloud Computing', 'Artificial Intelligence', 'Data Mining & Warehousing', 'E-Commerce'],
-    6: ['Major Project', 'Machine Learning & Big Data', 'Internet of Things (IoT)', 'Network Security & Cryptography', 'Software Testing & Quality Assurance']
+  // Existing BCA Subjects already defined in the website (from Supabase subjects & resources)
+  const WEBSITE_SUBJECTS = {
+    1: [
+      'C Programming',
+      'CFOA',
+      'Elements of Statistics',
+      'PPA',
+      'Professional Communication'
+    ],
+    2: [
+      'Data Communication',
+      'Data Structure using C',
+      'DBMS',
+      'Discrete Mathematics',
+      'Operating System'
+    ],
+    3: [
+      'IOT',
+      'Java Programming',
+      'Operating Systems',
+      'Professional English Proficiency',
+      'Software Engineering',
+      'Web Technologies'
+    ]
   };
+
+  // Dynamic subjects cache (synced from website database)
+  const dynamicSubjects = {};
+
+  // Get all semesters that currently have subjects defined in the website
+  function getAvailableSemesters() {
+    const semSet = new Set();
+    Object.keys(WEBSITE_SUBJECTS).forEach(s => {
+      if ((WEBSITE_SUBJECTS[s] || []).length > 0) semSet.add(Number(s));
+    });
+    Object.keys(dynamicSubjects).forEach(s => {
+      if ((dynamicSubjects[s] || []).size > 0) semSet.add(Number(s));
+    });
+    return [...semSet].sort((a, b) => a - b);
+  }
+
+  // Get subjects for a specific semester strictly from website data
+  function getSubjectsForSemester(semester) {
+    const sem = Number(semester);
+    const seen = new Map();
+
+    // 1. Base website subjects
+    (WEBSITE_SUBJECTS[sem] || []).forEach(name => {
+      const clean = String(name || '').trim();
+      const key = clean.toLowerCase();
+      if (key && !seen.has(key)) seen.set(key, clean);
+    });
+
+    // 2. Dynamically loaded subjects from database
+    if (dynamicSubjects[sem]) {
+      dynamicSubjects[sem].forEach(name => {
+        const clean = String(name || '').trim();
+        const key = clean.toLowerCase();
+        if (key && !seen.has(key)) seen.set(key, clean);
+      });
+    }
+
+    // 3. Cloud subjects from app.js if available
+    if (typeof window.getCustomSubjects === 'function') {
+      try {
+        const customs = window.getCustomSubjects(sem);
+        if (Array.isArray(customs)) {
+          customs.forEach(name => {
+            const clean = String(name || '').trim();
+            const key = clean.toLowerCase();
+            if (key && !seen.has(key)) seen.set(key, clean);
+          });
+        }
+      } catch (e) {}
+    }
+
+    return [...seen.values()].sort((a, b) => a.localeCompare(b));
+  }
+
+  // Sync subjects directly from Supabase (public subjects + approved resources)
+  async function loadWebsiteSubjectsFromDb() {
+    if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+    try {
+      const { data: cloudSubs } = await supabaseClient
+        .from('subjects')
+        .select('name, semester')
+        .eq('is_public', true);
+
+      if (Array.isArray(cloudSubs)) {
+        cloudSubs.forEach(s => {
+          const sem = Number(s.semester);
+          const name = String(s.name || '').trim();
+          if (sem && name) {
+            if (!dynamicSubjects[sem]) dynamicSubjects[sem] = new Set();
+            dynamicSubjects[sem].add(name);
+          }
+        });
+      }
+
+      const { data: resSubs } = await supabaseClient
+        .from('resources')
+        .select('subject, semester')
+        .eq('status', 'approved');
+
+      if (Array.isArray(resSubs)) {
+        resSubs.forEach(r => {
+          const sem = Number(r.semester);
+          const name = String(r.subject || '').trim();
+          if (sem && name && name.toLowerCase() !== 'syllabus') {
+            if (!dynamicSubjects[sem]) dynamicSubjects[sem] = new Set();
+            dynamicSubjects[sem].add(name);
+          }
+        });
+      }
+
+      // Re-populate semester and subject options if modal is open
+      const semSel = $id('mtAiSem');
+      if (semSel && semSel.value) {
+        updateAiSubjectOptions(parseInt(semSel.value, 10));
+      }
+    } catch (err) {
+      console.warn('[MockTest] Could not sync website subjects from database:', err.message);
+    }
+  }
 
   // State Management
   const mtState = {
@@ -72,8 +187,8 @@
     // Populate semester and subjects in AI generator form
     initAiGeneratorForm(preferredSubject);
 
-    // Fetch daily quota & library mock tests
-    await Promise.all([fetchAiQuota(), loadLibraryQuizzes()]);
+    // Fetch daily quota, library mock tests, and sync website subjects
+    await Promise.all([fetchAiQuota(), loadLibraryQuizzes(), loadWebsiteSubjectsFromDb()]);
   };
 
   window.closeMockTestModal = function () {
@@ -163,10 +278,30 @@
     const subSel = $id('mtAiSubject');
     if (!semSel || !subSel) return;
 
-    // Detect user's current semester from app state if available
-    const userSem = (typeof state !== 'undefined' && state.sem && state.sem !== 'all') ? parseInt(state.sem, 10) : 3;
-    semSel.value = String(userSem);
+    // Populate semester dropdown strictly from semesters available in website
+    const availableSems = getAvailableSemesters();
+    if (availableSems.length) {
+      semSel.innerHTML = availableSems.map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+    }
 
+    // Detect user's current semester from app state if available, or match preferredSubject
+    let userSem = availableSems.includes(3) ? 3 : (availableSems[0] || 1);
+    if (preferredSubject) {
+      for (const s of availableSems) {
+        const subs = getSubjectsForSemester(s);
+        if (subs.some(sub => sub.toLowerCase() === preferredSubject.toLowerCase())) {
+          userSem = s;
+          break;
+        }
+      }
+    } else if (typeof state !== 'undefined' && state.sem && state.sem !== 'all') {
+      const parsed = parseInt(state.sem, 10);
+      if (availableSems.includes(parsed)) {
+        userSem = parsed;
+      }
+    }
+
+    semSel.value = String(userSem);
     updateAiSubjectOptions(userSem, preferredSubject);
 
     semSel.onchange = function () {
@@ -176,16 +311,23 @@
 
   function updateAiSubjectOptions(semester, defaultSubject = '') {
     const subSel = $id('mtAiSubject');
+    const genBtn = $id('mtGenerateBtn');
     if (!subSel) return;
 
-    const list = BCA_SUBJECTS[semester] || BCA_SUBJECTS[3];
-    subSel.innerHTML = list.map(s => `<option value="${s}" ${s === defaultSubject ? 'selected' : ''}>${s}</option>`).join('') +
-      '<option value="__custom">+ Custom / University Subject...</option>';
+    const list = getSubjectsForSemester(semester);
 
-    subSel.onchange = function () {
-      const customWrap = $id('mtAiCustomSubWrap');
-      if (customWrap) customWrap.hidden = (this.value !== '__custom');
-    };
+    if (!list.length) {
+      subSel.innerHTML = `<option value="" disabled selected>No subjects available for Semester ${semester}</option>`;
+      if (genBtn) genBtn.disabled = true;
+      return;
+    }
+
+    if (genBtn) genBtn.disabled = false;
+    subSel.innerHTML = list.map(s => `<option value="${s}" ${s === defaultSubject ? 'selected' : ''}>${s}</option>`).join('');
+
+    // Hide custom subject wrap since we strictly use existing website subjects
+    const customWrap = $id('mtAiCustomSubWrap');
+    if (customWrap) customWrap.hidden = true;
   }
 
   async function fetchAiQuota() {
@@ -455,13 +597,10 @@
 
     const btn = $id('mtGenerateBtn');
     const sem = parseInt($id('mtAiSem').value, 10) || 3;
-    let subject = $id('mtAiSubject').value;
-    if (subject === '__custom') {
-      subject = ($id('mtAiCustomSubInput').value || '').trim();
-      if (!subject) {
-        alert('Please enter your subject name.');
-        return;
-      }
+    let subject = ($id('mtAiSubject').value || '').trim();
+    if (!subject || subject === '__custom') {
+      alert('Please select a valid subject for Semester ' + sem + '.');
+      return;
     }
     const topic = ($id('mtAiTopic') ? $id('mtAiTopic').value : '').trim();
     const count = parseInt($id('mtAiCount') ? $id('mtAiCount').value : '10', 10) || 10;
