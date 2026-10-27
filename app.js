@@ -470,7 +470,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const semTxt=`Sem ${state.sem}`;
         const subTxt=isAllSub?'All subjects':state.subject;
         const typeTxt=(state.type==='all'||!state.type)?'All':(state.type==='notes'?'Notes':'PYQs');
-        stickySummary.textContent=`${semTxt} · ${subTxt} · ${typeTxt} ⌄`;
+        stickySummary.textContent=`${semTxt} · ${subTxt} · ${typeTxt}`;
       }
 
       // 6. Keep legacy inputs in sync
