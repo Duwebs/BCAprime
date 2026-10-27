@@ -572,33 +572,376 @@ html.auth-known #appTabs{display:grid!important}
 
 
 /* ============================================================
-   PrimeFinder 2.0 — #bca-prime-finder
+   PrimeFinder Native Mobile Redesign — #bca-prime-finder
    ============================================================ */
-.prime-finder{position:relative;padding:22px;border-radius:18px;overflow:hidden}
-.prime-finder::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--brand),#7c5cff,#ff7ab0,var(--brand));background-size:200% 100%;animation:finderShimmer 6s linear infinite}
-@keyframes finderShimmer{to{background-position:200% 0}}
-.finder-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:15px;flex-wrap:wrap}
-.finder-badge{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:999px;background:color-mix(in srgb,var(--brand) 14%,transparent);color:var(--brand);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
-.finder-badge i{animation:finderSparkle 2.4s ease-in-out infinite}
-@keyframes finderSparkle{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.3) rotate(12deg)}}
-.finder-hint{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}
-.finder-hint i{color:#ffd93d;font-size:13px}
-.prime-finder .field select,
-.prime-finder .field input{transition:border-color .18s ease,box-shadow .18s ease}
-.prime-finder .field select:hover,
-.prime-finder .field input:hover{border-color:var(--brand)}
-.prime-finder .field select:focus,
-.prime-finder .field input:focus{border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 18%,transparent)}
-.prime-finder .finder-action{
-  background:linear-gradient(135deg,var(--brand),#7c5cff);
-  border:0;color:#fff;border-radius:9999px;font-weight:700;
-  -webkit-tap-highlight-color:transparent;cursor:pointer;
-  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease;
+.pf-header-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.pf-title{margin:0;font:700 22px 'Geist';letter-spacing:-.02em;color:var(--ink)}
+.pf-clear-link{border:0;background:transparent;color:var(--brand);font:600 13.5px 'Geist';padding:4px 8px;border-radius:6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;-webkit-tap-highlight-color:transparent;transition:opacity .15s ease,transform .12s ease}
+.pf-clear-link:hover{opacity:.85}
+.pf-clear-link:active{transform:scale(.97)}
+
+.prime-finder{
+  position:relative;
+  padding:16px;
+  border-radius:18px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  transition:box-shadow .3s ease,border-color .3s ease,transform .3s ease;
 }
-.prime-finder .finder-action:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 10px 24px color-mix(in srgb,var(--brand) 40%,transparent)}
-.prime-finder .finder-action:active{transform:translateY(0) scale(.96);filter:brightness(.92);box-shadow:0 4px 14px color-mix(in srgb,var(--brand) 30%,transparent)}
-[data-theme=dark] .prime-finder .finder-action{color:#fff}
-@media(max-width:900px){.finder-top{flex-direction:column;align-items:flex-start}}
+.prime-finder.pf-highlight-pulse{
+  animation:pfPulse 1.2s ease-in-out;
+}
+@keyframes pfPulse{
+  0%,100%{box-shadow:var(--shadow)}
+  50%{box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 45%,transparent),0 12px 30px rgba(0,112,243,.2);border-color:var(--brand)}
+}
+
+/* 2. Segmented control */
+.pf-segmented-wrap{width:100%}
+.pf-segmented{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  background:color-mix(in srgb,var(--surface-2) 90%,var(--line));
+  border:1px solid var(--line);
+  border-radius:9999px;
+  padding:3px;
+  user-select:none;
+}
+.pf-seg-glider{
+  position:absolute;
+  top:3px;
+  bottom:3px;
+  left:3px;
+  width:calc((100% - 6px) / 3);
+  background:var(--surface);
+  border-radius:9999px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+  transition:transform .24s cubic-bezier(.2,.9,.3,1.1);
+  z-index:1;
+  pointer-events:none;
+}
+[data-theme=dark] .pf-seg-glider{
+  background:color-mix(in srgb,var(--brand) 20%,var(--surface-2));
+  border:1px solid color-mix(in srgb,var(--brand) 38%,transparent);
+  box-shadow:0 3px 12px rgba(0,0,0,.45);
+}
+.pf-seg-btn{
+  position:relative;
+  z-index:2;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font:600 13.5px 'Geist';
+  padding:8px 0;
+  border-radius:9999px;
+  cursor:pointer;
+  text-align:center;
+  outline:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:color .18s ease,transform .12s cubic-bezier(.2,.9,.3,1);
+}
+.pf-seg-btn:active{transform:scale(.97)}
+.pf-seg-btn.active{color:var(--ink);font-weight:700}
+[data-theme=dark] .pf-seg-btn.active{color:#fff}
+
+/* 3. Semester & Subject Picker Chips (side-by-side) */
+.pf-picker-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+.pf-picker-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  color:var(--ink);
+  cursor:pointer;
+  text-align:left;
+  min-width:0;
+  outline:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:border-color .18s ease,background-color .18s ease,transform .12s cubic-bezier(.2,.9,.3,1);
+}
+.pf-picker-chip:hover{border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}
+.pf-picker-chip:active{transform:scale(.97)}
+.pf-picker-chip.is-filtered{
+  border-color:color-mix(in srgb,var(--brand) 55%,var(--line));
+  background:color-mix(in srgb,var(--brand) 8%,var(--surface-2));
+}
+.pf-chip-icon{
+  width:32px;
+  height:32px;
+  border-radius:9px;
+  background:color-mix(in srgb,var(--brand) 14%,var(--surface));
+  color:var(--brand);
+  display:grid;
+  place-items:center;
+  font-size:13px;
+  flex:none;
+}
+.pf-picker-chip.is-filtered .pf-chip-icon{
+  background:var(--brand);
+  color:#fff;
+}
+.pf-chip-text{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.25}
+.pf-chip-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.pf-chip-val{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.pf-chip-arrow{font-size:10px;color:var(--muted);flex:none;margin-left:2px}
+
+/* 4. Active filter chips row */
+.pf-active-filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  padding-top:4px;
+  animation:pfFadeIn .2s ease both;
+}
+.pf-active-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 10px 5px 12px;
+  border-radius:9999px;
+  background:color-mix(in srgb,var(--brand) 12%,var(--surface-2));
+  border:1px solid color-mix(in srgb,var(--brand) 30%,var(--line));
+  color:var(--ink);
+  font-size:12.5px;
+  font-weight:600;
+  animation:pfPop .2s cubic-bezier(.2,.9,.3,1.2) both;
+}
+.pf-active-chip-remove{
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1;
+  padding:2px 4px;
+  border-radius:50%;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+  transition:color .15s ease,transform .12s ease;
+}
+.pf-active-chip-remove:hover{color:var(--ink)}
+.pf-active-chip-remove:active{transform:scale(.97)}
+
+/* 5. Result count */
+.pf-meta-row{display:flex;align-items:center;justify-content:space-between;padding-top:2px}
+.pf-result-count{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+
+/* 7. Sticky bar */
+.pf-sticky-bar{
+  position:sticky;
+  top:68px;
+  z-index:9;
+  display:flex;
+  justify-content:center;
+  margin:-4px 0 12px;
+  pointer-events:auto;
+  animation:pfStickyDrop .25s cubic-bezier(.2,.9,.3,1.1) both;
+}
+@keyframes pfStickyDrop{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.pf-sticky-content{display:inline-flex}
+.pf-sticky-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 16px;
+  border-radius:9999px;
+  background:color-mix(in srgb,var(--surface) 92%,var(--brand-2));
+  border:1px solid color-mix(in srgb,var(--brand) 32%,var(--line));
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+  backdrop-filter:blur(14px);
+  cursor:pointer;
+  font-size:13px;
+  font-weight:600;
+  color:var(--ink);
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .15s cubic-bezier(.2,.9,.3,1),box-shadow .2s ease;
+}
+.pf-sticky-pill:hover{box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.pf-sticky-pill:active{transform:scale(.97)}
+.pf-sticky-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);flex:none}
+.pf-sticky-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.pf-sticky-chevron{font-size:11px;color:var(--brand);flex:none}
+
+/* Bottom Sheets */
+.pf-sheet-modal{
+  position:fixed;
+  inset:0;
+  display:none;
+  z-index:9999;
+  align-items:flex-end;
+  justify-content:center;
+  padding:0;
+}
+.pf-sheet-modal.open{display:flex}
+.pf-sheet-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  animation:pfBackdropIn .22s ease both;
+}
+@keyframes pfBackdropIn{from{opacity:0}to{opacity:1}}
+.pf-sheet{
+  position:relative;
+  z-index:2;
+  width:100%;
+  max-width:540px;
+  max-height:85vh;
+  border-radius:24px 24px 0 0;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-bottom:0;
+  box-shadow:0 -12px 40px rgba(0,0,0,.3);
+  padding:12px 18px calc(24px + env(safe-area-inset-bottom,0px));
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  animation:pfSheetSlideUp .3s cubic-bezier(.2,.9,.3,1.08) both;
+}
+@keyframes pfSheetSlideUp{
+  from{transform:translateY(100%)}
+  to{transform:translateY(0)}
+}
+.pf-sheet-handle{
+  width:40px;
+  height:4.5px;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--ink) 20%,transparent);
+  margin:2px auto 14px;
+  flex:none;
+}
+.pf-sheet-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:12px;
+  flex:none;
+}
+.pf-sheet-title{margin:0;font:700 19px 'Geist';color:var(--ink)}
+.pf-sheet-close{
+  border:0;
+  background:var(--surface-2);
+  color:var(--muted);
+  width:32px;
+  height:32px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  font-size:18px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.pf-sheet-close:active{transform:scale(.97)}
+
+.pf-sheet-search{
+  position:relative;
+  margin-bottom:10px;
+  flex:none;
+}
+.pf-sheet-search i{
+  position:absolute;
+  left:12px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--muted);
+  font-size:13px;
+}
+.pf-sheet-search input{
+  width:100%;
+  height:40px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:var(--surface-2);
+  color:var(--ink);
+  padding:0 12px 0 34px;
+  font-size:14px;
+  outline:0;
+}
+.pf-sheet-search input:focus{border-color:var(--brand)}
+
+.pf-sheet-list{
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin:4px 0;
+  max-height:55vh;
+  padding-right:2px;
+}
+.pf-sheet-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 14px;
+  border-radius:12px;
+  border:0;
+  background:transparent;
+  color:var(--ink);
+  font:500 15px 'Geist';
+  text-align:left;
+  cursor:pointer;
+  outline:0;
+  -webkit-tap-highlight-color:transparent;
+  transition:background-color .15s ease,transform .12s cubic-bezier(.2,.9,.3,1);
+}
+.pf-sheet-item:hover{background:var(--surface-2)}
+.pf-sheet-item:active{transform:scale(.97)}
+.pf-sheet-item.selected{
+  background:color-mix(in srgb,var(--brand) 12%,transparent);
+  color:var(--brand);
+  font-weight:700;
+}
+.pf-check{color:var(--brand);font-size:15px;flex:none}
+.pf-sheet-foot{
+  padding-top:10px;
+  border-top:1px solid var(--line);
+  margin-top:6px;
+  flex:none;
+}
+.pf-sheet-add-btn{
+  width:100%;
+  padding:11px;
+  border-radius:11px;
+  border:1px dashed var(--line);
+  background:var(--surface-2);
+  color:var(--brand);
+  font:600 14px 'Geist';
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.pf-sheet-add-btn:active{transform:scale(.97)}
+
+@keyframes pfFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pfPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
+@media(max-width:600px){
+  .pf-title{font-size:20px}
+  .prime-finder{padding:14px;gap:10px}
+  .pf-picker-chip{padding:9px 11px}
+  .pf-chip-icon{width:28px;height:28px;font-size:12px}
+  .pf-chip-label{font-size:10px}
+  .pf-chip-val{font-size:13px}
+  .pf-sticky-bar{top:62px}
+}
 
 /* ============================================================
 

@@ -50,7 +50,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=57">
+  <link rel="stylesheet" href="styles.css?v=58">
   <link rel="stylesheet" href="mocktest.css?v=5">
 </head>
 <body>
@@ -187,7 +187,77 @@
       </div>
     </section>
 
-    <section class="section" id="library"><div class="section-head"><div><h2>PrimeFinder</h2></div></div><div class="finder prime-finder" id="bca-prime-finder"><div class="finder-top"><span class="finder-badge"><i class="fa-solid fa-wand-magic-sparkles"></i>Smart Finder</span><span class="finder-hint"><i class="fa-solid fa-lightbulb"></i>Match College + Semester + Subject — perfect material found</span></div><div class="finder-grid"><div class="field"><label for="semesterFilter">Semester</label><select id="semesterFilter" onchange="applyFilters()"><option value="all">All semesters</option><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label for="subjectFilter">Subject</label><select id="subjectFilter" onchange="onSubjectFilterChange(this)"><option value="all">All subjects</option></select></div><button class="primary finder-action" onclick="applyFilters()"><i class="fa-solid fa-magnifying-glass"></i> Find</button><button class="secondary finder-reset" onclick="resetFinder()"><i class="fa-solid fa-rotate-left"></i> Reset</button></div><div class="chips" id="typeChips"><button class="chip active" onclick="setType('all',this)">All</button><button class="chip" onclick="setType('notes',this)">Notes</button><button class="chip" onclick="setType('pyq',this)">PYQs</button></div><div class="add-subject-row finder-add-row" id="finderAddSubjectRow" hidden><input id="finderNewSubjectInput" type="text" maxlength="80" placeholder="Type a new subject&#8230;" onkeydown="if(event.key==='Enter')confirmFinderAddSubject()"><button class="primary" onclick="confirmFinderAddSubject()">Add</button><button class="secondary" onclick="cancelFinderAddSubject()" aria-label="Cancel">&times;</button></div></div>
+    <section class="section" id="library">
+      <!-- 7. Scroll hone par sticky mini bar -->
+      <div class="pf-sticky-bar" id="pfStickyBar" hidden onclick="expandPrimeFinder()">
+        <div class="pf-sticky-content">
+          <span class="pf-sticky-pill">
+            <span class="pf-sticky-dot"></span>
+            <span class="pf-sticky-text" id="pfStickySummary">All sems &middot; All subjects &middot; All</span>
+            <i class="fa-solid fa-chevron-down pf-sticky-chevron"></i>
+          </span>
+        </div>
+      </div>
+
+      <!-- 1. Header row: left mein PrimeFinder, right mein Clear text link -->
+      <div class="pf-header-row">
+        <div class="pf-header-left">
+          <h2 class="pf-title">PrimeFinder</h2>
+        </div>
+        <div class="pf-header-right">
+          <button type="button" class="pf-clear-link" id="pfClearBtn" onclick="clearAllPrimeFilters()" hidden>Clear</button>
+        </div>
+      </div>
+
+      <div class="finder prime-finder" id="bca-prime-finder">
+        <!-- 2. Segmented control: All | Notes | PYQs joined pill bar with sliding glider -->
+        <div class="pf-segmented-wrap">
+          <div class="pf-segmented" id="typeChips" role="tablist">
+            <div class="pf-seg-glider" id="pfSegGlider"></div>
+            <button type="button" class="pf-seg-btn chip active" data-type="all" onclick="setPrimeType('all',this)" role="tab" aria-selected="true">All</button>
+            <button type="button" class="pf-seg-btn chip" data-type="notes" onclick="setPrimeType('notes',this)" role="tab" aria-selected="false">Notes</button>
+            <button type="button" class="pf-seg-btn chip" data-type="pyq" onclick="setPrimeType('pyq',this)" role="tab" aria-selected="false">PYQs</button>
+          </div>
+        </div>
+
+        <!-- 3. Semester aur Subject chips side-by-side -->
+        <div class="pf-picker-row">
+          <button type="button" class="pf-picker-chip" id="pfSemPickerBtn" onclick="openPrimeSheet('sem')">
+            <span class="pf-chip-icon"><i class="fa-solid fa-layer-group"></i></span>
+            <div class="pf-chip-text">
+              <span class="pf-chip-label">Semester</span>
+              <strong class="pf-chip-val" id="pfSemChipVal">All Semesters</strong>
+            </div>
+            <i class="fa-solid fa-chevron-down pf-chip-arrow"></i>
+          </button>
+
+          <button type="button" class="pf-picker-chip" id="pfSubPickerBtn" onclick="openPrimeSheet('sub')">
+            <span class="pf-chip-icon"><i class="fa-solid fa-book-open"></i></span>
+            <div class="pf-chip-text">
+              <span class="pf-chip-label">Subject</span>
+              <strong class="pf-chip-val" id="pfSubChipVal">All Subjects</strong>
+            </div>
+            <i class="fa-solid fa-chevron-down pf-chip-arrow"></i>
+          </button>
+        </div>
+
+        <!-- 4. Active filter chips ki row -->
+        <div class="pf-active-filters" id="pfActiveFilters" hidden></div>
+
+        <!-- 5. Result count chhote text mein -->
+        <div class="pf-meta-row">
+          <span class="pf-result-count" id="pfResultCount">0 results</span>
+        </div>
+
+        <!-- Legacy elements kept hidden for safe backward compatibility with scripts -->
+        <select id="semesterFilter" hidden onchange="applyFilters()"><option value="all">All semesters</option></select>
+        <select id="subjectFilter" hidden onchange="onSubjectFilterChange(this)"><option value="all">All subjects</option></select>
+        <div class="add-subject-row finder-add-row" id="finderAddSubjectRow" hidden>
+          <input id="finderNewSubjectInput" type="text" maxlength="80" placeholder="Type a new subject&#8230;" onkeydown="if(event.key==='Enter')confirmFinderAddSubject()">
+          <button class="primary" onclick="confirmFinderAddSubject()">Add</button>
+          <button class="secondary" onclick="cancelFinderAddSubject()" aria-label="Cancel">&times;</button>
+        </div>
+      </div>
       <div class="section-head" style="margin-top:20px"><div><h2>Your subjects</h2></div><span class="count">Tap a subject - choose Notes or PYQ</span></div>
       <div class="add-subject-row"><input id="newSubjectInput" type="text" maxlength="80" placeholder="Type your subject (e.g. Hindi Literature)&#8230;" onkeydown="if(event.key==='Enter')addSubjectCard()"><button class="primary" onclick="addSubjectCard()"><i class="fa-solid fa-plus"></i> Add subject</button></div>
       <div class="subject-cards" id="subjectCards"></div></section>
@@ -266,6 +336,41 @@
     </footer>
   </main>
   <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab bottom-star" onclick="openUpload()"><span class="bottom-star-icon"><i class="fa-solid fa-plus"></i></span><span class="bottom-star-text">Upload</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
+
+  <!-- PrimeFinder Semester Bottom Sheet -->
+  <div class="modal pf-sheet-modal" id="pfSemSheet" role="dialog" aria-modal="true" aria-labelledby="pfSemSheetTitle">
+    <div class="pf-sheet-backdrop" onclick="closePrimeSheet('sem')"></div>
+    <div class="pf-sheet" id="pfSemSheetCard">
+      <div class="pf-sheet-handle"></div>
+      <div class="pf-sheet-head">
+        <h3 id="pfSemSheetTitle" class="pf-sheet-title">Select Semester</h3>
+        <button type="button" class="pf-sheet-close" onclick="closePrimeSheet('sem')" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="pf-sheet-list" id="pfSemSheetList"></div>
+    </div>
+  </div>
+
+  <!-- PrimeFinder Subject Bottom Sheet -->
+  <div class="modal pf-sheet-modal" id="pfSubSheet" role="dialog" aria-modal="true" aria-labelledby="pfSubSheetTitle">
+    <div class="pf-sheet-backdrop" onclick="closePrimeSheet('sub')"></div>
+    <div class="pf-sheet" id="pfSubSheetCard">
+      <div class="pf-sheet-handle"></div>
+      <div class="pf-sheet-head">
+        <h3 id="pfSubSheetTitle" class="pf-sheet-title">Select Subject</h3>
+        <button type="button" class="pf-sheet-close" onclick="closePrimeSheet('sub')" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="pf-sheet-search" id="pfSubSheetSearchBox">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="pfSubSearchInput" placeholder="Search subject name&#8230;" oninput="onPrimeSubSearch(this.value)">
+      </div>
+      <div class="pf-sheet-list" id="pfSubSheetList"></div>
+      <div class="pf-sheet-foot">
+        <button type="button" class="pf-sheet-add-btn" onclick="openFinderAddSubjectFromSheet()">
+          <i class="fa-solid fa-plus"></i> Add new subject
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal" id="collegeModal"><div class="dialog"><div class="dialog-head"><h2>Choose your college</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Resources marked for your college will appear first.</p><div class="field"><input id="collegeSearch" aria-label="Search colleges" placeholder="Search colleges&#8230;" oninput="renderColleges(this.value)"></div><div class="college-list" id="collegeList"></div><div class="onboarding-custom"><input id="collegeCustom" aria-label="Add your college name" placeholder="College not listed? Add it here&#8230;" onkeydown="if(event.key==='Enter')useCustomCollege()"><button class="primary" onclick="useCustomCollege()"><i class="fa-solid fa-plus"></i> Add</button></div></div></div>
   <div class="modal" id="uploadModal"><div class="dialog"><div class="dialog-head"><h2>Share BCA material</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><form class="upload-form" autocomplete="off" onsubmit="submitUpload(event)"><label class="file-box" id="fileBox" for="file"><i class="fa-solid fa-file-arrow-up"></i><span id="fileName">Choose files or drag &amp; drop — PDF, DOCX, PPTX, images</span><small class="file-box-sub" id="fileNameHint">Select 5–10 photos of notes together &mdash; they auto-merge into 1 clean PDF</small><input id="file" name="file" type="file" accept=".pdf,.docx,.doc,.pptx,.ppt,.jpg,.jpeg,.png,.webp,.heic,.zip" multiple hidden onchange="showFile(this)"></label><div class="drive-import-row"><button type="button" class="secondary drive-import-btn" onclick="openDrivePicker()"><i class="fa-brands fa-google-drive"></i> Import from Google Drive</button></div><div class="upload-photo-wrap" id="uploadPhotoWrap" hidden></div><div class="upload-file-badges" id="uploadFileBadges" hidden></div><div class="upload-progress" id="uploadProgress" hidden><div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadProgressFill"></div></div><span class="upload-progress-text" id="uploadProgressText"></span></div><div class="field"><label>Title</label><input name="title" required placeholder="e.g. DBMS Unit 2 notes"></div><div class="row"><div class="field"><label>Semester</label><select name="semester" onchange="updateUploadSubjects()"><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label>Type</label><select name="type"><option value="notes">Notes</option><option value="pyq">PYQ</option></select></div></div><div class="field"><label>Subject</label><select name="subjectSelect" id="uploadSubjectSelect" onchange="onUploadSubjectChange(this)"><option value="__other">+ Other / new subject&#8230;</option></select></div><div class="field" id="customSubjectField" hidden><label>Your subject name</label><input name="customSubject" maxlength="80" placeholder="e.g. a subject only your college has"></div><button class="primary" type="submit">Publish resource</button></form></div></div>
@@ -730,7 +835,7 @@
     return window.__pdfjsReady
   }</script>
   <script src="whats-new.js?v=17"></script>
-  <script src="app.js?v=57"></script>
+  <script src="app.js?v=58"></script>
   <script src="mocktest.js?v=5"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v54 loaded ✔');
+console.info('[BCAPrime] app.js v58 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -213,6 +213,8 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       renderColleges();
       renderSubjectFilter();
       render();
+      syncPrimeFinderUI();
+      initPrimeStickyBarObserver();
       bindCardViews();if(!resources.length)showSkeleton();
       loadCloudResources();
       try{loadCloudSubjects()}catch(e){}
@@ -240,16 +242,19 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         list=resources.filter(r=>queryMatchesFilter(q,r.title,r.subject,(colleges.find(c=>c[0]===r.college)||['',''])[1],r.fileName,r.type));
         fallback=list.length>0;
       }
-      $('count').textContent=`${list.length} result${list.length===1?'':'s'}${fallback?' (from all semesters & colleges)':''}`;
-      const notice=fallback?`<div class="search-fallback-note"><i class="fa-solid fa-circle-info"></i> No match in your current filters — showing results from <b>all semesters &amp; colleges</b>. <button class="secondary" onclick="clearSearchFilters()">Clear filters</button></div>`:'';
+      const countEl=$('count');if(countEl)countEl.textContent=`${list.length} result${list.length===1?'':'s'}${fallback?' (from all semesters & colleges)':''}`;
+      const pfCountEl=$('pfResultCount');if(pfCountEl)pfCountEl.textContent=`${list.length} result${list.length===1?'':'s'}`;
+      syncPrimeFinderUI();
+      const notice=fallback?`<div class="search-fallback-note"><i class="fa-solid fa-circle-info"></i> No match in your current filters — showing results from <b>all semesters &amp; colleges</b>. <button class="secondary" onclick="clearAllPrimeFilters()">Clear filters</button></div>`:'';
       $('resources').innerHTML=(fallback?notice:'')+(list.length?list.map(card).join(''):buildEmptyState())}
     /* ---- Empty state: upload it yourself or request from friends on WhatsApp ---- */
     function buildEmptyState(){
       const submitted=String(state.query||'').trim()!=='';const searching=submitted||state.sem!=='all'||(state.subject&&state.subject!=='all'&&state.subject!=='__add')||state.type!=='all';
       return `<div class="empty"><i class="fa-regular fa-folder-open"></i><br>
         <strong>${searching?'This material isn\'t in the library yet':'The library is quiet — be the first!'}</strong><br>
-        <small>${searching?'No Notes/PYQs match your filters right now. Be the first to upload it, or request it from your friends:':'You could be the first to share material here.'}</small>
+        <small>${searching?'No Notes/PYQs match your filters right now. Be the first to upload it, or clear filters:':'You could be the first to share material here.'}</small>
         <div class="empty-actions">
+          ${searching?`<button class="primary pf-empty-clear-btn" onclick="clearAllPrimeFilters()"><i class="fa-solid fa-rotate-left"></i> Filters clear karo</button>`:''}
           <button class="primary" onclick="openUpload()"><i class="fa-solid fa-cloud-arrow-up"></i> Upload it yourself</button>
           <button class="wa-request" onclick="requestMaterialOnWhatsApp()"><i class="fa-brands fa-whatsapp"></i> Request from friends</button>
           ${canRequestSenior()?`<button class="sr-request" onclick="openSeniorRequest()"><i class="fa-solid fa-users"></i> Request from seniors</button>`:''}
@@ -339,8 +344,277 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           }catch(e){}
         }
         async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);openReader(signed?{...resource,fileUrl:signed}:resource)}
-    function setType(type,button){state.type=type;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));button.classList.add('active');renderSubjectFilter();render()}
-    function applyFilters(){updateSemesterOptions();state.sem=$('semesterFilter').value;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;render()}
+    /* ============================================================
+       PrimeFinder Native Mobile UX Engine
+       ============================================================ */
+    function triggerHaptic(){
+      try{
+        if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);
+      }catch(e){}
+    }
+
+    let pfUpdateTimer=null;
+    function triggerLiveFilterUpdate(){
+      showResourceSkeletons(6);
+      clearTimeout(pfUpdateTimer);
+      pfUpdateTimer=setTimeout(()=>{
+        render();
+      },250);
+    }
+
+    function syncPrimeFinderUI(){
+      // 1. Sync Segmented Control & Glider
+      const btns=document.querySelectorAll('#typeChips .pf-seg-btn');
+      const curType=state.type||'all';
+      let activeIndex=0;
+      btns.forEach((btn,idx)=>{
+        const matches=(btn.dataset.type===curType);
+        btn.classList.toggle('active',matches);
+        btn.setAttribute('aria-selected',matches?'true':'false');
+        if(matches)activeIndex=idx;
+      });
+      const glider=$('pfSegGlider');
+      if(glider){
+        glider.style.transform=`translateX(${activeIndex*100}%)`;
+      }
+
+      // 2. Sync Picker Chips
+      const semChipVal=$('pfSemChipVal');
+      const semChipBtn=$('pfSemPickerBtn');
+      if(semChipVal){
+        semChipVal.textContent=(state.sem==='all'||!state.sem)?'All Semesters':`Semester ${state.sem}`;
+      }
+      if(semChipBtn){
+        semChipBtn.classList.toggle('is-filtered',state.sem!=='all'&&Boolean(state.sem));
+      }
+
+      const isAllSub=(!state.subject||state.subject==='all'||state.subject==='__add');
+      const subChipVal=$('pfSubChipVal');
+      const subChipBtn=$('pfSubPickerBtn');
+      if(subChipVal){
+        subChipVal.textContent=isAllSub?'All Subjects':state.subject;
+      }
+      if(subChipBtn){
+        subChipBtn.classList.toggle('is-filtered',!isAllSub);
+      }
+
+      // 3. Sync Header "Clear" Link
+      const isFiltered=(state.sem!=='all'&&Boolean(state.sem))||!isAllSub||(state.type!=='all'&&Boolean(state.type));
+      const clearBtn=$('pfClearBtn');
+      if(clearBtn){
+        clearBtn.hidden=!isFiltered;
+      }
+
+      // 4. Sync Active Filter Chips Row
+      const activeWrap=$('pfActiveFilters');
+      if(activeWrap){
+        if(!isFiltered){
+          activeWrap.hidden=true;
+          activeWrap.innerHTML='';
+        }else{
+          activeWrap.hidden=false;
+          const chips=[];
+          if(state.sem!=='all'&&Boolean(state.sem)){
+            chips.push(`<span class="pf-active-chip">Semester ${state.sem}<button type="button" class="pf-active-chip-remove" onclick="clearPrimeSem()" aria-label="Remove semester filter">&times;</button></span>`);
+          }
+          if(!isAllSub){
+            chips.push(`<span class="pf-active-chip">${escHtml(state.subject)}<button type="button" class="pf-active-chip-remove" onclick="clearPrimeSubject()" aria-label="Remove subject filter">&times;</button></span>`);
+          }
+          if(state.type!=='all'&&Boolean(state.type)){
+            const tLabel=state.type==='notes'?'Notes':(state.type==='pyq'?'PYQs':state.type);
+            chips.push(`<span class="pf-active-chip">${tLabel}<button type="button" class="pf-active-chip-remove" onclick="clearPrimeType()" aria-label="Remove type filter">&times;</button></span>`);
+          }
+          activeWrap.innerHTML=chips.join('');
+        }
+      }
+
+      // 5. Sync Sticky Bar Text
+      const stickySummary=$('pfStickySummary');
+      if(stickySummary){
+        const semTxt=(state.sem==='all'||!state.sem)?'All sems':`Sem ${state.sem}`;
+        const subTxt=isAllSub?'All subjects':state.subject;
+        const typeTxt=(state.type==='all'||!state.type)?'All':(state.type==='notes'?'Notes':'PYQs');
+        stickySummary.textContent=`${semTxt} · ${subTxt} · ${typeTxt} ⌄`;
+      }
+
+      // 6. Keep legacy inputs in sync
+      const semSel=$('semesterFilter');
+      if(semSel&&state.sem)semSel.value=state.sem;
+      const subSel=$('subjectFilter');
+      if(subSel&&state.subject)subSel.value=state.subject;
+    }
+
+    function setPrimeType(type,button){
+      triggerHaptic();
+      state.type=type;
+      syncPrimeFinderUI();
+      renderSubjectFilter();
+      triggerLiveFilterUpdate();
+    }
+
+    function setType(type,button){
+      setPrimeType(type,button);
+    }
+
+    function openPrimeSheet(type){
+      triggerHaptic();
+      if(type==='sem'){
+        renderPrimeSemSheet();
+        const sheet=$('pfSemSheet');
+        if(sheet)sheet.classList.add('open');
+      }else if(type==='sub'){
+        renderPrimeSubSheet();
+        const searchInput=$('pfSubSearchInput');
+        if(searchInput)searchInput.value='';
+        const sheet=$('pfSubSheet');
+        if(sheet)sheet.classList.add('open');
+      }
+    }
+
+    function closePrimeSheet(type){
+      if(!type||type==='sem'){
+        const s=$('pfSemSheet');
+        if(s)s.classList.remove('open');
+      }
+      if(!type||type==='sub'){
+        const s=$('pfSubSheet');
+        if(s)s.classList.remove('open');
+      }
+    }
+
+    function renderPrimeSemSheet(){
+      const list=$('pfSemSheetList');
+      if(!list)return;
+      const cur=String(state.sem||'all');
+      const items=[{val:'all',label:'All semesters'}];
+      for(let i=1;i<=6;i++)items.push({val:String(i),label:`Semester ${i}`});
+      list.innerHTML=items.map(item=>{
+        const isSel=(cur===item.val);
+        return `<button type="button" class="pf-sheet-item${isSel?' selected':''}" onclick="setPrimeSem('${item.val}')"><span>${item.label}</span>${isSel?'<i class="fa-solid fa-check pf-check"></i>':''}</button>`;
+      }).join('');
+    }
+
+    function setPrimeSem(sem){
+      triggerHaptic();
+      state.sem=String(sem);
+      localStorage.setItem('bca-sem',state.sem);
+      closePrimeSheet('sem');
+      const ds=$('deskSemester');
+      if(ds)ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;
+      renderSubjectFilter();
+      syncPrimeFinderUI();
+      triggerLiveFilterUpdate();
+    }
+
+    function renderPrimeSubSheet(filterQuery){
+      const list=$('pfSubSheetList');
+      if(!list)return;
+      const curSub=normSubject(state.subject||'all');
+      const customs=getCustomSubjects(state.sem);
+      const seen=new Map();
+      [...getAvailableSubjects(),...customs].forEach(name=>{const key=normSubject(name);if(key&&!seen.has(key))seen.set(key,name)});
+      let merged=[...seen.values()].sort((a,b)=>a.localeCompare(b));
+      if(filterQuery){
+        const q=normSubject(filterQuery);
+        merged=merged.filter(s=>normSubject(s).includes(q));
+      }
+      const isAllSelected=(curSub==='all'||curSub===''||curSub==='__add');
+      const allItem=`<button type="button" class="pf-sheet-item${isAllSelected?' selected':''}" onclick="setPrimeSubject('all')"><span>All subjects</span>${isAllSelected?'<i class="fa-solid fa-check pf-check"></i>':''}</button>`;
+      const itemsHtml=merged.map(s=>{
+        const isSel=(normSubject(s)===curSub);
+        return `<button type="button" class="pf-sheet-item${isSel?' selected':''}" onclick="setPrimeSubject('${escJsStr(s)}')"><span>${escHtml(s)}</span>${isSel?'<i class="fa-solid fa-check pf-check"></i>':''}</button>`;
+      }).join('');
+      list.innerHTML=allItem+itemsHtml;
+    }
+
+    function onPrimeSubSearch(val){
+      renderPrimeSubSheet(val);
+    }
+
+    function setPrimeSubject(subject){
+      triggerHaptic();
+      state.subject=String(subject);
+      localStorage.setItem('bca-subject',state.subject);
+      closePrimeSheet('sub');
+      syncPrimeFinderUI();
+      triggerLiveFilterUpdate();
+    }
+
+    function clearPrimeSem(){
+      triggerHaptic();
+      setPrimeSem('all');
+    }
+
+    function clearPrimeSubject(){
+      triggerHaptic();
+      setPrimeSubject('all');
+    }
+
+    function clearPrimeType(){
+      triggerHaptic();
+      setPrimeType('all');
+    }
+
+    function clearAllPrimeFilters(){
+      triggerHaptic();
+      state.sem='all';
+      state.subject='all';
+      state.type='all';
+      state.query='';
+      localStorage.setItem('bca-sem','all');
+      localStorage.setItem('bca-subject','all');
+      const searchInput=$('search');
+      if(searchInput)searchInput.value='';
+      const ds=$('deskSemester');
+      if(ds)ds.textContent='Explore your semester';
+      renderSubjectFilter();
+      syncPrimeFinderUI();
+      triggerLiveFilterUpdate();
+      toast('Filters cleared');
+    }
+
+    function expandPrimeFinder(){
+      triggerHaptic();
+      const finder=$('bca-prime-finder');
+      if(finder){
+        finder.scrollIntoView({behavior:'smooth',block:'center'});
+        finder.classList.add('pf-highlight-pulse');
+        setTimeout(()=>finder.classList.remove('pf-highlight-pulse'),1400);
+      }
+    }
+
+    function openFinderAddSubjectFromSheet(){
+      closePrimeSheet('sub');
+      if(state.sem==='all'){
+        toast('Select a semester first, then add subject');
+        openPrimeSheet('sem');
+        return;
+      }
+      openFinderAddSubject();
+    }
+
+    function initPrimeStickyBarObserver(){
+      const finderEl=$('bca-prime-finder');
+      const stickyBar=$('pfStickyBar');
+      if(!finderEl||!stickyBar)return;
+      if('IntersectionObserver' in window){
+        const observer=new IntersectionObserver((entries)=>{
+          entries.forEach(entry=>{
+            const rect=entry.boundingClientRect;
+            const isPast=rect.bottom<75;
+            stickyBar.hidden=!(!entry.isIntersecting&&isPast);
+          });
+        },{threshold:[0,0.1,1],rootMargin:'-65px 0px 0px 0px'});
+        observer.observe(finderEl);
+      }else{
+        window.addEventListener('scroll',()=>{
+          const rect=finderEl.getBoundingClientRect();
+          stickyBar.hidden=!(rect.bottom<75);
+        },{passive:true});
+      }
+    }
+
+    function applyFilters(){updateSemesterOptions();state.sem=($('semesterFilter')&&$('semesterFilter').value)||state.sem;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';if(subjectValue)state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;syncPrimeFinderUI();render()}
     /* Semester dropdown sabhi 6 semesters dikhata hai aur user ki
        onboarded/selected semester ko preserve karta hai. */
     function updateSemesterOptions(){
@@ -353,14 +627,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       semSel.innerHTML=opts.join('');
       const keep=(current&&current!=='all'&&Number(current)>=1&&Number(current)<=6)?current:(state.sem!=='all'?String(state.sem):'all');
       semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
+      syncPrimeFinderUI();
     }
-    function resetFinder(){updateSemesterOptions();$('semesterFilter').value='all';state.sem='all';state.type='all';state.subject='all';localStorage.setItem('bca-sem','all');localStorage.setItem('bca-subject','all');const __far=$('finderAddSubjectRow');if(__far)__far.hidden=true;renderSubjectFilter();document.querySelectorAll('.chip').forEach(chip=>chip.classList.toggle('active',chip.textContent.trim()==='All'));const __rs=$('deskSemester');if(__rs)__rs.textContent='Explore your semester';render()}
+    function resetFinder(){clearAllPrimeFilters()}
     /* Search results aane ke baad filters aur search query dono reset karo. */
     function clearSearchFilters(){
       const __search=$('search');
       if(__search)__search.value='';
       state.query='';
-      resetFinder();
+      clearAllPrimeFilters();
       closeSuggestions();
     }
     let lastSearchTrack={query:'',ts:0};
@@ -413,14 +688,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       state.subject='all';
       localStorage.setItem('bca-subject','all');
       renderSubjectFilter();
-      $('subjectFilter').value='all';
+      if($('subjectFilter'))$('subjectFilter').value='all';
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
       applyFilters();
       toast(ok?('"'+name+'" submitted ⏳ Admin approval ke baad dikhega'):('Could not submit "'+name+'". Please try again.'));
     }
     function cancelFinderAddSubject(){
       const addRow=$('finderAddSubjectRow');if(addRow)addRow.hidden=true;
-      $('subjectFilter').value='all';state.subject='all';localStorage.setItem('bca-subject','all');renderSubjectFilter();render();
+      if($('subjectFilter'))$('subjectFilter').value='all';state.subject='all';localStorage.setItem('bca-subject','all');renderSubjectFilter();render();
     }
     /* ---- Upload form subject picker (semester ke hisaab se bharta hai) ---- */
     function updateUploadSubjects(){
