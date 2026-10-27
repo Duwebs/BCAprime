@@ -1,5 +1,5 @@
 /* ============================================================
-   BCAPrime — mocktest.js
+   BCAPrime — mocktest.js (v3.1.5)
    MCQ Mock Test System & Active Player Engine
    Features:
      - On-the-fly AI Quiz Generation with Daily Quota (Max 3/day)
@@ -7,6 +7,7 @@
      - Responsive Player: Countdown Timer, Single-Select Options, Palette
      - Instant Evaluation & Review Solutions Card
      - Supabase user_results persistence
+     - Generate from your own file (PDF, DOCX, TXT)
    ============================================================ */
 'use strict';
 
