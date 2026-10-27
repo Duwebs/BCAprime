@@ -298,8 +298,9 @@
           break;
         }
       }
-    } else if (typeof state !== 'undefined' && state.sem && state.sem !== 'all') {
-      const parsed = parseInt(state.sem, 10);
+    } else if (typeof state !== 'undefined' && (state.profileSemester || (state.sem && state.sem !== 'all'))) {
+      const semCandidate = state.profileSemester || state.sem;
+      const parsed = parseInt(semCandidate, 10);
       if (availableSems.includes(parsed)) {
         userSem = parsed;
       }
@@ -452,7 +453,10 @@
     if (!grid) return;
 
     const query = ($id('mtSearchInput') ? $id('mtSearchInput').value : '').toLowerCase().trim();
-    const userSem = (typeof state !== 'undefined' && state.sem && state.sem !== 'all') ? parseInt(state.sem, 10) : 3;
+    const activeProfileSem = (typeof state !== 'undefined' && state.profileSemester)
+      ? parseInt(state.profileSemester, 10)
+      : ((typeof state !== 'undefined' && state.sem && state.sem !== 'all') ? parseInt(state.sem, 10) : 3);
+    const userSem = !isNaN(activeProfileSem) ? activeProfileSem : 3;
 
     let list = mtState.quizzes.filter(q => {
       if (mtState.activeTab === 'sem' && Number(q.semester) !== Number(userSem)) return false;

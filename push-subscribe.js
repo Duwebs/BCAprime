@@ -42,7 +42,7 @@
       /* bca-enrolled-sem = ACCOUNT-bound semester (onboarding / profile sync se).
          bca-sem sirf LIBRARY FILTER hai (user 'All semesters' par switch kar sakta
          hai) — usse notification targeting kabhi decide nahi honi chahiye. */
-      var v = localStorage.getItem('bca-enrolled-sem');
+      var v = localStorage.getItem('bca-profile-sem') || localStorage.getItem('bca-enrolled-sem');
       if (!v || v === 'all') v = localStorage.getItem('bca-sem'); /* legacy fallback */
       var n = Number(v);
       return (v && v !== 'all' && n >= 1 && n <= 8) ? n : null;
