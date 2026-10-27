@@ -193,7 +193,7 @@
         <div class="pf-sticky-content">
           <span class="pf-sticky-pill">
             <span class="pf-sticky-dot"></span>
-            <span class="pf-sticky-text" id="pfStickySummary">All sems &middot; All subjects &middot; All</span>
+            <span class="pf-sticky-text" id="pfStickySummary">Sem 1 &middot; All subjects &middot; All</span>
             <i class="fa-solid fa-chevron-down pf-sticky-chevron"></i>
           </span>
         </div>
@@ -226,7 +226,7 @@
             <span class="pf-chip-icon"><i class="fa-solid fa-layer-group"></i></span>
             <div class="pf-chip-text">
               <span class="pf-chip-label">Semester</span>
-              <strong class="pf-chip-val" id="pfSemChipVal">All Semesters</strong>
+              <strong class="pf-chip-val" id="pfSemChipVal">Semester 1</strong>
             </div>
             <i class="fa-solid fa-chevron-down pf-chip-arrow"></i>
           </button>
@@ -250,7 +250,7 @@
         </div>
 
         <!-- Legacy elements kept hidden for safe backward compatibility with scripts -->
-        <select id="semesterFilter" hidden onchange="applyFilters()"><option value="all">All semesters</option></select>
+        <select id="semesterFilter" hidden onchange="applyFilters()"><option value="1">Semester 1</option></select>
         <select id="subjectFilter" hidden onchange="onSubjectFilterChange(this)"><option value="all">All subjects</option></select>
         <div class="add-subject-row finder-add-row" id="finderAddSubjectRow" hidden>
           <input id="finderNewSubjectInput" type="text" maxlength="80" placeholder="Type a new subject&#8230;" onkeydown="if(event.key==='Enter')confirmFinderAddSubject()">
@@ -835,7 +835,7 @@
     return window.__pdfjsReady
   }</script>
   <script src="whats-new.js?v=17"></script>
-  <script src="app.js?v=58"></script>
+  <script src="app.js?v=59"></script>
   <script src="mocktest.js?v=5"></script>
 </body>
 </html>

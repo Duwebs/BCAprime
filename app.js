@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v58 loaded ✔');
+console.info('[BCAPrime] app.js v59 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -57,8 +57,26 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       const f=normSubject(filter);
       return r===f||r.includes(f)||f.includes(r);
     }
+    function getDefaultSemester(){
+      try{
+        const enrolled=localStorage.getItem('bca-enrolled-sem');
+        if(enrolled&&Number(enrolled)>=1&&Number(enrolled)<=6)return String(enrolled);
+        const def=localStorage.getItem('bca-default-sem');
+        if(def&&Number(def)>=1&&Number(def)<=6)return String(def);
+        const sem=localStorage.getItem('bca-sem');
+        if(sem&&sem!=='all'&&Number(sem)>=1&&Number(sem)<=6)return String(sem);
+      }catch(e){}
+      return '1';
+    }
+    function getInitialSem(){
+      try{
+        const saved=localStorage.getItem('bca-sem');
+        if(saved&&saved!=='all'&&Number(saved)>=1&&Number(saved)<=6)return String(saved);
+      }catch(e){}
+      return getDefaultSemester();
+    }
     let resources=[...JSON.parse(localStorage.getItem('bca-uploads')||'[]')].filter(resource=>(resource.type==='notes'||resource.type==='pyq')&&(!resource.status||resource.status==='approved'));
-    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',sem:localStorage.getItem('bca-sem')||'all',subject:'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:'',hasSeniorNotification:true};
+    const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',sem:getInitialSem(),subject:'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:'',hasSeniorNotification:true};
     const $=id=>document.getElementById(id);
     /* Quick Actions Config & State Controls */
     window.QUICK_ACTIONS_CONFIG = {
@@ -202,12 +220,15 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
         }
       }catch(__e){}
       applyTheme(state.theme);
+      if(!state.sem || state.sem==='all'){
+        state.sem = getDefaultSemester();
+        localStorage.setItem('bca-sem', state.sem);
+      }
       updateSemesterOptions();
-      if(state.sem!=='all')$('semesterFilter').value=state.sem;
+      if($('semesterFilter'))$('semesterFilter').value=state.sem;
       const collegeName = (colleges.find(c=>c[0]===state.college)||colleges[0])[1];
       $('collegeLabel').textContent = collegeName;
-      const semText = state.sem==='all' ? 'All Semesters' : `Sem ${state.sem}`;
-      $('navSemBadge').textContent = `· ${semText}`;
+      $('navSemBadge').textContent = `· Sem ${state.sem}`;
       if($('savedSummary')) $('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';
       try{setMockTestNewBadge(window.QUICK_ACTIONS_CONFIG.showMockTestNewBadge);setSeniorNotificationDot(state.hasSeniorNotification);}catch(e){}
       renderColleges();
@@ -362,7 +383,22 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       },250);
     }
 
+    function isPrimeFinderFiltered(){
+      const defSem=getDefaultSemester();
+      const curSem=state.sem||defSem;
+      const semChanged=(String(curSem)!==String(defSem));
+      const subChanged=Boolean(state.subject&&state.subject!=='all'&&state.subject!=='__add');
+      const typeChanged=Boolean(state.type&&state.type!=='all');
+      return semChanged||subChanged||typeChanged;
+    }
+
     function syncPrimeFinderUI(){
+      const defSem=getDefaultSemester();
+      if(!state.sem||state.sem==='all'){
+        state.sem=defSem;
+        localStorage.setItem('bca-sem',defSem);
+      }
+
       // 1. Sync Segmented Control & Glider
       const btns=document.querySelectorAll('#typeChips .pf-seg-btn');
       const curType=state.type||'all';
@@ -382,10 +418,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const semChipVal=$('pfSemChipVal');
       const semChipBtn=$('pfSemPickerBtn');
       if(semChipVal){
-        semChipVal.textContent=(state.sem==='all'||!state.sem)?'All Semesters':`Semester ${state.sem}`;
+        semChipVal.textContent=`Semester ${state.sem}`;
       }
       if(semChipBtn){
-        semChipBtn.classList.toggle('is-filtered',state.sem!=='all'&&Boolean(state.sem));
+        semChipBtn.classList.toggle('is-filtered',String(state.sem)!==String(defSem));
       }
 
       const isAllSub=(!state.subject||state.subject==='all'||state.subject==='__add');
@@ -398,14 +434,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         subChipBtn.classList.toggle('is-filtered',!isAllSub);
       }
 
-      // 3. Sync Header "Clear" Link
-      const isFiltered=(state.sem!=='all'&&Boolean(state.sem))||!isAllSub||(state.type!=='all'&&Boolean(state.type));
+      // 3. Sync Header "Clear" Link — sirf tab dikhe jab current selection default se alag ho
+      const isFiltered=isPrimeFinderFiltered();
       const clearBtn=$('pfClearBtn');
       if(clearBtn){
         clearBtn.hidden=!isFiltered;
       }
 
-      // 4. Sync Active Filter Chips Row
+      // 4. Sync Active Filter Chips Row — sirf tab dikhe jab filter active ho
       const activeWrap=$('pfActiveFilters');
       if(activeWrap){
         if(!isFiltered){
@@ -414,8 +450,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }else{
           activeWrap.hidden=false;
           const chips=[];
-          if(state.sem!=='all'&&Boolean(state.sem)){
-            chips.push(`<span class="pf-active-chip">Semester ${state.sem}<button type="button" class="pf-active-chip-remove" onclick="clearPrimeSem()" aria-label="Remove semester filter">&times;</button></span>`);
+          if(String(state.sem)!==String(defSem)){
+            chips.push(`<span class="pf-active-chip">Semester ${state.sem}<button type="button" class="pf-active-chip-remove" onclick="clearPrimeSem()" aria-label="Reset semester to default">&times;</button></span>`);
           }
           if(!isAllSub){
             chips.push(`<span class="pf-active-chip">${escHtml(state.subject)}<button type="button" class="pf-active-chip-remove" onclick="clearPrimeSubject()" aria-label="Remove subject filter">&times;</button></span>`);
@@ -431,7 +467,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       // 5. Sync Sticky Bar Text
       const stickySummary=$('pfStickySummary');
       if(stickySummary){
-        const semTxt=(state.sem==='all'||!state.sem)?'All sems':`Sem ${state.sem}`;
+        const semTxt=`Sem ${state.sem}`;
         const subTxt=isAllSub?'All subjects':state.subject;
         const typeTxt=(state.type==='all'||!state.type)?'All':(state.type==='notes'?'Notes':'PYQs');
         stickySummary.textContent=`${semTxt} · ${subTxt} · ${typeTxt} ⌄`;
@@ -485,8 +521,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function renderPrimeSemSheet(){
       const list=$('pfSemSheetList');
       if(!list)return;
-      const cur=String(state.sem||'all');
-      const items=[{val:'all',label:'All semesters'}];
+      const cur=String(state.sem||getDefaultSemester());
+      const items=[];
       for(let i=1;i<=6;i++)items.push({val:String(i),label:`Semester ${i}`});
       list.innerHTML=items.map(item=>{
         const isSel=(cur===item.val);
@@ -496,11 +532,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function setPrimeSem(sem){
       triggerHaptic();
-      state.sem=String(sem);
+      const valid=(Number(sem)>=1&&Number(sem)<=6)?String(sem):getDefaultSemester();
+      state.sem=valid;
       localStorage.setItem('bca-sem',state.sem);
       closePrimeSheet('sem');
       const ds=$('deskSemester');
-      if(ds)ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;
+      if(ds)ds.textContent=`Semester ${state.sem} resources`;
       renderSubjectFilter();
       syncPrimeFinderUI();
       triggerLiveFilterUpdate();
@@ -542,7 +579,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function clearPrimeSem(){
       triggerHaptic();
-      setPrimeSem('all');
+      setPrimeSem(getDefaultSemester());
     }
 
     function clearPrimeSubject(){
@@ -557,20 +594,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function clearAllPrimeFilters(){
       triggerHaptic();
-      state.sem='all';
+      const defSem=getDefaultSemester();
+      state.sem=defSem;
       state.subject='all';
       state.type='all';
       state.query='';
-      localStorage.setItem('bca-sem','all');
+      localStorage.setItem('bca-sem',defSem);
       localStorage.setItem('bca-subject','all');
       const searchInput=$('search');
       if(searchInput)searchInput.value='';
       const ds=$('deskSemester');
-      if(ds)ds.textContent='Explore your semester';
+      if(ds)ds.textContent=`Semester ${defSem} resources`;
       renderSubjectFilter();
       syncPrimeFinderUI();
       triggerLiveFilterUpdate();
-      toast('Filters cleared');
+      toast('Filters reset');
     }
 
     function expandPrimeFinder(){
@@ -585,11 +623,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function openFinderAddSubjectFromSheet(){
       closePrimeSheet('sub');
-      if(state.sem==='all'){
-        toast('Select a semester first, then add subject');
-        openPrimeSheet('sem');
-        return;
-      }
       openFinderAddSubject();
     }
 
@@ -614,19 +647,22 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
     }
 
-    function applyFilters(){updateSemesterOptions();state.sem=($('semesterFilter')&&$('semesterFilter').value)||state.sem;renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';if(subjectValue)state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=state.sem==='all'?'Explore your semester':`Semester ${state.sem} resources`;syncPrimeFinderUI();render()}
+    function applyFilters(){updateSemesterOptions();state.sem=($('semesterFilter')&&$('semesterFilter').value)||state.sem||getDefaultSemester();renderSubjectFilter();let subjectValue=$('subjectFilter')&&$('subjectFilter').value;if(subjectValue==='__add')subjectValue='all';if(subjectValue)state.subject=subjectValue;localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-subject',state.subject);const __ds=$('deskSemester');if(__ds)__ds.textContent=`Semester ${state.sem} resources`;syncPrimeFinderUI();render()}
     /* Semester dropdown sabhi 6 semesters dikhata hai aur user ki
        onboarded/selected semester ko preserve karta hai. */
     function updateSemesterOptions(){
       const semSel=$('semesterFilter');
       if(!semSel)return;
+      const def=getDefaultSemester();
       const current=semSel.value;
-      const opts=['<option value="all">All semesters</option>'];
+      const opts=[];
       for(let s=1;s<=6;s++)opts.push('<option value="'+s+'">Semester '+s+'</option>');
       semSel.disabled=false;
       semSel.innerHTML=opts.join('');
-      const keep=(current&&current!=='all'&&Number(current)>=1&&Number(current)<=6)?current:(state.sem!=='all'?String(state.sem):'all');
-      semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:'all';
+      const keep=(current&&current!=='all'&&Number(current)>=1&&Number(current)<=6)?current:(state.sem&&state.sem!=='all'?String(state.sem):def);
+      semSel.value=(Number(keep)>=1&&Number(keep)<=6)?keep:def;
+      state.sem=semSel.value;
+      localStorage.setItem('bca-sem',state.sem);
       syncPrimeFinderUI();
     }
     function resetFinder(){clearAllPrimeFilters()}
@@ -2872,7 +2908,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function backToOnboardingCollege(){state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2')}
     function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected');if(state.onboardingCollege&&!state.onboardingDone)setTimeout(()=>finishOnboarding(),400)}
     function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);const cf=$('collegeFilter');if(!college||!cf||cf.querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];cf.append(option)}
-    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-enrolled-sem',state.sem);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
+    function completeOnboarding(id){if(state.onboardingDone)return;state.onboardingDone=true;state.college=id;state.sem=state.onboardingSem||'1';try{localStorage.setItem('bca-college',id);localStorage.setItem('bca-sem',state.sem);localStorage.setItem('bca-enrolled-sem',state.sem);localStorage.setItem('bca-default-sem',state.sem);localStorage.setItem('bca-onboarded','true')}catch(error){console.warn('Could not save preferences.',error)}try{$('onboarding').classList.remove('open')}catch(error){}try{updateSemesterOptions();$('semesterFilter').value=state.sem;$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];$('deskSemester').textContent=`Semester ${state.sem} resources`;renderSubjectFilter();render()}catch(error){console.warn('Library refresh skipped.',error)}saveProfileToAccount();setTimeout(startTour,200)}
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
     const tourSteps=[
