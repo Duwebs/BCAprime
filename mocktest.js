@@ -648,6 +648,10 @@
           }
           return;
         }
+        if (result.error === 'questions_unavailable' || (result.message && result.message.includes('available nahi hain'))) {
+          alert(result.message || `Is subject (${subject}) ke questions abhi available nahi hain.`);
+          return;
+        }
         throw new Error(result.error || result.message || 'Failed to generate quiz');
       }
 

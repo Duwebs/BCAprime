@@ -117,17 +117,23 @@ module.exports = withCors(async (req, res) => {
       difficulty
     });
   } catch (genError) {
-    console.error('[Generation Error]', genError);
-    return send(res, 500, {
+    console.error('[Generation Error]', genError.message);
+    const isUnavail = genError.code === 'questions_unavailable' || genError.message?.includes('available nahi hain');
+    return send(res, isUnavail ? 404 : 500, {
       ok: false,
-      error: 'Failed to generate quiz questions. Please try again.',
+      error: isUnavail ? 'questions_unavailable' : 'generation_failed',
+      message: isUnavail ? genError.message : 'Failed to generate quiz questions. Please try again.',
       detail: genError.message
     });
   }
 
   const questions = aiResult.questions || [];
   if (!questions.length) {
-    return send(res, 500, { ok: false, error: 'Could not generate questions for this subject.' });
+    return send(res, 404, {
+      ok: false,
+      error: 'questions_unavailable',
+      message: `Is subject (${subject}) ke questions abhi available nahi hain.`
+    });
   }
 
   // 5. Store Quiz and Questions in Supabase

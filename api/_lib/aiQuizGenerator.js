@@ -42,8 +42,7 @@ async function callGemini(apiKey, model, prompt, subject, semNum, topic) {
 
   const systemInstructionText = `You are a strict, senior Computer Science University Examiner for BCA (Bachelor of Computer Applications) Semester ${semNum}.
 CRITICAL CONSTRAINT: You must generate questions EXCLUSIVELY and STRICTLY for the subject "${subject}"${topic ? ' (Topic: ' + topic + ')' : ''}.
-DO NOT include questions from any other subject (for example, if the subject is "${subject}", DO NOT ask C programming, pointers, database, or hardware questions unless they are explicitly in the syllabus of "${subject}").
-Every question must test core concepts, definitions, algorithms, methodologies, or standard syllabus topics of "${subject}".
+DO NOT include questions from any other subject. Every question must test core concepts, definitions, algorithms, methodologies, or standard syllabus topics of "${subject}" for BCA Semester ${semNum}.
 CRITICAL REQUIREMENT: Randomize the correct answer position naturally and evenly across options (A, B, C, or D). DO NOT always set option A as the correct answer. Output strictly a valid JSON array.`;
 
   try {
@@ -717,46 +716,637 @@ const VERIFIED_SUBJECT_BANKS = {
       options: { A: 'Registers / L1 Cache', B: 'DRAM (Main Memory)', C: 'SRAM L3 Cache', D: 'NVMe SSD' },
       ans: 'A',
       exp: 'Internal processor registers and Level 1 (L1) on-chip cache provide single-cycle latency access.'
+    },
+    {
+      q: 'Which memory type operates at the highest speed and is located closest to the CPU execution core?',
+      options: { A: 'Registers / L1 Cache', B: 'DRAM (Main Memory)', C: 'SRAM L3 Cache', D: 'NVMe SSD' },
+      ans: 'A',
+      exp: 'Internal processor registers and Level 1 (L1) on-chip cache provide single-cycle latency access.'
+    }
+  ],
+
+  // 10. C PROGRAMMING
+  c_programming: [
+    {
+      q: 'Which format specifier is specifically designed to print memory addresses in C?',
+      options: { A: '%p', B: '%x', C: '%u', D: '%d' },
+      ans: 'A',
+      exp: 'The %p format specifier is specifically defined in standard C to output void pointers as hexadecimal memory addresses.'
+    },
+    {
+      q: 'What is the standard return type of the main() function in modern C (C99 and later)?',
+      options: { A: 'int', B: 'void', C: 'char', D: 'float' },
+      ans: 'A',
+      exp: 'According to ISO C standards (C99, C11, C17), main() must return an int indicating process termination status to the host OS.'
+    },
+    {
+      q: 'What does a break statement do inside a nested inner loop in C?',
+      options: { A: 'Terminates only the innermost enclosing loop', B: 'Terminates all nested loops', C: 'Skips to the next iteration', D: 'Restarts the loop from 0' },
+      ans: 'A',
+      exp: 'A break statement exits only the innermost loop or switch statement that contains it.'
+    },
+    {
+      q: 'What is the primary difference between malloc() and calloc() memory allocation in C?',
+      options: { A: 'calloc() initializes allocated memory to zero; malloc() leaves memory uninitialized', B: 'malloc() allocates from heap; calloc() from stack', C: 'calloc() cannot allocate arrays', D: 'malloc() automatically frees memory' },
+      ans: 'A',
+      exp: 'calloc(n, size) initializes every byte to zero, whereas malloc(size) leaves allocated heap memory with indeterminate (garbage) values.'
+    },
+    {
+      q: 'Which character automatically terminates all standard C strings in memory?',
+      options: { A: '\\0 (null character)', B: '\\n', C: 'EOF', D: 'Space' },
+      ans: 'A',
+      exp: 'In C, strings are null-terminated arrays of characters ending with the byte value 0 (\'\\0\').'
+    },
+    {
+      q: 'What is the size of any memory pointer on a standard 64-bit architecture in C?',
+      options: { A: '8 bytes', B: '4 bytes', C: '2 bytes', D: 'Depends on the data type pointed to' },
+      ans: 'A',
+      exp: 'On a 64-bit architecture, every pointer holds a 64-bit address, occupying exactly 8 bytes of storage.'
+    },
+    {
+      q: 'What is the key difference between a struct and a union in C?',
+      options: { A: 'Union members share the same memory location; struct members have distinct memory locations', B: 'Struct cannot store pointers', C: 'Union cannot contain different data types', D: 'Union is dynamically allocated only' },
+      ans: 'A',
+      exp: 'In a union, all members overlap in the same memory space equal to the size of the largest member; in a struct, each member has separate memory.'
+    },
+    {
+      q: 'Which preprocessor directive is used to prevent multiple inclusions of header files in C?',
+      options: { A: '#ifndef / #define header guards', B: '#pragma loop', C: '#undef', D: '#import' },
+      ans: 'A',
+      exp: 'Conditional preprocessor directives (#ifndef HEADER_H, #define HEADER_H, #endif) prevent duplicate inclusion of header code.'
+    },
+    {
+      q: 'In C, how are standard function arguments passed by default?',
+      options: { A: 'Pass by value', B: 'Pass by reference', C: 'Pass by name', D: 'Pass by pointer' },
+      ans: 'A',
+      exp: 'C strictly uses pass-by-value for all function parameters. Pass-by-reference is simulated by passing pointer values.'
+    },
+    {
+      q: 'What does the bitwise operator ^ perform in C?',
+      options: { A: 'Bitwise XOR', B: 'Bitwise AND', C: 'Bitwise OR', D: 'Bitwise NOT' },
+      ans: 'A',
+      exp: 'In C, the caret symbol ^ denotes the bitwise exclusive-OR (XOR) operator.'
+    },
+    {
+      q: 'Which standard library function is used to release dynamically allocated heap memory in C?',
+      options: { A: 'free()', B: 'delete()', C: 'dealloc()', D: 'realloc(NULL)' },
+      ans: 'A',
+      exp: 'The free() function deallocates memory blocks previously allocated by malloc(), calloc(), or realloc().'
+    },
+    {
+      q: 'What value does getchar() return when it reaches the end of an input stream?',
+      options: { A: 'EOF (-1)', B: '0', B: 'NULL', D: '\\0' },
+      ans: 'A',
+      exp: 'getchar() returns an int value equal to EOF (typically -1) upon encountering end-of-file or an input error.'
+    }
+  ],
+
+  // 11. COMPUTER FUNDAMENTALS & OFFICE AUTOMATION (CFOA)
+  cfoa: [
+    {
+      q: 'Which unit inside the CPU performs arithmetic computations and logical decision operations?',
+      options: { A: 'ALU (Arithmetic Logic Unit)', B: 'Control Unit', C: 'Registers', D: 'System Bus' },
+      ans: 'A',
+      exp: 'The ALU executes all basic arithmetic calculations (addition, subtraction) and logical comparisons (AND, OR, NOT).'
+    },
+    {
+      q: 'Which type of computer memory is volatile and loses its contents when power is turned off?',
+      options: { A: 'RAM (Random Access Memory)', B: 'ROM (Read Only Memory)', C: 'Flash Drive', D: 'Hard Disk Drive' },
+      ans: 'A',
+      exp: 'RAM is volatile semiconductor memory that requires continuous electrical power to retain active data.'
+    },
+    {
+      q: 'What is the binary equivalent of the decimal number 13?',
+      options: { A: '1101', B: '1011', C: '1110', D: '1100' },
+      ans: 'A',
+      exp: '13 in binary = 8 + 4 + 0 + 1 = 1101 in base 2.'
+    },
+    {
+      q: 'In Microsoft Excel / spreadsheet software, what symbol must precede every mathematical formula?',
+      options: { A: '= (equal to)', B: '@', C: '#', D: '$' },
+      ans: 'A',
+      exp: 'All spreadsheet formulas begin with an equal sign (=) to inform the spreadsheet engine to evaluate the expression.'
+    },
+    {
+      q: 'Which feature in word processing allows sending personalized letters or certificates to multiple recipients automatically?',
+      options: { A: 'Mail Merge', B: 'Macros', C: 'Autotext', D: 'Track Changes' },
+      ans: 'A',
+      exp: 'Mail Merge combines a template document with a data source (such as a table or spreadsheet) to generate customized copies.'
+    },
+    {
+      q: 'What is the primary role of the BIOS / UEFI during computer startup?',
+      options: { A: 'Executes POST (Power-On Self Test) and loads the OS bootloader', B: 'Installs user application software', C: 'Compiles high-level code', D: 'Scans for network viruses' },
+      ans: 'A',
+      exp: 'BIOS (Basic Input/Output System) performs POST hardware diagnostics and hands over control to the OS bootloader on storage.'
+    },
+    {
+      q: 'In a spreadsheet, which function looks up a value in the leftmost column of a table and returns a value in the same row from a specified column?',
+      options: { A: 'VLOOKUP', B: 'COUNTIF', C: 'SUMIF', D: 'CONCATENATE' },
+      ans: 'A',
+      exp: 'VLOOKUP (Vertical Lookup) searches for a key in the first column of a table range and returns corresponding column data.'
+    },
+    {
+      q: 'Which of the following is categorized as System Software rather than Application Software?',
+      options: { A: 'Operating System', B: 'Web Browser', C: 'Photo Editor', D: 'Word Processor' },
+      ans: 'A',
+      exp: 'Operating systems, device drivers, and utility programs are system software that manage and coordinate hardware operations.'
+    },
+    {
+      q: 'In PowerPoint / presentation software, what is the visual effect that occurs when moving from one slide to the next called?',
+      options: { A: 'Slide Transition', B: 'Animation', C: 'Trigger', D: 'Slide Master' },
+      ans: 'A',
+      exp: 'Transitions govern the motion between full slides; Animations govern individual objects within a single slide.'
+    },
+    {
+      q: 'What does 1 Terabyte (TB) equal in standard binary computing (bytes)?',
+      options: { A: '1024 Gigabytes (GB)', B: '1000 Megabytes (MB)', C: '1024 Kilobytes (KB)', D: '100 Gigabytes (GB)' },
+      ans: 'A',
+      exp: 'In computer memory scaling, 1 TB = 1024 GB = 1024 * 1024 MB.'
+    },
+    {
+      q: 'What type of printer uses a laser beam to produce an image on a drum using powdered toner?',
+      options: { A: 'Laser Printer', B: 'Inkjet Printer', C: 'Dot Matrix Printer', D: 'Thermal Printer' },
+      ans: 'A',
+      exp: 'Laser printers use electrophotographic technology with laser light and dry toner powder to produce high-speed printouts.'
+    },
+    {
+      q: 'What is the full form of GUI in modern computing systems?',
+      options: { A: 'Graphical User Interface', B: 'General Utility Instruction', C: 'Graphic Unified Integration', D: 'Global User Interaction' },
+      ans: 'A',
+      exp: 'GUI stands for Graphical User Interface, enabling user interaction via visual icons, menus, and pointers.'
+    }
+  ],
+
+  // 12. ELEMENTS OF STATISTICS
+  statistics: [
+    {
+      q: 'Which measure of central tendency represents the most frequently occurring value in a data set?',
+      options: { A: 'Mode', B: 'Mean', C: 'Median', D: 'Variance' },
+      ans: 'A',
+      exp: 'The mode is defined as the observation value that appears with the highest frequency in a given distribution.'
+    },
+    {
+      q: 'For a moderately asymmetrical frequency distribution, what is the empirical relationship between Mean, Median, and Mode?',
+      options: { A: 'Mode = 3 Median - 2 Mean', B: 'Mode = 2 Median - 3 Mean', C: 'Mean = 3 Median - 2 Mode', D: 'Median = 3 Mode - 2 Mean' },
+      ans: 'A',
+      exp: 'Karl Pearson established the empirical relationship: Mode = 3 * Median - 2 * Mean.'
+    },
+    {
+      q: 'How is Standard Deviation mathematically related to Variance?',
+      options: { A: 'Standard Deviation is the positive square root of Variance', B: 'Standard Deviation is Variance squared', C: 'Standard Deviation is Variance divided by n', D: 'They are identical' },
+      ans: 'A',
+      exp: 'Standard Deviation (sigma) is the positive square root of the variance: sigma = sqrt(variance).'
+    },
+    {
+      q: 'What is the valid numerical range for any standard probability P(E)?',
+      options: { A: '0 <= P(E) <= 1', B: '-1 <= P(E) <= 1', C: '0 < P(E) < 100', D: 'P(E) >= 1' },
+      ans: 'A',
+      exp: 'Probability values strictly lie between 0 (impossible event) and 1 (certain event) inclusive.'
+    },
+    {
+      q: 'In a perfectly symmetrical Normal Distribution curve, which of the following is true?',
+      options: { A: 'Mean = Median = Mode', B: 'Mean > Median > Mode', C: 'Mode > Median > Mean', D: 'Variance = Mean' },
+      ans: 'A',
+      exp: 'The standard bell-shaped normal distribution is symmetrical about its center, where Mean, Median, and Mode coincide.'
+    },
+    {
+      q: 'What is the range of Pearson\'s coefficient of correlation (r)?',
+      options: { A: '-1 <= r <= +1', B: '0 <= r <= 1', C: '-infinity < r < +infinity', D: '0 <= r <= 100' },
+      ans: 'A',
+      exp: 'Pearson\'s linear correlation coefficient r is bounded between -1 (perfect negative correlation) and +1 (perfect positive correlation).'
+    },
+    {
+      q: 'What is the probability of obtaining an even number on a single roll of an unbiased six-sided die?',
+      options: { A: '1/2 (0.5)', B: '1/3', C: '1/6', D: '2/3' },
+      ans: 'A',
+      exp: 'Favorable outcomes are {2, 4, 6} out of 6 total possibilities: 3/6 = 1/2.'
+    },
+    {
+      q: 'Which graphical representation displays continuous frequency distributions using adjacent rectangular bars?',
+      options: { A: 'Histogram', B: 'Bar Chart', C: 'Pie Chart', D: 'Scatter Plot' },
+      ans: 'A',
+      exp: 'A histogram shows continuous data divided into class intervals with touching bars whose areas represent frequencies.'
+    },
+    {
+      q: 'What is the value of the median for the sorted data set: 4, 7, 9, 12, 15, 18, 22?',
+      options: { A: '12', B: '9', C: '15', D: '13' },
+      ans: 'A',
+      exp: 'For n = 7 odd items, the median is the (7 + 1)/2 = 4th observation, which is 12.'
+    },
+    {
+      q: 'What is the Null Hypothesis (H0) in standard statistical hypothesis testing?',
+      options: { A: 'A statement of no effect or no difference between parameters', B: 'The hypothesis the researcher wants to prove', C: 'A biased assumption', D: 'An alternative explanation' },
+      ans: 'A',
+      exp: 'The null hypothesis posits no significant difference or relationship until empirical evidence rejects it.'
+    },
+    {
+      q: 'If two events A and B are mutually exclusive, what is P(A and B)?',
+      options: { A: '0', B: 'P(A) * P(B)', C: 'P(A) + P(B)', D: '1' },
+      ans: 'A',
+      exp: 'Mutually exclusive events cannot occur simultaneously, meaning their intersection P(A and B) is exactly 0.'
+    },
+    {
+      q: 'What is the difference between the third quartile (Q3) and the first quartile (Q1) called?',
+      options: { A: 'Interquartile Range (IQR)', B: 'Semi-interquartile range', C: 'Mean Deviation', D: 'Coefficient of variation' },
+      ans: 'A',
+      exp: 'The Interquartile Range is calculated as IQR = Q3 - Q1, measuring the middle 50% spread of data.'
+    }
+  ],
+
+  // 13. PRINCIPLES OF PROGRAMMING & ALGORITHMS (PPA)
+  ppa: [
+    {
+      q: 'Which flowchart symbol is standardly used to depict a conditional decision branching?',
+      options: { A: 'Diamond', B: 'Rectangle', C: 'Parallelogram', D: 'Oval' },
+      ans: 'A',
+      exp: 'A diamond shape represents decision-making (True/False or Yes/No conditional branching) in standard ANSI flowcharts.'
+    },
+    {
+      q: 'Which of the following is a mandatory characteristic of a valid algorithm?',
+      options: { A: 'Finiteness (must terminate after a finite number of steps)', B: 'Must contain at least 100 lines', C: 'Must be written in C language', D: 'Must not take any input' },
+      ans: 'A',
+      exp: 'As defined by Donald Knuth, algorithms must satisfy Finiteness, Definiteness, Input, Output, and Effectiveness.'
+    },
+    {
+      q: 'What is the prerequisite condition for executing Binary Search on a collection of elements?',
+      options: { A: 'The elements must be sorted in ascending or descending order', B: 'The collection must be a linked list', C: 'Elements must be positive integers', D: 'The size must be a power of 2' },
+      ans: 'A',
+      exp: 'Binary search requires sorted data to repeatedly divide the search interval in half with O(log n) efficiency.'
+    },
+    {
+      q: 'What occurs if a recursive function does not include a proper base condition?',
+      options: { A: 'Infinite recursion causing a Stack Overflow error', B: 'Compile time syntax error', C: 'Memory leak in heap space', D: 'Automatic termination with 0' },
+      ans: 'A',
+      exp: 'Without a terminating base case, recursive calls keep pushing frames onto the call stack until memory is exhausted.'
+    },
+    {
+      q: 'What does Big-O notation O(1) indicate regarding time complexity?',
+      options: { A: 'Constant time complexity regardless of input size', B: 'Linear time complexity', C: 'Slowest possible time', D: 'One second execution time' },
+      ans: 'A',
+      exp: 'O(1) signifies constant time: the execution duration remains invariant regardless of how large the input grows.'
+    },
+    {
+      q: 'Which flowchart symbol is used to represent Input and Output operations?',
+      options: { A: 'Parallelogram', B: 'Rectangle', C: 'Circle', D: 'Triangle' },
+      ans: 'A',
+      exp: 'A parallelogram represents input (READ) and output (PRINT/DISPLAY) operations in flowcharts.'
+    },
+    {
+      q: 'In structured programming, what are the three foundational control structures?',
+      options: { A: 'Sequence, Selection, and Iteration', B: 'Functions, Classes, and Objects', C: 'Pointers, Arrays, and Files', D: 'Input, Process, and Output' },
+      ans: 'A',
+      exp: 'Bohm-Jacopini theorem proves that any computable algorithm can be written using Sequence, Selection (if-else), and Iteration (loops).'
+    },
+    {
+      q: 'What is the purpose of dry running (tracing) an algorithm manually on paper?',
+      options: { A: 'To verify algorithm logic and step-by-step variable values before coding', B: 'To test hardware speed', C: 'To generate compiler binary', D: 'To format source comments' },
+      ans: 'A',
+      exp: 'Dry running involves tracing program execution on sample inputs using a trace table to locate conceptual and logic flaws.'
+    },
+    {
+      q: 'What is the average and worst-case time complexity of Linear Search on an array of size n?',
+      options: { A: 'O(n)', B: 'O(log n)', C: 'O(1)', D: 'O(n^2)' },
+      ans: 'A',
+      exp: 'Linear search inspects items sequentially from index 0 to n-1, taking linear O(n) comparisons in the worst case.'
+    },
+    {
+      q: 'What is the scope of a local variable declared inside a block or function?',
+      options: { A: 'Accessible only within that enclosing block or function', B: 'Accessible throughout the entire program', C: 'Stored permanently in secondary disk', D: 'Shared across all processes' },
+      ans: 'A',
+      exp: 'Local variables possess block scope and automatic storage duration; they are created on block entry and destroyed on exit.'
+    },
+    {
+      q: 'Which programming paradigm emphasizes breaking down a problem into a hierarchy of smaller sub-functions (Top-Down Design)?',
+      options: { A: 'Structured / Modular Programming', B: 'Object-Oriented Programming', C: 'Logic Programming', D: 'Event-Driven Programming' },
+      ans: 'A',
+      exp: 'Top-down modular decomposition partitions complex algorithms into manageable modules and functions.'
+    },
+    {
+      q: 'What is pseudocode?',
+      options: { A: 'An informal, high-level English-like description of algorithm steps', B: 'Compiled machine bytecode', C: 'Assembly mnemonic instructions', D: 'A proprietary programming language' },
+      ans: 'A',
+      exp: 'Pseudocode expresses programmatic algorithm logic in structured human-readable language without language-specific syntax.'
+    }
+  ],
+
+  // 14. PROFESSIONAL COMMUNICATION & ENGLISH PROFICIENCY
+  professional_communication: [
+    {
+      q: 'Which of the following is considered one of the essential "7 Cs" of effective communication?',
+      options: { A: 'Conciseness', B: 'Complexity', C: 'Confusion', D: 'Casualness' },
+      ans: 'A',
+      exp: 'The 7 Cs of communication are: Clear, Concise, Concrete, Correct, Coherent, Complete, and Courteous.'
+    },
+    {
+      q: 'What does Kinesics study in non-verbal communication?',
+      options: { A: 'Body language, gestures, and facial expressions', B: 'Voice pitch and tone', C: 'Physical distance between speakers', D: 'Written punctuation' },
+      ans: 'A',
+      exp: 'Kinesics is the study of communication through body movement, postures, facial expressions, and eye contact.'
+    },
+    {
+      q: 'In professional email etiquette, what does "BCC" stand for?',
+      options: { A: 'Blind Carbon Copy', B: 'Business Client Contact', C: 'Broadcast Communication Copy', D: 'Backup Carbon Code' },
+      ans: 'A',
+      exp: 'Blind Carbon Copy (BCC) delivers copies to recipients without revealing their email addresses to other parties.'
+    },
+    {
+      q: 'Which communication barrier occurs due to differing interpretations of words, symbols, or technical jargon?',
+      options: { A: 'Semantic Barrier', B: 'Physical Barrier', C: 'Psychological Barrier', D: 'Physiological Barrier' },
+      ans: 'A',
+      exp: 'Semantic barriers arise when words, acronyms, or symbols convey ambiguous or unintended meanings to the receiver.'
+    },
+    {
+      q: 'What is the primary difference between Active Listening and Passive Hearing?',
+      options: { A: 'Active listening involves conscious mental effort, comprehension, and feedback; hearing is merely physiological sound perception', B: 'Hearing is interactive; listening is passive', C: 'Active listening is only used in formal debates', D: 'Hearing requires recording devices' },
+      ans: 'A',
+      exp: 'Hearing is the physical perception of sound; active listening demands intentional focus, understanding, and responsive evaluation.'
+    },
+    {
+      q: 'Which reading strategy is used to quickly glance through a document to locate a specific date or name?',
+      options: { A: 'Scanning', B: 'Skimming', C: 'Extensive Reading', D: 'Critical Analysis' },
+      ans: 'A',
+      exp: 'Scanning is rapid reading focused on searching for a specific keyword, date, or piece of information.'
+    },
+    {
+      q: 'What is the study of personal physical space and distance in interpersonal communication called?',
+      options: { A: 'Proxemics', B: 'Chronemics', C: 'Haptics', D: 'Phonetics' },
+      ans: 'A',
+      exp: 'Proxemics (coined by Edward T. Hall) explores how humans use personal space and territorial boundaries in communication.'
+    },
+    {
+      q: 'Choose the grammatically correct sentence with proper subject-verb agreement:',
+      options: { A: 'Each of the students has submitted their assignment.', B: 'Each of the students have submitted their assignment.', C: 'Each of the students are submitting.', D: 'Each of the students were submitted.' },
+      ans: 'A',
+      exp: '"Each" is an indefinite singular pronoun requiring the singular verb "has submitted".'
+    },
+    {
+      q: 'In formal business report writing, which section provides a high-level summary of the entire document for busy executives?',
+      options: { A: 'Executive Summary', B: 'Appendix', C: 'Bibliography', D: 'Glossary' },
+      ans: 'A',
+      exp: 'The Executive Summary synthesizes key findings, methodologies, conclusions, and recommendations concisely.'
+    },
+    {
+      q: 'Which vocal characteristics constitute "Paralanguage"?',
+      options: { A: 'Voice tone, pitch, volume, speed, and pauses', B: 'Word definitions', C: 'Hand gestures', D: 'Spelling rules' },
+      ans: 'A',
+      exp: 'Paralanguage encompasses non-verbal vocal cues that accompany speech, including intonation, tempo, and volume.'
+    },
+    {
+      q: 'What is the official written record of discussions and decisions taken during a formal meeting called?',
+      options: { A: 'Minutes of the Meeting (MoM)', B: 'Notice', C: 'Agenda', D: 'Memorandum' },
+      ans: 'A',
+      exp: 'Meeting Minutes (MoM) record attendees, agenda items discussed, voting results, and actionable task assignments.'
+    },
+    {
+      q: 'Which style of communication expresses thoughts and feelings honestly and respectfully without being aggressive or passive?',
+      options: { A: 'Assertive Communication', B: 'Aggressive Communication', C: 'Passive-Aggressive Communication', D: 'Authoritarian Communication' },
+      ans: 'A',
+      exp: 'Assertive communication upholds personal boundaries and rights while showing mutual respect for others\' perspectives.'
+    }
+  ],
+
+  // 15. DATA COMMUNICATION
+  data_communication: [
+    {
+      q: 'In which transmission mode can data travel in both directions simultaneously at the same time?',
+      options: { A: 'Full-Duplex', B: 'Half-Duplex', C: 'Simplex', D: 'Multiplex' },
+      ans: 'A',
+      exp: 'Full-duplex allows concurrent bidirectional transmission (like a modern telephone call or Ethernet connection).'
+    },
+    {
+      q: 'Which physical transmission medium transmits data as light pulses using total internal reflection?',
+      options: { A: 'Fiber Optic Cable', B: 'Coaxial Cable', C: 'Unshielded Twisted Pair (UTP)', D: 'Microwave Link' },
+      ans: 'A',
+      exp: 'Optical fibers propagate modulated light signals through glass or plastic cores utilizing total internal reflection.'
+    },
+    {
+      q: 'What is the difference between Bit Rate and Baud Rate in data transmission?',
+      options: { A: 'Bit rate is the number of bits sent per second; baud rate is the number of signal state changes per second', B: 'They are always numerically identical', C: 'Baud rate is measured in Hertz', D: 'Bit rate is only for analog signals' },
+      ans: 'A',
+      exp: 'Bit rate (bps) = Baud rate * bits per signal element. Multiple bits can be encoded per single baud signal change.'
+    },
+    {
+      q: 'Which modulation technique alters the frequency of the carrier wave in accordance with the message signal?',
+      options: { A: 'Frequency Modulation (FM)', B: 'Amplitude Modulation (AM)', C: 'Phase Modulation (PM)', D: 'Pulse Code Modulation (PCM)' },
+      ans: 'A',
+      exp: 'FM varies the carrier frequency proportionally with the amplitude of the baseband modulating signal.'
+    },
+    {
+      q: 'Which multiplexing technique divides the available frequency bandwidth into distinct separate channels for concurrent users?',
+      options: { A: 'FDM (Frequency Division Multiplexing)', B: 'TDM (Time Division Multiplexing)', C: 'WDM', D: 'CDM' },
+      ans: 'A',
+      exp: 'FDM allocates different frequency bands to multiple channels simultaneously over a wide-bandwidth medium.'
+    },
+    {
+      q: 'What type of error detection technique uses polynomial division and appends a checksum to the transmitted frame?',
+      options: { A: 'CRC (Cyclic Redundancy Check)', B: 'Parity Bit Check', C: 'Checksum addition', D: 'Hamming Code' },
+      ans: 'A',
+      exp: 'CRC computes a remainder via binary modulo-2 polynomial division and appends it to data for burst error detection.'
+    },
+    {
+      q: 'What causes the gradual loss of signal strength as an electromagnetic wave travels through a transmission medium?',
+      options: { A: 'Attenuation', B: 'Distortion', C: 'Thermal Noise', D: 'Crosstalk' },
+      ans: 'A',
+      exp: 'Attenuation is the reduction in signal amplitude and power over distance, often countered using amplifiers or repeaters.'
+    },
+    {
+      q: 'In asynchronous serial transmission, how is the beginning and end of each character byte identified?',
+      options: { A: 'Using Start and Stop bits', B: 'Using shared external clock lines', C: 'Using parity bytes', D: 'Using token frames' },
+      ans: 'A',
+      exp: 'Asynchronous transmission frames each byte with a preceding 0 start bit and one or two 1 stop bits.'
+    },
+    {
+      q: 'According to Nyquist theorem, what is the maximum data rate for a noiseless channel with bandwidth B and M discrete signal levels?',
+      options: { A: '2 * B * log2(M)', B: 'B * log2(1 + SNR)', C: 'B / M', D: '4 * B * M' },
+      ans: 'A',
+      exp: 'Nyquist\'s bit rate formula states C = 2 * B * log2(M) bits/sec for a completely noiseless transmission channel.'
+    },
+    {
+      q: 'Why are wire pairs twisted together in UTP (Unshielded Twisted Pair) cables?',
+      options: { A: 'To reduce electromagnetic interference (EMI) and crosstalk between adjacent pairs', B: 'To increase cable tensile strength', C: 'To increase electrical resistance', D: 'To allow higher voltage' },
+      ans: 'A',
+      exp: 'Twisting causes external magnetic fields to induce equal and opposite canceling currents in the pair, neutralizing noise.'
+    },
+    {
+      q: 'What is the primary function of a modem in computer networking?',
+      options: { A: 'Modulation (digital to analog) and Demodulation (analog to digital)', B: 'Routing packets across subnets', C: 'Packet filtering firewall', D: 'Encrypting data payload' },
+      ans: 'A',
+      exp: 'A modem (MOdulator-DEModulator) converts digital computer signals into analog transmission signals and vice versa.'
+    },
+    {
+      q: 'In Time Division Multiplexing (TDM), how is channel bandwidth shared among multiple senders?',
+      options: { A: 'Each sender is allocated a dedicated time slot in round-robin fashion', B: 'Different frequencies are assigned', C: 'Different light wavelengths are used', D: 'Only one user transmits forever' },
+      ans: 'A',
+      exp: 'TDM allocates the entire channel bandwidth to each connected user for a predetermined, recurring time slice.'
+    }
+  ],
+
+  // 16. INTERNET OF THINGS (IOT)
+  iot: [
+    {
+      q: 'What is the lightweight publish/subscribe messaging protocol designed specifically for resource-constrained IoT devices?',
+      options: { A: 'MQTT (Message Queuing Telemetry Transport)', B: 'HTTP 1.1', C: 'FTP', D: 'SMTP' },
+      ans: 'A',
+      exp: 'MQTT is an ISO standard (ISO/IEC 20922) pub/sub protocol with minimal packet headers and low bandwidth requirements.'
+    },
+    {
+      q: 'What is the primary function of an "Actuator" in an IoT system?',
+      options: { A: 'Converts electrical control signals into physical movement or action', B: 'Measures ambient temperature', C: 'Assigns IP addresses', D: 'Transmits wireless packets' },
+      ans: 'A',
+      exp: 'Sensors convert physical parameters into electrical signals; Actuators convert electrical signals into physical action (e.g. motors, valves).'
+    },
+    {
+      q: 'Which wireless networking standard forms the foundation for Zigbee networks?',
+      options: { A: 'IEEE 802.15.4', B: 'IEEE 802.11', C: 'IEEE 802.3', D: 'IEEE 802.16' },
+      ans: 'A',
+      exp: 'Zigbee builds on the IEEE 802.15.4 physical and MAC layer standard for low-rate wireless personal area networks (LR-WPANs).'
+    },
+    {
+      q: 'What protocol enables IPv6 packets to be transmitted over resource-constrained IEEE 802.15.4 wireless networks?',
+      options: { A: '6LoWPAN', B: 'DHCPv6', C: 'BGP', D: 'OSPF' },
+      ans: 'A',
+      exp: '6LoWPAN (IPv6 over Low-Power Wireless Personal Area Networks) implements header compression to fit IPv6 into tiny IoT frames.'
+    },
+    {
+      q: 'What is the role of Edge Computing in an IoT ecosystem?',
+      options: { A: 'Processes sensor data locally near the data source to minimize latency and bandwidth', B: 'Replaces cloud data centers completely', C: 'Generates power for sensors', D: 'Encrypts Wi-Fi passwords' },
+      ans: 'A',
+      exp: 'Edge computing performs filtering, analytics, and instant decisions near device gateways rather than shipping all raw telemetry to cloud.'
+    },
+    {
+      q: 'Which transport layer protocol does CoAP (Constrained Application Protocol) utilize by default?',
+      options: { A: 'UDP', B: 'TCP', C: 'SCTP', D: 'TLS' },
+      ans: 'A',
+      exp: 'CoAP is designed for constrained web devices and runs over UDP to avoid TCP handshake overhead, using Datagram TLS (DTLS) for security.'
+    },
+    {
+      q: 'What are the four architectural layers of a standard IoT model?',
+      options: { A: 'Perception, Network, Middleware (Processing), and Application', B: 'Physical, Data Link, Network, Transport', C: 'Client, Server, Database, Cache', D: 'Input, Output, Memory, CPU' },
+      ans: 'A',
+      exp: 'Standard IoT architecture comprises Perception (sensors), Network (transmission), Middleware (analytics), and Application layers.'
+    },
+    {
+      q: 'Which technology uses radio waves for contactless automatic identification and data capture of tagged physical objects?',
+      options: { A: 'RFID (Radio Frequency Identification)', B: 'GPS', C: 'Ethernet', D: 'DSL' },
+      ans: 'A',
+      exp: 'RFID utilizes electromagnetic fields to automatically identify and read tracking tags attached to objects without line of sight.'
+    },
+    {
+      q: 'In MQTT architecture, what central entity receives all published messages and routes them to subscribed clients?',
+      options: { A: 'MQTT Broker', B: 'Gateway Router', C: 'DNS Server', D: 'Reverse Proxy' },
+      ans: 'A',
+      exp: 'The MQTT Broker filters incoming topic messages from publishers and routes them to all clients subscribed to that specific topic.'
+    },
+    {
+      q: 'Which low-power Bluetooth technology is designed for IoT devices that broadcast short data bursts while consuming minimal battery power?',
+      options: { A: 'BLE (Bluetooth Low Energy)', B: 'Bluetooth Classic', C: 'Infrared IrDA', D: 'NFC' },
+      ans: 'A',
+      exp: 'Bluetooth Low Energy (BLE / Bluetooth Smart) operates on coin-cell batteries for months or years by remaining asleep between bursts.'
+    },
+    {
+      q: 'What popular microcontroller board equipped with built-in Wi-Fi and Bluetooth is widely used in student IoT hardware projects?',
+      options: { A: 'ESP32 / ESP8266', B: '8085 Microprocessor', C: 'Intel Core i3', D: 'PCIe Card' },
+      ans: 'A',
+      exp: 'Espressif\'s ESP32 is a low-cost, dual-core SoC with integrated Wi-Fi and Bluetooth, ubiquitous in modern IoT embedded designs.'
+    },
+    {
+      q: 'What is a major security challenge unique to mass deployment of IoT devices?',
+      options: { A: 'Hardcoded default credentials, lack of encrypted updates, and limited hardware computing power for heavy cryptography', B: 'Excessive memory sizes', C: 'Too high network bandwidth', D: 'Inability to connect to power' },
+      ans: 'A',
+      exp: 'Resource constraints on tiny microcontrollers make running heavy crypto ciphers difficult, leaving devices vulnerable if default credentials are kept.'
     }
   ]
 };
 
 /**
- * Match subject to appropriate verified bank
+ * Match subject to appropriate verified bank with strict zero-leakage guards
  */
 function getSubjectBank(subject) {
-  const norm = String(subject || '').toLowerCase();
-  
-  if (norm.includes('software') || norm.includes('eng') || norm.includes('testing') || norm.includes('quality') || norm.includes('agile')) {
-    return VERIFIED_SUBJECT_BANKS.software_engineering;
+  const norm = String(subject || '').toLowerCase().trim();
+  if (!norm) return null;
+
+  // 1. C Programming (Strict match, avoiding C++ or C#)
+  if (/^c\s+programming\b|\bprogramming in c\b|^c\s+language\b|\bc\s*program/.test(norm) || norm === 'c') {
+    return VERIFIED_SUBJECT_BANKS.c_programming;
   }
-  if (norm.includes('dbms') || norm.includes('database') || norm.includes('sql') || norm.includes('data mining') || norm.includes('warehousing')) {
-    return VERIFIED_SUBJECT_BANKS.dbms;
+
+  // 2. CFOA (Computer Fundamentals and Office Automation)
+  if (/\bcfoa\b|computer fundamentals|office automation/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.cfoa;
   }
-  if (norm.includes('operating') || norm.includes('os') || norm.includes('linux') || norm.includes('unix')) {
-    return VERIFIED_SUBJECT_BANKS.operating_systems;
+
+  // 3. Elements of Statistics
+  if (/statistics|\bstat\b|\bstats\b|probability/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.statistics;
   }
-  if (norm.includes('network') || norm.includes('tcp') || norm.includes('security') || norm.includes('cyber')) {
-    return VERIFIED_SUBJECT_BANKS.computer_networks;
+
+  // 4. PPA (Principles of Programming & Algorithms)
+  if (/\bppa\b|principles of programming|programming principles/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.ppa;
   }
-  if (norm.includes('data structure') || norm.includes('dsa') || norm.includes('algorithm') || norm.includes('stack') || norm.includes('tree')) {
+
+  // 5. Data Communication (Checked before generic communication)
+  if (/data communication/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.data_communication;
+  }
+
+  // 6. Professional Communication & English
+  if (/professional communication|business communication|\bcommunication skills\b|\benglish\b|proficiency/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.professional_communication;
+  }
+
+  // 7. Data Structures using C
+  if (/data structure|\bdsa\b|\bstack\b|\btree\b|\bqueue\b|\blinked list\b/.test(norm)) {
     return VERIFIED_SUBJECT_BANKS.data_structures;
   }
-  if (norm.includes('java') || norm.includes('oop') || norm.includes('object')) {
-    return VERIFIED_SUBJECT_BANKS.java_programming;
+
+  // 8. DBMS / Database
+  if (/\bdbms\b|database|\bsql\b/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.dbms;
   }
-  if (norm.includes('web') || norm.includes('php') || norm.includes('html') || norm.includes('script') || norm.includes('e-commerce')) {
-    return VERIFIED_SUBJECT_BANKS.web_technologies;
-  }
-  if (norm.includes('discrete') || norm.includes('math') || norm.includes('mathematics')) {
+
+  // 9. Discrete Mathematics
+  if (/discrete/.test(norm)) {
     return VERIFIED_SUBJECT_BANKS.discrete_mathematics;
   }
-  if (norm.includes('digital') || norm.includes('architecture') || norm.includes('hardware') || norm.includes('electronics')) {
+
+  // 10. Operating System / Operating Systems
+  if (/operating system|\bos\b|\blinux\b|\bunix\b/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.operating_systems;
+  }
+
+  // 11. IOT (Internet of Things)
+  if (/\biot\b|internet of things/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.iot;
+  }
+
+  // 12. Java Programming
+  if (/\bjava\b/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.java_programming;
+  }
+
+  // 13. Software Engineering (Strict word match: never match 'English'!)
+  if (/software engineering|\bsdlc\b|\bsoftware testing\b|\bagile\b/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.software_engineering;
+  }
+
+  // 14. Web Technologies
+  if (/web technolog|\bhtml\b|\bcss\b|\bjavascript\b|\bphp\b/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.web_technologies;
+  }
+
+  // 15. Computer Networks
+  if (/computer network|\bnetworking\b|\btcp\b/.test(norm)) {
+    return VERIFIED_SUBJECT_BANKS.computer_networks;
+  }
+
+  // 16. Digital Electronics
+  if (/digital electronics|logic gates|\bk-map\b|flip-flop/.test(norm)) {
     return VERIFIED_SUBJECT_BANKS.digital_electronics;
   }
 
-  // Fallback to DSA / Software engineering questions
-  return VERIFIED_SUBJECT_BANKS.software_engineering;
+  // NO MATCH: ZERO LEAKAGE! Never fallback to software engineering for another subject.
+  return null;
 }
 
 /**
@@ -764,6 +1354,9 @@ function getSubjectBank(subject) {
  */
 function generateCurriculumFallback(subject, semester, count = 10, difficulty = 'medium') {
   const bank = getSubjectBank(subject);
+  if (!bank || !bank.length) {
+    return null;
+  }
   
   // Clone array and shuffle
   const shuffled = [...bank].sort(() => 0.5 - Math.random());
@@ -956,14 +1549,21 @@ No markdown fences, no preface, pure JSON only.
   }
 
   // 4. Zero-leakage Curriculum Engine Fallback
-  console.info(`[AI Generator] External providers unavailable. Serving verified curriculum questions strictly for "${subject}" (Sem ${semNum})`);
   const fallbackQuestions = generateCurriculumFallback(subject, semNum, count, difficulty);
-  return {
-    questions: fallbackQuestions,
-    provider: 'curriculum-engine',
-    model: 'bca-standard-v1',
-    tier: 'curriculum_fallback'
-  };
+  if (fallbackQuestions && fallbackQuestions.length >= 3) {
+    console.info(`[AI Generator] External providers unavailable. Serving verified curriculum questions strictly for "${subject}" (Sem ${semNum})`);
+    return {
+      questions: fallbackQuestions.slice(0, count),
+      provider: 'curriculum-engine',
+      model: 'bca-standard-v1',
+      tier: 'curriculum_fallback'
+    };
+  }
+
+  // STRICT REQUIREMENT: If questions for this subject are unavailable, NEVER substitute another subject's questions!
+  const notAvailErr = new Error(`Is subject (${subject}) ke questions abhi available nahi hain.`);
+  notAvailErr.code = 'questions_unavailable';
+  throw notAvailErr;
 }
 
 module.exports = {
