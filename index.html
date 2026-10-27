@@ -122,7 +122,7 @@
         <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" aria-label="Search notes, subjects or PYQs" placeholder="Search notes, subjects or PYQs&#8230;" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
       </div>
     </section>
-    <!-- Quick actions section (Share with students & 2x2 grid) -->
+    <!-- Quick actions section (Share with students & grid - all device friendly) -->
     <section class="quick-actions-section" id="quickActions" aria-label="Quick actions">
       <span id="savedSummary" hidden></span>
       <!-- Full-width Pill Button: Share with students -->
@@ -131,14 +131,17 @@
           <span class="qa-share-icon">
             <i class="fa-solid fa-cloud-arrow-up"></i>
           </span>
-          <span class="qa-share-title">Share with students</span>
+          <span class="qa-share-title">
+            Share with students
+            <span class="qa-share-sub">&middot; Upload notes or a PYQ</span>
+          </span>
         </span>
         <span class="qa-share-arrow">
           <i class="fa-solid fa-arrow-right"></i>
         </span>
       </button>
 
-      <!-- 2x2 Grid Pill Cards -->
+      <!-- Grid: 4 columns on desktop, 2x2 on mobile/tablet -->
       <div class="qa-grid">
         <!-- a) Mock tests -->
         <button type="button" class="qa-card" id="qaMockTestBtn" onclick="openMockTestsRoute()" aria-label="Mock tests">
@@ -146,7 +149,7 @@
             <i class="fa-solid fa-graduation-cap"></i>
           </span>
           <div class="qa-card-content">
-            <span class="qa-card-title">Mock<br>tests</span>
+            <span class="qa-card-title">Mock<br class="qa-mobile-br"> tests</span>
             <span class="qa-new-badge" id="qaMockNewBadge">New</span>
           </div>
         </button>
@@ -168,7 +171,7 @@
             <i class="fa-solid fa-user-plus"></i>
           </span>
           <div class="qa-card-content">
-            <span class="qa-card-title">Juniors<br>request</span>
+            <span class="qa-card-title">Juniors<br class="qa-mobile-br"> request</span>
           </div>
         </button>
 
@@ -178,7 +181,7 @@
             <i class="fa-solid fa-circle-question"></i>
           </span>
           <div class="qa-card-content">
-            <span class="qa-card-title">Lost and<br>found</span>
+            <span class="qa-card-title">Lost and<br class="qa-mobile-br"> found</span>
           </div>
         </button>
       </div>

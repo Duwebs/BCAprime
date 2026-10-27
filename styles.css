@@ -1585,12 +1585,11 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
 }
 
 /* ============================================================
-   Quick Actions Section (Reference Redesign)
+   Quick Actions Section (All Device Friendly: Desktop, Tablet & Mobile)
    ============================================================ */
 .quick-actions-section {
   width: 100%;
-  max-width: 620px;
-  margin: 16px 0 24px;
+  margin: 18px 0 26px;
 }
 
 /* Full-width Pill Button: Share with students */
@@ -1605,22 +1604,26 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 22px 0 10px;
+  padding: 0 24px 0 10px;
   color: #ffffff;
   cursor: pointer;
-  transition: transform .18s ease, filter .18s ease, box-shadow .18s ease;
-  box-shadow: 0 4px 14px rgba(41, 121, 214, 0.25);
+  transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1), filter .2s ease, box-shadow .2s ease;
+  box-shadow: 0 4px 14px rgba(41, 121, 214, 0.28);
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .qa-share-btn:hover {
   filter: brightness(1.08);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(41, 121, 214, 0.38);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(41, 121, 214, 0.42);
 }
 .qa-share-btn:active {
   transform: translateY(0);
   filter: brightness(0.96);
+}
+.qa-share-btn:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 3px;
 }
 .qa-share-left {
   display: flex;
@@ -1638,6 +1641,10 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   color: #ffffff;
   font-size: 17px;
   flex: 0 0 40px;
+  transition: transform .2s ease;
+}
+.qa-share-btn:hover .qa-share-icon {
+  transform: scale(1.06);
 }
 .qa-share-title {
   font-family: 'Geist', sans-serif;
@@ -1645,9 +1652,21 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   font-weight: 700;
   color: #ffffff;
   letter-spacing: -0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+.qa-share-sub {
+  display: none;
+  font-weight: 500;
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.82);
+  margin-left: 8px;
+}
+@media (min-width: 768px) {
+  .qa-share-sub {
+    display: inline;
+  }
 }
 .qa-share-arrow {
   color: #ffffff;
@@ -1656,19 +1675,26 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  transition: transform .18s ease;
+  transition: transform .2s ease;
 }
 .qa-share-btn:hover .qa-share-arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
 }
 
-/* 2x2 Grid */
+/* Grid layout: 4 columns on desktop, 2x2 on tablet and mobile */
 .qa-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 12px;
   width: 100%;
+}
+@media (max-width: 879px) {
+  .qa-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+  }
 }
 
 /* Card Button */
@@ -1687,18 +1713,23 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   text-decoration: none;
   cursor: pointer;
   outline: none;
-  transition: transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1), background .2s ease, border-color .2s ease, box-shadow .2s ease;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
 .qa-card:hover {
   background: #242424;
-  border-color: #383838;
-  transform: translateY(-1px);
+  border-color: #3e3e3e;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
 }
 .qa-card:active {
   transform: translateY(0);
-  background: #1e1e1e;
+  background: #1c1c1c;
+}
+.qa-card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 
 /* Left Icon Container */
@@ -1710,6 +1741,10 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   place-items: center;
   flex: 0 0 38px;
   font-size: 15px;
+  transition: transform .2s ease;
+}
+.qa-card:hover .qa-icon-wrap {
+  transform: scale(1.06);
 }
 
 /* Mock tests: Blue */
@@ -1750,6 +1785,19 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   text-align: left;
 }
 
+/* Line break: only breaks onto 2 lines on tablet and mobile */
+.qa-mobile-br {
+  display: block;
+}
+@media (min-width: 880px) {
+  .qa-mobile-br {
+    display: none;
+  }
+  .qa-card-title {
+    white-space: nowrap;
+  }
+}
+
 /* "New" Badge */
 .qa-new-badge {
   display: inline-flex;
@@ -1780,7 +1828,55 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   pointer-events: none;
 }
 
-/* Light Theme Adaptations (if user switches to light theme) */
+/* Desktop Large Screen Refinements (min-width: 1024px) */
+@media (min-width: 1024px) {
+  .quick-actions-section {
+    margin: 22px 0 30px;
+  }
+  .qa-share-btn {
+    height: 58px;
+    padding: 0 28px 0 12px;
+  }
+  .qa-share-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+    flex: 0 0 42px;
+  }
+  .qa-share-title {
+    font-size: 16.5px;
+  }
+  .qa-grid {
+    gap: 14px;
+    margin-top: 14px;
+  }
+  .qa-card {
+    min-height: 58px;
+    padding: 8px 18px 8px 12px;
+    gap: 12px;
+  }
+  .qa-icon-wrap {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    font-size: 16px;
+  }
+  .qa-card-title {
+    font-size: 15px;
+  }
+  .qa-new-badge {
+    font-size: 11.5px;
+    padding: 3px 9px;
+  }
+  .qa-red-dot {
+    top: 10px;
+    right: 16px;
+    width: 9px;
+    height: 9px;
+  }
+}
+
+/* Light Theme Adaptations */
 [data-theme="light"] .qa-card {
   background: #ffffff;
   border-color: #e5e7eb;
@@ -1789,6 +1885,7 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
 [data-theme="light"] .qa-card:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 [data-theme="light"] .qa-card-title {
   color: #0f172a;
@@ -1814,8 +1911,19 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   color: #15803d;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 480px) {
+/* Tablet refinements (541px to 879px) */
+@media (min-width: 541px) and (max-width: 879px) {
+  .qa-card {
+    min-height: 56px;
+    padding: 8px 16px 8px 12px;
+  }
+  .qa-card-title {
+    font-size: 14.5px;
+  }
+}
+
+/* Mobile responsiveness (<= 540px) */
+@media (max-width: 540px) {
   .quick-actions-section {
     margin: 14px 0 20px;
   }
@@ -1873,9 +1981,9 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   }
 }
 
-/* Juniors Request Modal & Placeholders */
+/* Juniors Request Modal & Placeholders (Desktop + Mobile) */
 .juniors-dialog {
-  width: min(100%, 540px);
+  width: min(100%, 580px);
   max-height: min(88dvh, 640px);
   display: flex;
   flex-direction: column;
@@ -1884,12 +1992,12 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   overflow-y: auto;
   display: grid;
   gap: 12px;
-  padding: 4px 0;
+  padding: 6px 0;
   max-height: 60dvh;
 }
 .jr-placeholder-card {
   text-align: center;
-  padding: 32px 20px;
+  padding: 34px 22px;
   background: var(--surface-2);
   border: 1px dashed var(--line);
   border-radius: 16px;
@@ -1917,9 +2025,10 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   margin: 0;
   font-size: 14px;
   color: var(--muted);
-  max-width: 380px;
+  max-width: 400px;
   line-height: 1.5;
 }
+
 
 
 
