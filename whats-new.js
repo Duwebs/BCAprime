@@ -11,18 +11,18 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.1.4";
+const CURRENT_APP_VERSION = "3.1.6";
 
 const LATEST_RELEASE = {
-  version: "3.1.4",
+  version: "3.1.6",
   date: "October 2026",
-  title: "Smoother, more reliable — under the hood",
-  subtitle: "Downloads, the in-app reader and notifications all got a reliability pass this month.",
+  title: "Redesigned Quick Actions & Enhanced Finder",
+  subtitle: "Native bottom-sheet PrimeFinder, refreshed quick actions, and AI mock test improvements.",
   features: [
-    { type: "fix",      title: "Reliable Mobile Downloads", desc: "File downloads now go through a sturdier fetch path, so notes & PYQs save to your phone consistently — even on flaky networks." },
-    { type: "fix",      title: "Smoother In-App Reader", desc: "Layout and scrolling fixes in the PDF & DOCX reader: pages scroll cleanly, no cut-off content and steadier controls." },
-    { type: "new",      title: "Push Notification Service", desc: "A dedicated messaging service worker now handles push, so new-upload and notify-seniors alerts arrive more dependably." },
-    { type: "improved", title: "Steadier Profiles & Sign-in", desc: "Behind-the-scenes fixes keep your display name, photo and uploads in sync — including a profile safety net for new accounts." }
+    { type: "new",      title: "Redesigned PrimeFinder", desc: "Native mobile bottom-sheet semester controls and lightning-fast subject filtering." },
+    { type: "improved", title: "Modern Quick Actions", desc: "Refreshed quick action cards with interactive badges and cleaner layout across devices." },
+    { type: "new",      title: "Mock Test File Upload", desc: "Generate instant AI practice quizzes directly from your uploaded notes and study materials." },
+    { type: "improved", title: "UI Components & Polish", desc: "Refined design tokens, smoother transitions, and component library enhancements." }
   ]
 };
 
