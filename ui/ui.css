@@ -55,6 +55,24 @@
   --bca-color-info-border: #BFDBFE;
 }
 
+[data-theme="dark"] {
+  --bca-color-canvas: #0a0a0a;
+  --bca-color-surface: #121212;
+  --bca-color-border: #222222;
+  --bca-color-text-primary: #ededed;
+  --bca-color-text-secondary: #888888;
+  --bca-color-text-muted: #666666;
+  --bca-color-backdrop: rgba(0, 0, 0, 0.7);
+  --bca-color-shimmer-base: #161616;
+  --bca-color-shimmer-highlight: #262626;
+  --bca-color-success-bg: rgba(16, 185, 129, 0.12);
+  --bca-color-success-border: rgba(16, 185, 129, 0.25);
+  --bca-color-error-bg: rgba(239, 68, 68, 0.12);
+  --bca-color-error-border: rgba(239, 68, 68, 0.25);
+  --bca-color-info-bg: rgba(59, 130, 246, 0.12);
+  --bca-color-info-border: rgba(59, 130, 246, 0.25);
+}
+
 /* ==========================================================================
    1. PressableScale
    ========================================================================== */

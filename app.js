@@ -271,7 +271,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       updateQrButtonVisibility();
       bindUploadDropzone();
     }
-    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#0a0a0a':'#fafafa'}
+    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#000000':'#fafafa'}
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark');try{localStorage.setItem('bca-theme-manual','1')}catch(e){}}
     function render(){const q=String(state.query||'');const match=r=>{
         if(state.savedOnly&&!state.saved.includes(r.title.replace(/\W/g,'')))return false;
