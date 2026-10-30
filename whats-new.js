@@ -11,18 +11,18 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.1.6";
+const CURRENT_APP_VERSION = "3.1.7";
 
 const LATEST_RELEASE = {
-  version: "3.1.6",
+  version: "3.1.7",
   date: "October 2026",
-  title: "Redesigned Quick Actions & Enhanced Finder",
-  subtitle: "Native bottom-sheet PrimeFinder, refreshed quick actions, and AI mock test improvements.",
+  title: "Refined Dark Mode & Professional Blue Accents",
+  subtitle: "Pure pitch-black canvas with restored vibrant blue interactive CTAs and balanced contrast.",
   features: [
-    { type: "new",      title: "Redesigned PrimeFinder", desc: "Native mobile bottom-sheet semester controls and lightning-fast subject filtering." },
-    { type: "improved", title: "Modern Quick Actions", desc: "Refreshed quick action cards with interactive badges and cleaner layout across devices." },
-    { type: "new",      title: "Mock Test File Upload", desc: "Generate instant AI practice quizzes directly from your uploaded notes and study materials." },
-    { type: "improved", title: "UI Components & Polish", desc: "Refined design tokens, smoother transitions, and component library enhancements." }
+    { type: "improved", title: "Refined Pure Dark Mode", desc: "Pure pitch-black dark theme with clean geometry, subtle borders, and zero intrusive glow." },
+    { type: "new",      title: "Restored Blue Interactive Accents", desc: "Clean and vibrant professional blue CTAs for Search, Downloads, and Active Tabs." },
+    { type: "improved", title: "Balanced Contrast & Badges", desc: "PYQ and Notes badges, filter chips, and quick action tags are clearer and more distinct." },
+    { type: "improved", title: "Design System Tokens", desc: "Synced design system tokens across EmptyState, BottomSheets, and error screens." }
   ]
 };
 
