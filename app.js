@@ -389,7 +389,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             },350);
           }catch(e){}
         }
-        async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);openReader(signed?{...resource,fileUrl:signed}:resource)}
+        async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);openReader(signed?{...resource,fileUrl:signed}:resource)}
     /* ============================================================
        PrimeFinder Native Mobile UX Engine
        ============================================================ */
@@ -2708,7 +2708,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         setTimeout(()=>{try{vp.focus()}catch(e){}},60);
       }
     }
-    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}const vp=$('readerViewport')||document.querySelector('.reader-viewport');if(vp){try{vp.scrollTop=0}catch(e){}}disableSecureGuards()}
+    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}const vp=$('readerViewport')||document.querySelector('.reader-viewport');if(vp){try{vp.scrollTop=0}catch(e){}}if(typeof updateDynamicSeo==='function')updateDynamicSeo();disableSecureGuards()}
     /* ======= Secure-view guards (sirf reader/preview open hone par) =======
        - right-click (context menu) block — viewport ke andar
        - text select/copy/drag block — DOCX pane ke andar
@@ -3546,6 +3546,50 @@ async function renderJuniorsModal() {
 }
 window.renderJuniorsModal = renderJuniorsModal;
 
+/* ============================================================
+   BCAPrime — Dynamic Client-Side SEO Engine
+   Keeps document title, social meta, and screen states updated
+   ============================================================ */
+const BASE_DOCUMENT_TITLE = 'BCAPrime | Free BCA Notes, Previous Year Papers (PYQs) & Study Library';
+
+function updateDynamicSeo(customTitle) {
+  try {
+    if (customTitle) {
+      document.title = customTitle;
+      return;
+    }
+    const h = (location.hash || '').toLowerCase();
+    const params = new URLSearchParams(window.location.search);
+    const sem = params.get('sem') || (typeof state !== 'undefined' && state && state.sem && state.sem !== 'all' ? state.sem : null);
+    const type = params.get('type') || (typeof state !== 'undefined' && state && state.type && state.type !== 'all' ? state.type : null);
+    const query = params.get('q') || (typeof state !== 'undefined' && state && state.query ? state.query : null);
+
+    if (h === '#mocktests' || h === '#mocktest') {
+      document.title = 'BCA Mock Tests & Practice Quizzes | BCAPrime';
+    } else if (h === '#juniors-request' || h === '#juniors') {
+      document.title = 'Help Juniors — Student Requests | BCAPrime';
+    } else if (h === '#ask-seniors' || h === '#seniors') {
+      document.title = 'Ask Seniors — BCA Study Support | BCAPrime';
+    } else if (h === '#lostfound' || h === '#lost-and-found') {
+      document.title = 'Campus Lost & Found | BCAPrime';
+    } else if (query) {
+      document.title = 'Search: "' + query + '" | BCAPrime Library';
+    } else if (sem && type) {
+      const typeLabel = type === 'pyq' ? 'Previous Year Questions (PYQs)' : 'Notes';
+      document.title = 'BCA Semester ' + sem + ' ' + typeLabel + ' | BCAPrime';
+    } else if (sem) {
+      document.title = 'BCA Semester ' + sem + ' Notes & Papers | BCAPrime';
+    } else if (type === 'pyq') {
+      document.title = 'BCA Previous Year Question Papers (PYQs) | BCAPrime';
+    } else if (type === 'notes') {
+      document.title = 'BCA Study Notes — All Semesters | BCAPrime';
+    } else {
+      document.title = BASE_DOCUMENT_TITLE;
+    }
+  } catch (e) {}
+}
+window.updateDynamicSeo = updateDynamicSeo;
+
 function handleQuickActionRoutes() {
   try {
     const h = (location.hash || '').toLowerCase();
@@ -3558,9 +3602,13 @@ function handleQuickActionRoutes() {
     } else if (h === '#lostfound' || h === '#lost-and-found') {
       scrollToLostFound();
     }
+    updateDynamicSeo();
   } catch (e) {}
 }
 window.addEventListener('hashchange', handleQuickActionRoutes);
 setTimeout(handleQuickActionRoutes, 1200);
-
-
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => updateDynamicSeo());
+} else {
+  updateDynamicSeo();
+}

@@ -128,6 +128,28 @@ module.exports = async function handler(req, res) {
   <link rel="icon" href="${origin}/assets/logo.png">
   <meta name="theme-color" content="#05080b">
 
+  <!-- Structured Data: LearningResource Schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LearningResource",
+    "@id": "${directPageUrl}",
+    "name": ${JSON.stringify(title)},
+    "description": ${JSON.stringify(description)},
+    "learningResourceType": "${rawType === 'pyq' ? 'Question Paper' : 'Study Notes'}",
+    "educationalLevel": "${semText}",
+    "about": ${JSON.stringify(subject)},
+    "inLanguage": "en",
+    "isAccessibleForFree": true,
+    "provider": {
+      "@type": "EducationalOrganization",
+      "name": "BCAPrime",
+      "url": "${origin}",
+      "logo": "${origin}/assets/logo.png"
+    }
+  }
+  </script>
+
   <!-- Instant Client-Side Redirect for browser users -->
   <script>
     (function(){

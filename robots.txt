@@ -1,0 +1,29 @@
+# ============================================================
+# BCAPrime — robots.txt
+# Official Crawler & Search Engine Directives
+# https://bcaprime.vercel.app
+# ============================================================
+
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /privacy.html
+Allow: /terms.html
+Allow: /resource/
+Allow: /api/og
+Allow: /analytics/
+
+# Disallow private admin panels, internal APIs and auth endpoints
+Disallow: /admin/
+Disallow: /admin.html
+Disallow: /api/send-otp
+Disallow: /api/verify-otp
+Disallow: /api/forgot-password
+Disallow: /api/quiz-quota
+Disallow: /api/generate-quiz
+Disallow: /api/google-welcome
+
+# Host & Primary Sitemap
+Host: https://bcaprime.vercel.app
+Sitemap: https://bcaprime.vercel.app/sitemap.xml
+
