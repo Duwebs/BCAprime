@@ -11,11 +11,12 @@ Allow: /privacy.html
 Allow: /terms.html
 Allow: /resource/
 Allow: /api/og
-Allow: /analytics/
 
-# Disallow private admin panels, internal APIs and auth endpoints
+# Disallow admin panels, analytics, internal APIs and auth endpoints
 Disallow: /admin/
 Disallow: /admin.html
+Disallow: /analytics/
+Disallow: /analytics
 Disallow: /api/send-otp
 Disallow: /api/verify-otp
 Disallow: /api/forgot-password
@@ -26,4 +27,3 @@ Disallow: /api/google-welcome
 # Host & Primary Sitemap
 Host: https://bcaprime.vercel.app
 Sitemap: https://bcaprime.vercel.app/sitemap.xml
-

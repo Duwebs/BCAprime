@@ -87,8 +87,7 @@ async function generate() {
     { loc: `${BASE_URL}/#juniors-request`, changefreq: 'daily', priority: '0.7', lastmod: today },
     { loc: `${BASE_URL}/#lostfound`, changefreq: 'daily', priority: '0.7', lastmod: today },
     { loc: `${BASE_URL}/privacy.html`, changefreq: 'monthly', priority: '0.4', lastmod: '2026-10-22' },
-    { loc: `${BASE_URL}/terms.html`, changefreq: 'monthly', priority: '0.4', lastmod: '2026-10-22' },
-    { loc: `${BASE_URL}/analytics/`, changefreq: 'weekly', priority: '0.3', lastmod: today }
+    { loc: `${BASE_URL}/terms.html`, changefreq: 'monthly', priority: '0.4', lastmod: '2026-10-22' }
   ];
 
   // 2. Fetch approved study resources
