@@ -26,7 +26,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="admin.css?v=14">
+  <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="admin.css?v=15">
 </head>
 <body>
 
@@ -83,6 +84,7 @@
       <button class="tab" data-tab="lostfound" onclick="switchTab('lostfound')"><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</button>
       <button class="tab" data-tab="reports" onclick="switchTab('reports')"><i class="fa-solid fa-flag"></i> Reports<span class="tab-badge" id="reportsBadge" hidden>0</span></button>
       <button class="tab" data-tab="quizzes" onclick="switchTab('quizzes')"><i class="fa-solid fa-graduation-cap"></i> Mock Tests &amp; MCQs</button>
+      <button class="tab" data-tab="users" onclick="switchTab('users')"><i class="fa-solid fa-users"></i> Users &amp; Stats</button>
     </nav>
 
         <!-- ============ TAB: Material ============ -->
@@ -368,6 +370,87 @@
       </div>
     </section>
 
+    <!-- ============ TAB: Users & Stats ============ -->
+    <section class="tab-panel" id="tab-users" hidden>
+
+      <!-- Header actions bar -->
+      <div class="user-stats-header">
+        <div>
+          <h2>User Growth &amp; Registrations</h2>
+          <p>Real-time student signup velocity, counts, and latest account activations.</p>
+        </div>
+        <div class="user-stats-actions">
+          <button class="button" id="btnTestTelegramAlert" onclick="triggerTestTelegramAlert()" title="Send test ping to your configured Telegram Bot">
+            <i class="fa-brands fa-telegram"></i> Test Telegram Alert
+          </button>
+          <button class="button primary" id="btnRefreshUserStats" onclick="loadUserStats(true)">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh Stats
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Counters Grid -->
+      <section class="stats user-stats-grid">
+        <div class="stat stat-primary">
+          <strong id="statTotalUsers">—</strong>
+          <span>Total Users</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersToday">—</strong>
+          <span>New Today (IST)</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersWeek">—</strong>
+          <span>This Week</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersMonth">—</strong>
+          <span>This Month</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersLastMonth">—</strong>
+          <span>Last Month</span>
+        </div>
+      </section>
+
+      <!-- Recent Users Panel -->
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Recent New Users</h2>
+            <small style="color:var(--muted)">Latest 20–50 students registered in BCAPrime</small>
+          </div>
+          <div class="filters">
+            <input class="search" id="userSearchInput" placeholder="Search by name or email…" oninput="filterRecentUsers()">
+            <span class="user-count-badge" id="userListCountBadge">0 users</span>
+          </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="table-wrap">
+          <table class="table" id="recentUsersTable">
+            <thead>
+              <tr>
+                <th style="width:48px">#</th>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Signup Date &amp; Time (IST)</th>
+              </tr>
+            </thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </div>
+
+        <!-- Empty state container for filtered users -->
+        <div id="usersEmptyState" class="empty-state-wrap" hidden></div>
+
+        <div class="note">
+          <i class="fa-solid fa-circle-info"></i> All timestamps and daily/weekly/monthly cutoffs are calculated in Indian Standard Time (IST, UTC+5:30).
+        </div>
+      </section>
+
+    </section>
+
   </main>
 
   <!-- ================= Subject edit / add modal ================= -->
@@ -576,6 +659,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
-  <script src="admin.js?v=14"></script>
+  <script type="module" src="../ui/index.js"></script>
+  <script src="admin.js?v=15"></script>
 </body>
 </html>
