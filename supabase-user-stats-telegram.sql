@@ -169,10 +169,23 @@ declare
   v_users_last_month int;
   v_recent_users json;
 begin
-  -- Security check: Verify caller has admin role
-  v_role := coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '');
+  -- Security check: Verify caller has admin role (JWT claim or live auth.users record)
+  v_role := coalesce(
+    auth.jwt() -> 'app_metadata' ->> 'role',
+    auth.jwt() -> 'user_metadata' ->> 'role',
+    ''
+  );
   if v_role <> 'admin' and current_user not in ('postgres', 'service_role') then
-    raise exception 'Access denied: Admin role required.';
+    if not exists (
+      select 1 from auth.users
+      where id = auth.uid()
+        and (
+          coalesce(raw_app_meta_data->>'role', '') = 'admin'
+          or coalesce(raw_user_meta_data->>'role', '') = 'admin'
+        )
+    ) then
+      raise exception 'Access denied: Admin role required.';
+    end if;
   end if;
 
   -- Compute boundaries strictly in Indian Standard Time (IST, UTC+5:30)
@@ -249,6 +262,6 @@ begin
 end;
 $$;
 
--- Grant execution to authenticated users (admin role is verified inside the function)
-grant execute on function public.get_admin_user_stats(int) to authenticated;
+-- Grant execution to authenticated & anon users (admin role is verified inside the function)
+grant execute on function public.get_admin_user_stats(int) to authenticated, anon;
 
