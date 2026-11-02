@@ -1806,7 +1806,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function submitAccount(event){event.preventDefault();if(!supabaseClient){$('accountMessage').textContent='Sign-in is not available right now.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();updateQrButtonVisibility();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
     async function signOutAccount(){clearProfileRealtime();try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}accountSession=null;try{localStorage.removeItem('bca-email-verified')}catch(e){}try{sessionStorage.removeItem('bca-pending-signup');sessionStorage.removeItem('bca-pending-action')}catch(e){}try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}hideProfileCard();closeModals();hideAuthenticatedApp();const acctAuth=$('accountAuth');if(acctAuth){acctAuth.innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'linkedin_oidc\')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount()}toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){syncProfileUI();$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';const semSel=document.querySelector('#uploadModal select[name="semester"]');if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){syncProfileUI();$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';const semSel=document.querySelector('#uploadModal select[name="semester"]');if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -2839,24 +2839,125 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function mySemNumber(){const v=Number(state.profileSemester||getProfileSemester()||state.sem);return(v>=1&&v<=6)?v:0}
     function myCollegeKey(){return state.college||'all'}
     function canRequestSenior(){return mySemNumber()>=1&&mySemNumber()<=5}
+
+    let srSheetDragBound = false;
+    function initSrSheetGestures(){
+      // Wire PressableScale on buttons and tabs
+      if(window.BCA_UI && window.BCA_UI.PressableScale){
+        document.querySelectorAll('.sr-type, .sr-sheet-close, .sr-sheet-submit').forEach(el=>{
+          if(!el.dataset.pressableInit){
+            el.dataset.pressableInit = 'true';
+            window.BCA_UI.PressableScale(el, { scale: 0.97, haptic: true });
+          }
+        });
+      }
+
+      if(srSheetDragBound) return;
+      const sheet = $('seniorReqSheet');
+      const handle = $('srSheetHandle');
+      if(!sheet || !handle) return;
+      srSheetDragBound = true;
+
+      let isDragging = false;
+      let startY = 0;
+      let deltaY = 0;
+
+      const onDragStart = (e) => {
+        if(!sheet.classList.contains('open')) return;
+        isDragging = true;
+        startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = 0;
+        sheet.style.transition = 'none';
+      };
+
+      const onDragMove = (e) => {
+        if(!isDragging) return;
+        const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = Math.max(0, currentY - startY);
+        sheet.style.transform = 'translateY(' + deltaY + 'px)';
+      };
+
+      const onDragEnd = () => {
+        if(!isDragging) return;
+        isDragging = false;
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+        if(deltaY > 75) {
+          if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+          else if(navigator.vibrate) navigator.vibrate(10);
+          closeSeniorRequest();
+        }
+        deltaY = 0;
+      };
+
+      handle.addEventListener('pointerdown', onDragStart);
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragEnd);
+      window.addEventListener('pointercancel', onDragEnd);
+    }
+
     function openSeniorRequest(){
       if(!accountSession){requireAccount('Log in to ask your seniors for notes/PYQs.','feedback');return}
-      if(!canRequestSenior()){toast('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');return}
+      if(!canRequestSenior()){
+        if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.info('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');
+        else toast('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');
+        return;
+      }
       const rg=$('srRange');if(rg)rg.textContent=String(mySemNumber()+1)+'–6';
       $('srSubject').value='';$('srMessage').value='';
       const t=document.querySelector('.sr-type.active');if(t){t.classList.remove('active')}
       const def=document.querySelector('.sr-type[data-type="notes"]');if(def)def.classList.add('active');
-      $('seniorReqModal').classList.add('open');
+
+      if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+      else if(navigator.vibrate) navigator.vibrate(10);
+
+      const sheet = $('seniorReqSheet');
+      const backdrop = $('srSheetBackdrop');
+      if(sheet) sheet.classList.add('open');
+      if(backdrop) backdrop.classList.add('open');
+      initSrSheetGestures();
     }
-    function closeSeniorRequest(){const m=$('seniorReqModal');if(m)m.classList.remove('open');if(location.hash==='#ask-seniors'||location.hash==='#seniors'){try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}}}
-    function setSrType(btn){document.querySelectorAll('.sr-type').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active')}
+
+    function closeSeniorRequest(){
+      if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+      else if(navigator.vibrate) navigator.vibrate(10);
+
+      const sheet = $('seniorReqSheet');
+      const backdrop = $('srSheetBackdrop');
+      if(sheet) sheet.classList.remove('open');
+      if(backdrop) backdrop.classList.remove('open');
+      const m=$('seniorReqModal');if(m)m.classList.remove('open');
+      if(location.hash==='#ask-seniors'||location.hash==='#seniors'){
+        try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+      }
+    }
+
+    function setSrType(btn){
+      if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+      else if(navigator.vibrate) navigator.vibrate(10);
+      document.querySelectorAll('.sr-type').forEach(b=>b.classList.remove('active'));
+      if(btn)btn.classList.add('active');
+    }
+
     async function submitSeniorRequest(event){
       event.preventDefault();
+      if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+      else if(navigator.vibrate) navigator.vibrate(10);
+
       if(!accountSession){requireAccount('Log in to ask your seniors.','feedback');return}
-      const sem=mySemNumber();if(!canRequestSenior()){toast('Final-semester students cannot request material from seniors');return}
+      const sem=mySemNumber();
+      if(!canRequestSenior()){
+        if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.info('Final-semester students cannot request material from seniors');
+        else toast('Final-semester students cannot request material from seniors');
+        return;
+      }
       const subject=$('srSubject').value.trim();
       const message=$('srMessage').value.trim();
-      if(!subject){toast('Please enter the subject or notes name');return}
+      if(!subject){
+        if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.error('Please enter the subject or notes name');
+        else toast('Please enter the subject or notes name');
+        return;
+      }
       const typeBtn=document.querySelector('.sr-type.active')||document.querySelector('.sr-type');
       const type=typeBtn?typeBtn.dataset.type:'notes';
       const btn=$('srSubmit');if(btn){btn.disabled=true;btn.textContent='Sending…'}
@@ -2869,16 +2970,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(error)throw error;
         const rid=inserted&&inserted.id;
         closeSeniorRequest();
-        toast('Request sent to your seniors 🔔');
+        if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.success('Request sent to your seniors 🔔');
+        else toast('Request sent to your seniors 🔔');
         if(rid){try{fetch(NOTIFY_SENIORS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:rid})}).catch(()=>{})}catch(e){}}
         loadSeniorHelpDelayed();
-      }catch(e){toast('Could not send request right now')}
-      finally{if(btn){btn.disabled=false;btn.textContent='Send to seniors'}}
+      }catch(e){
+        if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.error('Could not send request right now');
+        else toast('Could not send request right now');
+      }
+      finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Send to seniors'}}
     }
-
-
-
-
 
     /* ---- Senior side: help juniors ---- */
     let seniorHelpTimer=null;

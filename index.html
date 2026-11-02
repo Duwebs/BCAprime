@@ -210,6 +210,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
   <link rel="stylesheet" href="styles.css?v=60">
+  <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
 <body>
@@ -546,8 +547,41 @@
 
   <div class="modal" id="collegeModal"><div class="dialog"><div class="dialog-head"><h2>Choose your college</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Resources marked for your college will appear first.</p><div class="field"><input id="collegeSearch" aria-label="Search colleges" placeholder="Search colleges&#8230;" oninput="renderColleges(this.value)"></div><div class="college-list" id="collegeList"></div><div class="onboarding-custom"><input id="collegeCustom" aria-label="Add your college name" placeholder="College not listed? Add it here&#8230;" onkeydown="if(event.key==='Enter')useCustomCollege()"><button class="primary" onclick="useCustomCollege()"><i class="fa-solid fa-plus"></i> Add</button></div></div></div>
   <div class="modal" id="uploadModal"><div class="dialog"><div class="dialog-head"><h2>Share BCA material</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><form class="upload-form" autocomplete="off" onsubmit="submitUpload(event)"><label class="file-box" id="fileBox" for="file"><i class="fa-solid fa-file-arrow-up"></i><span id="fileName">Choose files or drag &amp; drop — PDF, DOCX, PPTX, images</span><small class="file-box-sub" id="fileNameHint">Select 5–10 photos of notes together &mdash; they auto-merge into 1 clean PDF</small><input id="file" name="file" type="file" accept=".pdf,.docx,.doc,.pptx,.ppt,.jpg,.jpeg,.png,.webp,.heic,.zip" multiple hidden onchange="showFile(this)"></label><div class="drive-import-row"><button type="button" class="secondary drive-import-btn" onclick="openDrivePicker()"><i class="fa-brands fa-google-drive"></i> Import from Google Drive</button></div><div class="upload-photo-wrap" id="uploadPhotoWrap" hidden></div><div class="upload-file-badges" id="uploadFileBadges" hidden></div><div class="upload-progress" id="uploadProgress" hidden><div class="upload-progress-bar"><div class="upload-progress-fill" id="uploadProgressFill"></div></div><span class="upload-progress-text" id="uploadProgressText"></span></div><div class="field"><label>Title</label><input name="title" required placeholder="e.g. DBMS Unit 2 notes"></div><div class="row"><div class="field"><label>Semester</label><select name="semester" onchange="updateUploadSubjects()"><option value="1">Semester 1</option><option value="2">Semester 2</option><option value="3">Semester 3</option><option value="4">Semester 4</option><option value="5">Semester 5</option><option value="6">Semester 6</option></select></div><div class="field"><label>Type</label><select name="type"><option value="notes">Notes</option><option value="pyq">PYQ</option></select></div></div><div class="field"><label>Subject</label><select name="subjectSelect" id="uploadSubjectSelect" onchange="onUploadSubjectChange(this)"><option value="__other">+ Other / new subject&#8230;</option></select></div><div class="field" id="customSubjectField" hidden><label>Your subject name</label><input name="customSubject" maxlength="80" placeholder="e.g. a subject only your college has"></div><button class="primary" type="submit">Publish resource</button></form></div></div>
-  <!-- Senior help request (juniors -> seniors) -->
-  <div class="modal" id="seniorReqModal"><div class="dialog senior-dialog"><div class="dialog-head"><h2>Ask a senior 🙋</h2><button class="close" aria-label="Close dialog" onclick="closeSeniorRequest()">&times;</button></div><p style="color:var(--muted);margin-top:0">We&#39;ll notify seniors of semester <b id="srRange">2–6</b> from your college to help you with this material.</p><form class="upload-form" autocomplete="off" onsubmit="submitSeniorRequest(event)"><div class="sr-types"><button type="button" class="sr-type active" data-type="notes" onclick="setSrType(this)">&#128221; Notes</button><button type="button" class="sr-type" data-type="pyq" onclick="setSrType(this)">&#128197; PYQ</button></div><div class="field"><label>Subject / notes name *</label><input id="srSubject" type="text" maxlength="120" required placeholder="e.g. Data Structures notes, Sem 1 Maths PYQ&#8230;"></div><div class="field"><label>Message (optional)</label><textarea id="srMessage" rows="3" maxlength="400" placeholder="Kuch specific batao — kya chahiye exactly."></textarea></div><button class="primary" id="srSubmit" type="submit"><i class="fa-solid fa-paper-plane"></i> Send to seniors</button></form></div></div>
+  <!-- Senior help request (juniors -> seniors) â€” Premium Bottom Sheet -->
+  <div class="sr-sheet-backdrop" id="srSheetBackdrop" onclick="closeSeniorRequest()"></div>
+  <div class="sr-sheet" id="seniorReqSheet" aria-modal="true" role="dialog">
+    <div class="sr-sheet-handle" id="srSheetHandle"><span></span></div>
+    <div class="sr-sheet-header">
+      <div class="sr-sheet-icon-badge"><i class="fa-solid fa-graduation-cap"></i></div>
+      <div class="sr-sheet-title-group">
+        <h2>Ask a Senior</h2>
+        <p>We'll notify seniors of semester <b id="srRange">2&#x2013;6</b> from your college.</p>
+      </div>
+      <button class="sr-sheet-close" aria-label="Close" onclick="closeSeniorRequest()"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form class="sr-sheet-form" autocomplete="off" onsubmit="submitSeniorRequest(event)">
+      <label class="sr-sheet-label">What do you need?</label>
+      <div class="sr-types">
+        <button type="button" class="sr-type active" data-type="notes" onclick="setSrType(this)">
+          <i class="fa-solid fa-book-open"></i><span>Notes</span>
+        </button>
+        <button type="button" class="sr-type" data-type="pyq" onclick="setSrType(this)">
+          <i class="fa-solid fa-calendar-check"></i><span>PYQ</span>
+        </button>
+      </div>
+      <div class="sr-sheet-field">
+        <label for="srSubject">Subject / notes name <span class="sr-req">*</span></label>
+        <input id="srSubject" type="text" maxlength="120" required placeholder="e.g. Data Structures notes, Sem 1 Maths PYQ&#8230;">
+      </div>
+      <div class="sr-sheet-field">
+        <label for="srMessage">Message <span class="sr-opt">(optional)</span></label>
+        <textarea id="srMessage" rows="3" maxlength="400" placeholder="Kuch specific batao &#x2014; kya chahiye exactly."></textarea>
+      </div>
+      <button class="sr-sheet-submit" id="srSubmit" type="submit">
+        <i class="fa-solid fa-paper-plane"></i> Send to seniors
+      </button>
+    </form>
+  </div>
 
   <!-- Juniors help request list modal (seniors help juniors) -->
   <div class="modal" id="juniorsReqModal" role="dialog" aria-modal="true" aria-labelledby="jrModalTitle"><div class="dialog juniors-dialog"><div class="dialog-head"><h2><i class="fa-solid fa-user-plus" style="color:#22c55e;margin-right:8px"></i><span id="jrModalTitle">Juniors Request</span></h2><button class="close" aria-label="Close dialog" onclick="closeJuniorsRequest()">&times;</button></div><p style="color:var(--muted);margin-top:0">Material and notes requested by juniors from your college.</p><div class="juniors-req-content" id="juniorsReqContent"></div></div></div>
@@ -1006,6 +1040,7 @@
     });
     return window.__pdfjsReady
   }</script>
+  <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=19"></script>
   <script src="app.js?v=61"></script>
   <script src="mocktest.js?v=7"></script>
