@@ -220,19 +220,22 @@
     ).length;
 
     if (unreadCount > 0) {
-      // Unread state: Red dot visible + smooth shaking animation isolated to bell icon
+      // Unread state: Red dot visible + smooth swing animation isolated to bell icon
       bellBtn.classList.add('has-unread');
       if (bellIcon) {
         if (forceAnimation) {
+          bellIcon.classList.remove('bell-icon-animated');
           bellIcon.classList.remove('bell-shake');
           bellIcon.classList.remove('is-shaking');
           void bellIcon.offsetWidth; // Force DOM reflow strictly on icon element
         }
+        bellIcon.classList.add('bell-icon-animated');
         bellIcon.classList.add('bell-shake');
         bellIcon.classList.add('is-shaking');
       }
       const topbarBellIcon = document.getElementById('bellIcon');
       if (topbarBellIcon) {
+        topbarBellIcon.classList.add('bell-icon-animated');
         topbarBellIcon.classList.add('bell-shake');
       }
       if (badge) {
@@ -244,11 +247,13 @@
       // Read state: Red dot disappears + shaking animation stops completely
       bellBtn.classList.remove('has-unread');
       if (bellIcon) {
+        bellIcon.classList.remove('bell-icon-animated');
         bellIcon.classList.remove('bell-shake');
         bellIcon.classList.remove('is-shaking');
       }
       const topbarBellIcon = document.getElementById('bellIcon');
       if (topbarBellIcon) {
+        topbarBellIcon.classList.remove('bell-icon-animated');
         topbarBellIcon.classList.remove('bell-shake');
       }
       if (badge) {

@@ -4538,7 +4538,7 @@ html:not([data-theme="dark"]) .hero-notify-bell:hover,
   height: 20px;
   min-width: 20px;
   min-height: 20px;
-  overflow: hidden;
+  overflow: visible;
   box-sizing: border-box;
   pointer-events: none;
   transform: none !important;
@@ -4558,45 +4558,59 @@ html:not([data-theme="dark"]) .hero-notify-bell:hover,
   height: 20px;
   text-align: center;
   pointer-events: none;
-  transform: translateX(0);
+  transform-origin: top center;
+  transform: rotate(0deg);
 }
 
-/* Scoped Shake Keyframes (Local translateX only) */
+/* Real Physical Bell Swing Keyframes */
+@keyframes realBellSwing {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(4deg); }
+  85% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Backward compatibility aliases */
 @keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  20%, 60% {
-    transform: translateX(-2px);
-  }
-  40%, 80% {
-    transform: translateX(2px);
-  }
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(4deg); }
+  85% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
 }
 
 @keyframes bcaBellShake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  20%, 60% {
-    transform: translateX(-2px);
-  }
-  40%, 80% {
-    transform: translateX(2px);
-  }
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-12deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(4deg); }
+  85% { transform: rotate(-2deg); }
+  100% { transform: rotate(0deg); }
 }
 
-/* Apply shake animation strictly to the bell icon element only */
+/* Apply real swing animation strictly to the bell icon / direct wrapper */
+.bell-icon-animated,
 .bell-shake,
 .hero-notify-bell.has-unread .hero-bell-icon,
 .hero-notify-bell.has-unread #heroBellIcon,
+#heroBellIcon.bell-icon-animated,
 #heroBellIcon.is-shaking,
 #heroBellIcon.bell-shake,
+#bellIcon.bell-icon-animated,
 #bellIcon.bell-shake {
   display: inline-flex !important;
-  animation: shake 0.5s ease-in-out infinite !important;
+  transform-origin: top center !important; /* Yeh top ko ekdum fixed rakhega */
+  animation: realBellSwing 1.2s ease-in-out infinite !important; /* Smooth, natural speed */
   will-change: transform;
-  transform-origin: center center;
 }
 
 /* Red Dot Badge on Bell */
