@@ -789,7 +789,47 @@
       </section>
     </div>
   </div>
-  <div class="modal auth-modal-priority" id="accessAuthModal" style="z-index:9999"><div class="dialog access-dialog"><div class="dialog-head"><span></span><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><div class="access-brand"><img src="assets/logo.png" alt="BCAPrime logo"><span>BCA<span style="color:var(--brand)">Prime</span></span></div><h2 id="accessAuthTitle">Sign up to continue</h2><p id="accessAuthDescription">Create a free account to upload and download study material.</p><form class="account-form" id="accessAuthForm"><label id="accessAuthNameLabel" hidden>Username<input id="accessAuthName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,'accessAuthUsernameHint')"><small class="field-hint" id="accessAuthUsernameHint"></small></label><label id="accessAuthEmailLabel">Email or Username<input id="accessAuthEmail" type="text" autocomplete="username" required></label><label>Password<input id="accessAuthPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accessAuthConfirmLabel" hidden>Confirm Password<input id="accessAuthConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accessAuthSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','accessAuthMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('linkedin_oidc','accessAuthMessage')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="accessAuthMessage" aria-live="polite"></p><button class="account-switch" id="accessAuthSwitch" type="button">Already have an account? Login</button></div></div>
+  <div class="modal auth-modal-priority" id="accessAuthModal" style="z-index:9999" onclick="if(event.target===this)closeModals()">
+    <div class="dialog access-dialog">
+      <div class="access-sheet-handle"><span></span></div>
+      <div class="dialog-head">
+        <span></span>
+        <button class="close access-close-btn" aria-label="Close dialog" onclick="closeModals()">&times;</button>
+      </div>
+      <div class="access-brand">
+        <img src="assets/logo.png" alt="BCAPrime logo">
+        <span>BCA<span style="color:var(--brand)">Prime</span></span>
+      </div>
+      <h2 id="accessAuthTitle">Sign up to continue</h2>
+      <p id="accessAuthDescription">Create a free account to upload and download study material.</p>
+      <form class="account-form" id="accessAuthForm">
+        <label id="accessAuthNameLabel" hidden>Username
+          <input id="accessAuthName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,'accessAuthUsernameHint')">
+          <small class="field-hint" id="accessAuthUsernameHint"></small>
+        </label>
+        <label id="accessAuthEmailLabel">Email or Username
+          <input id="accessAuthEmail" type="text" autocomplete="username" required>
+        </label>
+        <label>Password
+          <input id="accessAuthPassword" type="password" autocomplete="new-password" minlength="6" required>
+        </label>
+        <label id="accessAuthConfirmLabel" hidden>Confirm Password
+          <input id="accessAuthConfirm" type="password" autocomplete="new-password" minlength="6">
+        </label>
+        <button class="primary" id="accessAuthSubmit" type="submit">Sign up</button>
+      </form>
+      <div class="oauth-actions">
+        <button class="oauth-button" type="button" onclick="signInWithProvider('google','accessAuthMessage')">
+          <i class="fa-brands fa-google"></i> Continue with Google
+        </button>
+        <button class="oauth-button" type="button" onclick="signInWithProvider('linkedin_oidc','accessAuthMessage')">
+          <i class="fa-brands fa-linkedin"></i> Continue with LinkedIn
+        </button>
+      </div>
+      <p class="account-message" id="accessAuthMessage" aria-live="polite"></p>
+      <button class="account-switch" id="accessAuthSwitch" type="button">Already have an account? Login</button>
+    </div>
+  </div>
 <!-- Strict email verification gate: unverified email/password users land here -->
   <div class="modal auth-modal-priority" id="verifyEmailModal" style="z-index:9999"><div class="dialog verify-dialog"><div class="dialog-head"><h2>Verify your email</h2><button class="close" aria-label="Close dialog" onclick="closeVerifyEmail()">&times;</button></div><div class="verify-icon"><i class="fa-solid fa-envelope-circle-check"></i></div><h3 class="verify-title">We sent you a verification link</h3><p class="verify-sub">A verification email was sent to <strong id="verifyEmailAddr"></strong>. Click the link inside it to confirm your email — unverified accounts can't access the BCA library.</p><p class="account-message" id="verifyEmailMessage" aria-live="polite">Checking…</p><button class="primary verify-continue" id="verifyContinueBtn" type="button" onclick="confirmEmailVerified()"><i class="fa-solid fa-envelope-open-text"></i> I've verified — Continue</button><div class="verify-actions"><button class="secondary" type="button" onclick="resendVerificationEmail()"><i class="fa-solid fa-rotate-right"></i> Resend link</button><button class="secondary" type="button" onclick="closeVerifyEmail()">Close</button></div><div class="verify-alt"><span>Prefer a code instead?</span><button class="linklike" type="button" onclick="switchToOtpView()"><i class="fa-solid fa-hashtag"></i> Enter a 6-digit code</button></div></div></div>
 
@@ -967,29 +1007,33 @@
   </aside>
 
   <!-- Guest Mode welcome popup: Continue as Guest click par dikhta hai -->
-  <div class="modal gw-modal" id="guestWelcomeModal"><div class="dialog gw-dialog">
-    <div class="gw-hero">
-      <span class="gw-orb gw-orb1"></span><span class="gw-orb gw-orb2"></span>
-      <img class="gw-logo" src="assets/logo.png" alt="">
-      <span class="gw-pill"><i class="fa-solid fa-eye"></i> Guest Mode</span>
-      <h2>You're exploring as a guest</h2>
-      <p class="gw-sub">Here's what you can do right now — and what needs a free account.</p>
-    </div>
-    <div class="gw-list">
-      <div class="gw-group gw-allowed">
-        <span class="gw-label"><i class="fa-solid fa-circle-check"></i> Allowed</span>
-        <div class="gw-item"><span class="gw-ico gw-ok"><i class="fa-solid fa-layer-group"></i></span><div><strong>Browse &amp; Read Everything</strong><span>Access all semester notes &amp; PYQ titles and read them fully online — no limits.</span></div></div>
+  <div class="modal gw-modal" id="guestWelcomeModal" onclick="if(event.target===this)closeGuestWelcome()">
+    <div class="dialog gw-dialog">
+      <div class="gw-sheet-handle"><span></span></div>
+      <button class="close gw-close-btn" aria-label="Close dialog" onclick="closeGuestWelcome()">&times;</button>
+      <div class="gw-hero">
+        <span class="gw-orb gw-orb1"></span><span class="gw-orb gw-orb2"></span>
+        <img class="gw-logo" src="assets/logo.png" alt="">
+        <span class="gw-pill"><i class="fa-solid fa-eye"></i> Guest Mode</span>
+        <h2>You're exploring as a guest</h2>
+        <p class="gw-sub">Here's what you can do right now — and what needs a free account.</p>
       </div>
-      <div class="gw-group gw-restricted">
-        <span class="gw-label"><i class="fa-solid fa-lock"></i> Restricted</span>
-        <div class="gw-item"><span class="gw-ico gw-no"><i class="fa-solid fa-file-arrow-down"></i></span><div><strong>PDF Downloads &amp; Uploads</strong><span>Full file downloads and sharing require a free account.</span></div></div>
+      <div class="gw-list">
+        <div class="gw-group gw-allowed">
+          <span class="gw-label"><i class="fa-solid fa-circle-check"></i> Allowed</span>
+          <div class="gw-item"><span class="gw-ico gw-ok"><i class="fa-solid fa-layer-group"></i></span><div><strong>Browse &amp; Read Everything</strong><span>Access all semester notes &amp; PYQ titles and read them fully online — no limits.</span></div></div>
+        </div>
+        <div class="gw-group gw-restricted">
+          <span class="gw-label"><i class="fa-solid fa-lock"></i> Restricted</span>
+          <div class="gw-item"><span class="gw-ico gw-no"><i class="fa-solid fa-file-arrow-down"></i></span><div><strong>PDF Downloads &amp; Uploads</strong><span>Full file downloads and sharing require a free account.</span></div></div>
+        </div>
+      </div>
+      <div class="gw-foot">
+        <button class="primary gw-cta" onclick="closeGuestWelcome()"><i class="fa-solid fa-compass"></i> Got It, Let's Explore!</button>
+        <button class="linklike gw-signup" onclick="closeGuestWelcome();guestSignupPrompt()"><i class="fa-solid fa-user-plus"></i> Create a free account</button>
       </div>
     </div>
-    <div class="gw-foot">
-      <button class="primary gw-cta" onclick="closeGuestWelcome()"><i class="fa-solid fa-compass"></i> Got It, Let's Explore!</button>
-      <button class="linklike gw-signup" onclick="closeGuestWelcome();guestSignupPrompt()"><i class="fa-solid fa-user-plus"></i> Create a free account</button>
-    </div>
-  </div></div>
+  </div>
 
   <!-- ================= Mock Test Modal ================= -->
   <div class="mt-modal" id="mockTestModal" role="dialog" aria-modal="true" aria-labelledby="mtModalTitle" onclick="if(event.target===this)closeMockTestModal()">

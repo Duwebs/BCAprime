@@ -903,7 +903,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     // Interactive elements haptic delegation: cards, browse buttons, close button
     document.addEventListener('pointerdown', (e) => {
-      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go, .profile-stat-card, .profile-action-btn, .avatar-btn, #profileNameSave, .danger-logout, .profile-dialog .close, .empty-action-btn, .avatar-edit-badge, .file-box, .drive-import-btn, .upload-submit-btn, .upload-dialog .close, .photo-btn, .qa-share-btn, .upload-success-card button');
+      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go, .profile-stat-card, .profile-action-btn, .avatar-btn, #profileNameSave, .danger-logout, .profile-dialog .close, .empty-action-btn, .avatar-edit-badge, .file-box, .drive-import-btn, .upload-submit-btn, .upload-dialog .close, .photo-btn, .qa-share-btn, .upload-success-card button, .gw-cta, .gw-signup, .gw-close-btn, .gw-item, #accessAuthSubmit, .oauth-button, #accessAuthSwitch, .access-close-btn');
       if (el) {
         try {
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -1050,7 +1050,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let restrictedAction=null;
     function isGuestMode(){return !accountSession&&sessionStorage.getItem('bca-guest-mode')==='true'}
     function setAccessAuthMode(mode){accessAuthMode=mode;$('accessAuthTitle').textContent=mode==='signup'?'Sign up to continue':'Login to continue';$('accessAuthDescription').textContent=mode==='signup'?'Create a free account to upload and download study material.':'Login to continue with this action.';$('accessAuthSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accessAuthSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accessAuthMessage').textContent='';$('accessAuthNameLabel').hidden=mode!=='signup';$('accessAuthConfirmLabel').hidden=mode!=='signup';$('accessAuthEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accessAuthName').setAttribute('required','');$('accessAuthConfirm').setAttribute('required','');$('accessAuthEmail').removeAttribute('required')}else{$('accessAuthName').removeAttribute('required');$('accessAuthConfirm').removeAttribute('required');$('accessAuthEmail').setAttribute('required','')}}
-    function requireAccount(message,action,title=''){if(accountSession)return true;restrictedAction={action,title};setAccessAuthMode('signup');$('accessAuthDescription').textContent=message;$('accessAuthMessage').textContent='';const modal=$('accessAuthModal');if(modal){if(modal.parentNode!==document.body)document.body.appendChild(modal);else document.body.appendChild(modal);modal.style.zIndex='9999';modal.classList.add('open')}return false}
+    function requireAccount(message,action,title=''){if(accountSession)return true;restrictedAction={action,title};setAccessAuthMode('signup');$('accessAuthDescription').textContent=message;$('accessAuthMessage').textContent='';const modal=$('accessAuthModal');if(modal){if(modal.parentNode!==document.body)document.body.appendChild(modal);else document.body.appendChild(modal);modal.style.zIndex='9999';modal.classList.add('open');initAccessSheetGestures();try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}}return false}
     function resumeRestrictedAction(){if(!accountSession||!restrictedAction)return;const action=restrictedAction;restrictedAction=null;closeModals();if(action.action==='upload')openUpload();if(action.action==='download')download(action.title);if(action.action==='feedback')openFeedback();if(action.action==='qr-login')openQrScanner();if(action.action==='mocktest'){if(typeof unlockDetailedAnalysisIfLoggedIn==='function')unlockDetailedAnalysisIfLoggedIn();if(typeof openMockTestHub==='function')openMockTestHub();}}
     async function submitAccessAuth(event){event.preventDefault();if(!supabaseClient){$('accessAuthMessage').textContent='Sign-in is not available right now.';return}const password=$('accessAuthPassword').value;const msgEl=$('accessAuthMessage');if(accessAuthMode==='signup'){const username=$('accessAuthName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accessAuthConfirm'),msgEl))return;const usernameAvail=await checkUsernameAvailable(username);if(usernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accessAuthMessage');return}const loginEmail=await resolveLoginEmail($('accessAuthEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){resumeRestrictedAction()}}catch(error){$('accessAuthMessage').textContent=(error&&error.message)||'Could not log in.';return}}
 
@@ -1212,8 +1212,103 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }catch(e){ return ''; }
     }
     /* Guest welcome popup + sign-up CTA */
-    function showGuestWelcome(){ const m=$('guestWelcomeModal'); if(!m) return; m.classList.add('open'); }
-    function closeGuestWelcome(){ const m=$('guestWelcomeModal'); if(m) m.classList.remove('open'); }
+
+    /* Guest & Access Auth Sheet Gesture Handlers (Rule 3) */
+    let gwSheetDragBound = false;
+    function initGwSheetGestures() {
+      if (gwSheetDragBound) return;
+      const modal = $('guestWelcomeModal');
+      const dialog = modal ? modal.querySelector('.gw-dialog') : null;
+      const handle = modal ? modal.querySelector('.gw-sheet-handle') : null;
+      if (!modal || !dialog || !handle) return;
+      gwSheetDragBound = true;
+      let isDragging = false, startY = 0, deltaY = 0;
+
+      const onDragStart = (e) => {
+        if (!modal.classList.contains('open')) return;
+        isDragging = true;
+        startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = 0;
+        dialog.style.transition = 'none';
+      };
+
+      const onDragMove = (e) => {
+        if (!isDragging) return;
+        const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = Math.max(0, currentY - startY);
+        dialog.style.transform = 'translateY(' + deltaY + 'px)';
+      };
+
+      const onDragEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        dialog.style.transition = '';
+        dialog.style.transform = '';
+        if (deltaY > 75) {
+          closeGuestWelcome();
+        }
+        deltaY = 0;
+      };
+
+      handle.addEventListener('pointerdown', onDragStart);
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragEnd);
+      window.addEventListener('pointercancel', onDragEnd);
+    }
+
+    let accessSheetDragBound = false;
+    function initAccessSheetGestures() {
+      if (accessSheetDragBound) return;
+      const modal = $('accessAuthModal');
+      const dialog = modal ? modal.querySelector('.access-dialog') : null;
+      const handle = modal ? modal.querySelector('.access-sheet-handle') : null;
+      if (!modal || !dialog || !handle) return;
+      accessSheetDragBound = true;
+      let isDragging = false, startY = 0, deltaY = 0;
+
+      const onDragStart = (e) => {
+        if (!modal.classList.contains('open')) return;
+        isDragging = true;
+        startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = 0;
+        dialog.style.transition = 'none';
+      };
+
+      const onDragMove = (e) => {
+        if (!isDragging) return;
+        const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = Math.max(0, currentY - startY);
+        dialog.style.transform = 'translateY(' + deltaY + 'px)';
+      };
+
+      const onDragEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        dialog.style.transition = '';
+        dialog.style.transform = '';
+        if (deltaY > 75) {
+          closeModals();
+        }
+        deltaY = 0;
+      };
+
+      handle.addEventListener('pointerdown', onDragStart);
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragEnd);
+      window.addEventListener('pointercancel', onDragEnd);
+    }
+    function showGuestWelcome(){
+      const m=$('guestWelcomeModal');
+      if(!m) return;
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      m.classList.add('open');
+      initGwSheetGestures();
+    }
+    function closeGuestWelcome(){
+      const m=$('guestWelcomeModal');
+      if(m) m.classList.remove('open');
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+    }
     function guestSignupPrompt(title){
       closeGuestWelcome();
       if(title) requireAccount('Sign up or login to download "'+title+'".','download',title);
