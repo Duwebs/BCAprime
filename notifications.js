@@ -353,11 +353,11 @@
 
     notificationsList.forEach((notif) => {
       const isUnread = !notif.is_read && !locallyRead.has(String(notif.id));
-      const itemBtn = document.createElement('button');
-      itemBtn.type = 'button';
-      itemBtn.className = `notif-item ${isUnread ? 'is-unread' : ''}`;
-      itemBtn.setAttribute('role', 'button');
-      itemBtn.setAttribute('aria-label', notif.title);
+      const itemCard = document.createElement('div');
+      itemCard.className = `notif-item ${isUnread ? 'is-unread' : ''}`;
+      itemCard.setAttribute('role', 'button');
+      itemCard.setAttribute('tabindex', '0');
+      itemCard.setAttribute('aria-label', notif.title);
 
       // Icon wrap with unread red dot
       const iconWrap = document.createElement('div');
@@ -368,7 +368,7 @@
         dot.className = 'notif-unread-dot';
         iconWrap.appendChild(dot);
       }
-      itemBtn.appendChild(iconWrap);
+      itemCard.appendChild(iconWrap);
 
       // Body: Title + message + relative timestamp
       const body = document.createElement('div');
@@ -394,19 +394,25 @@
       msgEl.textContent = notif.message;
       body.appendChild(msgEl);
 
-      itemBtn.appendChild(body);
+      itemCard.appendChild(body);
 
       // Click handler: Mark as read + router.push
-      itemBtn.addEventListener('click', () => {
+      itemCard.addEventListener('click', () => {
         handleNotificationClick(notif);
+      });
+      itemCard.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleNotificationClick(notif);
+        }
       });
 
       // PressableScale (Rule 2)
       if (window.BCA_UI && window.BCA_UI.PressableScale) {
-        window.BCA_UI.PressableScale(itemBtn);
+        window.BCA_UI.PressableScale(itemCard);
       }
 
-      listEl.appendChild(itemBtn);
+      listEl.appendChild(itemCard);
     });
 
     wrap.appendChild(listEl);
