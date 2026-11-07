@@ -2875,6 +2875,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let totalReaderPages = 1;
     let readerScrollDebounceTimer = null;
     let pendingReadingProgressSync = null;
+    let readerOpenedAt = 0;
+    let readerEngagementTimer = null;
+
+    function isReadingCompleted(item) {
+      if (!item) return false;
+      if (item.completed === true) return true;
+      const cur = Math.max(1, parseInt(item.current_page, 10) || 1);
+      const tot = Math.max(1, parseInt(item.total_pages, 10) || 1);
+      // Completed only if current_page === total_pages AND total_pages > 1
+      // (1-page PYQs/notes stay in Continue Reading for quick access)
+      return (cur >= tot && tot > 1);
+    }
 
     function getCachedPdfThumb(pdfId) {
       try {
@@ -2905,7 +2917,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         let list = getLocalReadingProgress();
         list = list.filter(x => String(x.pdf_id) !== String(item.pdf_id));
         list.unshift(item);
-        list = list.slice(0, 10);
+        list = list.slice(0, 15);
         localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(list));
       } catch (e) {}
     }
@@ -2934,18 +2946,25 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
     }
 
-    function recordReadingProgress(resource, page, totalPages) {
+    function recordReadingProgress(resource, page, totalPages, extraOpts) {
       if (!resource) return;
+      extraOpts = extraOpts || {};
       const pdfId = String(resource.dbId || resource.id || rcId(resource.title));
       const title = String(resource.title || 'Untitled Document');
       const validPage = Math.max(1, parseInt(page, 10) || 1);
       const validTotal = Math.max(1, parseInt(totalPages, 10) || 1);
+
+      // Preserve previously achieved engagement for this PDF
+      const prevList = getLocalReadingProgress();
+      const prev = prevList.find(x => String(x.pdf_id) === pdfId);
+      const isEngaged = Boolean(extraOpts.engaged || (prev && prev.engaged) || (validTotal > 1 && validPage > 1));
 
       const item = {
         pdf_id: pdfId,
         title: title,
         current_page: validPage,
         total_pages: validTotal,
+        engaged: isEngaged,
         updated_at: new Date().toISOString()
       };
 
@@ -2974,14 +2993,27 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if (!vp) return;
       vp.removeEventListener('scroll', onReaderScroll);
       vp.addEventListener('scroll', onReaderScroll, { passive: true });
+
+      // Initial record: if 1-page PDF, do not mark engaged immediately on tap
       if (currentReaderResource) {
-        recordReadingProgress(currentReaderResource, currentReaderPage, totalReaderPages);
+        recordReadingProgress(currentReaderResource, currentReaderPage, totalReaderPages, {
+          engaged: totalReaderPages > 1 ? (currentReaderPage > 1) : false
+        });
       }
+
+      // Minimum threshold: For 1-page PDFs, mark engaged after spending at least 4 seconds actively reading
+      clearTimeout(readerEngagementTimer);
+      readerEngagementTimer = setTimeout(() => {
+        if (currentReaderResource && secureViewOpen()) {
+          recordReadingProgress(currentReaderResource, currentReaderPage, totalReaderPages, { engaged: true });
+        }
+      }, 4000);
     }
 
     function teardownReaderScrollTracking() {
       const vp = $('readerViewport') || document.querySelector('.reader-viewport');
       if (vp) vp.removeEventListener('scroll', onReaderScroll);
+      clearTimeout(readerEngagementTimer);
     }
 
     function onReaderScroll() {
@@ -3006,9 +3038,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       }
 
-      if (activePage && activePage !== currentReaderPage) {
+      // Active scroll: user has engaged with the document
+      const hasScrolled = vp.scrollTop > 20 || activePage > 1;
+      if (activePage !== currentReaderPage || hasScrolled) {
         currentReaderPage = activePage;
-        recordReadingProgress(currentReaderResource, activePage, totalReaderPages);
+        recordReadingProgress(currentReaderResource, activePage, totalReaderPages, { engaged: true });
       }
     }
 
@@ -3027,12 +3061,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             .select('pdf_id, title, current_page, total_pages, updated_at')
             .eq('user_id', uid)
             .order('updated_at', { ascending: false })
-            .limit(3);
+            .limit(10); // Query top 10 so completed multi-page items can be filtered cleanly
 
           if (!error && Array.isArray(data) && data.length > 0) {
-            items = data;
+            const localList = getLocalReadingProgress();
+            items = data.map(cloudItem => {
+              const matchedLocal = localList.find(l => String(l.pdf_id) === String(cloudItem.pdf_id));
+              return {
+                ...cloudItem,
+                engaged: matchedLocal ? Boolean(matchedLocal.engaged) : (cloudItem.current_page > 1 || cloudItem.total_pages > 1)
+              };
+            });
             try {
-              localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(data));
+              localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(items));
             } catch (e) {}
           }
         } catch (err) {
@@ -3041,16 +3082,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
 
       if (!items.length) {
-        items = getLocalReadingProgress().slice(0, 3);
+        items = getLocalReadingProgress();
       }
 
-      if (!items.length) {
+      // Rule: Filter out completed multi-page PDFs; keep 1-page PYQs/notes for quick access
+      const activeItems = items.filter(item => !isReadingCompleted(item)).slice(0, 3);
+
+      if (!activeItems.length) {
         section.hidden = true;
         container.innerHTML = '';
         return;
       }
 
-      renderContinueReadingCards(items);
+      renderContinueReadingCards(activeItems);
     }
 
     function renderContinueReadingCards(items) {
@@ -3068,11 +3112,32 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const cardsHtml = list.map(item => {
         const cur = Math.max(1, parseInt(item.current_page, 10) || 1);
         const tot = Math.max(1, parseInt(item.total_pages, 10) || 1);
-        const percent = Math.min(100, Math.max(1, Math.round((cur / tot) * 100)));
         const title = escHtml(item.title || 'Notes');
         const safeTitleJs = escJsStr(item.title || '');
         const safePdfIdJs = escJsStr(String(item.pdf_id));
         const cachedThumb = getCachedPdfThumb(item.pdf_id);
+
+        let percent;
+        let progressLabel;
+        let pillText;
+
+        if (tot <= 1) {
+          // Minimum page threshold for 1-page PYQs/notes
+          if (item.engaged) {
+            percent = 100;
+            pillText = '100%';
+            progressLabel = 'Reviewed · 1 page';
+          } else {
+            percent = 45;
+            pillText = 'Reading';
+            progressLabel = 'Opened · 1 page';
+          }
+        } else {
+          // Multi-page document
+          percent = Math.min(99, Math.max(1, Math.round((cur / tot) * 100)));
+          pillText = `${percent}%`;
+          progressLabel = `Last read: Page ${cur} of ${tot}`;
+        }
 
         const thumbHtml = cachedThumb
           ? `<img class="cr-thumb-img" src="${cachedThumb}" alt="${title}" loading="lazy">`
@@ -3091,7 +3156,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           <div class="cr-card" 
                role="button" 
                tabindex="0"
-               aria-label="Continue reading ${title}, page ${cur} of ${tot}"
+               aria-label="Continue reading ${title}, ${progressLabel}"
                onclick="continueReadingPdf('${safePdfIdJs}', '${safeTitleJs}', ${cur})"
                onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();continueReadingPdf('${safePdfIdJs}', '${safeTitleJs}', ${cur});}">
             <div class="cr-thumb-area">
@@ -3100,12 +3165,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             </div>
             <div class="cr-progress-wrap">
               <div class="cr-progress-top">
-                <span class="cr-progress-pill">${percent}%</span>
+                <span class="cr-progress-pill">${pillText}</span>
               </div>
               <div class="cr-progress-track">
                 <div class="cr-progress-fill" style="width: ${percent}%;"></div>
               </div>
-              <div class="cr-progress-text">Last read: Page ${cur} of ${tot}</div>
+              <div class="cr-progress-text">${progressLabel}</div>
             </div>
             <div class="cr-card-title">${title}</div>
           </div>
@@ -3122,6 +3187,39 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         });
       }
     }
+
+    window.markReadingFinished = async function(pdfId, event) {
+      if (event) {
+        try { event.stopPropagation(); event.preventDefault(); } catch(e){}
+      }
+      if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
+        window.BCA_UI.triggerLightHaptic(10);
+      }
+      let list = getLocalReadingProgress();
+      const target = list.find(x => String(x.pdf_id) === String(pdfId));
+      if (target) {
+        target.completed = true;
+        target.current_page = Math.max(2, target.total_pages || 2);
+        target.total_pages = Math.max(2, target.total_pages || 2);
+        saveLocalReadingProgress(target);
+      }
+      const uid = accountUid();
+      if (uid && supabaseClient && target) {
+        try {
+          await supabaseClient
+            .from('user_reading_progress')
+            .update({
+              current_page: Math.max(2, target.total_pages || 2),
+              total_pages: Math.max(2, target.total_pages || 2),
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', uid)
+            .eq('pdf_id', String(pdfId));
+        } catch(e){}
+      }
+      toast('Marked as finished \u2705');
+      fetchRecentReadingProgress();
+    };
 
     window.continueReadingPdf = async function(pdfId, title, page) {
       if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
@@ -3275,6 +3373,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const isPptx=/\.pptx$/i.test(name)||/\.pptx(\?|#|$)/i.test(src);
       const docxPane=$('readerDocx');const frm=$('readerFrame');const pane=$('readerCanvasPane');
       readerZoom=1;
+      readerOpenedAt=Date.now();
+      clearTimeout(readerEngagementTimer);
       currentReaderResource=resource;
       currentReaderInitialPage=Math.max(1, parseInt(initialPage, 10) || 1);
       currentReaderPage=currentReaderInitialPage;
@@ -3323,6 +3423,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function closeReader(){
       const m=$('readerModal');
       if(m)m.classList.remove('open');
+      clearTimeout(readerEngagementTimer);
+      const timeSpent = Date.now() - (readerOpenedAt || 0);
+      const wasEngaged = timeSpent >= 3500;
+      if (currentReaderResource) {
+        recordReadingProgress(currentReaderResource, currentReaderPage, totalReaderPages, {
+          engaged: wasEngaged
+        });
+      }
       flushPendingReadingProgress();
       teardownReaderScrollTracking();
       destroySecurePdf();
