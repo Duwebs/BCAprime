@@ -108,11 +108,8 @@ export function injectUIConfigCssVariables(config = UI_CONFIG) {
     root.style.setProperty(`--bca-z-${key}`, String(val));
   });
 
-  // Colors
-  Object.entries(config.colors).forEach(([key, val]) => {
-    const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-    root.style.setProperty(`--bca-color-${cssKey}`, val);
-  });
+  // Note: Colors are handled via CSS rules in ui/ui.css (:root and [data-theme="dark"])
+  // to avoid inline styles overriding dark mode stylesheets.
 }
 
 // Auto-inject CSS variables when running in browser

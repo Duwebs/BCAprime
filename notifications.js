@@ -222,30 +222,28 @@
   function renderDrawerContent() {
     if (!bottomSheetInstance) return;
 
+    // Update BottomSheet header title with unread badge (NO duplicate title inside drawer)
+    if (bottomSheetInstance.titleEl) {
+      bottomSheetInstance.titleEl.innerHTML = `Notifications ${
+        unreadCount > 0 ? `<span class="notif-header-badge">${unreadCount} new</span>` : ''
+      }`;
+    }
+
     const wrap = document.createElement('div');
     wrap.className = 'notif-drawer-wrap';
 
-    // Header inside drawer
-    const header = document.createElement('div');
-    header.className = 'notif-drawer-header';
+    // Sub-bar inside drawer: Status label + "Mark all as read" button
+    const subbar = document.createElement('div');
+    subbar.className = 'notif-subbar';
 
-    const headerLeft = document.createElement('div');
-    headerLeft.className = 'notif-header-left';
+    const statusLabel = document.createElement('span');
+    statusLabel.className = 'notif-subbar-label';
+    statusLabel.textContent =
+      unreadCount > 0
+        ? `${unreadCount} unread alert${unreadCount > 1 ? 's' : ''}`
+        : 'Recent updates';
+    subbar.appendChild(statusLabel);
 
-    const title = document.createElement('h4');
-    title.className = 'notif-header-title';
-    title.textContent = 'Notifications';
-    headerLeft.appendChild(title);
-
-    if (unreadCount > 0) {
-      const countPill = document.createElement('span');
-      countPill.className = 'notif-unread-count-pill';
-      countPill.textContent = `${unreadCount} new`;
-      headerLeft.appendChild(countPill);
-    }
-    header.appendChild(headerLeft);
-
-    // "Mark all as read" button
     const markAllBtn = document.createElement('button');
     markAllBtn.type = 'button';
     markAllBtn.className = 'notif-mark-all-btn';
@@ -258,8 +256,8 @@
         window.BCA_UI.PressableScale(markAllBtn);
       }
     }
-    header.appendChild(markAllBtn);
-    wrap.appendChild(header);
+    subbar.appendChild(markAllBtn);
+    wrap.appendChild(subbar);
 
     // Body
     if (isFetching && notificationsList.length === 0) {
@@ -272,11 +270,11 @@
         skelCard.style.gap = '12px';
 
         const skelIcon = (window.BCA_UI && window.BCA_UI.Skeleton)
-          ? window.BCA_UI.Skeleton({ width: '36px', height: '36px', radius: 'md' })
+          ? window.BCA_UI.Skeleton({ width: '42px', height: '42px', radius: 'md' })
           : document.createElement('div');
         skelIcon.className = 'bca-skeleton';
-        skelIcon.style.width = '36px';
-        skelIcon.style.height = '36px';
+        skelIcon.style.width = '42px';
+        skelIcon.style.height = '42px';
 
         const skelText = document.createElement('div');
         skelText.style.flex = '1';
@@ -419,6 +417,12 @@
             renderDrawerContent();
           }
         });
+        if (bottomSheetInstance.sheetEl) {
+          bottomSheetInstance.sheetEl.classList.add('bca-notif-sheet');
+        }
+        if (bottomSheetInstance.backdropEl) {
+          bottomSheetInstance.backdropEl.classList.add('bca-notif-backdrop');
+        }
       } else {
         console.warn('[Notifications] BottomSheet component not loaded yet.');
         return;
