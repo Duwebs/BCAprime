@@ -177,13 +177,71 @@
     return typeof accountSession !== 'undefined' && !!accountSession && !!accountSession.uid;
   }
 
+  
+  /* ---- Mobile Bottom Sheet Swipe Gesture (Rule 3) ---- */
+  let mtSheetDragBound = false;
+  function initMtSheetGestures() {
+    if (mtSheetDragBound) return;
+    const modal = $id('mockTestModal');
+    const dialog = modal ? modal.querySelector('.mt-dialog') : null;
+    const handle = modal ? modal.querySelector('.mt-sheet-handle') : null;
+    if (!modal || !dialog || !handle) return;
+    mtSheetDragBound = true;
+    let isDragging = false, startY = 0, deltaY = 0;
+
+    const onDragStart = (e) => {
+      if (!modal.classList.contains('open') || dialog.classList.contains('is-fullscreen') || mtState.view === 'player') return;
+      isDragging = true;
+      startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+      deltaY = 0;
+      dialog.style.transition = 'none';
+    };
+
+    const onDragMove = (e) => {
+      if (!isDragging) return;
+      const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+      deltaY = Math.max(0, currentY - startY);
+      dialog.style.transform = 'translateY(' + deltaY + 'px)';
+    };
+
+    const onDragEnd = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      dialog.style.transition = '';
+      dialog.style.transform = '';
+      if (deltaY > 75) {
+        closeMockTestModal();
+      }
+      deltaY = 0;
+    };
+
+    handle.addEventListener('pointerdown', onDragStart);
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+  }
+
+  // Pointerdown haptic delegation for Mock Test interactive elements (Rule 2)
+  document.addEventListener('pointerdown', (e) => {
+    const el = e.target.closest('.mt-generate-btn, .mt-tab, .mt-start-btn, .mt-opt-card, .mt-pal-chip, .mt-palette-btn, .mt-nav-btn, .mt-close-btn, .mt-icon-btn, .bca-empty-state-action, .mt-result-actions button');
+    if (el) {
+      try {
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate(15);
+        }
+      } catch (err) {}
+    }
+  });
+
   /* ---- Initialize & Open Mock Test Hub ---- */
   window.openMockTestHub = async function (preferredSubject = '') {
     const modal = $id('mockTestModal');
     if (!modal) return;
 
+    try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(20); } catch(e){}
     modal.classList.add('open');
     setMtView('hub');
+    initMtSheetGestures();
 
     // Populate semester and subjects in AI generator form
     initAiGeneratorForm(preferredSubject);
@@ -413,10 +471,47 @@
     }
   }
 
+  
+  // Shimmer Skeleton HTML Generator (Rule 4: No Spinners)
+  function getMockTestSkeletonHtml(count = 4) {
+    let cards = '';
+    for (let i = 0; i < count; i++) {
+      cards += `
+        <div class="mt-skeleton-card">
+          <div class="mt-sk-top">
+            <div class="mt-sk-badges">
+              <div class="bca-skeleton" style="width:72px;height:22px;border-radius:var(--bca-radius-full, 9999px);"></div>
+              <div class="bca-skeleton" style="width:84px;height:22px;border-radius:var(--bca-radius-full, 9999px);"></div>
+            </div>
+            <div class="bca-skeleton" style="width:82%;height:18px;border-radius:var(--bca-radius-sm, 6px);margin-top:6px;"></div>
+            <div class="bca-skeleton" style="width:55%;height:14px;border-radius:var(--bca-radius-xs, 4px);margin-top:4px;"></div>
+          </div>
+          <div>
+            <div class="mt-sk-meta" style="display:flex;gap:12px;margin-bottom:12px;">
+              <div class="bca-skeleton" style="width:90px;height:14px;border-radius:var(--bca-radius-xs, 4px);"></div>
+              <div class="bca-skeleton" style="width:75px;height:14px;border-radius:var(--bca-radius-xs, 4px);"></div>
+            </div>
+            <div class="bca-skeleton" style="width:100%;height:44px;border-radius:var(--bca-radius-md, 10px);"></div>
+          </div>
+        </div>
+      `;
+    }
+    return `<div class="mt-skeleton-grid" style="grid-column:1/-1;">${cards}</div>`;
+  }
+
+  // Real-time Search Debouncer (Rule 7: Live Real-Time Filtering 250ms)
+  let mtSearchDebounceTimer = null;
+  window.onMtSearchInput = function () {
+    clearTimeout(mtSearchDebounceTimer);
+    mtSearchDebounceTimer = setTimeout(() => {
+      renderLibraryQuizzes();
+    }, 250);
+  };
+
   /* ---- Library Quizzes Loading ---- */
   async function loadLibraryQuizzes() {
     const grid = $id('mtQuizGrid');
-    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading BCA Mock Tests...</div>';
+    if (grid) grid.innerHTML = getMockTestSkeletonHtml(4);
 
     if (typeof supabaseClient === 'undefined' || !supabaseClient) {
       if (grid) grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted)">Database connection unavailable.</div>';
@@ -470,10 +565,15 @@
 
     if (!list.length) {
       grid.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-2);border-radius:16px;border:1px dashed var(--line)">
-          <i class="fa-solid fa-graduation-cap" style="font-size:32px;color:var(--muted);margin-bottom:10px"></i>
-          <h4 style="margin:0 0 6px;color:var(--ink)">No mock tests found</h4>
-          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Create a custom practice test above or search for another subject.</p>
+        <div class="bca-empty-state" style="grid-column:1/-1;">
+          <div class="bca-empty-state-icon-wrap">
+            <i class="fa-solid fa-graduation-cap"></i>
+          </div>
+          <h3 class="bca-empty-state-title">No mock tests found</h3>
+          <p class="bca-empty-state-message">Create a custom practice test above or search for another BCA subject.</p>
+          <button class="bca-empty-state-action" onclick="if(document.getElementById('mtSearchInput'))document.getElementById('mtSearchInput').value='';renderLibraryQuizzes();">
+            Browse All Tests
+          </button>
         </div>`;
       return;
     }
@@ -518,16 +618,20 @@
 
     if (typeof accountSession === 'undefined' || !accountSession || !accountSession.uid) {
       grid.innerHTML = `
-        <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-2);border-radius:16px;border:1px dashed var(--line)">
-          <i class="fa-solid fa-lock" style="font-size:32px;color:var(--muted);margin-bottom:10px"></i>
-          <h4 style="margin:0 0 6px;color:var(--ink)">Login Required</h4>
-          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">Log in with your free account to track your mock test scores and review past attempts.</p>
-          <button class="primary" onclick="requireAccount('Log in to view your test history.','mocktest')">Log In</button>
+        <div class="bca-empty-state" style="grid-column:1/-1;">
+          <div class="bca-empty-state-icon-wrap">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <h3 class="bca-empty-state-title">Login to Track Progress</h3>
+          <p class="bca-empty-state-message">Log in with your free account to track mock test scores, review mistakes, and analyze your preparation history.</p>
+          <button class="bca-empty-state-action" onclick="requireAccount('Log in to view your test history.','mocktest')">
+            Log In / Sign Up
+          </button>
         </div>`;
       return;
     }
 
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading your past tests...</div>';
+    grid.innerHTML = getMockTestSkeletonHtml(3);
 
     try {
       const { data, error } = await supabaseClient
@@ -541,10 +645,15 @@
 
       if (!mtState.myResults.length) {
         grid.innerHTML = `
-          <div style="grid-column:1/-1;text-align:center;padding:40px 20px;background:var(--surface-2);border-radius:16px;border:1px dashed var(--line)">
-            <i class="fa-solid fa-chart-simple" style="font-size:32px;color:var(--muted);margin-bottom:10px"></i>
-            <h4 style="margin:0 0 6px;color:var(--ink)">No tests attempted yet</h4>
-            <p style="color:var(--muted);font-size:13px;margin:0">Start a mock test from the "All Tests" tab to evaluate your score!</p>
+          <div class="bca-empty-state" style="grid-column:1/-1;">
+            <div class="bca-empty-state-icon-wrap">
+              <i class="fa-solid fa-chart-simple"></i>
+            </div>
+            <h3 class="bca-empty-state-title">No tests attempted yet</h3>
+            <p class="bca-empty-state-message">Take a mock test from the "All Tests" tab or create one above to evaluate your BCA exam readiness!</p>
+            <button class="bca-empty-state-action" onclick="setMtHubTab('all')">
+              Browse All Tests
+            </button>
           </div>`;
         return;
       }
@@ -1010,6 +1119,7 @@
 
     // Render score summary card
     renderScoreSummary(mtState.evalResult);
+    try { if (window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.success('Test submitted! Check your score below.'); } catch(e){}
     setMtView('result');
 
     // Save result to Supabase if logged in

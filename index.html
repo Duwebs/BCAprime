@@ -992,8 +992,9 @@
   </div></div>
 
   <!-- ================= Mock Test Modal ================= -->
-  <div class="mt-modal" id="mockTestModal" role="dialog" aria-modal="true" aria-labelledby="mtModalTitle">
+  <div class="mt-modal" id="mockTestModal" role="dialog" aria-modal="true" aria-labelledby="mtModalTitle" onclick="if(event.target===this)closeMockTestModal()">
     <div class="mt-dialog">
+      <div class="mt-sheet-handle"><span></span></div>
       <!-- Header -->
       <div class="mt-header">
         <div class="mt-header-left">
@@ -1083,13 +1084,58 @@
 
             <div class="mt-search-box">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input id="mtSearchInput" placeholder="Search tests by subject..." oninput="renderLibraryQuizzes()">
+              <input id="mtSearchInput" placeholder="Search tests by subject..." oninput="onMtSearchInput()">
             </div>
           </div>
 
           <!-- Quizzes Grid -->
           <div class="mt-quiz-grid" id="mtQuizGrid" style="margin-top:14px">
-            <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading BCA Mock Tests...</div>
+            <div class="mt-skeleton-grid" style="grid-column:1/-1;">
+              <div class="mt-skeleton-card">
+                <div class="mt-sk-top">
+                  <div class="mt-sk-badges"><div class="bca-skeleton" style="width:72px;height:22px;border-radius:9999px;"></div><div class="bca-skeleton" style="width:84px;height:22px;border-radius:9999px;"></div></div>
+                  <div class="bca-skeleton" style="width:82%;height:18px;border-radius:6px;margin-top:6px;"></div>
+                  <div class="bca-skeleton" style="width:55%;height:14px;border-radius:4px;margin-top:4px;"></div>
+                </div>
+                <div>
+                  <div class="mt-sk-meta" style="display:flex;gap:12px;margin-bottom:12px;"><div class="bca-skeleton" style="width:90px;height:14px;border-radius:4px;"></div><div class="bca-skeleton" style="width:75px;height:14px;border-radius:4px;"></div></div>
+                  <div class="bca-skeleton" style="width:100%;height:44px;border-radius:10px;"></div>
+                </div>
+              </div>
+              <div class="mt-skeleton-card">
+                <div class="mt-sk-top">
+                  <div class="mt-sk-badges"><div class="bca-skeleton" style="width:72px;height:22px;border-radius:9999px;"></div><div class="bca-skeleton" style="width:84px;height:22px;border-radius:9999px;"></div></div>
+                  <div class="bca-skeleton" style="width:76%;height:18px;border-radius:6px;margin-top:6px;"></div>
+                  <div class="bca-skeleton" style="width:60%;height:14px;border-radius:4px;margin-top:4px;"></div>
+                </div>
+                <div>
+                  <div class="mt-sk-meta" style="display:flex;gap:12px;margin-bottom:12px;"><div class="bca-skeleton" style="width:90px;height:14px;border-radius:4px;"></div><div class="bca-skeleton" style="width:75px;height:14px;border-radius:4px;"></div></div>
+                  <div class="bca-skeleton" style="width:100%;height:44px;border-radius:10px;"></div>
+                </div>
+              </div>
+              <div class="mt-skeleton-card">
+                <div class="mt-sk-top">
+                  <div class="mt-sk-badges"><div class="bca-skeleton" style="width:72px;height:22px;border-radius:9999px;"></div><div class="bca-skeleton" style="width:84px;height:22px;border-radius:9999px;"></div></div>
+                  <div class="bca-skeleton" style="width:88%;height:18px;border-radius:6px;margin-top:6px;"></div>
+                  <div class="bca-skeleton" style="width:48%;height:14px;border-radius:4px;margin-top:4px;"></div>
+                </div>
+                <div>
+                  <div class="mt-sk-meta" style="display:flex;gap:12px;margin-bottom:12px;"><div class="bca-skeleton" style="width:90px;height:14px;border-radius:4px;"></div><div class="bca-skeleton" style="width:75px;height:14px;border-radius:4px;"></div></div>
+                  <div class="bca-skeleton" style="width:100%;height:44px;border-radius:10px;"></div>
+                </div>
+              </div>
+              <div class="mt-skeleton-card">
+                <div class="mt-sk-top">
+                  <div class="mt-sk-badges"><div class="bca-skeleton" style="width:72px;height:22px;border-radius:9999px;"></div><div class="bca-skeleton" style="width:84px;height:22px;border-radius:9999px;"></div></div>
+                  <div class="bca-skeleton" style="width:70%;height:18px;border-radius:6px;margin-top:6px;"></div>
+                  <div class="bca-skeleton" style="width:52%;height:14px;border-radius:4px;margin-top:4px;"></div>
+                </div>
+                <div>
+                  <div class="mt-sk-meta" style="display:flex;gap:12px;margin-bottom:12px;"><div class="bca-skeleton" style="width:90px;height:14px;border-radius:4px;"></div><div class="bca-skeleton" style="width:75px;height:14px;border-radius:4px;"></div></div>
+                  <div class="bca-skeleton" style="width:100%;height:44px;border-radius:10px;"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
