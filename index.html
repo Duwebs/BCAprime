@@ -908,8 +908,70 @@
     <button class="secondary" type="button" onclick="closeQrScanner()"><i class="fa-solid fa-xmark"></i> Close</button>
   </div></div>
 
-  <!-- Feedback / bug report -->
-  <div class="modal" id="feedbackModal"><div class="dialog feedback-dialog"><div class="dialog-head"><h2>Feedback or a bug?</h2><button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button></div><p style="color:var(--muted);margin-top:0">Ran into a problem or have a great idea? Tell us &mdash; we'll fix it right away! 🙏</p><form class="upload-form" autocomplete="off" onsubmit="submitFeedback(event)"><div class="fb-kinds"><button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">&#128027; Bug</button><button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">&#128161; Idea</button><button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">&#10067; Question</button></div><div class="field"><label>What's the issue? *</label><textarea name="message" rows="3" required maxlength="1000" placeholder="e.g. Notes won't download..." oninput="updateFbCount(this.value)"></textarea><span class="fb-count" id="fbCount">0/1000</span></div><div class="field"><label>Screenshot (optional)</label><label class="file-box fb-file" for="feedbackFile"><i class="fa-solid fa-image"></i><span id="feedbackFileName">Attach screenshot</span><input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)"></label><div class="fb-thumb-wrap" id="fbThumbWrap" hidden><img id="fbThumb" alt="Screenshot preview"><button type="button" class="fb-thumb-remove" onclick="removeFeedbackFile(event)" aria-label="Remove screenshot">&times;</button></div></div><p class="fb-note">Your logged-in account is attached automatically so we can reply to you.</p><button class="primary" type="submit">Send feedback</button></form></div></div>
+  <!-- Feedback & Support Bottom Sheet / Dialog -->
+  <div class="modal fb-modal" id="feedbackModal" onclick="if(event.target===this)closeModals()">
+    <div class="dialog feedback-dialog" role="dialog" aria-modal="true" aria-labelledby="fbTitle">
+      <div class="fb-sheet-handle" id="fbSheetHandle"><span></span></div>
+      <div class="fb-head">
+        <div class="fb-head-left">
+          <div class="fb-head-icon"><i class="fa-solid fa-headset"></i></div>
+          <div>
+            <h2 class="fb-title" id="fbTitle">Feedback &amp; Support</h2>
+            <p class="fb-sub">Have a problem or great idea? We're here to help!</p>
+          </div>
+        </div>
+        <button type="button" class="fb-close" aria-label="Close dialog" onclick="closeModals()">&times;</button>
+      </div>
+      <form class="fb-form" id="feedbackForm" autocomplete="off" onsubmit="submitFeedback(event)">
+        <div class="fb-kinds" role="tablist" aria-label="Feedback type">
+          <button type="button" class="fb-kind active" data-kind="bug" onclick="setFeedbackKind(this)">
+            <i class="fa-solid fa-bug"></i>
+            <span>Bug</span>
+          </button>
+          <button type="button" class="fb-kind" data-kind="idea" onclick="setFeedbackKind(this)">
+            <i class="fa-solid fa-lightbulb"></i>
+            <span>Idea</span>
+          </button>
+          <button type="button" class="fb-kind" data-kind="question" onclick="setFeedbackKind(this)">
+            <i class="fa-solid fa-circle-question"></i>
+            <span>Help</span>
+          </button>
+        </div>
+
+        <div class="fb-field">
+          <label for="fbMessage" class="fb-label">How can we help? <span class="fb-req">*</span></label>
+          <textarea id="fbMessage" name="message" rows="3" required maxlength="1000" placeholder="Describe the issue or share your suggestion in detail…" oninput="updateFbCount(this.value)"></textarea>
+          <div class="fb-field-footer">
+            <span class="fb-hint"><i class="fa-solid fa-shield-halved"></i> Only admins can see this</span>
+            <span class="fb-count" id="fbCount">0/1000</span>
+          </div>
+        </div>
+
+        <div class="fb-field">
+          <label class="fb-label">Attach screenshot <small class="fb-opt">(optional)</small></label>
+          <label class="fb-file-box" for="feedbackFile">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span id="feedbackFileName">Tap to attach screenshot</span>
+            <input id="feedbackFile" type="file" accept="image/*" hidden onchange="showFeedbackFile(this)">
+          </label>
+          <div class="fb-thumb-wrap" id="fbThumbWrap" hidden>
+            <img id="fbThumb" alt="Screenshot preview">
+            <button type="button" class="fb-thumb-remove" onclick="removeFeedbackFile(event)" aria-label="Remove screenshot" title="Remove">&times;</button>
+          </div>
+        </div>
+
+        <div class="fb-account-badge" id="fbAccountBadge">
+          <i class="fa-solid fa-circle-user"></i>
+          <span>Replying to <strong id="fbAccountEmail">your account</strong></span>
+        </div>
+
+        <button class="primary fb-submit-btn" type="submit" id="fbSubmitBtn">
+          <i class="fa-solid fa-paper-plane"></i>
+          <span>Send Feedback</span>
+        </button>
+      </form>
+    </div>
+  </div>
 
   <!-- Resource Report Modal -->
   <div class="modal" id="reportModal"><div class="dialog report-dialog">

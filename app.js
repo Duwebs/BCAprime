@@ -955,23 +955,99 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       grid.innerHTML=html;
     }
     /* ---- Feedback / bug report ---- */
-    let feedbackKind='bug';
+    let feedbackKind = 'bug';
+    let feedbackSheetDragBound = false;
+
+    function initFeedbackSheetGestures() {
+      if (feedbackSheetDragBound) return;
+      const modal = $('feedbackModal');
+      const dialog = modal ? modal.querySelector('.feedback-dialog') : null;
+      const handle = modal ? modal.querySelector('#fbSheetHandle') : null;
+      const head = modal ? modal.querySelector('.fb-head') : null;
+      if (!modal || !dialog) return;
+      feedbackSheetDragBound = true;
+      let isDragging = false, startY = 0, deltaY = 0;
+
+      const onDragStart = (e) => {
+        if (!modal.classList.contains('open')) return;
+        if (e.target && e.target.closest('button, input, textarea, a, select, label')) return;
+        isDragging = true;
+        startY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = 0;
+        dialog.style.transition = 'none';
+      };
+
+      const onDragMove = (e) => {
+        if (!isDragging) return;
+        const currentY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+        deltaY = Math.max(0, currentY - startY);
+        dialog.style.transform = 'translateY(' + deltaY + 'px)';
+      };
+
+      const onDragEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        dialog.style.transition = '';
+        dialog.style.transform = '';
+        if (deltaY > 80) {
+          if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+          else if (navigator.vibrate) navigator.vibrate(10);
+          closeModals();
+        }
+        deltaY = 0;
+      };
+
+      if (handle) {
+        handle.addEventListener('pointerdown', onDragStart);
+      }
+      if (head) {
+        head.addEventListener('pointerdown', onDragStart);
+      }
+      window.addEventListener('pointermove', onDragMove);
+      window.addEventListener('pointerup', onDragEnd);
+      window.addEventListener('pointercancel', onDragEnd);
+    }
+
     function openFeedback(){
       if(!supabaseClient){toast('Feedback is unavailable right now');return}
       if(!accountSession){requireAccount('Log in to send feedback or report a bug.', 'feedback');return}
-      setFeedbackKind(document.querySelector('.fb-kind.active')||document.querySelector('.fb-kind'));
+      
+      const email = getUploaderEmail() || (accountSession && (accountSession.email || (accountSession.user_metadata && accountSession.user_metadata.email))) || '';
+      const emailEl = $('fbAccountEmail');
+      if (emailEl) emailEl.textContent = email || 'Verified student account';
+
+      setFeedbackKind(document.querySelector('.fb-kind.active') || document.querySelector('.fb-kind'));
       $('feedbackModal').classList.add('open');
+      initFeedbackSheetGestures();
+
+      if (window.BCA_UI && window.BCA_UI.PressableScale) {
+        document.querySelectorAll('.fb-kind, .fb-close, .fb-file-box, .fb-submit-btn, .fb-thumb-remove').forEach(el => {
+          if (!el.dataset.pressableInit) {
+            el.dataset.pressableInit = 'true';
+            window.BCA_UI.PressableScale(el, { scale: 0.97, haptic: true });
+          }
+        });
+      }
+      if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
+        window.BCA_UI.triggerLightHaptic(10);
+      } else if (navigator.vibrate) {
+        navigator.vibrate(10);
+      }
     }
+
     function setFeedbackKind(btn){
       if(!btn)return;
       document.querySelectorAll('.fb-kind').forEach(k=>k.classList.remove('active'));
       btn.classList.add('active');
-      feedbackKind=btn.dataset.kind||'idea';
+      feedbackKind = btn.dataset.kind || 'idea';
+      if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
+      else if (navigator.vibrate) navigator.vibrate(10);
     }
+
     function showFeedbackFile(input){
       const file=input.files[0];
       const label=$('feedbackFileName');
-      if(label)label.textContent=file?file.name:'Attach screenshot';
+      if(label)label.textContent=file?file.name:'Tap to attach screenshot';
       const wrap=$('fbThumbWrap'),thumb=$('fbThumb');
       if(file&&wrap&&thumb){
         const reader=new FileReader();
@@ -979,21 +1055,29 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         reader.readAsDataURL(file);
       }else if(wrap){wrap.hidden=true}
     }
+
     function removeFeedbackFile(e){
       if(e)e.preventDefault();
       const input=$('feedbackFile');if(input)input.value='';
       const wrap=$('fbThumbWrap');if(wrap)wrap.hidden=true;
-      if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
+      if($('feedbackFileName'))$('feedbackFileName').textContent='Tap to attach screenshot';
     }
-    function updateFbCount(value){const counter=$('fbCount');if(counter)counter.textContent=String(value.length)+'/1000'}
+
+    function updateFbCount(value){
+      const counter=$('fbCount');
+      if(counter)counter.textContent=String(value.length)+'/1000';
+    }
+
     async function submitFeedback(event){
       event.preventDefault();
       if(!accountSession){toast('Please log in to send feedback');return}
       const form=event.target;
       const message=form.querySelector('textarea[name="message"]').value.trim();
       if(message.length<5){toast('Please add a little more detail');return}
-      const btn=form.querySelector('button[type="submit"]');
-      btn.disabled=true;btn.textContent='Sending…';
+      const btn=form.querySelector('button[type="submit"]') || $('fbSubmitBtn');
+      const originalBtnHtml=btn.innerHTML;
+      btn.disabled=true;
+      btn.innerHTML='<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Sending…</span>';
       try{
         let screenshotUrl=null;
         const file=$('feedbackFile').files[0];
@@ -1020,15 +1104,25 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(error)throw error;
         closeModals();
         form.reset();
-        if($('feedbackFileName'))$('feedbackFileName').textContent='Attach screenshot';
+        if($('feedbackFileName'))$('feedbackFileName').textContent='Tap to attach screenshot';
         const thumbWrap=$('fbThumbWrap');if(thumbWrap)thumbWrap.hidden=true;
         if($('fbCount'))$('fbCount').textContent='0/1000';
-        toast('Thanks! Your feedback is in 🙏 We\'ll review it soon');
+        if(window.BCA_UI && window.BCA_UI.Toast){
+          window.BCA_UI.Toast.success('Thanks! Your feedback is in 🙏 We\'ll review it soon');
+        } else {
+          toast('Thanks! Your feedback is in 🙏 We\'ll review it soon');
+        }
       }catch(error){
         console.error('[BCAPrime] Feedback error:',error);
-        toast('Feedback send failed: '+(error&&error.message||error));
+        const errMsg = 'Feedback send failed: ' + (error&&error.message||error);
+        if(window.BCA_UI && window.BCA_UI.Toast){
+          window.BCA_UI.Toast.error(errMsg);
+        } else {
+          toast(errMsg);
+        }
       }finally{
-        btn.disabled=false;btn.textContent='Send feedback';
+        btn.disabled=false;
+        btn.innerHTML=originalBtnHtml;
       }
     }
     function showSuggestions(){const query=$('search').value.trim().toLowerCase();const matches=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(query)).slice(0,4);$('suggestions').innerHTML=(query?matches.map(r=>`<button class="suggestion" onclick="chooseSuggestion('${escJsStr(r.title)}')"><i class="fa-solid fa-magnifying-glass"></i> ${escHtml(r.title)}</button>`).join(''):'<small style="padding:5px 8px;color:var(--muted)">Search by subject, paper or resource type</small>');$('suggestions').classList.add('open')}
