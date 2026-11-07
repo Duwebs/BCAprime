@@ -903,7 +903,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     // Interactive elements haptic delegation: cards, browse buttons, close button
     document.addEventListener('pointerdown', (e) => {
-      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go');
+      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go, .profile-stat-card, .profile-action-btn, .avatar-btn, #profileNameSave, .danger-logout, .profile-dialog .close, .empty-action-btn, .avatar-edit-badge');
       if (el) {
         try {
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -1871,7 +1871,55 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function submitAccount(event){event.preventDefault();if(!supabaseClient){$('accountMessage').textContent='Sign-in is not available right now.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();updateQrButtonVisibility();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
     async function signOutAccount(){clearProfileRealtime();try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}accountSession=null;try{localStorage.removeItem('bca-email-verified')}catch(e){}try{sessionStorage.removeItem('bca-pending-signup');sessionStorage.removeItem('bca-pending-action')}catch(e){}try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}hideProfileCard();closeModals();hideAuthenticatedApp();const acctAuth=$('accountAuth');if(acctAuth){acctAuth.innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'linkedin_oidc\')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount()}toast('Logged out');setTimeout(maybeStartQrLogin,80)}
     function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
-    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};function openProfile(){syncProfileUI();$('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];$('profileSaved').textContent=state.saved.length;$('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;renderAvatar();renderAccount();renderMyUploads();$('profileModal').classList.add('open')};function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';const semSel=document.querySelector('#uploadModal select[name="semester"]');if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
+    function openCollege(){renderColleges();$('collegeModal').classList.add('open')};let profileSheetDragBound=false;
+    function initProfileSheetGestures(){
+      if(profileSheetDragBound) return;
+      const modal=$('profileModal');
+      const dialog=modal?modal.querySelector('.profile-dialog'):null;
+      const handle=modal?modal.querySelector('.profile-sheet-handle'):null;
+      if(!modal||!dialog||!handle) return;
+      profileSheetDragBound=true;
+      let isDragging=false, startY=0, deltaY=0;
+      const onDragStart=(e)=>{
+        if(!modal.classList.contains('open'))return;
+        isDragging=true;
+        startY=e.clientY||(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        deltaY=0;
+        dialog.style.transition='none';
+      };
+      const onDragMove=(e)=>{
+        if(!isDragging)return;
+        const currentY=e.clientY||(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        deltaY=Math.max(0,currentY-startY);
+        dialog.style.transform='translateY('+deltaY+'px)';
+      };
+      const onDragEnd=()=>{
+        if(!isDragging)return;
+        isDragging=false;
+        dialog.style.transition='';
+        dialog.style.transform='';
+        if(deltaY>75){
+          closeModals();
+        }
+        deltaY=0;
+      };
+      handle.addEventListener('pointerdown',onDragStart);
+      window.addEventListener('pointermove',onDragMove);
+      window.addEventListener('pointerup',onDragEnd);
+      window.addEventListener('pointercancel',onDragEnd);
+    }
+    function openProfile(){
+      syncProfileUI();
+      $('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];
+      $('profileSaved').textContent=state.saved.length;
+      $('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;
+      renderAvatar();
+      renderAccount();
+      renderMyUploads();
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      $('profileModal').classList.add('open');
+      initProfileSheetGestures();
+    };function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';const semSel=document.querySelector('#uploadModal select[name="semester"]');if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
@@ -2229,12 +2277,33 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     async function renderMyUploads(){
       const listEl=$('myUploadsList');const summaryEl=$('myUploadsSummary');if(!listEl)return;
-      if(!accountUid()&&!getUploaderEmail()){summaryEl.textContent='';listEl.innerHTML='<p class="my-uploads-empty">Login to track your uploads and review status.</p>';return}
+      if(!accountUid()&&!getUploaderEmail()){
+        summaryEl.textContent='';
+        listEl.innerHTML=`<div class="profile-empty-state">
+          <div class="profile-empty-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <h4>Track your uploads</h4>
+          <p>Login to track your uploaded study material and review status.</p>
+          <button class="primary empty-action-btn" type="button" onclick="$('accountAuth').scrollIntoView({behavior:'smooth'})"><i class="fa-solid fa-arrow-down"></i> Sign in to view</button>
+        </div>`;
+        return;
+      }
+      listEl.innerHTML=`<div class="profile-uploads-skel" style="display:grid;gap:7px">
+        <div class="my-upload-item skel"><span class="sk-line" style="width:60%;height:14px;border-radius:4px"></span><span class="sk-line" style="width:30%;height:12px;border-radius:4px;margin-top:6px"></span></div>
+        <div class="my-upload-item skel"><span class="sk-line" style="width:75%;height:14px;border-radius:4px"></span><span class="sk-line" style="width:35%;height:12px;border-radius:4px;margin-top:6px"></span></div>
+      </div>`;
       const items=await loadMyUploads();
       const pending=items.filter(item=>item.status==='pending').length;
       const approved=items.filter(item=>item.status==='approved').length;
       summaryEl.textContent=`${items.length} total · ${pending} in review · ${approved} live`;
-      if(!items.length){listEl.innerHTML='<p class="my-uploads-empty">No uploads yet. Share your first note or PYQ!</p>';return}
+      if(!items.length){
+        listEl.innerHTML=`<div class="profile-empty-state">
+          <div class="profile-empty-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+          <h4>No uploads yet</h4>
+          <p>Share your first notes or PYQ with your college students.</p>
+          <button class="primary empty-action-btn" type="button" onclick="closeModals();openUpload()"><i class="fa-solid fa-plus"></i> Upload material</button>
+        </div>`;
+        return;
+      }
       const labels={pending:'In review',approved:'Live',rejected:'Rejected',archived:'Archived'};
       listEl.innerHTML=items.map(item=>`<div class="my-upload-item"><div><strong>${String(item.title).replace(/[<>&"]/g,'')}</strong><small>Semester ${item.semester} · ${item.type==='pyq'?'PYQ':'Notes'} · ${new Date(item.created_at).toLocaleDateString()}</small></div><span class="my-upload-badge ${item.status}">${labels[item.status]||item.status}</span></div>`).join('');
     }
