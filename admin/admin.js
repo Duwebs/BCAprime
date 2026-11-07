@@ -494,7 +494,28 @@ function notifyResourceApproved(item) {
   const college = collegeNames[item.college] || item.college || 'all colleges';
   const title = item.type === 'pyq' ? 'New PYQ available! 📝' : 'New notes available! 📚';
   const body = `${item.title} — Semester ${item.sem}, ${college}. Open BCAPrime to download.`;
-    // Targeting: only subscribed users matching this college + semester receive it.
+
+  // Real-time In-App Notification Bell trigger backed by Supabase
+  if (adminSupabaseClient) {
+    const row = {
+      title: title,
+      message: body,
+      type: item.type === 'pyq' ? 'pyq' : 'note',
+      college: item.college || 'all',
+      semester: item.sem != null ? Number(item.sem) : null,
+      target_resource: item.title,
+      target_url: '#finderSection',
+      is_read: false
+    };
+    adminSupabaseClient.from('notifications').insert(row).then(() => {
+      try {
+        const chan = adminSupabaseClient.channel('bca-notifications-live');
+        chan.send({ type: 'broadcast', event: 'admin-notification', payload: row });
+      } catch (e) {}
+    }, (err) => console.warn('In-app notif insert error:', err));
+  }
+
+  // Targeting: only subscribed users matching this college + semester receive it.
   return sendPushBroadcast(title, body, 'resource-approved', { college: item.college || 'all', semester: item.sem != null ? Number(item.sem) : null });
 }
 
@@ -511,6 +532,32 @@ async function handleNotifyFormSubmit(event) {
     college: $('notifyCollege').value || null,
     semester: $('notifySemester').value ? Number($('notifySemester').value) : null
   };
+
+  // 1. Insert into public.notifications so Supabase Realtime triggers instantly for all connected students
+  if (adminSupabaseClient) {
+    try {
+      const inAppRow = {
+        title: title,
+        message: body,
+        type: 'announcement',
+        college: target.college || 'all',
+        semester: target.semester || null,
+        target_resource: '',
+        target_url: '#top',
+        is_read: false
+      };
+      await adminSupabaseClient.from('notifications').insert(inAppRow);
+
+      // Fast-path Realtime broadcast across open client channels
+      try {
+        const chan = adminSupabaseClient.channel('bca-notifications-live');
+        chan.send({ type: 'broadcast', event: 'admin-notification', payload: inAppRow });
+      } catch (e) {}
+    } catch (e) {
+      console.warn('Could not insert in-app notification row:', e);
+    }
+  }
+
   const res = await sendPushBroadcast(title, body, undefined, target);
   button.disabled = false;
   if (res && res.ok) {

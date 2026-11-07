@@ -171,7 +171,7 @@
   /* ============================================================
      4. Bell UI State & Animations
      ============================================================ */
-  function updateBellState() {
+  function updateBellState(forceAnimation = false) {
     const bellBtn = document.getElementById('heroNotifyBell');
     const badge = document.getElementById('heroBellBadge');
     if (!bellBtn) return;
@@ -182,6 +182,11 @@
     ).length;
 
     if (unreadCount > 0) {
+      // If forcing animation (e.g. new realtime alert arrived), restart CSS shake
+      if (forceAnimation) {
+        bellBtn.classList.remove('has-unread');
+        void bellBtn.offsetWidth; // Force DOM reflow to restart CSS keyframe animation
+      }
       // Unread state: Red dot visible + smooth shaking animation
       bellBtn.classList.add('has-unread');
       if (badge) {
@@ -196,6 +201,13 @@
         badge.hidden = true;
       }
       bellBtn.setAttribute('title', 'Notifications (All caught up)');
+    }
+
+    // Update BottomSheet header badge if open
+    if (bottomSheetInstance && bottomSheetInstance.titleEl) {
+      bottomSheetInstance.titleEl.innerHTML = `Notifications ${
+        unreadCount > 0 ? `<span class="notif-header-badge">${unreadCount} new</span>` : ''
+      }`;
     }
   }
 
@@ -585,16 +597,83 @@
   }
 
   /* ============================================================
-     11. Real-time Subscription (.on('INSERT', ...))
+     11. Real-time Incoming Notification Handler & Subscriptions
      ============================================================ */
+  function handleIncomingNotification(newNotif) {
+    if (!newNotif || !newNotif.title) return;
+
+    // Deduplication check: Avoid adding exact same notification twice
+    const exists = notificationsList.some(
+      (n) =>
+        (newNotif.id && String(n.id) === String(newNotif.id)) ||
+        (n.title === newNotif.title && n.message === newNotif.message && Math.abs(new Date(n.created_at || 0) - new Date(newNotif.created_at || 0)) < 8000)
+    );
+    if (exists) return;
+
+    // Targeting check: User UID (broadcast if empty/null)
+    const currentUid =
+      typeof window.__bcaSessionUid === 'function' ? window.__bcaSessionUid() : '';
+    if (newNotif.user_id && String(newNotif.user_id).trim() !== '') {
+      if (!currentUid || String(newNotif.user_id).trim() !== currentUid) {
+        return; // targeted to another user
+      }
+    }
+
+    // Targeting check: College & Semester
+    const userCollege = (typeof localStorage !== 'undefined' && localStorage.getItem('bca-college')) || 'all';
+    const userSem = (typeof localStorage !== 'undefined' && (localStorage.getItem('bca-profile-sem') || localStorage.getItem('bca-sem'))) || null;
+
+    if (newNotif.college && newNotif.college !== 'all' && userCollege !== 'all' && newNotif.college !== userCollege) {
+      return; // different college
+    }
+    if (newNotif.semester != null && userSem != null && Number(newNotif.semester) !== Number(userSem)) {
+      return; // different semester
+    }
+
+    console.info('[Notifications] Real-time alert received instantly:', newNotif);
+
+    // Ensure initial unread state
+    newNotif.is_read = false;
+    newNotif.created_at = newNotif.created_at || new Date().toISOString();
+    newNotif.id = newNotif.id || `live-${Date.now()}`;
+
+    // Prepend new alert to top of list
+    notificationsList = [newNotif, ...notificationsList.filter((n) => n.id !== newNotif.id)];
+
+    // Instantly trigger UI updates: Shake bell + show red dot
+    updateBellState(true);
+
+    // Light haptic feedback (Rule 2)
+    if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
+      window.BCA_UI.triggerLightHaptic(25);
+    } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(25);
+    }
+
+    // Prompt immediate Toast notification on screen (Rule 6)
+    if (window.BCA_UI && window.BCA_UI.Toast) {
+      const summary = newNotif.message.length > 55 ? newNotif.message.slice(0, 55) + '…' : newNotif.message;
+      window.BCA_UI.Toast.show({
+        message: `🔔 ${newNotif.title}: ${summary}`,
+        variant: 'info'
+      });
+    }
+
+    // If drawer is currently open, re-render immediately
+    if (bottomSheetInstance && bottomSheetInstance.isOpen) {
+      renderDrawerContent();
+    }
+  }
+
   function setupRealtimeSubscription() {
     if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
 
     try {
       if (realtimeChannel) {
-        supabaseClient.removeChannel(realtimeChannel);
+        try { supabaseClient.removeChannel(realtimeChannel); } catch (e) {}
       }
 
+      // Listen on channel for BOTH postgres_changes (DB Insert) AND broadcast (Fast-path Admin Send)
       realtimeChannel = supabaseClient
         .channel('bca-notifications-live')
         .on(
@@ -605,31 +684,7 @@
             table: NOTIFICATIONS_TABLE
           },
           (payload) => {
-            const newNotif = payload.new;
-            if (!newNotif) return;
-
-            // Check targeting: null (all users) or matching user's uid
-            const currentUid =
-              typeof window.__bcaSessionUid === 'function' ? window.__bcaSessionUid() : '';
-            if (newNotif.user_id && currentUid && newNotif.user_id !== currentUid) {
-              return; // Targeted to someone else
-            }
-
-            console.info('[Notifications] Real-time notification received:', newNotif);
-
-            // Prepend new notification
-            notificationsList = [newNotif, ...notificationsList.filter((n) => n.id !== newNotif.id)];
-            updateBellState();
-
-            // Light haptic feedback (Rule 2)
-            if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
-              window.BCA_UI.triggerLightHaptic(15);
-            }
-
-            // If drawer is open, re-render immediately
-            if (bottomSheetInstance && bottomSheetInstance.isOpen) {
-              renderDrawerContent();
-            }
+            handleIncomingNotification(payload.new);
           }
         )
         .on(
@@ -652,14 +707,40 @@
             }
           }
         )
-        .subscribe((status) => {
+        .on(
+          'broadcast',
+          { event: 'admin-notification' },
+          (payload) => {
+            handleIncomingNotification(payload.payload || payload);
+          }
+        )
+        .subscribe((status, err) => {
           if (status === 'SUBSCRIBED') {
             console.info('[Notifications] Subscribed to real-time notification alerts ✔');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('[Notifications] Realtime channel status:', status, err);
+            // Reconnect after brief backoff
+            setTimeout(setupRealtimeSubscription, 3000);
           }
         });
     } catch (err) {
       console.warn('[Notifications] Failed to setup real-time subscription:', err);
     }
+  }
+
+  // Auto-reconnect & re-sync when student switches back to the tab or reconnects online
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        fetchNotifications();
+      }
+    });
+  }
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      fetchNotifications();
+      setupRealtimeSubscription();
+    });
   }
 
   /* ============================================================

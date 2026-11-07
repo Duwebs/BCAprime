@@ -27,6 +27,7 @@ create index if not exists idx_notifications_unread
   on public.notifications (is_read, created_at desc);
 
 alter table public.notifications enable row level security;
+alter table public.notifications replica identity full;
 
 -- Policies:
 -- 1. Read: Users can view broadcast notifications or notifications targeted to them

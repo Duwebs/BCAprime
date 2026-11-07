@@ -174,6 +174,22 @@ Deno.serve(async (req) => {
     await supabase.from('push_subscriptions').delete().in('endpoint', stale);
   }
 
+  // Also persist in-app notification row for Supabase Realtime in-app bell trigger
+  try {
+    await supabase.from('notifications').insert({
+      title: typeof body.title === 'string' && body.title.trim() ? body.title.trim().slice(0, 80) : 'BCAPrime',
+      message: typeof body.body === 'string' ? body.body.slice(0, 240) : '',
+      type: body.tag === 'resource-approved' ? (body.title?.includes('PYQ') ? 'pyq' : 'note') : 'announcement',
+      college: targetCollege || 'all',
+      semester: targetSemester || null,
+      user_id: targetUid || null,
+      target_url: typeof body.url === 'string' && body.url.startsWith('/') ? body.url : '#top',
+      is_read: false
+    });
+  } catch (_e) {
+    // Non-blocking if table or permissions are pending
+  }
+
   return new Response(JSON.stringify({ ok: true, sent, failed, removed: stale.length }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
