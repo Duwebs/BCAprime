@@ -618,7 +618,30 @@
   </div>
 
   <!-- Subject type chooser (Notes ya PYQ?) -->
-  <div class="modal" id="subjectTypeModal"><div class="dialog subject-type-dialog"><button class="close" aria-label="Close dialog" onclick="closeSubjectType()">&times;</button><div class="st-icon" id="subjectTypeIcon"><i class="fa-solid fa-book-open"></i></div><p class="st-kicker">Explore subject</p><h2 id="subjectTypeTitle">Subject</h2><p class="st-sub">Choose what you want to study</p><div class="subject-type-row"><button class="subject-type-btn notes" onclick="browseSubjectAs('notes')"><i class="fa-solid fa-book"></i><strong>Notes</strong><small>All notes of this subject</small><span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span></button><button class="subject-type-btn pyq" onclick="browseSubjectAs('pyq')"><i class="fa-solid fa-file-pen"></i><strong>PYQs</strong><small>Previous year papers</small><span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span></button></div></div></div>
+  <div class="modal" id="subjectTypeModal" onclick="if(event.target===this)closeSubjectType()">
+    <div class="dialog subject-type-dialog">
+      <div class="st-sheet-handle"><span></span></div>
+      <button class="close" aria-label="Close dialog" onclick="closeSubjectType()">&times;</button>
+      <div class="st-icon" id="subjectTypeIcon"><i class="fa-solid fa-book-open"></i></div>
+      <p class="st-kicker">Explore subject</p>
+      <h2 id="subjectTypeTitle">Subject</h2>
+      <p class="st-sub">Choose what you want to study</p>
+      <div class="subject-type-row">
+        <button class="subject-type-btn notes" onclick="browseSubjectAs('notes')" aria-label="Explore Notes">
+          <i class="fa-solid fa-book"></i>
+          <strong>Notes</strong>
+          <small>All notes of this subject</small>
+          <span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span>
+        </button>
+        <button class="subject-type-btn pyq" onclick="browseSubjectAs('pyq')" aria-label="Explore PYQs">
+          <i class="fa-solid fa-file-pen"></i>
+          <strong>PYQs</strong>
+          <small>Previous year papers</small>
+          <span class="st-go">Browse <i class="fa-solid fa-arrow-right"></i></span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Phone side: QR login approval request (scan ke baad yahan aata hai) -->
   <div class="modal" id="qrApproveModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-laptop"></i></div><p class="st-kicker">QR login request</p><h2>Approve this computer?</h2><p class="st-sub">A computer wants to log in to your BCAPrime account. Once approved, it will log in instantly &mdash; no need to share your password.</p><div class="device-gate-actions"><button class="secondary" type="button" onclick="denyQrLogin()"><i class="fa-solid fa-xmark"></i> Deny</button><button class="primary" type="button" onclick="confirmQrLogin()"><i class="fa-solid fa-check"></i> Approve login</button></div><p class="st-sub" id="qrApproveMsg" aria-live="polite"></p></div></div>

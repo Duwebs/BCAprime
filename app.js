@@ -863,9 +863,74 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       toast(ok?('"'+name+'" submitted ✉️ It will appear here once an admin approves it'):('Could not submit "'+name+'". Please try again.'));
     }
     let pendingSubject='';
-    function openSubjectType(subject){pendingSubject=subject;const title=$('subjectTypeTitle');if(title)title.textContent=subject;const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';const modal=$('subjectTypeModal');if(modal)modal.classList.add('open')}
-    function closeSubjectType(){const modal=$('subjectTypeModal');if(modal)modal.classList.remove('open')}
+    let stSheetDragBound=false;
+    function initStSheetGestures(){
+      if(stSheetDragBound) return;
+      const modal=$('subjectTypeModal');
+      const dialog=modal?modal.querySelector('.subject-type-dialog'):null;
+      const handle=modal?modal.querySelector('.st-sheet-handle'):null;
+      if(!modal||!dialog||!handle) return;
+      stSheetDragBound=true;
+      let isDragging=false, startY=0, deltaY=0;
+      const onDragStart=(e)=>{
+        if(!modal.classList.contains('open'))return;
+        isDragging=true;
+        startY=e.clientY||(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        deltaY=0;
+        dialog.style.transition='none';
+      };
+      const onDragMove=(e)=>{
+        if(!isDragging)return;
+        const currentY=e.clientY||(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        deltaY=Math.max(0,currentY-startY);
+        dialog.style.transform='translateY('+deltaY+'px)';
+      };
+      const onDragEnd=()=>{
+        if(!isDragging)return;
+        isDragging=false;
+        dialog.style.transition='';
+        dialog.style.transform='';
+        if(deltaY>75){
+          closeSubjectType();
+        }
+        deltaY=0;
+      };
+      handle.addEventListener('pointerdown',onDragStart);
+      window.addEventListener('pointermove',onDragMove);
+      window.addEventListener('pointerup',onDragEnd);
+      window.addEventListener('pointercancel',onDragEnd);
+    }
+
+    // Interactive elements haptic delegation: cards, browse buttons, close button
+    document.addEventListener('pointerdown', (e) => {
+      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go');
+      if (el) {
+        try {
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        } catch (err) {}
+      }
+    }, { passive: true });
+
+    function openSubjectType(subject){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      pendingSubject=subject;
+      const title=$('subjectTypeTitle');if(title)title.textContent=subject;
+      const icon=$('subjectTypeIcon');if(icon)icon.innerHTML='<i class="'+subjectIcon(subject)+'"></i>';
+      const modal=$('subjectTypeModal');
+      if(modal){
+        modal.classList.add('open');
+        initStSheetGestures();
+      }
+    }
+    function closeSubjectType(){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      const modal=$('subjectTypeModal');
+      if(modal)modal.classList.remove('open');
+    }
     function browseSubjectAs(kind){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
       const subject=pendingSubject;if(!subject)return;
       if(state.profileSemester){state.finderSemester=state.profileSemester;state.sem=state.profileSemester;syncPrimeFinderUI();}
       state.subject=subject;localStorage.setItem('bca-subject',state.subject);
