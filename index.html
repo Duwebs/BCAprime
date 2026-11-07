@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=62">
+  <link rel="stylesheet" href="styles.css?v=63">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -731,31 +731,20 @@
       <div class="profile-id">
         <div class="profile-avatar-wrap">
           <img id="avatarImg" alt="Profile photo">
-          <label class="avatar-edit-badge" for="avatarInput" title="Change photo" aria-label="Change photo">
+          <button type="button" class="avatar-edit-badge bca-pressable" onclick="openEditProfileModal()" title="Change photo" aria-label="Change photo">
             <i class="fa-solid fa-camera"></i>
-          </label>
-        </div>
-        <div class="profile-id-copy">
-          <strong id="profileIdName">Guest</strong>
-          <small id="profileIdMail">Browsing as guest</small>
-        </div>
-        <label class="secondary avatar-btn" for="avatarInput">
-          <i class="fa-solid fa-camera"></i> Photo
-        </label>
-        <input id="avatarInput" type="file" accept="image/*" hidden onchange="changeAvatar(this)">
-      </div>
-
-      <div class="profile-name-edit" id="profileNameRow" hidden>
-        <label for="profileDisplayName">Display name</label>
-        <div class="profile-name-row">
-          <input id="profileDisplayName" type="text" maxlength="40" autocomplete="name" placeholder="e.g. Durgesh Sharma" onkeydown="if(event.key==='Enter'){event.preventDefault();saveDisplayName()}">
-          <button class="secondary" type="button" id="profileNameSave" onclick="saveDisplayName()">
-            <i class="fa-solid fa-check"></i> Save
           </button>
         </div>
-        <small class="profile-name-hint">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Yahi naam aapke saare uploaded notes &amp; PYQs par live dikhta hai &mdash; save karte hi sab cards update ho jaate hain.
-        </small>
+        <div class="profile-id-copy">
+          <strong class="profile-display-name" id="profileIdName">Guest</strong>
+          <span class="profile-username" id="profileIdUsername">@guest</span>
+          <small class="profile-email" id="profileIdMail">Browsing as guest</small>
+        </div>
+        <button type="button" class="secondary profile-edit-btn bca-pressable" id="profileEditBtn" onclick="openEditProfileModal()" aria-label="Edit profile">
+          <i class="fa-solid fa-pen"></i>
+          <span>Edit Profile</span>
+        </button>
+        <input id="avatarInput" type="file" accept="image/*" hidden onchange="changeAvatar(this)">
       </div>
 
       <p class="profile-pref-hint">Your study preferences are saved on this device.</p>
@@ -851,6 +840,63 @@
         <p class="account-message" id="accountMessage" aria-live="polite"></p>
         <button class="account-switch" id="accountSwitch" type="button">Already have an account? Login</button>
       </section>
+    </div>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div class="modal edit-profile-modal" id="editProfileModal" onclick="if(event.target===this)closeEditProfileModal()" role="dialog" aria-modal="true" aria-labelledby="editProfileTitle">
+    <div class="dialog edit-profile-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="dialog-head">
+        <div>
+          <h2 id="editProfileTitle">Edit Profile</h2>
+          <p class="edit-profile-sub">Update your public name, handle and avatar</p>
+        </div>
+        <button type="button" class="close bca-pressable" aria-label="Close dialog" onclick="closeEditProfileModal()">&times;</button>
+      </div>
+
+      <div class="edit-profile-avatar-sec">
+        <div class="edit-avatar-preview-wrap">
+          <img id="editProfileAvatarImg" alt="Profile avatar">
+          <label class="edit-avatar-badge bca-pressable" for="editAvatarInput" title="Change photo" aria-label="Change photo">
+            <i class="fa-solid fa-camera"></i>
+          </label>
+        </div>
+        <div class="edit-avatar-cta">
+          <label class="secondary bca-pressable edit-avatar-btn" for="editAvatarInput">
+            <i class="fa-solid fa-camera"></i> Change Photo
+          </label>
+          <input id="editAvatarInput" type="file" accept="image/*" hidden onchange="changeAvatarFromModal(this)">
+          <small class="edit-avatar-hint">JPG, PNG or WebP under 2 MB</small>
+        </div>
+      </div>
+
+      <form class="edit-profile-form" id="editProfileForm" onsubmit="submitEditProfile(event)" autocomplete="off">
+        <div class="field">
+          <label for="editDisplayNameInput">Display Name</label>
+          <input id="editDisplayNameInput" type="text" maxlength="40" placeholder="e.g. Durgesh Sharma" required>
+          <small class="field-hint">Shown on all your uploaded notes &amp; PYQs in real time.</small>
+        </div>
+
+        <div class="field">
+          <div class="field-label-row">
+            <label for="editUsernameInput">Username</label>
+            <span class="cooldown-pill" id="usernameCooldownBadge" hidden>14d cooldown</span>
+          </div>
+          <div class="edit-username-input-wrap">
+            <span class="edit-username-at">@</span>
+            <input id="editUsernameInput" type="text" maxlength="20" placeholder="username" autocomplete="off" spellcheck="false" oninput="onEditUsernameChange(this)">
+          </div>
+          <small class="field-hint" id="editUsernameHint">3–20 lowercase letters, numbers or underscores (no spaces).</small>
+        </div>
+
+        <div class="edit-profile-actions">
+          <button type="button" class="secondary bca-pressable" onclick="closeEditProfileModal()">Cancel</button>
+          <button type="submit" class="primary bca-pressable" id="editProfileSaveBtn">
+            <i class="fa-solid fa-check"></i> Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   </div>
   <div class="modal auth-modal-priority" id="accessAuthModal" style="z-index:9999" onclick="if(event.target===this)closeModals()">

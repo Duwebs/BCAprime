@@ -1484,7 +1484,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function setLabelText(labelEl,text){if(labelEl&&labelEl.childNodes&&labelEl.childNodes[0])labelEl.childNodes[0].nodeValue=text}
     let pendingSignup=null,usernameCheckTimer=null;
     function isValidUsername(u){return /^[a-z0-9_]{3,20}$/.test((u||'').trim().toLowerCase())}
-    async function checkUsernameAvailable(u){if(!supabaseClient)return null;try{const{data}=await supabaseClient.from('user_profiles').select('uid').eq('username',(u||'').trim().toLowerCase()).maybeSingle();return !data}catch(e){return null}}
+    async function checkUsernameAvailable(u, currentUid){if(!supabaseClient)return null;try{const clean=(u||'').trim().toLowerCase();const{data}=await supabaseClient.from('user_profiles').select('uid').eq('username',clean).maybeSingle();if(!data)return true;if(currentUid&&data.uid===currentUid)return true;return false}catch(e){return null}}
     async function liveUsernameCheck(input,hintId){const hint=$(hintId);if(!hint)return;const u=input.value.trim().toLowerCase();if(!u){hint.textContent='';return}if(!isValidUsername(u)){hint.textContent='3\u201320 letters, numbers or _';hint.className='field-hint bad';return}hint.textContent='Checking\u2026';hint.className='field-hint';clearTimeout(usernameCheckTimer);usernameCheckTimer=setTimeout(async()=>{const avail=await checkUsernameAvailable(u);if(avail===null){hint.textContent='';return}hint.textContent=avail?'\u2713 Available':'\u2717 Already taken';hint.className='field-hint '+(avail?'good':'bad')},350)}
     /* Login helper: "username" ya "email" dono chalein. Username diya ho to
        user_profiles se uska email nikaal kar Supabase login karo. */
@@ -2158,37 +2158,173 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     };function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
-    function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}
-    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
-    /* ---- Display name (contributor name) edit ----
-       Naam badalne par Firebase displayName + user_profiles.name dono update
-       hote hain, aur applyContributorProfileLive turant mere saare resource
-       cards par naya naam lagata hai (baaki users ko Realtime se milta hai).
-       Purane uploads ko dobara upload karne ki koi zaroorat nahi. */
+    function getCurrentUsername(){
+      const uid=accountUid();
+      const cached=uid?contributorCache.get(String(uid)):null;
+      if(cached&&cached.username)return cached.username;
+      let stored='';try{stored=localStorage.getItem('bca-username')||''}catch(e){}
+      if(stored)return stored;
+      if(accountSession&&accountSession.email){
+        const clean=accountSession.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g,'');
+        return clean||'student';
+      }
+      return '';
+    }
+    function renderAvatar(){
+      syncProfileNameField();
+      const img=$('avatarImg');if(img)img.src=getAvatar();
+      const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';
+      const unameEl=$('profileIdUsername');
+      if(unameEl){
+        if(accountSession){
+          const u=getCurrentUsername();
+          unameEl.textContent=u?('@'+u):'@student';
+          unameEl.style.display='block';
+        }else{
+          unameEl.textContent='@guest';
+          unameEl.style.display='block';
+        }
+      }
+      const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';
+      const tb=$('topbarAvatar');if(tb)tb.src=getAvatar();
+      const edBtn=$('profileEditBtn');if(edBtn)edBtn.hidden=!accountSession;
+    }
+    function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),username:getCurrentUsername(),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
+
+    function openEditProfileModal(){
+      if(!accountSession){toast('Login to edit your profile');return}
+      const modal=$('editProfileModal');if(!modal)return;
+      const avImg=$('editProfileAvatarImg');if(avImg)avImg.src=getAvatar();
+      const nameInput=$('editDisplayNameInput');
+      if(nameInput){
+        const currName=getUserName(accountSession)||'';
+        nameInput.value=(currName==='there')?'':currName;
+      }
+      const uInput=$('editUsernameInput');
+      const uHint=$('editUsernameHint');
+      const cdBadge=$('usernameCooldownBadge');
+      const currU=getCurrentUsername();
+      if(uInput){
+        uInput.value=currU;
+        uInput.dataset.original=currU;
+      }
+      const COOLDOWN_MS=14*24*60*60*1000;
+      let lastChange=0;
+      try{lastChange=Number(localStorage.getItem('bca-username-updated-'+accountUid())||0)}catch(e){}
+      const timePassed=Date.now()-lastChange;
+      const inCooldown=!!(lastChange&&timePassed<COOLDOWN_MS);
+      if(cdBadge){
+        if(inCooldown){
+          const daysLeft=Math.ceil((COOLDOWN_MS-timePassed)/(24*60*60*1000));
+          cdBadge.textContent=`${daysLeft}d cooldown`;
+          cdBadge.hidden=false;
+          if(uInput){uInput.disabled=true;uInput.title=`Username can be changed in ${daysLeft} days`}
+          if(uHint){uHint.textContent=`Next username change available in ${daysLeft} days.`;uHint.className='field-hint'}
+        }else{
+          cdBadge.hidden=true;
+          if(uInput){uInput.disabled=false;uInput.removeAttribute('title')}
+          if(uHint){uHint.textContent='3–20 lowercase letters, numbers or _ (no spaces).';uHint.className='field-hint'}
+        }
+      }
+      modal.classList.add('open');
+    }
+    function closeEditProfileModal(){
+      const m=$('editProfileModal');if(m)m.classList.remove('open');
+    }
+    let editUsernameCheckTimer=null;
+    async function onEditUsernameChange(input){
+      const hint=$('editUsernameHint');if(!hint)return;
+      input.value=input.value.toLowerCase().replace(/[^a-z0-9_]/g,'');
+      const u=input.value.trim();
+      const orig=input.dataset.original||'';
+      if(!u){hint.textContent='Username is required.';hint.className='field-hint bad';return}
+      if(u===orig){hint.textContent='✓ Your current username';hint.className='field-hint good';return}
+      if(!isValidUsername(u)){hint.textContent='3–20 lowercase letters, numbers or _';hint.className='field-hint bad';return}
+      hint.textContent='Checking availability…';hint.className='field-hint';
+      clearTimeout(editUsernameCheckTimer);
+      editUsernameCheckTimer=setTimeout(async()=>{
+        const avail=await checkUsernameAvailable(u,accountUid());
+        if(avail===null){hint.textContent='';return}
+        hint.textContent=avail?'✓ Username is available':'✗ Already taken by another student';
+        hint.className='field-hint '+(avail?'good':'bad');
+      },300);
+    }
+    function changeAvatarFromModal(input){
+      const f=input&&input.files&&input.files[0];if(!f)return;
+      if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}
+      if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}
+      const reader=new FileReader();
+      reader.onload=async()=>{
+        const avatar=reader.result;
+        const preview=$('editProfileAvatarImg');if(preview)preview.src=avatar;
+        setCachedAvatar(avatar);
+        if(accountSession)accountSession.photoURL=avatar;
+        renderAvatar();
+        applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),username:getCurrentUsername(),avatar_url:avatar});
+        if(accountUid()&&supabaseClient){
+          try{await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'})}catch(e){}
+        }
+        toast('Profile photo updated ✓');
+      };
+      reader.readAsDataURL(f);input.value='';
+    }
+    async function submitEditProfile(event){
+      event.preventDefault();
+      if(!accountSession){toast('Please log in');return}
+      const nameInput=$('editDisplayNameInput');
+      const uInput=$('editUsernameInput');
+      const saveBtn=$('editProfileSaveBtn');
+      if(!nameInput)return;
+      const name=nameInput.value.trim().replace(/\s+/g,' ');
+      if(name.length<2||name.length>40){toast('Name must be 2–40 characters');nameInput.focus();return}
+      let newUsername=(uInput?uInput.value.trim().toLowerCase():'');
+      const origUsername=(uInput?(uInput.dataset.original||''):'');
+      const usernameChanged=newUsername&&newUsername!==origUsername;
+      if(usernameChanged){
+        if(uInput.disabled){toast('Username is currently on cooldown');return}
+        if(!isValidUsername(newUsername)){toast('Username must be 3–20 lowercase letters, numbers or _');uInput.focus();return}
+        const avail=await checkUsernameAvailable(newUsername,accountUid());
+        if(!avail){toast('That username is already taken. Try another.');uInput.focus();return}
+      }
+      if(saveBtn){saveBtn.disabled=true;saveBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saving…'}
+      try{
+        if(typeof accountSession.updateProfile==='function'){
+          await accountSession.updateProfile({displayName:name});
+        }
+        if(supabaseClient&&accountUid()){
+          const payload={uid:accountUid(),name:name,updated_at:new Date().toISOString()};
+          if(usernameChanged)payload.username=newUsername;
+          await supabaseClient.from('user_profiles').upsert(payload,{onConflict:'uid'});
+        }
+        if(usernameChanged){
+          try{
+            localStorage.setItem('bca-username',newUsername);
+            localStorage.setItem('bca-username-updated-'+accountUid(),String(Date.now()));
+          }catch(e){}
+        }
+        const currentU=usernameChanged?newUsername:(origUsername||getCurrentUsername());
+        applyContributorProfileLive(accountUid(),{uid:accountUid(),name:name,username:currentU,avatar_url:contributorAvatarFor(accountUid(),getAvatar())});
+        renderAvatar();renderGreeting();render();
+        closeEditProfileModal();
+        toast('Profile updated successfully ✓');
+      }catch(error){
+        console.error('Update profile error:',error);
+        toast('Could not update profile right now');
+      }finally{
+        if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<i class="fa-solid fa-check"></i> Save Changes'}
+      }
+    }
+    window.openEditProfileModal=openEditProfileModal;
+    window.closeEditProfileModal=closeEditProfileModal;
+    window.onEditUsernameChange=onEditUsernameChange;
+    window.changeAvatarFromModal=changeAvatarFromModal;
+    window.submitEditProfile=submitEditProfile;
+
     function syncProfileNameField(){
-      const row=$('profileNameRow');if(row)row.hidden=!accountSession;
-      const input=$('profileDisplayName');if(!input)return;
-      if(document.activeElement===input)return;
-      const name=accountSession?(getUserName(accountSession)||''):'';
-      input.value=(name==='there')?'':name;
+      const row=$('profileNameRow');if(row)row.hidden=true;
     }
     async function saveDisplayName(){
-      const input=$('profileDisplayName');if(!input)return;
-      if(!accountSession){toast('Login to change your display name');return}
-      const name=input.value.trim().replace(/\s+/g,' ');
-      if(name.length<2||name.length>40){toast('Name 2-40 characters ka hona chahiye');input.focus();return}
-      const btn=$('profileNameSave');if(btn)btn.disabled=true;
-      try{
-        if(typeof accountSession.updateProfile==='function')await accountSession.updateProfile({displayName:name});
-        if(supabaseClient&&accountUid()){
-          const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),name:name,updated_at:new Date().toISOString()},{onConflict:'uid'});
-          if(error)toast('Name saved on this device - cloud sync will retry');
-        }
-        applyContributorProfileLive(accountUid(),{uid:accountUid(),name:name,avatar_url:contributorAvatarFor(accountUid(),getAvatar())});
-        renderAvatar();renderGreeting();render();
-        toast('Display name updated on all your uploads ✓');
-      }catch(error){toast('Could not update the name. Please try again.')}
-      finally{if(btn)btn.disabled=false}
+      openEditProfileModal();
     }
 
     function toggleProfileCard(event){if(event)event.stopPropagation();const pop=$('profilePop');if(!pop)return;const willShow=pop.hidden;if(willShow){const av=$('popAvatar');if(av)av.src=getAvatar();const n=$('popName');if(n)n.textContent=accountSession?getUserName(accountSession):'Guest';const m=$('popMail');if(m)m.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const c=$('popCollege');if(c)c.textContent=(colleges.find(cc=>cc[0]===state.college)||colleges[0])[1];const profSem=state.profileSemester||getProfileSemester();const s=$('popSem');if(s)s.textContent=profSem?('Semester '+profSem):'All semesters';}const lo=$('popLogoutBtn');if(lo)lo.hidden=!accountSession;const lb=$('popLoginBtn');if(lb)lb.hidden=!!accountSession;const sc=$('popScanBtn');if(sc)sc.hidden=isGuestMode();pop.hidden=!willShow}
