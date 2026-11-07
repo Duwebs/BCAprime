@@ -4037,19 +4037,19 @@ const LF_MAX_DAILY=3;
 const LF_NOTIFY_SECRET=(typeof window!=='undefined'&&window.__lfSecret?window.__lfSecret:'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz');
 const LF_NOTIFY_URL=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'')+'/functions/v1/notify-lostfound';
 const LOST_FOUND_CATEGORIES=[
-  {value:'phone',label:'Phone',icon:'fa-mobile-screen'},
-  {value:'wallet',label:'Wallet',icon:'fa-wallet'},
-  {value:'bottle',label:'Water Bottle',icon:'fa-bottle-water'},
-  {value:'bag',label:'Bag / Backpack',icon:'fa-bag-shopping'},
-  {value:'keys',label:'Keys',icon:'fa-key'},
-  {value:'laptop',label:'Laptop',icon:'fa-laptop'},
-  {value:'books',label:'Books / Notes',icon:'fa-book'},
-  {value:'idcard',label:'ID / Library Card',icon:'fa-id-card'},
-  {value:'earphones',label:'Earphones / Headphones',icon:'fa-headphones'},
-  {value:'spectacles',label:'Spectacles',icon:'fa-glasses'},
-  {value:'watch',label:'Watch',icon:'fa-clock'},
-  {value:'stationery',label:'Stationery',icon:'fa-pen'},
-  {value:'other',label:'Other',icon:'fa-circle-question'}
+  {value:'phone',label:'Phone',icon:'fa-mobile-screen',emoji:'📱'},
+  {value:'wallet',label:'Wallet',icon:'fa-wallet',emoji:'👛'},
+  {value:'bottle',label:'Water Bottle',icon:'fa-bottle-water',emoji:'🍶'},
+  {value:'bag',label:'Bag / Backpack',icon:'fa-bag-shopping',emoji:'🎒'},
+  {value:'keys',label:'Keys',icon:'fa-key',emoji:'🔑'},
+  {value:'laptop',label:'Laptop',icon:'fa-laptop',emoji:'💻'},
+  {value:'books',label:'Books / Notes',icon:'fa-book',emoji:'📚'},
+  {value:'idcard',label:'ID / Library Card',icon:'fa-id-card',emoji:'🪪'},
+  {value:'earphones',label:'Earphones / Headphones',icon:'fa-headphones',emoji:'🎧'},
+  {value:'spectacles',label:'Spectacles',icon:'fa-glasses',emoji:'👓'},
+  {value:'watch',label:'Watch',icon:'fa-clock',emoji:'⌚'},
+  {value:'stationery',label:'Stationery',icon:'fa-pen',emoji:'✏️'},
+  {value:'other',label:'Other',icon:'fa-circle-question',emoji:'📦'}
 ];
 let lfCache=[];
 let lfLoaded=false;
@@ -4159,7 +4159,77 @@ function reopenLfForm(type){
 }
 function setLfModeUI(type){lfPostMode=type;document.querySelectorAll('.lf-type-btn').forEach(b=>b.classList.remove('active'));const btn=document.querySelector('.lf-type-btn[data-type="'+type+'"]');if(btn)btn.classList.add('active')}
 function setPostType(btn){if(btn)setLfModeUI(btn.dataset.type)}
-function onLfCategoryChange(sel){const custom=sel&&sel.value==='other';const inp=$('lfCustomCategory');const lab=document.querySelector('.lf-custom-label');if(inp)inp.hidden=!custom;if(lab)lab.hidden=!custom;if(custom&&inp)inp.setAttribute('required','');else if(inp)inp.removeAttribute('required')}
+function onLfCategoryChange(sel){
+  const custom=sel&&sel.value==='other';
+  const inp=$('lfCustomCategory');
+  const lab=document.querySelector('.lf-custom-label');
+  if(inp)inp.hidden=!custom;
+  if(lab)lab.hidden=!custom;
+  if(custom&&inp)inp.setAttribute('required','');else if(inp)inp.removeAttribute('required');
+  updateLfCategoryTrigger(sel?sel.value:'');
+}
+function updateLfCategoryTrigger(val){
+  const iconEl=$('lfCatTriggerIcon');
+  const labelEl=$('lfCatTriggerLabel');
+  const trigger=$('lfCategoryTrigger');
+  if(!labelEl)return;
+  const cat=LOST_FOUND_CATEGORIES.find(c=>c.value===val);
+  if(cat){
+    if(iconEl)iconEl.textContent=cat.emoji||'📦';
+    labelEl.textContent=cat.label;
+    if(trigger)trigger.classList.add('has-value');
+  }else{
+    if(iconEl)iconEl.textContent='📦';
+    labelEl.textContent='Select a category\u2026';
+    if(trigger)trigger.classList.remove('has-value');
+  }
+}
+function selectLfCategory(val){
+  if(typeof triggerLightHaptic==='function')triggerLightHaptic(10);
+  else if(typeof navigator!=='undefined'&&navigator.vibrate)try{navigator.vibrate(10)}catch(e){}
+  const catSel=$('lfCategory');
+  if(catSel)catSel.value=val;
+  onLfCategoryChange(catSel);
+  closeLfCategoryPicker();
+}
+function renderLfCategoryPickerItems(){
+  const list=$('lfCategoryList');
+  if(!list)return;
+  const currentVal=($('lfCategory')&&$('lfCategory').value)||'';
+  list.innerHTML=LOST_FOUND_CATEGORIES.map(cat=>{
+    const isSelected=cat.value===currentVal;
+    return '<div class="lf-cat-item bca-pressable '+(isSelected?'selected':'')+'" role="radio" aria-checked="'+isSelected+'" data-value="'+cat.value+'" onclick="selectLfCategory(\''+cat.value+'\')">'+
+      '<div class="lf-cat-item-left">'+
+        '<div class="lf-cat-icon-wrap"><span class="lf-cat-emoji">'+(cat.emoji||'📦')+'</span></div>'+
+        '<span class="lf-cat-name">'+lfEscape(cat.label)+'</span>'+
+      '</div>'+
+      '<div class="lf-cat-indicator" aria-hidden="true">'+
+        '<svg class="lf-cat-checkmark" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+
+          '<polyline points="20 6 9 17 4 12"></polyline>'+
+        '</svg>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  if(typeof window!=='undefined'&&window.BCA_UI&&window.BCA_UI.PressableScale){
+    list.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.PressableScale(el));
+  }
+}
+function openLfCategoryPicker(){
+  renderLfCategoryPickerItems();
+  const m=$('lfCategoryPickerModal');
+  if(m)m.classList.add('open');
+  const trigger=$('lfCategoryTrigger');
+  if(trigger)trigger.setAttribute('aria-expanded','true');
+}
+function closeLfCategoryPicker(){
+  const m=$('lfCategoryPickerModal');
+  if(m)m.classList.remove('open');
+  const trigger=$('lfCategoryTrigger');
+  if(trigger)trigger.setAttribute('aria-expanded','false');
+}
+window.openLfCategoryPicker=openLfCategoryPicker;
+window.closeLfCategoryPicker=closeLfCategoryPicker;
+window.selectLfCategory=selectLfCategory;
 function showLfImage(input){const f=input&&input.files&&input.files[0];if(!f)return;lfImageFile=f;const name=$('lfImageName');if(name)name.textContent=f.name;const r=new FileReader();r.onloadend=()=>{const thumb=$('lfThumb');if(thumb)thumb.src=r.result;const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=false};r.readAsDataURL(f)}
 function removeLfImage(e){if(e)try{e.preventDefault()}catch(x){}clearLfImage()}
 function clearLfImage(){lfImageFile=null;const inp=$('lfImage');if(inp)inp.value='';const name=$('lfImageName');if(name)name.textContent='Attach a photo';const thumb=$('lfThumb');if(thumb)thumb.src='';const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=true}
