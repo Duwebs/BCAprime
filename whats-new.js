@@ -11,18 +11,18 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.1.7";
+const CURRENT_APP_VERSION = "3.2.0";
 
 const LATEST_RELEASE = {
-  version: "3.1.7",
-  date: "October 2026",
-  title: "Refined Dark Mode & Professional Blue Accents",
-  subtitle: "Pure pitch-black canvas with restored vibrant blue interactive CTAs and balanced contrast.",
+  version: "3.2.0",
+  date: "November 2026",
+  title: "Continue Reading & Cross-Device Sync",
+  subtitle: "Never lose your spot — reading progress now automatically syncs across all your devices in real-time.",
   features: [
-    { type: "improved", title: "Refined Pure Dark Mode", desc: "Pure pitch-black dark theme with clean geometry, subtle borders, and zero intrusive glow." },
-    { type: "new",      title: "Restored Blue Interactive Accents", desc: "Clean and vibrant professional blue CTAs for Search, Downloads, and Active Tabs." },
-    { type: "improved", title: "Balanced Contrast & Badges", desc: "PYQ and Notes badges, filter chips, and quick action tags are clearer and more distinct." },
-    { type: "improved", title: "Design System Tokens", desc: "Synced design system tokens across EmptyState, BottomSheets, and error screens." }
+    { type: "new",      title: "Continue Reading Carousel", desc: "Swipeable dashboard cards showing your last-read PDFs with real-time page progress and instant resume." },
+    { type: "new",      title: "Cloud Reading Progress Sync", desc: "Backed by Supabase database to automatically sync your reading position across phone, tablet, and PC." },
+    { type: "improved", title: "Smart Completion & Thresholds", desc: "Multi-page documents auto-complete on reaching the end, while 1-page PYQs stay accessible in your recent list." },
+    { type: "improved", title: "Instant Document Previews", desc: "Crisp first-page thumbnails generated on the fly with lightweight local caching." }
   ]
 };
 
