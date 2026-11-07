@@ -595,3 +595,69 @@ create policy "Users can delete own reading progress"
 grant select, insert, update, delete on public.user_reading_progress to authenticated;
 grant select, insert, update, delete on public.user_reading_progress to service_role;
 
+-- ============================================================
+-- In-App Notifications (backed by Supabase Realtime)
+-- ============================================================
+create table if not exists public.notifications (
+  id uuid default gen_random_uuid() primary key,
+  user_id text default null, -- null for all users (broadcast) or specific user uid
+  college text default 'all',
+  semester integer default null,
+  title text not null,
+  message text not null,
+  type text default 'note', -- 'note' | 'pyq' | 'request' | 'system'
+  target_resource text default '', -- resource title/id or route
+  target_url text default '', -- direct hash or URL
+  is_read boolean default false,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_notifications_user_created
+  on public.notifications (user_id, created_at desc);
+
+create index if not exists idx_notifications_college_sem
+  on public.notifications (college, semester, created_at desc);
+
+create index if not exists idx_notifications_unread
+  on public.notifications (is_read, created_at desc);
+
+alter table public.notifications enable row level security;
+
+drop policy if exists "Anyone can read notifications" on public.notifications;
+create policy "Anyone can read notifications"
+  on public.notifications for select
+  to anon, authenticated
+  using (
+    user_id is null
+    or user_id = ''
+    or (auth.uid() is not null and auth.uid()::text = user_id)
+  );
+
+drop policy if exists "Anyone can insert notifications" on public.notifications;
+create policy "Anyone can insert notifications"
+  on public.notifications for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "Anyone can update notifications" on public.notifications;
+create policy "Anyone can update notifications"
+  on public.notifications for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public'
+      and tablename = 'notifications'
+  ) then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end $$;
+
+grant select, insert, update on public.notifications to anon, authenticated, service_role;
+
+

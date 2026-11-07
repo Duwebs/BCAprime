@@ -2408,6 +2408,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         showPreview(signed?{...resource,fileUrl:signed}:resource);
       });
     }
+    window.previewResource = previewResource;
     function showPreview(resource){const src=resource.fileUrl||resource.fileData;
       $('previewTitle').textContent=resource.title;
       const kindLabel=resource.type==='pyq'?'Previous year paper':'Notes';

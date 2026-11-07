@@ -276,7 +276,13 @@
 
     <section class="hero" id="top">
       <div>
-        <div class="hero-copy-top"><div class="eyebrow"><i class="fa-solid fa-book-open"></i> Your study desk</div><span class="status-pill"><span class="status-dot"></span>Live Library</span></div>
+        <div class="hero-copy-top">
+          <div class="eyebrow"><i class="fa-solid fa-book-open"></i> Your study desk</div>
+          <button type="button" class="hero-notify-bell bca-pressable" id="heroNotifyBell" aria-label="Notifications" title="Notifications">
+            <i class="fa-regular fa-bell hero-bell-icon" id="heroBellIcon"></i>
+            <span class="hero-bell-badge" id="heroBellBadge" hidden></span>
+          </button>
+        </div>
          <h1 id="heroTitle"><span id="heroDefaultTitle">Make this semester <span class="accent">count.</span></span><strong id="deskSemester" class="hero-semester">Explore your semester</strong><span class="hero-greeting" id="heroGreeting" hidden><i class="fa-solid fa-hand-wave"></i><strong id="heroGreetName"></strong></span></h1>
         <p>Find clear notes and previous year question papers for your BCA course, all in one focused library.</p>
         <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" aria-label="Search notes, subjects or PYQs" placeholder="Search notes, subjects or PYQs&#8230;" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
@@ -1431,6 +1437,7 @@
   <script src="whats-new.js?v=19"></script>
   <script src="app.js?v=61"></script>
   <script src="mocktest.js?v=7"></script>
+  <script src="notifications.js?v=1"></script>
 </body>
 </html>
 
