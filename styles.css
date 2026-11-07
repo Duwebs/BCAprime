@@ -3661,3 +3661,103 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
     display: flex;
   }
 }
+
+
+/* ============================================================
+   Guest Welcome Modal — Light Mode Specific Theme Fixes
+   Note: Dark mode is 100% untouched and preserved.
+   ============================================================ */
+[data-theme="light"] .gw-modal,
+html:not([data-theme="dark"]) .gw-modal {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+[data-theme="light"] .gw-dialog,
+html:not([data-theme="dark"]) .gw-dialog {
+  background: var(--surface);
+  border-color: var(--line);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Light mode logo badge: dark background container makes the white crown & blue 'B' sharp and authentic */
+[data-theme="light"] .gw-logo,
+html:not([data-theme="dark"]) .gw-logo {
+  background: #090d14 !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Light mode Guest Mode pill */
+[data-theme="light"] .gw-pill,
+html:not([data-theme="dark"]) .gw-pill {
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface-2)) !important;
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--line)) !important;
+  color: var(--ink) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  backdrop-filter: none !important;
+}
+[data-theme="light"] .gw-pill i,
+html:not([data-theme="dark"]) .gw-pill i {
+  color: var(--brand) !important;
+}
+
+/* Light mode Heading <h2>: Clean, bold, readable ink color */
+[data-theme="light"] .gw-hero h2,
+html:not([data-theme="dark"]) .gw-hero h2 {
+  color: var(--ink) !important;
+}
+
+/* Light mode Subtitle: Clean readable muted text */
+[data-theme="light"] .gw-sub,
+html:not([data-theme="dark"]) .gw-sub {
+  color: var(--muted) !important;
+}
+
+/* Light mode Close button */
+[data-theme="light"] .gw-close-btn,
+html:not([data-theme="dark"]) .gw-close-btn {
+  background: var(--surface-2) !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--line) !important;
+}
+[data-theme="light"] .gw-close-btn:hover,
+html:not([data-theme="dark"]) .gw-close-btn:hover {
+  background: var(--line) !important;
+  color: var(--ink) !important;
+}
+
+/* Light mode mobile sheet handle bar */
+[data-theme="light"] .gw-sheet-handle span,
+html:not([data-theme="dark"]) .gw-sheet-handle span {
+  background: #cbd5e1 !important;
+  opacity: 0.9 !important;
+}
+
+/* Light mode list item cards */
+[data-theme="light"] .gw-item,
+html:not([data-theme="dark"]) .gw-item {
+  background: var(--surface-2) !important;
+  border-color: var(--line) !important;
+}
+[data-theme="light"] .gw-item strong,
+html:not([data-theme="dark"]) .gw-item strong {
+  color: var(--ink) !important;
+}
+[data-theme="light"] .gw-item span,
+html:not([data-theme="dark"]) .gw-item span {
+  color: var(--muted) !important;
+}
+
+/* Light mode Restricted tag contrast */
+[data-theme="light"] .gw-restricted .gw-label,
+html:not([data-theme="dark"]) .gw-restricted .gw-label {
+  color: #b45309 !important;
+}
+
+/* Light mode primary CTA button */
+[data-theme="light"] .gw-cta,
+html:not([data-theme="dark"]) .gw-cta {
+  background: var(--ink) !important;
+  color: var(--bg) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+}
