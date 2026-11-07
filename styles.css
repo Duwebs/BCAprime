@@ -4457,6 +4457,24 @@ html:not([data-theme="dark"]) .gw-cta {
    Smart Notification Bell & Drawer Styles
    ============================================================ */
 
+/* Header / Top Navigation Bar - Absolute Rigid Positioning */
+.topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
+  transform: none !important;
+  animation: none !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  contain: layout style;
+}
+
+.hero-copy-top {
+  transform: none !important;
+  animation: none !important;
+  contain: layout style;
+}
+
 /* Bell Container Button (In Hero Card) */
 .hero-notify-bell {
   position: relative;
@@ -4510,8 +4528,27 @@ html:not([data-theme="dark"]) .hero-notify-bell:hover,
   color: #ffffff;
 }
 
+/* Bell Dedicated Inline Wrapper (Prevents pushing surrounding elements) */
+.bell-icon-wrapper {
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  overflow: hidden;
+  box-sizing: border-box;
+  pointer-events: none;
+  transform: none !important;
+  flex-shrink: 0;
+}
+
 /* Bell Icon - Isolated Element */
-.hero-bell-icon {
+.hero-bell-icon,
+#heroBellIcon,
+#bellIcon {
   font-size: 19px;
   line-height: 1;
   display: inline-flex;
@@ -4524,41 +4561,42 @@ html:not([data-theme="dark"]) .hero-notify-bell:hover,
   transform: translateX(0);
 }
 
-/* Smooth shaking animation strictly isolated to bell icon (local horizontal translateX only) */
+/* Scoped Shake Keyframes (Local translateX only) */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  20%, 60% {
+    transform: translateX(-2px);
+  }
+  40%, 80% {
+    transform: translateX(2px);
+  }
+}
+
 @keyframes bcaBellShake {
   0%, 100% {
     transform: translateX(0);
   }
-  10% {
-    transform: translateX(-2.5px);
+  20%, 60% {
+    transform: translateX(-2px);
   }
-  20% {
-    transform: translateX(2.5px);
-  }
-  30% {
-    transform: translateX(-2.5px);
-  }
-  40% {
-    transform: translateX(2.5px);
-  }
-  50% {
-    transform: translateX(-1.5px);
-  }
-  60% {
-    transform: translateX(1.5px);
-  }
-  70% {
-    transform: translateX(0);
+  40%, 80% {
+    transform: translateX(2px);
   }
 }
 
 /* Apply shake animation strictly to the bell icon element only */
+.bell-shake,
 .hero-notify-bell.has-unread .hero-bell-icon,
 .hero-notify-bell.has-unread #heroBellIcon,
-#heroBellIcon.is-shaking {
+#heroBellIcon.is-shaking,
+#heroBellIcon.bell-shake,
+#bellIcon.bell-shake {
   display: inline-flex !important;
-  animation: bcaBellShake 2.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite !important;
+  animation: shake 0.5s ease-in-out infinite !important;
   will-change: transform;
+  transform-origin: center center;
 }
 
 /* Red Dot Badge on Bell */
