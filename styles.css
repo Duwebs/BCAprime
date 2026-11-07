@@ -4476,10 +4476,12 @@ html:not([data-theme="dark"]) .gw-cta {
   color: var(--ink, #171717);
   box-shadow: var(--shadow, none);
   transition: background-color var(--ui-anim-duration, 200ms) var(--ui-anim-easing, cubic-bezier(0.16, 1, 0.3, 1)),
-              border-color var(--ui-anim-duration, 200ms) var(--ui-anim-easing, cubic-bezier(0.16, 1, 0.3, 1)),
-              transform var(--ui-anim-duration, 200ms) var(--ui-anim-easing, cubic-bezier(0.16, 1, 0.3, 1));
+              border-color var(--ui-anim-duration, 200ms) var(--ui-anim-easing, cubic-bezier(0.16, 1, 0.3, 1));
   -webkit-tap-highlight-color: transparent;
   flex-shrink: 0;
+  contain: layout; /* Isolates layout so child shake never moves hero or header */
+  transform: none !important; /* Button itself never shakes or translates */
+  animation: none !important;
 }
 
 /* Light Mode: Deep-blue bell icon for high contrast and visibility */
@@ -4508,45 +4510,54 @@ html:not([data-theme="dark"]) .hero-notify-bell:hover,
   color: #ffffff;
 }
 
-/* Bell Icon */
+/* Bell Icon - Isolated Element */
 .hero-bell-icon {
   font-size: 19px;
   line-height: 1;
-  display: inline-block;
-  transform-origin: 50% 0%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  text-align: center;
   pointer-events: none;
+  transform: translateX(0);
 }
 
-/* Smooth shaking animation (left-right movement) */
+/* Smooth shaking animation strictly isolated to bell icon (local horizontal translateX only) */
 @keyframes bcaBellShake {
   0%, 100% {
-    transform: translateX(0) rotate(0deg);
+    transform: translateX(0);
   }
-  6% {
-    transform: translateX(-3.5px) rotate(-10deg);
+  10% {
+    transform: translateX(-2.5px);
   }
-  12% {
-    transform: translateX(3.5px) rotate(10deg);
-  }
-  18% {
-    transform: translateX(-3px) rotate(-8deg);
-  }
-  24% {
-    transform: translateX(3px) rotate(8deg);
+  20% {
+    transform: translateX(2.5px);
   }
   30% {
-    transform: translateX(-2px) rotate(-4deg);
+    transform: translateX(-2.5px);
   }
-  36% {
-    transform: translateX(2px) rotate(4deg);
+  40% {
+    transform: translateX(2.5px);
   }
-  42% {
-    transform: translateX(0) rotate(0deg);
+  50% {
+    transform: translateX(-1.5px);
+  }
+  60% {
+    transform: translateX(1.5px);
+  }
+  70% {
+    transform: translateX(0);
   }
 }
 
-.hero-notify-bell.has-unread .hero-bell-icon {
-  animation: bcaBellShake 2.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+/* Apply shake animation strictly to the bell icon element only */
+.hero-notify-bell.has-unread .hero-bell-icon,
+.hero-notify-bell.has-unread #heroBellIcon,
+#heroBellIcon.is-shaking {
+  display: inline-flex !important;
+  animation: bcaBellShake 2.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite !important;
   will-change: transform;
 }
 

@@ -71,10 +71,23 @@ end $$;
 
 grant select, insert, update on public.notifications to anon, authenticated, service_role;
 
--- Optional initial seed alerts (if table is freshly created)
+-- 1. Deduplicate existing notifications (retains only the latest entry per title + message)
+delete from public.notifications a
+using public.notifications b
+where a.created_at < b.created_at
+  and a.title = b.title
+  and a.message = b.message;
+
+-- 2. Idempotent seed alerts (will not insert duplicates if already present)
 insert into public.notifications (title, message, type, target_resource, target_url, is_read, created_at)
-values
-  ('Welcome to BCAPrime', 'Access syllabus, curated notes, and previous year question papers in one place.', 'system', 'Make this semester count', '#top', false, now() - interval '5 minutes'),
-  ('Semester PYQs Available', 'Explore recent university examination papers for BCA Semesters 1 to 6.', 'pyq', 'PYQs', '#finderSection', false, now() - interval '25 minutes')
-on conflict do nothing;
+select 'Welcome to BCAPrime', 'Access syllabus, curated notes, and previous year question papers in one place.', 'system', 'Make this semester count', '#top', false, now() - interval '5 minutes'
+where not exists (
+  select 1 from public.notifications where title = 'Welcome to BCAPrime'
+);
+
+insert into public.notifications (title, message, type, target_resource, target_url, is_read, created_at)
+select 'Semester PYQs Available', 'Explore recent university examination papers for BCA Semesters 1 to 6.', 'pyq', 'PYQs', '#finderSection', false, now() - interval '25 minutes'
+where not exists (
+  select 1 from public.notifications where title = 'Semester PYQs Available'
+);
 

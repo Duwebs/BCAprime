@@ -147,7 +147,7 @@
   }
 
   /* ============================================================
-     3. Relative Time Formatter
+     3. Relative Time Formatter & Deduplication Helper
      ============================================================ */
   function formatRelativeTime(dateInput) {
     if (!dateInput) return 'Just now';
@@ -168,27 +168,67 @@
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
+  /**
+   * Filters and deduplicates notification list by unique ID
+   * and content (title + message) to prevent repeated items in drawer.
+   */
+  function deduplicateNotifications(list) {
+    if (!Array.isArray(list)) return [];
+    const seenIds = new Set();
+    const seenContent = new Set();
+    const unique = [];
+
+    for (const item of list) {
+      if (!item) continue;
+
+      const idKey = item.id != null ? String(item.id).trim() : null;
+      const titleKey = String(item.title || '').trim().toLowerCase();
+      const msgKey = String(item.message || '').trim().toLowerCase();
+      const contentKey = titleKey && msgKey ? `${titleKey}|||${msgKey}` : null;
+
+      // 1. Skip if identical ID was already added
+      if (idKey && seenIds.has(idKey)) {
+        continue;
+      }
+
+      // 2. Skip if identical Title + Message was already added (preserves newest entry)
+      if (contentKey && seenContent.has(contentKey)) {
+        continue;
+      }
+
+      if (idKey) seenIds.add(idKey);
+      if (contentKey) seenContent.add(contentKey);
+      unique.push(item);
+    }
+
+    return unique;
+  }
+
   /* ============================================================
      4. Bell UI State & Animations
      ============================================================ */
   function updateBellState(forceAnimation = false) {
     const bellBtn = document.getElementById('heroNotifyBell');
+    const bellIcon = document.getElementById('heroBellIcon');
     const badge = document.getElementById('heroBellBadge');
     if (!bellBtn) return;
 
+    notificationsList = deduplicateNotifications(notificationsList);
     const locallyRead = getLocallyReadIds();
     unreadCount = notificationsList.filter(
       (n) => !n.is_read && !locallyRead.has(String(n.id))
     ).length;
 
     if (unreadCount > 0) {
-      // If forcing animation (e.g. new realtime alert arrived), restart CSS shake
-      if (forceAnimation) {
-        bellBtn.classList.remove('has-unread');
-        void bellBtn.offsetWidth; // Force DOM reflow to restart CSS keyframe animation
-      }
-      // Unread state: Red dot visible + smooth shaking animation
+      // Unread state: Red dot visible + smooth shaking animation isolated to bell icon
       bellBtn.classList.add('has-unread');
+      if (bellIcon) {
+        if (forceAnimation) {
+          bellIcon.classList.remove('is-shaking');
+          void bellIcon.offsetWidth; // Force DOM reflow strictly on icon element
+        }
+        bellIcon.classList.add('is-shaking');
+      }
       if (badge) {
         badge.hidden = false;
         badge.setAttribute('aria-label', `${unreadCount} unread notifications`);
@@ -197,6 +237,9 @@
     } else {
       // Read state: Red dot disappears + shaking animation stops completely
       bellBtn.classList.remove('has-unread');
+      if (bellIcon) {
+        bellIcon.classList.remove('is-shaking');
+      }
       if (badge) {
         badge.hidden = true;
       }
@@ -271,8 +314,12 @@
     subbar.appendChild(markAllBtn);
     wrap.appendChild(subbar);
 
+    // Populated list
+    notificationsList = deduplicateNotifications(notificationsList);
+    const itemsToRender = notificationsList;
+
     // Body
-    if (isFetching && notificationsList.length === 0) {
+    if (isFetching && itemsToRender.length === 0) {
       // Shimmer Skeletons (Rule 4: No Spinners)
       const skelList = document.createElement('div');
       skelList.className = 'notif-list';
@@ -315,7 +362,7 @@
       return;
     }
 
-    if (notificationsList.length === 0) {
+    if (itemsToRender.length === 0) {
       // EmptyState component (Rule 5)
       let emptyEl;
       if (window.BCA_UI && window.BCA_UI.EmptyState) {
@@ -346,12 +393,11 @@
       return;
     }
 
-    // Populated list
     const listEl = document.createElement('div');
     listEl.className = 'notif-list';
     const locallyRead = getLocallyReadIds();
 
-    notificationsList.forEach((notif) => {
+    itemsToRender.forEach((notif) => {
       const isUnread = !notif.is_read && !locallyRead.has(String(notif.id));
       const itemCard = document.createElement('div');
       itemCard.className = `notif-item ${isUnread ? 'is-unread' : ''}`;
@@ -559,7 +605,7 @@
 
         const { data, error } = await query;
         if (!error && Array.isArray(data)) {
-          fetchedData = data;
+          fetchedData = deduplicateNotifications(data);
         }
       } catch (e) {
         console.warn('[Notifications] Supabase fetch fallback:', e);
@@ -593,7 +639,7 @@
       fetchedData = localSeed;
     }
 
-    notificationsList = fetchedData;
+    notificationsList = deduplicateNotifications(fetchedData);
     isFetching = false;
     updateBellState();
 
@@ -608,13 +654,25 @@
   function handleIncomingNotification(newNotif) {
     if (!newNotif || !newNotif.title) return;
 
-    // Deduplication check: Avoid adding exact same notification twice
-    const exists = notificationsList.some(
-      (n) =>
-        (newNotif.id && String(n.id) === String(newNotif.id)) ||
-        (n.title === newNotif.title && n.message === newNotif.message && Math.abs(new Date(n.created_at || 0) - new Date(newNotif.created_at || 0)) < 8000)
-    );
-    if (exists) return;
+    // Deduplication check: Avoid adding duplicate ID or duplicate Title+Message
+    const newId = newNotif.id ? String(newNotif.id).trim() : null;
+    const newTitle = String(newNotif.title || '').trim().toLowerCase();
+    const newMsg = String(newNotif.message || '').trim().toLowerCase();
+
+    const isDuplicate = notificationsList.some((n) => {
+      if (newId && String(n.id).trim() === newId) return true;
+      if (newTitle && newMsg) {
+        const nTitle = String(n.title || '').trim().toLowerCase();
+        const nMsg = String(n.message || '').trim().toLowerCase();
+        if (nTitle === newTitle && nMsg === newMsg) return true;
+      }
+      return false;
+    });
+
+    if (isDuplicate) {
+      console.info('[Notifications] Duplicate notification skipped:', newNotif.title);
+      return;
+    }
 
     // Targeting check: User UID (broadcast if empty/null)
     const currentUid =
@@ -643,8 +701,8 @@
     newNotif.created_at = newNotif.created_at || new Date().toISOString();
     newNotif.id = newNotif.id || `live-${Date.now()}`;
 
-    // Prepend new alert to top of list
-    notificationsList = [newNotif, ...notificationsList.filter((n) => n.id !== newNotif.id)];
+    // Prepend new alert to top of list and deduplicate
+    notificationsList = deduplicateNotifications([newNotif, ...notificationsList]);
 
     // Instantly trigger UI updates: Shake bell + show red dot
     updateBellState(true);
