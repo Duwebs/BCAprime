@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=60">
+  <link rel="stylesheet" href="styles.css?v=61">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -447,34 +447,80 @@
 
       <div class="lf-controls-container">
         <div class="lf-quick">
-          <button class="chip lf-chip lf-lost" onclick="openLostFoundPost('lost')"><i class="fa-solid fa-triangle-exclamation"></i> Report Lost</button>
-          <button class="chip lf-chip lf-found" onclick="openLostFoundPost('found')"><i class="fa-solid fa-circle-check"></i> Report Found</button>
+          <button type="button" class="chip lf-chip lf-lost bca-pressable" onclick="openLostFoundPost('lost')">
+            <svg class="lf-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Report Lost</span>
+          </button>
+          <button type="button" class="chip lf-chip lf-found bca-pressable" onclick="openLostFoundPost('found')">
+            <svg class="lf-action-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+            <span>Report Found</span>
+          </button>
         </div>
         
         <div class="lf-quickpost-scroll" id="lfQuickPosts">
-          <span class="lf-qp-label">Quick:</span>
-          <button class="chip" onclick="quickLostFound('lost','phone')"><i class="fa-solid fa-mobile-screen"></i> Phone</button>
-          <button class="chip" onclick="quickLostFound('lost','wallet')"><i class="fa-solid fa-wallet"></i> Wallet</button>
-          <button class="chip" onclick="quickLostFound('lost','bottle')"><i class="fa-solid fa-bottle-water"></i> Bottle</button>
-          <button class="chip" onclick="quickLostFound('lost','keys')"><i class="fa-solid fa-key"></i> Keys</button>
-          <button class="chip" onclick="quickLostFound('lost','bag')"><i class="fa-solid fa-bag-shopping"></i> Bag</button>
+          <span class="lf-qp-label">Quick report:</span>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','phone')" title="Report lost Phone">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+            <span>Phone</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','wallet')" title="Report lost Wallet">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+            <span>Wallet</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','bottle')" title="Report lost Water Bottle">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2h4"/><path d="M10 5h4"/><path d="M9 8h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2Z"/><path d="M7 14h10"/></svg>
+            <span>Bottle</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','keys')" title="Report lost Keys">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+            <span>Keys</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','bag')" title="Report lost Bag">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-1V4a2 2 0 0 0-2-2h-2a2 2 0 0 0-2 2v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M6 10h12"/></svg>
+            <span>Bag</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','laptop')" title="Report lost Laptop">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="12" x="3" y="4" rx="2"/><line x1="2" x2="22" y1="20" y2="20"/></svg>
+            <span>Laptop</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','idcard')" title="Report lost ID Card">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="14" x="3" y="5" rx="2"/><circle cx="9" cy="12" r="2"/><path d="M15 10h2"/><path d="M15 14h2"/></svg>
+            <span>ID Card</span>
+          </button>
+          <button type="button" class="chip lf-quick-chip bca-pressable" onclick="quickLostFound('lost','earphones')" title="Report lost Earphones">
+            <svg class="lf-chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+            <span>Earphones</span>
+          </button>
         </div>
       </div>
 
       <div class="lf-toolbar">
-        <div class="lf-tabs">
-          <button class="chip lf-tab active" data-type="all" onclick="setLostFoundType('all',this)">All</button>
-          <button class="chip lf-tab" data-type="lost" onclick="setLostFoundType('lost',this)"><span class="lf-dot lf-dot-lost"></span>Lost</button>
-          <button class="chip lf-tab" data-type="found" onclick="setLostFoundType('found',this)"><span class="lf-dot lf-dot-found"></span>Found</button>
+        <div class="lf-tabs" role="tablist" aria-label="Lost and Found status filters">
+          <button type="button" class="chip lf-tab bca-pressable active" data-type="all" onclick="setLostFoundType('all',this)" role="tab" aria-selected="true">All</button>
+          <button type="button" class="chip lf-tab bca-pressable" data-type="lost" onclick="setLostFoundType('lost',this)" role="tab" aria-selected="false"><span class="lf-dot lf-dot-lost"></span>Lost</button>
+          <button type="button" class="chip lf-tab bca-pressable" data-type="found" onclick="setLostFoundType('found',this)" role="tab" aria-selected="false"><span class="lf-dot lf-dot-found"></span>Found</button>
         </div>
         <div class="lf-filters">
           <select id="lfCategoryFilter" aria-label="Filter by category" onchange="applyLostFoundFilters()"><option value="all">All categories</option></select>
-          <div class="lf-search"><i class="fa-solid fa-magnifying-glass"></i><input id="lfSearch" type="text" placeholder="Search Lost &amp; Found&hellip;" aria-label="Search Lost and Found" oninput="applyLostFoundFilters()"></div>
+          <div class="lf-search">
+            <svg class="lf-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input id="lfSearch" type="text" placeholder="Search Lost &amp; Found&hellip;" aria-label="Search Lost and Found" oninput="applyLostFoundFilters()">
+          </div>
         </div>
       </div>
 
       <div class="lf-feed" id="lostFoundFeed"></div>
-      <div class="lf-empty" id="lostFoundEmpty" hidden>No posts yet &mdash; be the first to report! &#128241;</div>
+      <div class="lf-empty" id="lostFoundEmpty" hidden>
+        <div class="lf-empty-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M8 11h6"/></svg>
+        </div>
+        <h3 class="lf-empty-title">No items found</h3>
+        <p class="lf-empty-desc">No reports match your current filter. Lost something on campus? Post a quick report to let everyone know!</p>
+        <div class="lf-empty-actions">
+          <button type="button" class="secondary bca-pressable" onclick="setLostFoundType('all',document.querySelector('.lf-tabs .lf-tab[data-type=\'all\']'));const sel=document.getElementById('lfCategoryFilter');if(sel){sel.value='all';applyLostFoundFilters();}">Reset filters</button>
+          <button type="button" class="primary bca-pressable" onclick="openLostFoundPost('lost')"><i class="fa-solid fa-plus"></i> Report Item</button>
+        </div>
+      </div>
     </section>
 
     <section class="section help-juniors" id="helpJuniors" hidden>
@@ -1029,26 +1075,26 @@
   <div class="modal" id="lostFoundModal"><div class="dialog lf-dialog">
     <div class="dialog-head"><h2>Lost &amp; Found</h2><button class="close" aria-label="Close dialog" onclick="closeLostFoundModal()">&times;</button></div>
     <div class="lf-type-switch" id="lfTypeSwitch">
-      <button type="button" class="lf-type-btn lf-lost active" data-type="lost" onclick="setPostType(this)"><i class="fa-solid fa-triangle-exclamation"></i><span>I <b>LOST</b> this</span></button>
-      <button type="button" class="lf-type-btn lf-found" data-type="found" onclick="setPostType(this)"><i class="fa-solid fa-circle-check"></i><span>I <b>FOUND</b> this</span></button>
+      <button type="button" class="lf-type-btn lf-lost active bca-pressable" data-type="lost" onclick="setPostType(this)"><i class="fa-solid fa-triangle-exclamation"></i><span>I <b>LOST</b> this</span></button>
+      <button type="button" class="lf-type-btn lf-found bca-pressable" data-type="found" onclick="setPostType(this)"><i class="fa-solid fa-circle-check"></i><span>I <b>FOUND</b> this</span></button>
     </div>
     <form class="upload-form lf-form" id="lfForm" autocomplete="off" onsubmit="submitLostFoundPost(event)">
       <div class="field"><label for="lfCategory">Category</label>
         <select id="lfCategory" onchange="onLfCategoryChange(this)">
           <option value="">Select a category&hellip;</option>
           <option value="phone">&#128241; Phone</option>
-          <option value="wallet">&#128179; Wallet</option>
-          <option value="bottle">&#128168; Water Bottle</option>
-          <option value="bag">&#127894; Bag / Backpack</option>
+          <option value="wallet">&#128091; Wallet</option>
+          <option value="bottle">&#129524; Water Bottle</option>
+          <option value="bag">&#127892; Bag / Backpack</option>
           <option value="keys">&#128273; Keys</option>
           <option value="laptop">&#128187; Laptop</option>
           <option value="books">&#128218; Books / Notes</option>
-          <option value="idcard">&#129712; ID / Library Card</option>
+          <option value="idcard">&#129706; ID / Library Card</option>
           <option value="earphones">&#127911; Earphones / Headphones</option>
-          <option value="spectacles">&#128096; Spectacles</option>
+          <option value="spectacles">&#128083; Spectacles</option>
           <option value="watch">&#8986; Watch</option>
-          <option value="stationery">&#127915; Stationery</option>
-          <option value="other">Other</option>
+          <option value="stationery">&#9999;&#65039; Stationery</option>
+          <option value="other">&#128230; Other</option>
         </select>
         <label class="field-hint lf-custom-label" for="lfCustomCategory" hidden>Which item? <small>(type it)</small></label>
         <input id="lfCustomCategory" type="text" maxlength="40" placeholder="Which item? e.g. Power Bank" hidden>
