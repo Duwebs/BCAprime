@@ -5,79 +5,79 @@
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   <url>
     <loc>https://bcaprime.vercel.app/</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?type=notes</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?type=pyq</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/#mocktests</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?sem=1</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?sem=2</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?sem=3</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?sem=4</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?sem=5</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/?sem=6</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/#ask-seniors</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/#juniors-request</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://bcaprime.vercel.app/#lostfound</loc>
-    <lastmod>2026-11-02</lastmod>
+    <lastmod>2026-11-07</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>

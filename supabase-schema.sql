@@ -547,3 +547,51 @@ create policy "Anyone can read lossfound images"
   on storage.objects for select
   to anon, authenticated
   using (bucket_id = 'lossfound');
+
+-- ============================================================
+-- Reading Progress Table (cross-device PDF reading sync)
+-- ============================================================
+create table if not exists public.user_reading_progress (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  pdf_id text not null,
+  title text not null default '',
+  current_page integer not null default 1,
+  total_pages integer not null default 1,
+  updated_at timestamptz not null default now(),
+  constraint user_reading_progress_user_pdf_unique unique (user_id, pdf_id)
+);
+
+create index if not exists idx_user_reading_progress_user_updated
+  on public.user_reading_progress (user_id, updated_at desc);
+
+alter table public.user_reading_progress enable row level security;
+
+drop policy if exists "Users can view own reading progress" on public.user_reading_progress;
+create policy "Users can view own reading progress"
+  on public.user_reading_progress for select
+  to authenticated
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own reading progress" on public.user_reading_progress;
+create policy "Users can insert own reading progress"
+  on public.user_reading_progress for insert
+  to authenticated
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update own reading progress" on public.user_reading_progress;
+create policy "Users can update own reading progress"
+  on public.user_reading_progress for update
+  to authenticated
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete own reading progress" on public.user_reading_progress;
+create policy "Users can delete own reading progress"
+  on public.user_reading_progress for delete
+  to authenticated
+  using (auth.uid() = user_id);
+
+grant select, insert, update, delete on public.user_reading_progress to authenticated;
+grant select, insert, update, delete on public.user_reading_progress to service_role;
+

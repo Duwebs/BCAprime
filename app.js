@@ -128,7 +128,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:accountSession&&accountSession.uid?accountSession.uid:'',user_email:accountSession&&accountSession.email?accountSession.email:'',user_name:accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||''),resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
-    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const cloud=(await fetchApprovedResourceRows()).map(mapCloudResourceRow);const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render();checkDirectResourceLanding();}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
+    async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const cloud=(await fetchApprovedResourceRows()).map(mapCloudResourceRow);const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render();checkDirectResourceLanding();fetchRecentReadingProgress();}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
     /* ================= DYNAMIC CONTRIBUTOR PROFILES =================
        Resource card par contributor ka naam/avatar ab STATIC nahi hote.
        Har resource sirf `uploaderUid` (Supabase uid) rakhta hai; naam + DP
@@ -389,7 +389,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             },350);
           }catch(e){}
         }
-        async function readResource(id){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);openReader(signed?{...resource,fileUrl:signed}:resource)}
+        async function readResource(id, initialPage){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);openReader(signed?{...resource,fileUrl:signed}:resource, initialPage)}
     /* ============================================================
        PrimeFinder Native Mobile UX Engine
        ============================================================ */
@@ -2657,7 +2657,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
              CLAIM GATE: sirf tab jab email proven ho (federated / OTP-done). */
           if(isVerifiedUser(accountSession))await tryClaimLegacyAccount(accountSession);
           /* Email verification gate removed — always show the app on login. */
-          saveVerificationStatus(true);showAuthenticatedApp();
+          saveVerificationStatus(true);showAuthenticatedApp();fetchRecentReadingProgress();
         }
         __pendQr=readQrParam();
         supabaseClient.auth.onAuthStateChange(function(event,session){
@@ -2697,19 +2697,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const finish=async function(){
           try{await claimDone}catch(e){}
           /* Email verification gate removed — always show the app on auth state change. */
-          saveVerificationStatus(true);showAuthenticatedApp();maybeResumePendingAction();
+          saveVerificationStatus(true);showAuthenticatedApp();maybeResumePendingAction();fetchRecentReadingProgress();
           const pq=sessionStorage.getItem('bca-pending-qr');
           if(pq){sessionStorage.removeItem('bca-pending-qr');setTimeout(function(){maybePromptQrApproval(pq)},400)}
         };
         refreshVerificationFlag(user).then(finish,finish);
       }else{
-        stopVerifyPolling();clearProfileRealtime();
+        stopVerifyPolling();clearProfileRealtime();fetchRecentReadingProgress();
         if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();
       }
       try{if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount()}catch(e){}
     }
     async function initAccount(){return initAccountSupabase();}
-    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline()});
+    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();fetchRecentReadingProgress()});
     /* ================= Offline / online UX (offline-first PWA) =================
        Big-tech pattern (Google/Netflix ki tarah):
        - Jab user offline ho -> top par dismissible notification banner (ek baar)
@@ -2865,6 +2865,309 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let securePdfDoc=null;let secureRenderToken=0;
     function destroySecurePdf(){secureRenderToken++;if(securePdfDoc){try{securePdfDoc.destroy()}catch(e){}securePdfDoc=null}}
     function securePageWrap(){const w=document.createElement('div');w.className='secure-page';return w}
+
+    /* ============================================================
+       User Reading Progress Manager (Supabase cross-device sync)
+       ============================================================ */
+    const READING_PROGRESS_KEY = 'bca-user-reading-progress';
+    let currentReaderInitialPage = 1;
+    let currentReaderPage = 1;
+    let totalReaderPages = 1;
+    let readerScrollDebounceTimer = null;
+    let pendingReadingProgressSync = null;
+
+    function getCachedPdfThumb(pdfId) {
+      try {
+        return localStorage.getItem('bca-thumb-' + pdfId) || null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function setCachedPdfThumb(pdfId, dataUrl) {
+      try {
+        if (pdfId && dataUrl && dataUrl.length < 50000) {
+          localStorage.setItem('bca-thumb-' + pdfId, dataUrl);
+        }
+      } catch (e) {}
+    }
+
+    function getLocalReadingProgress() {
+      try {
+        return JSON.parse(localStorage.getItem(READING_PROGRESS_KEY) || '[]');
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveLocalReadingProgress(item) {
+      try {
+        let list = getLocalReadingProgress();
+        list = list.filter(x => String(x.pdf_id) !== String(item.pdf_id));
+        list.unshift(item);
+        list = list.slice(0, 10);
+        localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(list));
+      } catch (e) {}
+    }
+
+    async function syncReadingProgressToSupabase(item) {
+      if (!supabaseClient) return;
+      const uid = accountUid();
+      if (!uid) return;
+      try {
+        const payload = {
+          user_id: uid,
+          pdf_id: String(item.pdf_id),
+          title: String(item.title || 'Untitled'),
+          current_page: Math.max(1, parseInt(item.current_page, 10) || 1),
+          total_pages: Math.max(1, parseInt(item.total_pages, 10) || 1),
+          updated_at: new Date().toISOString()
+        };
+        const { error } = await supabaseClient
+          .from('user_reading_progress')
+          .upsert(payload, { onConflict: 'user_id,pdf_id' });
+        if (error) {
+          console.warn('[BCAPrime] user_reading_progress upsert:', error.message);
+        }
+      } catch (err) {
+        console.warn('[BCAPrime] reading progress sync error:', err);
+      }
+    }
+
+    function recordReadingProgress(resource, page, totalPages) {
+      if (!resource) return;
+      const pdfId = String(resource.dbId || resource.id || rcId(resource.title));
+      const title = String(resource.title || 'Untitled Document');
+      const validPage = Math.max(1, parseInt(page, 10) || 1);
+      const validTotal = Math.max(1, parseInt(totalPages, 10) || 1);
+
+      const item = {
+        pdf_id: pdfId,
+        title: title,
+        current_page: validPage,
+        total_pages: validTotal,
+        updated_at: new Date().toISOString()
+      };
+
+      saveLocalReadingProgress(item);
+      pendingReadingProgressSync = item;
+      clearTimeout(readerScrollDebounceTimer);
+      readerScrollDebounceTimer = setTimeout(() => {
+        if (pendingReadingProgressSync) {
+          syncReadingProgressToSupabase(pendingReadingProgressSync);
+          pendingReadingProgressSync = null;
+        }
+      }, 600);
+    }
+
+    function flushPendingReadingProgress() {
+      clearTimeout(readerScrollDebounceTimer);
+      if (pendingReadingProgressSync) {
+        syncReadingProgressToSupabase(pendingReadingProgressSync);
+        pendingReadingProgressSync = null;
+      }
+    }
+
+    function setupReaderScrollTracking(totalPages) {
+      totalReaderPages = totalPages || 1;
+      const vp = $('readerViewport') || document.querySelector('.reader-viewport');
+      if (!vp) return;
+      vp.removeEventListener('scroll', onReaderScroll);
+      vp.addEventListener('scroll', onReaderScroll, { passive: true });
+      if (currentReaderResource) {
+        recordReadingProgress(currentReaderResource, currentReaderPage, totalReaderPages);
+      }
+    }
+
+    function teardownReaderScrollTracking() {
+      const vp = $('readerViewport') || document.querySelector('.reader-viewport');
+      if (vp) vp.removeEventListener('scroll', onReaderScroll);
+    }
+
+    function onReaderScroll() {
+      const vp = $('readerViewport') || document.querySelector('.reader-viewport');
+      if (!vp || !currentReaderResource) return;
+      const pageWraps = vp.querySelectorAll('.secure-page[data-page]');
+      if (!pageWraps.length) return;
+
+      const vpRect = vp.getBoundingClientRect();
+      const probeY = vpRect.top + Math.min(220, vpRect.height * 0.4);
+
+      let activePage = currentReaderPage;
+      let minDistance = Infinity;
+
+      for (let i = 0; i < pageWraps.length; i++) {
+        const wrap = pageWraps[i];
+        const rect = wrap.getBoundingClientRect();
+        const dist = Math.abs(rect.top - probeY);
+        if (dist < minDistance) {
+          minDistance = dist;
+          activePage = parseInt(wrap.dataset.page, 10) || 1;
+        }
+      }
+
+      if (activePage && activePage !== currentReaderPage) {
+        currentReaderPage = activePage;
+        recordReadingProgress(currentReaderResource, activePage, totalReaderPages);
+      }
+    }
+
+    async function fetchRecentReadingProgress() {
+      const container = $('continueReadingCarousel');
+      const section = $('continueReadingSection');
+      if (!container || !section) return;
+
+      const uid = accountUid();
+      let items = [];
+
+      if (uid && supabaseClient) {
+        try {
+          const { data, error } = await supabaseClient
+            .from('user_reading_progress')
+            .select('pdf_id, title, current_page, total_pages, updated_at')
+            .eq('user_id', uid)
+            .order('updated_at', { ascending: false })
+            .limit(3);
+
+          if (!error && Array.isArray(data) && data.length > 0) {
+            items = data;
+            try {
+              localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(data));
+            } catch (e) {}
+          }
+        } catch (err) {
+          console.warn('[BCAPrime] fetchRecentReadingProgress error:', err);
+        }
+      }
+
+      if (!items.length) {
+        items = getLocalReadingProgress().slice(0, 3);
+      }
+
+      if (!items.length) {
+        section.hidden = true;
+        container.innerHTML = '';
+        return;
+      }
+
+      renderContinueReadingCards(items);
+    }
+
+    function renderContinueReadingCards(items) {
+      const container = $('continueReadingCarousel');
+      const section = $('continueReadingSection');
+      if (!container || !section) return;
+
+      if (!items || !items.length) {
+        section.hidden = true;
+        container.innerHTML = '';
+        return;
+      }
+
+      const list = items.slice(0, 3);
+      const cardsHtml = list.map(item => {
+        const cur = Math.max(1, parseInt(item.current_page, 10) || 1);
+        const tot = Math.max(1, parseInt(item.total_pages, 10) || 1);
+        const percent = Math.min(100, Math.max(1, Math.round((cur / tot) * 100)));
+        const title = escHtml(item.title || 'Notes');
+        const safeTitleJs = escJsStr(item.title || '');
+        const safePdfIdJs = escJsStr(String(item.pdf_id));
+        const cachedThumb = getCachedPdfThumb(item.pdf_id);
+
+        const thumbHtml = cachedThumb
+          ? `<img class="cr-thumb-img" src="${cachedThumb}" alt="${title}" loading="lazy">`
+          : `<div class="cr-doc-mock">
+              <div class="cr-doc-mock-bar"></div>
+              <div class="cr-doc-mock-title">${title}</div>
+              <div class="cr-doc-mock-lines">
+                <div class="cr-doc-mock-line"></div>
+                <div class="cr-doc-mock-line short"></div>
+                <div class="cr-doc-mock-line medium"></div>
+                <div class="cr-doc-mock-line"></div>
+              </div>
+            </div>`;
+
+        return `
+          <div class="cr-card" 
+               role="button" 
+               tabindex="0"
+               aria-label="Continue reading ${title}, page ${cur} of ${tot}"
+               onclick="continueReadingPdf('${safePdfIdJs}', '${safeTitleJs}', ${cur})"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();continueReadingPdf('${safePdfIdJs}', '${safeTitleJs}', ${cur});}">
+            <div class="cr-thumb-area">
+              <span class="cr-thumb-badge">PDF</span>
+              ${thumbHtml}
+            </div>
+            <div class="cr-progress-wrap">
+              <div class="cr-progress-top">
+                <span class="cr-progress-pill">${percent}%</span>
+              </div>
+              <div class="cr-progress-track">
+                <div class="cr-progress-fill" style="width: ${percent}%;"></div>
+              </div>
+              <div class="cr-progress-text">Last read: Page ${cur} of ${tot}</div>
+            </div>
+            <div class="cr-card-title">${title}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = cardsHtml;
+      section.hidden = false;
+
+      // Rule 2: PressableScale on every card
+      if (window.BCA_UI && window.BCA_UI.PressableScale) {
+        container.querySelectorAll('.cr-card').forEach(card => {
+          window.BCA_UI.PressableScale(card, { scale: 0.97, haptic: true });
+        });
+      }
+    }
+
+    window.continueReadingPdf = async function(pdfId, title, page) {
+      if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
+        window.BCA_UI.triggerLightHaptic(10);
+      }
+
+      let res = resources.find(r => 
+        (r.dbId && String(r.dbId) === String(pdfId)) ||
+        (r.id && String(r.id) === String(pdfId)) ||
+        rcId(r.title) === String(pdfId) ||
+        r.title === title
+      );
+
+      if (!res && supabaseClient) {
+        try {
+          let q = supabaseClient.from('resources').select('*');
+          if (/^\d+$/.test(pdfId)) {
+            q = q.or(`id.eq.${pdfId},title.eq."${title}"`);
+          } else {
+            q = q.eq('title', title);
+          }
+          const { data } = await q.maybeSingle();
+          if (data) {
+            res = mapCloudResourceRow(data);
+            if (!resources.some(x => x.title === res.title)) {
+              resources.push(res);
+            }
+          }
+        } catch (e) {
+          console.warn('[BCAPrime] continueReadingPdf fetch error:', e);
+        }
+      }
+
+      if (!res) {
+        res = resources.find(r => r.title === title);
+      }
+
+      if (res) {
+        await readResource(rcId(res.title), page);
+      } else {
+        toast('Opening document…');
+        await readResource(pdfId, page);
+      }
+    };
+    window.fetchRecentReadingProgress = fetchRecentReadingProgress;
+
     async function renderSecurePdf(container,src,opts){
       opts=opts||{};
       const token=++secureRenderToken;
@@ -2878,6 +3181,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(token!==secureRenderToken){try{doc.destroy()}catch(e){}return}
         if(securePdfDoc){try{securePdfDoc.destroy()}catch(e){}}
         securePdfDoc=doc;
+        totalReaderPages=doc.numPages;
         const pages=document.createElement('div');pages.className='secure-pages';
         container.innerHTML='';container.appendChild(pages);
         const maxPages=opts.maxPages||doc.numPages;
@@ -2892,8 +3196,30 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           const canvas=document.createElement('canvas');
           canvas.width=Math.floor(vp.width);canvas.height=Math.floor(vp.height);
           canvas.setAttribute('aria-label','Page '+i);
-          const wrap=securePageWrap();wrap.appendChild(canvas);pages.appendChild(wrap);
+          const wrap=securePageWrap();wrap.appendChild(canvas);
+          wrap.dataset.page=i;
+          wrap.id='reader-page-'+i;
+          pages.appendChild(wrap);
           await page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport:vp}).promise;
+
+          // Thumbnail capture from page 1
+          if(i===1 && currentReaderResource){
+            try{
+              const thumbC=document.createElement('canvas');
+              const thumbScale=Math.min(1, 160 / canvas.width);
+              thumbC.width=160;
+              thumbC.height=Math.round(canvas.height * thumbScale);
+              const thumbCtx=thumbC.getContext('2d');
+              thumbCtx.drawImage(canvas, 0, 0, thumbC.width, thumbC.height);
+              const tData=thumbC.toDataURL('image/jpeg', 0.7);
+              const pId=String(currentReaderResource.dbId||currentReaderResource.id||rcId(currentReaderResource.title));
+              setCachedPdfThumb(pId, tData);
+            }catch(te){}
+          }
+
+          if(opts.initialPage && opts.initialPage>1 && i===opts.initialPage){
+            setTimeout(()=>{try{wrap.scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}},40);
+          }
           if(i%3===0)await new Promise(r=>setTimeout(r,0));   /* UI responsive rakho */
         }
         if(opts.maxPages&&doc.numPages>opts.maxPages){
@@ -2901,6 +3227,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           note.textContent='Preview shows first '+opts.maxPages+' of '+doc.numPages+' pages — open Read for the full document.';
           pages.appendChild(note);
         }
+        if(opts.initialPage && opts.initialPage>1){
+          setTimeout(()=>{
+            const el=document.getElementById('reader-page-'+opts.initialPage);
+            if(el)try{el.scrollIntoView({behavior:'smooth',block:'start'})}catch(e){}
+          },120);
+        }
+        setupReaderScrollTracking(doc.numPages);
       }catch(err){
         if(token!==secureRenderToken)return;
         container.innerHTML='<div class="secure-loading"><i class="fa-solid fa-triangle-exclamation"></i><span>Could not open this document securely right now. Please try again.</span></div>';
@@ -2934,7 +3267,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     let readerZoom=1;
     let currentReaderResource=null;
-    function openReader(resource){
+    function openReader(resource, initialPage){
       const src=resource.fileUrl||resource.fileData;if(!src)return;
       const name=resource.fileName||'';
       const isDocx=/\.docx$/i.test(name)||/\.docx(\?|#|$)/i.test(src);
@@ -2943,6 +3276,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const docxPane=$('readerDocx');const frm=$('readerFrame');const pane=$('readerCanvasPane');
       readerZoom=1;
       currentReaderResource=resource;
+      currentReaderInitialPage=Math.max(1, parseInt(initialPage, 10) || 1);
+      currentReaderPage=currentReaderInitialPage;
+      totalReaderPages=1;
       $('readerTitle').textContent=resource.title;
       /* SECURE: raw URL kabhi DOM me expose nahi hoti — canvas rendering. */
       const ro=$('readerOpen');if(ro){try{ro.removeAttribute('href');ro.removeAttribute('download')}catch(e){}}
@@ -2971,9 +3307,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }else{
         /* PDF / image / unknown -> SECURE CANVAS rendering (no iframe, no raw src) */
         if(pane){pane.hidden=false;pane.innerHTML='';}
-        if(isPdfSrc(src,name))renderSecurePdf(pane,src,{});
+        if(isPdfSrc(src,name))renderSecurePdf(pane,src,{ initialPage: currentReaderInitialPage });
         else if(isImageSrc(src))renderSecureImage(pane,src);
-        else renderSecurePdf(pane,src,{});   /* unknown = mostly PDF -> canvas try */
+        else renderSecurePdf(pane,src,{ initialPage: currentReaderInitialPage });   /* unknown = mostly PDF -> canvas try */
       }
       $('readerModal').classList.add('open');
       enableSecureGuards();
@@ -2984,7 +3320,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         setTimeout(()=>{try{vp.focus()}catch(e){}},60);
       }
     }
-    function closeReader(){const m=$('readerModal');if(m)m.classList.remove('open');destroySecurePdf();const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}const vp=$('readerViewport')||document.querySelector('.reader-viewport');if(vp){try{vp.scrollTop=0}catch(e){}}if(typeof updateDynamicSeo==='function')updateDynamicSeo();disableSecureGuards()}
+    function closeReader(){
+      const m=$('readerModal');
+      if(m)m.classList.remove('open');
+      flushPendingReadingProgress();
+      teardownReaderScrollTracking();
+      destroySecurePdf();
+      const f=$('readerFrame');if(f){f.src='about:blank';f.hidden=true}
+      const d=$('readerDocx');if(d){d.hidden=true;d.innerHTML=''}
+      const p=$('readerCanvasPane');if(p){p.hidden=true;p.innerHTML=''}
+      const vp=$('readerViewport')||document.querySelector('.reader-viewport');
+      if(vp){try{vp.scrollTop=0}catch(e){}}
+      if(typeof updateDynamicSeo==='function')updateDynamicSeo();
+      disableSecureGuards();
+      fetchRecentReadingProgress();
+    }
     /* ======= Secure-view guards (sirf reader/preview open hone par) =======
        - right-click (context menu) block — viewport ke andar
        - text select/copy/drag block — DOCX pane ke andar
