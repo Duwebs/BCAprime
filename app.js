@@ -903,7 +903,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     // Interactive elements haptic delegation: cards, browse buttons, close button
     document.addEventListener('pointerdown', (e) => {
-      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go, .profile-stat-card, .profile-action-btn, .avatar-btn, #profileNameSave, .danger-logout, .profile-dialog .close, .empty-action-btn, .avatar-edit-badge');
+      const el = e.target.closest('.subject-type-btn, .subject-type-dialog .close, .subject-card, .st-go, .profile-stat-card, .profile-action-btn, .avatar-btn, #profileNameSave, .danger-logout, .profile-dialog .close, .empty-action-btn, .avatar-edit-badge, .file-box, .drive-import-btn, .upload-submit-btn, .upload-dialog .close, .photo-btn, .qa-share-btn, .upload-success-card button');
       if (el) {
         try {
           if (typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -1919,7 +1919,54 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
       $('profileModal').classList.add('open');
       initProfileSheetGestures();
-    };function openUpload(){if(!requireAccount('Sign up or login to upload study material.','upload'))return;const fileBox=document.querySelector('.file-box');if(fileBox)fileBox.style.borderColor='var(--brand)';const semSel=document.querySelector('#uploadModal select[name="semester"]');if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);$('uploadModal').classList.add('open');updateUploadSubjects()};function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
+    };let uploadSheetDragBound=false;
+    function initUploadSheetGestures(){
+      if(uploadSheetDragBound) return;
+      const modal=$('uploadModal');
+      const dialog=modal?modal.querySelector('.upload-dialog'):null;
+      const handle=modal?modal.querySelector('.upload-sheet-handle'):null;
+      if(!modal||!dialog||!handle) return;
+      uploadSheetDragBound=true;
+      let isDragging=false, startY=0, deltaY=0;
+      const onDragStart=(e)=>{
+        if(!modal.classList.contains('open'))return;
+        isDragging=true;
+        startY=e.clientY||(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        deltaY=0;
+        dialog.style.transition='none';
+      };
+      const onDragMove=(e)=>{
+        if(!isDragging)return;
+        const currentY=e.clientY||(e.touches&&e.touches[0]?e.touches[0].clientY:0);
+        deltaY=Math.max(0,currentY-startY);
+        dialog.style.transform='translateY('+deltaY+'px)';
+      };
+      const onDragEnd=()=>{
+        if(!isDragging)return;
+        isDragging=false;
+        dialog.style.transition='';
+        dialog.style.transform='';
+        if(deltaY>75){
+          closeModals();
+        }
+        deltaY=0;
+      };
+      handle.addEventListener('pointerdown',onDragStart);
+      window.addEventListener('pointermove',onDragMove);
+      window.addEventListener('pointerup',onDragEnd);
+      window.addEventListener('pointercancel',onDragEnd);
+    }
+    function openUpload(){
+      if(!requireAccount('Sign up or login to upload study material.','upload'))return;
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      const fileBox=document.querySelector('.file-box');
+      if(fileBox)fileBox.style.borderColor='var(--brand)';
+      const semSel=document.querySelector('#uploadModal select[name="semester"]');
+      if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);
+      $('uploadModal').classList.add('open');
+      initUploadSheetGestures();
+      updateUploadSubjects();
+    };function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function renderAvatar(){syncProfileNameField();const img=$('avatarImg');if(!img)return;img.src=getAvatar();const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const tb=$('topbarAvatar');if(tb)tb.src=getAvatar()}

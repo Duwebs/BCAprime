@@ -3111,3 +3111,337 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
     gap: 8px;
   }
 }
+
+
+/* ============================================================
+   Upload Modal - Native Mobile Bottom Sheet & UI Rules
+   ============================================================ */
+#uploadModal {
+  position: fixed;
+  inset: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(5, 14, 22, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: var(--bca-z-bottom-sheet, 9990);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+#uploadModal.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+#uploadModal .upload-dialog {
+  width: min(100%, 540px);
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--bca-radius-2xl, 24px);
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  padding: 24px 22px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  transform: scale(0.92) translateY(16px);
+  opacity: 0;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+#uploadModal.open .upload-dialog {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+/* Drag handle on sheet */
+.upload-sheet-handle {
+  display: none;
+  justify-content: center;
+  padding: 0 0 14px;
+  cursor: grab;
+  touch-action: none;
+}
+.upload-sheet-handle span {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--bca-radius-full, 9999px);
+  background: var(--line);
+  opacity: 0.75;
+}
+
+/* Header */
+.upload-head-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.upload-icon-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--bca-radius-lg, 14px);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  background: var(--brand-2);
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.upload-dialog .dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.upload-dialog .dialog-head h2 {
+  font: 700 20px/1.2 'Geist';
+  margin: 0;
+  color: var(--ink);
+}
+.upload-head-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 2px 0 0;
+}
+.upload-dialog .close {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--bca-radius-full, 9999px);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1),
+              background 180ms ease,
+              color 180ms ease;
+  will-change: transform;
+}
+.upload-dialog .close:hover {
+  color: var(--ink);
+  background: var(--line);
+}
+.upload-dialog .close:active {
+  transform: scale(0.86) rotate(90deg);
+  background: var(--line);
+  color: var(--ink);
+}
+
+/* Upload Dropzone (file-box) */
+.file-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 18px;
+  border: 2px dashed var(--brand);
+  border-radius: var(--bca-radius-xl, 18px);
+  background: color-mix(in srgb, var(--brand) 4%, var(--surface-2));
+  color: var(--muted);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              background 180ms ease,
+              border-color 180ms ease,
+              box-shadow 180ms ease;
+}
+.file-box:hover {
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface-2));
+  border-color: var(--brand);
+}
+.file-box:active {
+  transform: scale(0.97);
+}
+.file-box.drag-over {
+  border-color: var(--brand);
+  background: var(--brand-2);
+  border-style: solid;
+  transform: scale(1.02);
+}
+.file-box-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--brand-2);
+  color: var(--brand);
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+#fileName {
+  font: 600 14.5px/1.4 'Geist';
+  color: var(--ink);
+}
+.file-box-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+/* Google Drive Import Button (Rule 9: >=44px) */
+.drive-import-row {
+  margin-top: 10px;
+}
+.drive-import-btn {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--bca-radius-lg, 14px);
+  cursor: pointer;
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), background 180ms ease;
+}
+.drive-import-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* Form Fields */
+.upload-form {
+  display: grid;
+  gap: 14px;
+}
+.upload-form .field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.upload-req {
+  color: var(--brand);
+}
+.upload-form .field input,
+.upload-form .field select {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--bca-radius-md, 10px);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  outline: 0;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.upload-form .field input:focus,
+.upload-form .field select:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.upload-form .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Upload Submit Button (Rule 9: >=44px, Rule 2: PressableScale) */
+.upload-submit-btn {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font: 700 15px 'Geist';
+  border: 0;
+  border-radius: var(--bca-radius-xl, 18px);
+  background: var(--ink);
+  color: var(--bg);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,.18);
+  outline: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 180ms ease,
+              box-shadow 180ms ease;
+}
+.upload-submit-btn:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,.22);
+}
+.upload-submit-btn:active {
+  transform: scale(0.96) !important;
+}
+.upload-submit-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+[data-theme=dark] .upload-submit-btn {
+  background: var(--ink);
+  color: #0a0a0a;
+}
+
+/* Upload Success Celebration Card */
+.upload-success-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: var(--bca-z-toast, 99999);
+}
+.upload-success-card {
+  border-radius: var(--bca-radius-2xl, 24px);
+  box-shadow: 0 20px 50px rgba(0,0,0,.35);
+  padding: 30px 24px;
+}
+.upload-success-card button {
+  min-height: 48px;
+  border-radius: var(--bca-radius-xl, 18px);
+  font-weight: 700;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.upload-success-card button:active {
+  transform: scale(0.96) !important;
+}
+
+/* Mobile responsive bottom sheet slide-up */
+@media(max-width: 600px) {
+  #uploadModal {
+    padding: 0;
+    align-items: flex-end;
+  }
+  #uploadModal .upload-dialog {
+    width: 100%;
+    max-height: 90dvh;
+    border-radius: 28px 28px 0 0;
+    margin: 0;
+    padding: 12px 18px calc(28px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(100%);
+    opacity: 1;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #uploadModal.open .upload-dialog {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .upload-sheet-handle {
+    display: flex;
+  }
+  .upload-form .row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
