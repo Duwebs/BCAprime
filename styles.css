@@ -3611,15 +3611,6 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   text-overflow: ellipsis;
   letter-spacing: -0.01em;
 }
-.profile-username {
-  display: block;
-  font: 500 13px/1.2 'Geist', sans-serif;
-  color: var(--brand, #3291ff);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  letter-spacing: -0.01em;
-}
 .profile-id-copy small,
 .profile-email {
   display: block;
@@ -3750,42 +3741,6 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   display: flex;
   flex-direction: column;
   gap: 14px;
-}
-.field-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-.field-label-row label {
-  margin: 0 !important;
-}
-.cooldown-pill {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 9999px;
-  background: rgba(245, 158, 11, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-.edit-username-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.edit-username-at {
-  position: absolute;
-  left: 12px;
-  font-weight: 600;
-  color: #64748b;
-  font-size: 14px;
-  pointer-events: none;
-  user-select: none;
-}
-.edit-username-input-wrap input {
-  padding-left: 28px !important;
-  font-family: inherit;
 }
 .edit-profile-actions {
   display: flex;

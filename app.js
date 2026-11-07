@@ -77,7 +77,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
     function syncProfileUI(){
       const sem=(typeof state!=='undefined'&&state&&state.profileSemester)?state.profileSemester:getProfileSemester();
       const pSem=$('profileSem');
-      if(pSem)pSem.innerHTML=`<span>${sem?`Semester ${sem}`:'Not selected'}</span><i class="fa-solid fa-chevron-right" style="font-size:11px;color:var(--muted)"></i>`;
+      if(pSem)pSem.textContent=sem?`Semester ${sem}`:'Not selected';
       syncNavSemBadge();
       const popSem=$('popSem');
       if(popSem)popSem.textContent=sem?`Semester ${sem}`:'All semesters';
@@ -2174,17 +2174,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       syncProfileNameField();
       const img=$('avatarImg');if(img)img.src=getAvatar();
       const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';
-      const unameEl=$('profileIdUsername');
-      if(unameEl){
-        if(accountSession){
-          const u=getCurrentUsername();
-          unameEl.textContent=u?('@'+u):'@student';
-          unameEl.style.display='block';
-        }else{
-          unameEl.textContent='@guest';
-          unameEl.style.display='block';
-        }
-      }
       const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';
       const tb=$('topbarAvatar');if(tb)tb.src=getAvatar();
       const edBtn=$('profileEditBtn');if(edBtn)edBtn.hidden=!accountSession;
@@ -2200,54 +2189,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const currName=getUserName(accountSession)||'';
         nameInput.value=(currName==='there')?'':currName;
       }
-      const uInput=$('editUsernameInput');
-      const uHint=$('editUsernameHint');
-      const cdBadge=$('usernameCooldownBadge');
-      const currU=getCurrentUsername();
-      if(uInput){
-        uInput.value=currU;
-        uInput.dataset.original=currU;
-      }
-      const COOLDOWN_MS=14*24*60*60*1000;
-      let lastChange=0;
-      try{lastChange=Number(localStorage.getItem('bca-username-updated-'+accountUid())||0)}catch(e){}
-      const timePassed=Date.now()-lastChange;
-      const inCooldown=!!(lastChange&&timePassed<COOLDOWN_MS);
-      if(cdBadge){
-        if(inCooldown){
-          const daysLeft=Math.ceil((COOLDOWN_MS-timePassed)/(24*60*60*1000));
-          cdBadge.textContent=`${daysLeft}d cooldown`;
-          cdBadge.hidden=false;
-          if(uInput){uInput.disabled=true;uInput.title=`Username can be changed in ${daysLeft} days`}
-          if(uHint){uHint.textContent=`Next username change available in ${daysLeft} days.`;uHint.className='field-hint'}
-        }else{
-          cdBadge.hidden=true;
-          if(uInput){uInput.disabled=false;uInput.removeAttribute('title')}
-          if(uHint){uHint.textContent='3–20 lowercase letters, numbers or _ (no spaces).';uHint.className='field-hint'}
-        }
-      }
       modal.classList.add('open');
     }
     function closeEditProfileModal(){
       const m=$('editProfileModal');if(m)m.classList.remove('open');
-    }
-    let editUsernameCheckTimer=null;
-    async function onEditUsernameChange(input){
-      const hint=$('editUsernameHint');if(!hint)return;
-      input.value=input.value.toLowerCase().replace(/[^a-z0-9_]/g,'');
-      const u=input.value.trim();
-      const orig=input.dataset.original||'';
-      if(!u){hint.textContent='Username is required.';hint.className='field-hint bad';return}
-      if(u===orig){hint.textContent='✓ Your current username';hint.className='field-hint good';return}
-      if(!isValidUsername(u)){hint.textContent='3–20 lowercase letters, numbers or _';hint.className='field-hint bad';return}
-      hint.textContent='Checking availability…';hint.className='field-hint';
-      clearTimeout(editUsernameCheckTimer);
-      editUsernameCheckTimer=setTimeout(async()=>{
-        const avail=await checkUsernameAvailable(u,accountUid());
-        if(avail===null){hint.textContent='';return}
-        hint.textContent=avail?'✓ Username is available':'✗ Already taken by another student';
-        hint.className='field-hint '+(avail?'good':'bad');
-      },300);
     }
     function changeAvatarFromModal(input){
       const f=input&&input.files&&input.files[0];if(!f)return;
@@ -2272,20 +2217,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       event.preventDefault();
       if(!accountSession){toast('Please log in');return}
       const nameInput=$('editDisplayNameInput');
-      const uInput=$('editUsernameInput');
       const saveBtn=$('editProfileSaveBtn');
       if(!nameInput)return;
       const name=nameInput.value.trim().replace(/\s+/g,' ');
       if(name.length<2||name.length>40){toast('Name must be 2–40 characters');nameInput.focus();return}
-      let newUsername=(uInput?uInput.value.trim().toLowerCase():'');
-      const origUsername=(uInput?(uInput.dataset.original||''):'');
-      const usernameChanged=newUsername&&newUsername!==origUsername;
-      if(usernameChanged){
-        if(uInput.disabled){toast('Username is currently on cooldown');return}
-        if(!isValidUsername(newUsername)){toast('Username must be 3–20 lowercase letters, numbers or _');uInput.focus();return}
-        const avail=await checkUsernameAvailable(newUsername,accountUid());
-        if(!avail){toast('That username is already taken. Try another.');uInput.focus();return}
-      }
       if(saveBtn){saveBtn.disabled=true;saveBtn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Saving…'}
       try{
         if(typeof accountSession.updateProfile==='function'){
@@ -2293,17 +2228,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
         if(supabaseClient&&accountUid()){
           const payload={uid:accountUid(),name:name,updated_at:new Date().toISOString()};
-          if(usernameChanged)payload.username=newUsername;
           await supabaseClient.from('user_profiles').upsert(payload,{onConflict:'uid'});
         }
-        if(usernameChanged){
-          try{
-            localStorage.setItem('bca-username',newUsername);
-            localStorage.setItem('bca-username-updated-'+accountUid(),String(Date.now()));
-          }catch(e){}
-        }
-        const currentU=usernameChanged?newUsername:(origUsername||getCurrentUsername());
-        applyContributorProfileLive(accountUid(),{uid:accountUid(),name:name,username:currentU,avatar_url:contributorAvatarFor(accountUid(),getAvatar())});
+        applyContributorProfileLive(accountUid(),{uid:accountUid(),name:name,username:getCurrentUsername(),avatar_url:contributorAvatarFor(accountUid(),getAvatar())});
         renderAvatar();renderGreeting();render();
         closeEditProfileModal();
         toast('Profile updated successfully ✓');
@@ -2316,7 +2243,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     window.openEditProfileModal=openEditProfileModal;
     window.closeEditProfileModal=closeEditProfileModal;
-    window.onEditUsernameChange=onEditUsernameChange;
     window.changeAvatarFromModal=changeAvatarFromModal;
     window.submitEditProfile=submitEditProfile;
 

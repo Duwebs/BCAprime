@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=63">
+  <link rel="stylesheet" href="styles.css?v=64">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -737,7 +737,6 @@
         </div>
         <div class="profile-id-copy">
           <strong class="profile-display-name" id="profileIdName">Guest</strong>
-          <span class="profile-username" id="profileIdUsername">@guest</span>
           <small class="profile-email" id="profileIdMail">Browsing as guest</small>
         </div>
         <button type="button" class="secondary profile-edit-btn bca-pressable" id="profileEditBtn" onclick="openEditProfileModal()" aria-label="Edit profile">
@@ -850,7 +849,7 @@
       <div class="dialog-head">
         <div>
           <h2 id="editProfileTitle">Edit Profile</h2>
-          <p class="edit-profile-sub">Update your public name, handle and avatar</p>
+          <p class="edit-profile-sub">Update your public display name and avatar</p>
         </div>
         <button type="button" class="close bca-pressable" aria-label="Close dialog" onclick="closeEditProfileModal()">&times;</button>
       </div>
@@ -876,18 +875,6 @@
           <label for="editDisplayNameInput">Display Name</label>
           <input id="editDisplayNameInput" type="text" maxlength="40" placeholder="e.g. Durgesh Sharma" required>
           <small class="field-hint">Shown on all your uploaded notes &amp; PYQs in real time.</small>
-        </div>
-
-        <div class="field">
-          <div class="field-label-row">
-            <label for="editUsernameInput">Username</label>
-            <span class="cooldown-pill" id="usernameCooldownBadge" hidden>14d cooldown</span>
-          </div>
-          <div class="edit-username-input-wrap">
-            <span class="edit-username-at">@</span>
-            <input id="editUsernameInput" type="text" maxlength="20" placeholder="username" autocomplete="off" spellcheck="false" oninput="onEditUsernameChange(this)">
-          </div>
-          <small class="field-hint" id="editUsernameHint">3–20 lowercase letters, numbers or underscores (no spaces).</small>
         </div>
 
         <div class="edit-profile-actions">
