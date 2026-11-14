@@ -25,7 +25,7 @@ const APP_SHELL = [
   './assets/logo.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
-  './assets/og-image.jpg'
+  './assets/og-image.png'
 ];
 const CDN_DOMAINS = ['www.gstatic.com','fonts.googleapis.com','fonts.gstatic.com','cdn.jsdelivr.net','cdnjs.cloudflare.com'];
 
