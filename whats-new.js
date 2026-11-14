@@ -11,12 +11,12 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.2.0";
+const CURRENT_APP_VERSION = "3.2.1";
 
 const LATEST_RELEASE = {
-  version: "3.2.0",
+  version: "3.2.1",
   date: "November 2026",
-  title: "Continue Reading & Cross-Device Sync",
+  title: "WhatsApp Share Fix & Version Bump",
   subtitle: "Never lose your spot — reading progress now automatically syncs across all your devices in real-time.",
   features: [
     { type: "new",      title: "Continue Reading Carousel", desc: "Swipeable dashboard cards showing your last-read PDFs with real-time page progress and instant resume." },
