@@ -249,44 +249,61 @@
           <button class="linklike auth-alt-link" type="button" onclick="setAuthMode('form')">Log in with Email / Socials instead</button>
         </div>
         <div class="auth-form-wrap">
-          <div class="signup-brand">
-            <img class="signup-mascot" src="assets/mascot.png" alt="BCAPrime mascot" width="120" height="120" loading="lazy" decoding="async">
-            <div class="signup-title">
-              <h2 class="signup-heading" id="gateFormHeading">Create your account</h2>
-              <p class="signup-sub">Join BCAPrime &mdash; sync notes, PYQs and saves across all your devices.</p>
+          <div class="signup-card">
+            <img class="signup-mascot" src="assets/mascot.png" alt="BCAPrime mascot" width="168" height="auto" loading="lazy" decoding="async">
+
+            <div class="signup-header">
+              <div class="signup-brand-row">
+                <img src="assets/logo.png" alt="BCAPrime logo" width="40" height="40">
+                <div class="signup-brand-text">BCA<span style="color:var(--brand)">Prime</span></div>
+              </div>
+              <h1 class="signup-heading">Welcome to your study desk.</h1>
+              <p class="signup-sub">Create an account to access the BCA library, saved resources and uploads.</p>
+            </div>
+
+            <form class="account-form" id="gateAccountForm" novalidate>
+              <div class="field-row">
+                <label class="field-label" id="gateNameLabel" hidden>Username</label>
+                <input id="gateAccountName" type="text" autocomplete="username" minlength="3" maxlength="20" placeholder="Username" oninput="liveUsernameCheck(this,'gateUsernameHint')">
+                <small class="field-hint" id="gateUsernameHint"></small>
+              </div>
+              <div class="field-row">
+                <label class="field-label">Email or Username</label>
+                <input id="gateAccountEmail" type="text" autocomplete="username" placeholder="Email or username" required>
+              </div>
+              <div class="field-row">
+                <label class="field-label">Password</label>
+                <input id="gateAccountPassword" type="password" autocomplete="new-password" placeholder="Password" minlength="6" required>
+              </div>
+              <div class="field-row">
+                <label class="field-label" id="gateConfirmLabel" hidden>Confirm Password</label>
+                <input id="gateAccountConfirm" type="password" autocomplete="new-password" placeholder="Confirm password" minlength="6">
+              </div>
+              <p class="account-message" id="gateAccountMessage" aria-live="polite"></p>
+              <button class="signup-btn bca-pressable" id="gateAccountSubmit" type="submit">Sign up</button>
+            </form>
+
+            <div class="oauth-divider"><span>or continue with</span></div>
+            <div class="oauth-actions">
+              <button class="oauth-btn bca-pressable" type="button" onclick="signInWithProvider('google','gateAccountMessage')" aria-label="Continue with Google">
+                <svg width="24" height="24" viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5zM46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65zM10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19zM24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
+                <span>Google</span>
+              </button>
+              <button class="oauth-btn bca-pressable" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage')" aria-label="Continue with LinkedIn">
+                <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="3" fill="currentColor"></rect><circle cx="7.5" cy="8" r="1.4" fill="currentColor"></circle><rect x="6.3" y="10.5" width="2.4" height="7" fill="currentColor"></rect><path fill="currentColor" d="M11 10.5h2.3v1c.4-.7 1.3-1.2 2.5-1.2 2.3 0 2.9 1.5 2.9 3.4v3.8h-2.4v-3.6c0-.9-.2-1.6-1.2-1.6s-1.3.7-1.3 1.6v3.6H11z"></path></svg>
+                <span>LinkedIn</span>
+              </button>
+            </div>
+
+            <div class="signup-footer">
+              <div class="signup-switch"><a href="javascript:void(0)" class="bca-pressable" id="gateAccountSwitch">Already have an account? Login</a></div>
+              <button class="guest-btn bca-pressable" type="button" onclick="continueAsGuest()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>Continue as guest</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+              </button>
             </div>
           </div>
-
-          <form class="account-form" id="gateAccountForm" novalidate>
-            <label id="gateNameLabel" class="field-label" hidden>
-              <span class="field-label-text">Username</span>
-              <input id="gateAccountName" type="text" autocomplete="username" minlength="3" maxlength="20" placeholder="Choose a username" oninput="liveUsernameCheck(this,'gateUsernameHint')">
-              <small class="field-hint" id="gateUsernameHint"></small>
-            </label>
-            <label class="field-label">
-              <span class="field-label-text">Email or Username</span>
-              <input id="gateAccountEmail" type="text" autocomplete="username" placeholder="you@college.edu" required>
-            </label>
-            <label class="field-label">
-              <span class="field-label-text">Password</span>
-              <input id="gateAccountPassword" type="password" autocomplete="new-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" required>
-            </label>
-            <label id="gateConfirmLabel" class="field-label" hidden>
-              <span class="field-label-text">Confirm Password</span>
-              <input id="gateAccountConfirm" type="password" autocomplete="new-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6">
-            </label>
-            <p class="account-message" id="gateAccountMessage" aria-live="polite"></p>
-            <button class="primary bca-pressable" id="gateAccountSubmit" type="submit">Create account</button>
-          </form>
-
-          <div class="oauth-divider"><span>Or continue with</span></div>
-          <div class="oauth-actions">
-            <button class="oauth-button bca-pressable" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i><span class="oauth-label">Continue with Google</span></button>
-            <button class="oauth-button bca-pressable" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage')"><i class="fa-brands fa-linkedin"></i><span class="oauth-label">Continue with LinkedIn</span></button>
-          </div>
-
-          <button class="account-switch bca-pressable" id="gateAccountSwitch" type="button">Already have an account? Login</button>
-          <button class="secondary guest-button bca-pressable" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i><span>Continue as guest</span></button>
         </div>
       </div>
     </div></section>
