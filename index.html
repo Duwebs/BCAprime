@@ -249,7 +249,44 @@
           <button class="linklike auth-alt-link" type="button" onclick="setAuthMode('form')">Log in with Email / Socials instead</button>
         </div>
         <div class="auth-form-wrap">
-        <form class="account-form" id="gateAccountForm"><label id="gateNameLabel" hidden>Username<input id="gateAccountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,'gateUsernameHint')"><small class="field-hint" id="gateUsernameHint"></small></label><label id="gateEmailLabel">Email or Username<input id="gateAccountEmail" type="text" autocomplete="username" required></label><label>Password<input id="gateAccountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="gateConfirmLabel" hidden>Confirm Password<input id="gateAccountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="gateAccountSubmit" type="submit">Sign up</button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="gateAccountMessage" aria-live="polite"></p><button class="account-switch" id="gateAccountSwitch" type="button">Already have an account? Login</button><button class="secondary guest-button" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i> Continue as guest</button>
+          <div class="signup-brand">
+            <img class="signup-mascot" src="assets/mascot.png" alt="BCAPrime mascot" width="120" height="120" loading="lazy" decoding="async">
+            <div class="signup-title">
+              <h2 class="signup-heading" id="gateFormHeading">Create your account</h2>
+              <p class="signup-sub">Join BCAPrime &mdash; sync notes, PYQs and saves across all your devices.</p>
+            </div>
+          </div>
+
+          <form class="account-form" id="gateAccountForm" novalidate>
+            <label id="gateNameLabel" class="field-label" hidden>
+              <span class="field-label-text">Username</span>
+              <input id="gateAccountName" type="text" autocomplete="username" minlength="3" maxlength="20" placeholder="Choose a username" oninput="liveUsernameCheck(this,'gateUsernameHint')">
+              <small class="field-hint" id="gateUsernameHint"></small>
+            </label>
+            <label class="field-label">
+              <span class="field-label-text">Email or Username</span>
+              <input id="gateAccountEmail" type="text" autocomplete="username" placeholder="you@college.edu" required>
+            </label>
+            <label class="field-label">
+              <span class="field-label-text">Password</span>
+              <input id="gateAccountPassword" type="password" autocomplete="new-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6" required>
+            </label>
+            <label id="gateConfirmLabel" class="field-label" hidden>
+              <span class="field-label-text">Confirm Password</span>
+              <input id="gateAccountConfirm" type="password" autocomplete="new-password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" minlength="6">
+            </label>
+            <p class="account-message" id="gateAccountMessage" aria-live="polite"></p>
+            <button class="primary bca-pressable" id="gateAccountSubmit" type="submit">Create account</button>
+          </form>
+
+          <div class="oauth-divider"><span>Or continue with</span></div>
+          <div class="oauth-actions">
+            <button class="oauth-button bca-pressable" type="button" onclick="signInWithProvider('google','gateAccountMessage')"><i class="fa-brands fa-google"></i><span class="oauth-label">Continue with Google</span></button>
+            <button class="oauth-button bca-pressable" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage')"><i class="fa-brands fa-linkedin"></i><span class="oauth-label">Continue with LinkedIn</span></button>
+          </div>
+
+          <button class="account-switch bca-pressable" id="gateAccountSwitch" type="button">Already have an account? Login</button>
+          <button class="secondary guest-button bca-pressable" type="button" onclick="continueAsGuest()"><i class="fa-solid fa-eye"></i><span>Continue as guest</span></button>
         </div>
       </div>
     </div></section>
