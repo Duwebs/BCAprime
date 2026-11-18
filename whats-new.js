@@ -11,18 +11,18 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.2.2";
+const CURRENT_APP_VERSION = "3.2.3";
 
 const LATEST_RELEASE = {
-  version: "3.2.2",
+  version: "3.2.3",
   date: "November 2026",
-  title: "WhatsApp Share Fix & Version Bump",
-  subtitle: "Never lose your spot — reading progress now automatically syncs across all your devices in real-time.",
+  title: "SEO, Profile Settings & Performance Updates",
+  subtitle: "Enhanced social sharing previews, profile customization updates, and optimized performance.",
   features: [
-    { type: "new",      title: "Continue Reading Carousel", desc: "Swipeable dashboard cards showing your last-read PDFs with real-time page progress and instant resume." },
-    { type: "new",      title: "Cloud Reading Progress Sync", desc: "Backed by Supabase database to automatically sync your reading position across phone, tablet, and PC." },
-    { type: "improved", title: "Smart Completion & Thresholds", desc: "Multi-page documents auto-complete on reaching the end, while 1-page PYQs stay accessible in your recent list." },
-    { type: "improved", title: "Instant Document Previews", desc: "Crisp first-page thumbnails generated on the fly with lightweight local caching." }
+    { type: "improved", title: "Rich Social Previews", desc: "Optimized Open Graph and WhatsApp share previews for notes, PYQs, and study resources." },
+    { type: "improved", title: "Profile Settings", desc: "Streamlined account settings and profile details management." },
+    { type: "improved", title: "SEO & Discovery", desc: "Updated sitemaps, canonical tags, and structured metadata for faster resource discovery." },
+    { type: "improved", title: "Performance & Caching", desc: "Refined service worker asset caching and faster app shell load times." }
   ]
 };
 
