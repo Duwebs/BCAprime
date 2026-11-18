@@ -1,6 +1,6 @@
 {
   "name": "bcaprime",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "private": true,
   "description": "BCAPrime — BCA study library (static site + Vercel serverless auth/email functions)",
   "type": "commonjs",
