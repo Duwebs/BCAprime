@@ -2281,6 +2281,68 @@ button:active,a:active,.chip:active,.semester:active,.bottom-tabs a:active,.topb
   .lf-search input{height:42px;font-size:14px}
 }
 
+/* ============================================================
+   LOST & FOUND — Light Mode Overrides
+   (Dark mode styles above are preserved as-is;
+    these only kick in when NOT in dark theme)
+   ============================================================ */
+html:not([data-theme=dark]) .lf-controls-container{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 2px 8px rgba(0,0,0,0.04)}
+html:not([data-theme=dark]) .lf-toolbar{background:#f8fafc;border:1px solid #e2e8f0}
+
+/* Report Lost / Report Found buttons */
+html:not([data-theme=dark]) .lf-chip.lf-lost{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+html:not([data-theme=dark]) .lf-chip.lf-lost:hover{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
+html:not([data-theme=dark]) .lf-chip.lf-found{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+html:not([data-theme=dark]) .lf-chip.lf-found:hover{background:#dcfce7;border-color:#86efac;color:#15803d}
+
+/* Quick Report label & chips */
+html:not([data-theme=dark]) .lf-qp-label{color:#475569}
+html:not([data-theme=dark]) .lf-quick-chip{background:#f1f5f9;border:1px solid #cbd5e1;color:#1e293b}
+html:not([data-theme=dark]) .lf-quick-chip:hover{background:#e2e8f0;border-color:#94a3b8;color:#0f172a}
+html:not([data-theme=dark]) .lf-quick-chip:active{background:#cbd5e1}
+
+/* Quick Report row: allow wrapping so chips don't get clipped */
+html:not([data-theme=dark]) .lf-quickpost-scroll{flex-wrap:wrap;overflow-x:visible;padding-bottom:0}
+
+/* Filter tabs bar */
+html:not([data-theme=dark]) .lf-tabs{background:#f1f5f9;border:1px solid #e2e8f0}
+html:not([data-theme=dark]) .lf-tabs .lf-tab{color:#64748b}
+html:not([data-theme=dark]) .lf-tabs .lf-tab:hover{color:#1e293b;background:rgba(0,0,0,0.04)}
+html:not([data-theme=dark]) .lf-tabs .lf-tab.active{background:#ffffff;color:#0f172a;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,0.1);border-color:#e2e8f0}
+
+/* Category dropdown */
+html:not([data-theme=dark]) .lf-filters select{background:#ffffff;color:#1e293b;border:1px solid #cbd5e1;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+html:not([data-theme=dark]) .lf-filters select:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,0.15)}
+
+/* Search input */
+html:not([data-theme=dark]) .lf-search input{background:#ffffff;color:#1e293b;border:1px solid #cbd5e1}
+html:not([data-theme=dark]) .lf-search input::placeholder{color:#94a3b8;opacity:1}
+html:not([data-theme=dark]) .lf-search input:focus{border-color:#3b82f6;background:#ffffff;box-shadow:0 0 0 2px rgba(59,130,246,0.15)}
+html:not([data-theme=dark]) .lf-search .lf-search-icon{color:#94a3b8}
+
+/* Feed cards */
+html:not([data-theme=dark]) .lf-card{background:#ffffff;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+html:not([data-theme=dark]) .lf-card:hover{background:#f8fafc;border-color:#c7d2fe;box-shadow:0 4px 16px rgba(0,0,0,0.1)}
+html:not([data-theme=dark]) .lf-card-thumb{background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b}
+html:not([data-theme=dark]) .lf-card-title{color:#0f172a}
+html:not([data-theme=dark]) .lf-card-desc{color:#475569}
+html:not([data-theme=dark]) .lf-card-meta{color:#94a3b8}
+html:not([data-theme=dark]) .lf-who{color:#475569}
+html:not([data-theme=dark]) .lf-who img{border:1px solid #e2e8f0}
+html:not([data-theme=dark]) .lf-cat-chip{color:#475569;background:#f1f5f9;border:1px solid #e2e8f0}
+
+/* Badge pills (Lost / Found status) */
+html:not([data-theme=dark]) .lf-badge.lf-lost{background:#fef2f2;color:#dc2626;border:1px solid #fecaca}
+html:not([data-theme=dark]) .lf-badge.lf-found{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+html:not([data-theme=dark]) .lf-badge.lf-done{background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0}
+html:not([data-theme=dark]) .lf-badge.lf-claimed{background:#fffbeb;color:#d97706;border:1px solid #fde68a}
+
+/* Empty state */
+html:not([data-theme=dark]) .lf-empty{background:#f8fafc;border:1px dashed #cbd5e1}
+html:not([data-theme=dark]) .lf-empty-icon{background:#f1f5f9;border:1px solid #e2e8f0;color:#64748b}
+html:not([data-theme=dark]) .lf-empty-title{color:#0f172a}
+html:not([data-theme=dark]) .lf-empty-desc{color:#475569}
+
 .lf-feed{display:grid;gap:14px}
 .lf-card{display:flex;gap:14px;padding:16px;border:1px solid rgba(51,65,85,0.38);border-radius:16px;background:rgba(15,23,42,0.45);cursor:pointer;position:relative;transition:transform .18s cubic-bezier(0.16,1,0.3,1),box-shadow .18s cubic-bezier(0.16,1,0.3,1),border-color .18s ease,background .18s ease}
 .lf-card:hover{background:rgba(15,23,42,0.65);box-shadow:0 6px 20px rgba(0,0,0,0.28);border-color:rgba(99,102,241,0.4);transform:translateY(-2px)}
