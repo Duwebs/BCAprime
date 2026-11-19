@@ -272,11 +272,11 @@
             <span>or continue with</span>
           </div>
           <div class="oauth-actions auth-social-grid" id="gateOauthActions">
-            <button class="oauth-button auth-social-btn bca-pressable" type="button" onclick="signInWithProvider('google','gateAccountMessage')" aria-label="Continue with Google">
+            <button class="oauth-button auth-social-btn bca-pressable" id="gateGoogleBtn" type="button" onclick="signInWithProvider('google','gateAccountMessage',this)" aria-label="Continue with Google">
               <i class="fa-brands fa-google"></i>
               <span class="auth-social-label">Continue with Google</span>
             </button>
-            <button class="oauth-button auth-social-btn bca-pressable" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage')" aria-label="Continue with LinkedIn">
+            <button class="oauth-button auth-social-btn bca-pressable" id="gateLinkedinBtn" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage',this)" aria-label="Continue with LinkedIn">
               <i class="fa-brands fa-linkedin-in"></i>
               <span class="auth-social-label">Continue with LinkedIn</span>
             </button>

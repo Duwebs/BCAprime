@@ -1750,6 +1750,7 @@ html:not([data-theme="dark"]) .auth-divider::after {
   margin-top: 0;
 }
 .auth-social-btn {
+  position: relative;
   width: 100%;
   height: 44px;
   min-height: 44px;
@@ -1757,10 +1758,34 @@ html:not([data-theme="dark"]) .auth-divider::after {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   font-size: 18px;
   cursor: pointer;
   box-sizing: border-box;
-  transition: transform var(--ui-anim-duration, 200ms) cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease, background 0.15s ease;
+  transition: transform var(--ui-anim-duration, 200ms) cubic-bezier(0.16, 1, 0.3, 1), border-color 0.15s ease, background 0.15s ease, opacity 0.2s ease;
+}
+.auth-social-btn.is-loading-oauth {
+  opacity: 0.65;
+  pointer-events: none !important;
+  cursor: default !important;
+}
+.oauth-inline-spinner-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.oauth-inline-spinner {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  animation: oauthArcSpin 0.75s linear infinite;
+  transform-origin: center center;
+}
+@keyframes oauthArcSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 .auth-social-btn .auth-social-label {
   display: none;
@@ -1780,6 +1805,13 @@ html:not([data-theme="dark"]) .auth-social-btn {
 }
 html:not([data-theme="dark"]) .auth-social-btn:hover {
   border-color: rgba(0, 0, 0, 0.16);
+}
+
+.auth-gate .account-message:empty {
+  display: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 /* Account Switch Link */
