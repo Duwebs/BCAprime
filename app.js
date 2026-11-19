@@ -1517,7 +1517,40 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function renderAccount(){const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');$('accountAuth').innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="danger-logout account-logout-btn" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
     async function signInWithProvider(provider,messageId='accountMessage'){if(!supabaseClient){$(messageId).textContent='Sign-in is not available right now.';return}try{if(pendingSignup){try{sessionStorage.setItem('bca-pending-signup',JSON.stringify(pendingSignup))}catch(e){}pendingSignup=null}if(restrictedAction){try{sessionStorage.setItem('bca-pending-action',JSON.stringify(restrictedAction))}catch(e){}}const providerLabel=provider.charAt(0).toUpperCase()+provider.slice(1);$(messageId).textContent='Opening '+providerLabel+' sign-in…';/* Supabase OAuth = full-page redirect; pending state sessionStorage me save hai — wapas aane par onAuthStateChange consume karega. */const{error}=await supabaseClient.auth.signInWithOAuth({provider,options:{redirectTo:location.origin+(location.pathname||'/')}});if(error)throw error}catch(error){if(pendingSignup)pendingSignup=null;$(messageId).textContent=(error&&error.message)||'Could not start '+providerLabel+' sign-in.'}}
     let gateMode='signup';
-    function setGateMode(mode){gateMode=mode;$('gateAccountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('gateAccountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('gateAccountMessage').textContent='';$('gateNameLabel').hidden=mode!=='signup';$('gateConfirmLabel').hidden=mode!=='signup';$('gateEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('gateAccountName').setAttribute('required','');$('gateAccountConfirm').setAttribute('required','');$('gateAccountEmail').removeAttribute('required')}else{$('gateAccountName').removeAttribute('required');$('gateAccountConfirm').removeAttribute('required');$('gateAccountEmail').setAttribute('required','')}}
+    function setGateMode(mode){
+      gateMode=mode;
+      const submitBtn=$('gateAccountSubmit');
+      if(submitBtn)submitBtn.textContent=mode==='signup'?'Sign up':'Log in';
+      const switchBtn=$('gateAccountSwitch');
+      if(switchBtn){
+        switchBtn.innerHTML=mode==='signup'
+          ?'Already have an account? <span class="account-switch-highlight">Log in</span>'
+          :'Need an account? <span class="account-switch-highlight">Sign up</span>';
+      }
+      const msgEl=$('gateAccountMessage');
+      if(msgEl)msgEl.textContent='';
+      const nameLabel=$('gateNameLabel');
+      if(nameLabel)nameLabel.hidden=mode!=='signup';
+      const confirmLabel=$('gateConfirmLabel');
+      if(confirmLabel)confirmLabel.hidden=mode!=='signup';
+      const emailLabel=$('gateEmailLabel');
+      if(emailLabel)emailLabel.hidden=mode==='signup';
+      const heading=$('gateHeading');
+      if(heading)heading.textContent=mode==='signup'?'Welcome to your study desk.':'Welcome back.';
+      const subtitle=$('gateSubtitle');
+      if(subtitle)subtitle.textContent=mode==='signup'
+        ?'Create an account to access the BCA library, saved resources and uploads.'
+        :'Log in to access the BCA library, saved resources and uploads.';
+      if(mode==='signup'){
+        $('gateAccountName').setAttribute('required','');
+        $('gateAccountConfirm').setAttribute('required','');
+        $('gateAccountEmail').removeAttribute('required');
+      }else{
+        $('gateAccountName').removeAttribute('required');
+        $('gateAccountConfirm').removeAttribute('required');
+        $('gateAccountEmail').setAttribute('required','');
+      }
+    }
     async function submitGateAccount(event){event.preventDefault();if(!supabaseClient){$('gateAccountMessage').textContent='Sign-in is not available right now.';return}const password=$('gateAccountPassword').value;const msgEl=$('gateAccountMessage');if(gateMode==='signup'){const username=$('gateAccountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('gateAccountConfirm'),msgEl))return;const gateUsernameAvail=await checkUsernameAvailable(username);if(gateUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','gateAccountMessage');return}const loginEmail=await resolveLoginEmail($('gateAccountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}}catch(error){$('gateAccountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
     /* =============== QR Button Visibility Management =============== */
     function updateQrButtonVisibility(){
@@ -1964,7 +1997,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         ch.subscribe(status=>{if(status==='SUBSCRIBED'){ch.send({type:'broadcast',event,payload:Object.assign({sessionId:id},payload)}).then(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(true)}).catch(()=>{clearTimeout(to);try{supabaseClient.removeChannel(ch)}catch(e){}res(false)})}});
       }catch(e){res(false)}});
     }
-    function maybeStartQrLogin(){if(isDesktopViewport()&&!accountUid()&&sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')setAuthMode('qr')}
+    function maybeStartQrLogin(){if(isDesktopViewport()&&!accountUid()&&sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true'){if(gateMode==='login')setAuthMode('qr');else setAuthMode('form');}}
     /* ================== In-app QR Scanner (mobile) ==================
        User ko alag scanner app kholne ki zaroorat nahi — web app ke andar hi
        camera se desktop ka QR scan karke approve/deny kar sakta hai.
