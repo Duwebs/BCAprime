@@ -11,17 +11,17 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.3.0";
+const CURRENT_APP_VERSION = "3.4.0";
 
 const LATEST_RELEASE = {
-  version: "3.3.0",
+  version: "3.4.0",
   date: "November 2026",
   title: "What's new",
   subtitle: "BCAPrime just got better.",
   features: [
-    { icon: "fa-qrcode", title: "QR Code Login", desc: "Scan on desktop with your phone camera or app to log in instantly." },
-    { icon: "fa-wand-magic-sparkles", title: "Study Desk Sign Up", desc: "Streamlined single-screen account creation with mascot companion." },
-    { icon: "fa-bolt", title: "Faster Social Login", desc: "Polished inline arc feedback for Google & LinkedIn with zero stuck states." }
+    { icon: "fa-mobile-screen", title: "Native Mobile Navigation", desc: "Full-width docked bottom navbar with profile avatar tab and seamless safe-area docking." },
+    { icon: "fa-user-gear", title: "All-New Profile Hub", desc: "Clean bottom sheet with saved notes, upload tracking, and secure guest mode." },
+    { icon: "fa-gear", title: "App Settings & About", desc: "Quick-access settings drawer with About BCAPrime modal and resource action gates." }
   ]
 };
 
