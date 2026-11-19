@@ -14,15 +14,13 @@
 const CURRENT_APP_VERSION = "3.2.3";
 
 const LATEST_RELEASE = {
-  version: "3.2.3",
-  date: "November 2026",
-  title: "SEO, Profile Settings & Performance Updates",
-  subtitle: "Enhanced social sharing previews, profile customization updates, and optimized performance.",
+  version: "2.0",
+  title: "What's new",
+  subtitle: "BCAPrime just got better.",
   features: [
-    { type: "improved", title: "Rich Social Previews", desc: "Optimized Open Graph and WhatsApp share previews for notes, PYQs, and study resources." },
-    { type: "improved", title: "Profile Settings", desc: "Streamlined account settings and profile details management." },
-    { type: "improved", title: "SEO & Discovery", desc: "Updated sitemaps, canonical tags, and structured metadata for faster resource discovery." },
-    { type: "improved", title: "Performance & Caching", desc: "Refined service worker asset caching and faster app shell load times." }
+    { icon: "fa-ghost", title: "Ghost Mode", desc: "Study in secret, right under the radar." },
+    { icon: "fa-bolt", title: "2x faster", desc: "Quicker loading, online and offline." },
+    { icon: "fa-comment-dots", title: "New PYQs and notes", desc: "Fresh university papers and notes added." }
   ]
 };
 
@@ -40,48 +38,58 @@ const LATEST_RELEASE = {
   /* Modal markup inject karo (ek hi baar) */
   function buildModal() {
     if (document.getElementById('whatsNewModal')) return;
-    const icons = {
-      new:     { icon: 'fa-wand-magic-sparkles', cls: 'wn-new' },
-      improved:{ icon: 'fa-arrow-trend-up',      cls: 'wn-improved' },
-      fix:     { icon: 'fa-wrench',              cls: 'wn-fix' }
-    };
-    const items = (LATEST_RELEASE.features || []).map(function (f) {
-      const meta = icons[f.type] || icons.new;
-      return '<div class="wn-item">' +
-        '<span class="wn-item-icon ' + meta.cls + '"><i class="fa-solid ' + meta.icon + '"></i></span>' +
-        '<div class="wn-item-copy"><strong>' + f.title + '</strong><span>' + f.desc + '</span></div>' +
-        '</div>';
-    }).join('');
 
-    /* Personalized greeting: login name → email part → guest */
-    let who = 'there';
-    try {
-      const cached = JSON.parse(localStorage.getItem('bca-profile-cache') || 'null');
-      const n = cached && (cached.name || '').trim();
-      const e = cached && (cached.email || '').split('@')[0].trim();
-      who = n || e || 'there';
-    } catch (err) {}
-    const greeting = 'Hi ' + who + ' \uD83D\uDC4B';
-    const subtitle = who === 'there' ? 'We\'ve got something new for you' : 'We\'ve got an update for you';
+    const versionText = LATEST_RELEASE.version ? 'v' + LATEST_RELEASE.version : 'v2.0';
+    const titleText = LATEST_RELEASE.title || "What's new";
+    const subtitleText = LATEST_RELEASE.subtitle || "BCAPrime just got better.";
+
+    const items = (LATEST_RELEASE.features || []).map(function (f) {
+      let iconClass = f.icon || 'fa-bolt';
+      if (!iconClass.startsWith('fa-')) {
+        if (f.type === 'ghost') iconClass = 'fa-ghost';
+        else if (f.type === 'faster') iconClass = 'fa-bolt';
+        else if (f.type === 'notes') iconClass = 'fa-comment-dots';
+        else if (f.type === 'improved') iconClass = 'fa-bolt';
+        else if (f.type === 'fix') iconClass = 'fa-wrench';
+        else iconClass = 'fa-wand-magic-sparkles';
+      }
+      return (
+        '<div class="wn-feat">' +
+          '<span class="wn-feat-icon"><i class="fa-solid ' + iconClass + '"></i></span>' +
+          '<div class="wn-feat-text">' +
+            '<strong>' + f.title + '</strong>' +
+            '<p>' + f.desc + '</p>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
 
     const overlay = document.createElement('div');
     overlay.className = 'modal wn-modal';
     overlay.id = 'whatsNewModal';
     overlay.innerHTML =
       '<div class="dialog wn-dialog">' +
-        '<div class="wn-hero">' +
-          '<span class="wn-orb wn-orb1"></span><span class="wn-orb wn-orb2"></span>' +
-          '<img class="wn-logo" src="assets/logo.png" alt="">' +
-          '<h2 class="wn-greet">' + greeting + '</h2>' +
-          '<p class="wn-subtitle">' + subtitle + '</p>' +
-          '<span class="wn-pill"><i class="fa-solid fa-gift"></i> What\'s New<span class="wn-pill-sep"></span>v' + LATEST_RELEASE.version + '</span>' +
+        '<div class="wn-backdrop">' +
+          '<div class="wn-bg-bar" aria-hidden="true"></div>' +
+          '<div class="wn-bg-box" aria-hidden="true"></div>' +
         '</div>' +
-        '<div class="wn-list">' + items + '</div>' +
-        '<div class="wn-foot">' +
-          '<button class="primary wn-gotit" onclick="closeWhatsNew()"><i class="fa-solid fa-check"></i> Got it</button>' +
+        '<div class="wn-content">' +
+          '<span class="wn-badge">' + versionText + '</span>' +
+          '<h2 class="wn-title">' + titleText + '</h2>' +
+          '<p class="wn-subtitle">' + subtitleText + '</p>' +
+          '<div class="wn-features">' + items + '</div>' +
+          '<button type="button" class="wn-gotit bca-pressable" onclick="closeWhatsNew()">' +
+            'Got it' +
+          '</button>' +
         '</div>' +
+        '<img src="assets/mascot-pointing.png" class="wn-mascot" alt="" aria-hidden="true">' +
       '</div>';
     document.body.appendChild(overlay);
+
+    if (window.BCA_UI && window.BCA_UI.PressableScale) {
+      const btn = overlay.querySelector('.wn-gotit');
+      if (btn) new window.BCA_UI.PressableScale(btn);
+    }
   }
 
   function showWhatsNewModal() {
