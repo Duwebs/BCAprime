@@ -6,7 +6,7 @@
    3) Supabase REST (library list)     -> network-first w/ cache fallback
    4) Trusted CDNs (firebase, supabase, fonts, font-awesome) -> network-first
    --------------------------------------------------------------- */
-const CACHE_NAME = 'bcaprime-app-v38';
+const CACHE_NAME = 'bcaprime-app-v39';
 const FILE_CACHE = 'bcaprime-files-v1';
 const CDN_CACHE  = 'bcaprime-cdn-v1';
 const SUPABASE_HOST = 'kjesjaakjddfxykisssh.supabase.co';
@@ -25,7 +25,8 @@ const APP_SHELL = [
   './assets/logo.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
-  './assets/og-image.png'
+  './assets/og-image.png',
+  './assets/mascot-pointing.png'
 ];
 const CDN_DOMAINS = ['www.gstatic.com','fonts.googleapis.com','fonts.gstatic.com','cdn.jsdelivr.net','cdnjs.cloudflare.com'];
 

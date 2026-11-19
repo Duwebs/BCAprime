@@ -11,16 +11,17 @@
       - Up-to-date user → kuch nahi hota
    ============================================================ */
 
-const CURRENT_APP_VERSION = "3.2.3";
+const CURRENT_APP_VERSION = "3.3.0";
 
 const LATEST_RELEASE = {
-  version: "2.0",
+  version: "3.3.0",
+  date: "November 2026",
   title: "What's new",
   subtitle: "BCAPrime just got better.",
   features: [
-    { icon: "fa-ghost", title: "Ghost Mode", desc: "Study in secret, right under the radar." },
-    { icon: "fa-bolt", title: "2x faster", desc: "Quicker loading, online and offline." },
-    { icon: "fa-comment-dots", title: "New PYQs and notes", desc: "Fresh university papers and notes added." }
+    { icon: "fa-qrcode", title: "QR Code Login", desc: "Scan on desktop with your phone camera or app to log in instantly." },
+    { icon: "fa-wand-magic-sparkles", title: "Study Desk Sign Up", desc: "Streamlined single-screen account creation with mascot companion." },
+    { icon: "fa-bolt", title: "Faster Social Login", desc: "Polished inline arc feedback for Google & LinkedIn with zero stuck states." }
   ]
 };
 
