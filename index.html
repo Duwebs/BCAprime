@@ -240,16 +240,11 @@
         </div>
         <div class="auth-qr-panel is-waiting">
           <h2 class="qr-title">Scan to log in</h2>
-          <p class="qr-sub">Instant login on BCAPrime web &mdash; no password needed.</p>
+          <p class="qr-sub">Scan with your phone's camera or BCAPrime app to log in instantly.</p>
           <div class="qr-frame" aria-live="polite"><span class="qc c-tl"></span><span class="qc c-tr"></span><span class="qc c-bl"></span><span class="qc c-br"></span><div id="qrBox" role="img" aria-label="Login QR code"></div></div>
           <div class="qr-meta"><span class="qr-timer" id="qrTimer">05:00</span><span class="qr-dot">&bull;</span><span id="qrStatus">Scan with your phone &mdash; instant login</span></div>
-          <button class="secondary qr-refresh" id="qrRefresh" type="button" onclick="startQrSession()" hidden><i class="fa-solid fa-rotate-right"></i> Refresh code</button>
-          <ol class="qr-steps">
-            <li><b>1.</b> Open BCAPrime on your phone and stay logged in.</li>
-            <li><b>2.</b> Open your phone's Scanner / camera (also available from the dashboard menu).</li>
-            <li><b>3.</b> Scan this screen &mdash; you'll be logged in instantly.</li>
-          </ol>
-          <button class="linklike auth-alt-link" type="button" onclick="setAuthMode('form')">Log in with Email / Socials instead</button>
+          <button class="secondary qr-refresh bca-pressable" id="qrRefresh" type="button" onclick="startQrSession()" hidden><i class="fa-solid fa-rotate-right"></i> Refresh code</button>
+          <button class="linklike auth-alt-link bca-pressable" type="button" onclick="setAuthMode('form')"><i class="fa-solid fa-arrow-left"></i> Back to password / OAuth login</button>
         </div>
         <div class="auth-form-wrap">
           <form class="account-form" id="gateAccountForm">
@@ -287,6 +282,10 @@
             <i class="fa-regular fa-eye"></i>
             <span>Continue as guest</span>
             <span class="auth-guest-arrow">&gt;</span>
+          </button>
+          <button class="secondary desktop-qr-trigger bca-pressable" id="desktopQrTrigger" type="button" onclick="setAuthMode('qr')" hidden>
+            <i class="fa-solid fa-qrcode"></i>
+            <span>Log in with QR code</span>
           </button>
         </div>
       </div>

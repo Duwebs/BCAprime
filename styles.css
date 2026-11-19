@@ -2069,35 +2069,214 @@ html:not([data-theme="dark"]) .auth-guest-pill:hover {
 
 /* ============================================================
    QR login (WhatsApp Web style) — desktop >=1024px only
-   Mobile pe strictly unchanged: base me .auth-qr-panel hidden.
+   Mobile pe strictly untouched: hidden on mobile (<1024px).
    ============================================================ */
-.auth-qr-panel{display:none}
-.linklike{border:0;background:transparent;color:var(--brand);font-weight:600;font-size:13.5px;padding:6px 10px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:background .18s ease,color .18s ease}
-.linklike:hover{background:color-mix(in srgb,var(--brand) 12%,transparent)}
-@keyframes authFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media(min-width:1024px){
-  .auth-main.mode-qr .auth-form-wrap{display:none}
-  .auth-main.mode-form .auth-qr-panel{display:none}
-  .auth-main.mode-qr .auth-qr-panel{display:flex;flex-direction:column;align-items:center;text-align:center;gap:13px;animation:authFade .35s ease both}
-  .auth-main.mode-form .auth-form-wrap{animation:authFade .35s ease both}
-  .qr-title{margin:0;font:600 26px/1.15 'Geist';color:var(--ink)}
-  .qr-sub{margin:0;color:var(--muted);font-size:13.5px;line-height:1.5}
-  .qr-frame{position:relative;padding:16px;background:#fff;border-radius:18px;box-shadow:0 14px 34px rgba(0,0,0,.35);transition:outline-color .25s ease,outline-offset .25s ease}
-  .auth-qr-panel.is-success .qr-frame{outline:3px solid #2fbf71;outline-offset:5px}
-  .auth-qr-panel.is-expired .qr-frame{opacity:.45;filter:grayscale(.6)}
-  .qr-frame img,.qr-frame canvas{display:block;width:188px;height:188px}
-  .qc{position:absolute;width:26px;height:26px;border:0 solid var(--brand);pointer-events:none}
-  .c-tl{top:-5px;left:-5px;border-top-width:3px;border-left-width:3px;border-top-left-radius:12px}
-  .c-tr{top:-5px;right:-5px;border-top-width:3px;border-right-width:3px;border-top-right-radius:12px}
-  .c-bl{bottom:-5px;left:-5px;border-bottom-width:3px;border-left-width:3px;border-bottom-left-radius:12px}
-  .c-br{bottom:-5px;right:-5px;border-bottom-width:3px;border-right-width:3px;border-bottom-right-radius:12px}
-  .qr-meta{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:12.5px}
-  .qr-timer{font-family:'Geist Mono',monospace;font-weight:700;color:var(--brand);letter-spacing:.06em}
-  .qr-dot{opacity:.45}
-  .qr-refresh{display:inline-flex;align-items:center;gap:7px}
-  .auth-qr-panel.is-expired .qr-refresh[hidden]{display:none}
-  .qr-steps{list-style:none;margin:4px 0 0;padding:13px 16px;display:grid;gap:9px;text-align:left;width:100%;max-width:370px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
-  .qr-steps li{color:var(--muted);font-size:12.5px;line-height:1.5}
+.desktop-qr-trigger {
+  display: none !important;
+}
+.auth-qr-panel {
+  display: none;
+}
+.linklike {
+  border: 0;
+  background: transparent;
+  color: var(--brand);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.linklike:hover {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+}
+@keyframes authFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media(min-width: 1024px) {
+  .desktop-qr-trigger {
+    display: none !important;
+  }
+  .desktop-qr-trigger:not([hidden]) {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: 40px;
+    min-height: 40px;
+    border-radius: 9999px;
+    margin-top: 8px;
+    background: transparent;
+    font: 500 13px 'Geist', sans-serif;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform var(--ui-anim-duration, 200ms) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-theme="dark"] .desktop-qr-trigger:not([hidden]) {
+    border: 1px dashed rgba(255, 255, 255, 0.16) !important;
+    color: #a1a1aa;
+  }
+  [data-theme="dark"] .desktop-qr-trigger:not([hidden]):hover {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    background: rgba(255, 255, 255, 0.04);
+  }
+  html:not([data-theme="dark"]) .desktop-qr-trigger:not([hidden]) {
+    border: 1px dashed rgba(0, 0, 0, 0.16) !important;
+    color: #71717a;
+  }
+  html:not([data-theme="dark"]) .desktop-qr-trigger:not([hidden]):hover {
+    color: #09090b;
+    border-color: rgba(0, 0, 0, 0.35) !important;
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  .auth-main.mode-qr .auth-form-wrap { display: none !important; }
+  .auth-main.mode-form .auth-qr-panel { display: none !important; }
+  .auth-main.mode-qr .auth-qr-panel {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+    width: 100%;
+    margin: auto 0;
+    animation: authFade 0.28s ease both;
+  }
+  .auth-main.mode-form .auth-form-wrap {
+    animation: authFade 0.28s ease both;
+  }
+
+  .qr-title {
+    margin: 0;
+    font: 700 22px/1.2 'Geist', sans-serif;
+    letter-spacing: -0.02em;
+  }
+  [data-theme="dark"] .qr-title {
+    color: #ffffff;
+  }
+  html:not([data-theme="dark"]) .qr-title {
+    color: #09090b;
+  }
+
+  .qr-sub {
+    margin: 0;
+    font: 400 12.5px/1.4 'Geist', sans-serif;
+    max-width: 32ch;
+  }
+  [data-theme="dark"] .qr-sub {
+    color: #9ca3af;
+  }
+  html:not([data-theme="dark"]) .qr-sub {
+    color: #71717a;
+  }
+
+  .qr-frame {
+    position: relative;
+    padding: 10px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+    transition: outline-color 0.25s ease, outline-offset 0.25s ease;
+  }
+  .auth-qr-panel.is-success .qr-frame {
+    outline: 3px solid #2fbf71;
+    outline-offset: 4px;
+  }
+  .auth-qr-panel.is-expired .qr-frame {
+    opacity: 0.45;
+    filter: grayscale(0.6);
+  }
+  .qr-frame img, .qr-frame canvas {
+    display: block;
+    width: 160px;
+    height: 160px;
+  }
+
+  .qc {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 0 solid var(--brand);
+    pointer-events: none;
+  }
+  .c-tl {
+    top: -4px;
+    left: -4px;
+    border-top-width: 3px;
+    border-left-width: 3px;
+    border-top-left-radius: 10px;
+  }
+  .c-tr {
+    top: -4px;
+    right: -4px;
+    border-top-width: 3px;
+    border-right-width: 3px;
+    border-top-right-radius: 10px;
+  }
+  .c-bl {
+    bottom: -4px;
+    left: -4px;
+    border-bottom-width: 3px;
+    border-left-width: 3px;
+    border-bottom-left-radius: 10px;
+  }
+  .c-br {
+    bottom: -4px;
+    right: -4px;
+    border-bottom-width: 3px;
+    border-right-width: 3px;
+    border-bottom-right-radius: 10px;
+  }
+
+  .qr-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 11.5px;
+  }
+  [data-theme="dark"] .qr-meta {
+    color: #9ca3af;
+  }
+  html:not([data-theme="dark"]) .qr-meta {
+    color: #71717a;
+  }
+
+  .qr-timer {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 700;
+    color: var(--brand);
+    letter-spacing: 0.05em;
+  }
+  .qr-dot {
+    opacity: 0.5;
+  }
+
+  .qr-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    border-radius: 9999px;
+  }
+  .auth-qr-panel.is-expired .qr-refresh[hidden] {
+    display: none;
+  }
+
+  .auth-alt-link {
+    margin-top: 4px;
+    font-size: 12.5px;
+  }
+}
 
   /* ============================================================
      In-app QR scanner (mobile only entries)

@@ -1606,10 +1606,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         $('gateAccountName').setAttribute('required','');
         $('gateAccountConfirm').setAttribute('required','');
         $('gateAccountEmail').removeAttribute('required');
+        setAuthMode('form');
       }else{
         $('gateAccountName').removeAttribute('required');
         $('gateAccountConfirm').removeAttribute('required');
         $('gateAccountEmail').setAttribute('required','');
+      }
+      const qrTrig = $('desktopQrTrigger');
+      if(qrTrig){
+        qrTrig.hidden = (mode !== 'login');
       }
     }
     async function submitGateAccount(event){event.preventDefault();if(!supabaseClient){$('gateAccountMessage').textContent='Sign-in is not available right now.';return}const password=$('gateAccountPassword').value;const msgEl=$('gateAccountMessage');if(gateMode==='signup'){const username=$('gateAccountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('gateAccountConfirm'),msgEl))return;const gateUsernameAvail=await checkUsernameAvailable(username);if(gateUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};if(msgEl)msgEl.textContent='';await signInWithProvider('google','gateAccountMessage',$('gateGoogleBtn'));return}const loginEmail=await resolveLoginEmail($('gateAccountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}}catch(error){$('gateAccountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
@@ -1856,7 +1861,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       qrSession={id,deadline:Date.now()+QR_TTL_MS};
       const box=$('qrBox');if(box)box.innerHTML='';
       const okLib=await loadQrLib();
-      if(okLib&&window.QRCode&&box){try{new window.QRCode(box,{text:payload,width:188,height:188,colorDark:'#101216',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M})}catch(e){console.error('QRCode render error:',e);if(box)box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">QR code error — phone par ye link kholo: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}}
+      if(okLib&&window.QRCode&&box){try{new window.QRCode(box,{text:payload,width:160,height:160,colorDark:'#101216',colorLight:'#ffffff',correctLevel:window.QRCode.CorrectLevel.M})}catch(e){console.error('QRCode render error:',e);if(box)box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">QR code error — phone par ye link kholo: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}}
       else if(box){box.innerHTML='<small style="display:block;max-width:190px;color:#d32f2f;font-size:11px">The QR library failed to load — open this link on your phone: <a href="'+payload+'" target="_blank" style="color:#0070f3">Open link</a></small>'}
       setQrUi('waiting');
       try{
