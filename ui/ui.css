@@ -77,7 +77,6 @@
    1. PressableScale
    ========================================================================== */
 .bca-pressable {
-  display: inline-block;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
@@ -86,6 +85,9 @@
   transition: transform var(--bca-anim-duration) var(--bca-anim-easing),
               opacity var(--bca-anim-duration) ease;
   will-change: transform;
+}
+:where(.bca-pressable:not([class*="flex"]):not([class*="grid"]):not([class*="row"]):not([class*="card"]):not([class*="box"]):not([class*="sheet"]):not([class*="item"])) {
+  display: inline-block;
 }
 
 .bca-pressable:active,

@@ -300,7 +300,7 @@
         <button class="icon-btn notify-bell" id="notifyBell" onclick="toggleNotifications(event,this)" aria-label="Toggle notifications" title="Notifications" hidden><span class="bell-icon-wrapper"><i id="bellIcon" class="fa-regular fa-bell"></i></span></button>
         <button class="icon-btn mobile-qr-topbar" id="topbarQrBtn" onclick="openQrScanner()" aria-label="Scan QR — computer login" title="Log in on your computer (QR scan)"><i class="fa-solid fa-camera"></i></button>
         <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
-        <button class="icon-btn topbar-settings-btn bca-pressable" id="topbarSettingsBtn" onclick="openProfile()" aria-label="Settings" title="Settings">
+        <button class="icon-btn topbar-settings-btn bca-pressable" id="topbarSettingsBtn" onclick="openSettingsSheet()" aria-label="Settings" title="Settings">
           <svg class="settings-hex-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M10.8 3.2L3.9 7.2C3.3 7.5 3 8.1 3 8.8V15.2C3 15.9 3.3 16.5 3.9 16.8L10.8 20.8C11.5 21.2 12.5 21.2 13.2 20.8L20.1 16.8C20.7 16.5 21 15.9 21 15.2V8.8C21 8.1 20.7 7.5 20.1 7.2L13.2 3.2C12.5 2.8 11.5 2.8 10.8 3.2Z" />
             <circle cx="12" cy="12" r="2.8" />
@@ -785,125 +785,205 @@
   <!-- Juniors help request list modal (seniors help juniors) -->
   <div class="modal" id="juniorsReqModal" role="dialog" aria-modal="true" aria-labelledby="jrModalTitle"><div class="dialog juniors-dialog"><div class="dialog-head"><h2><i class="fa-solid fa-user-plus" style="color:#22c55e;margin-right:8px"></i><span id="jrModalTitle">Juniors Request</span></h2><button class="close" aria-label="Close dialog" onclick="closeJuniorsRequest()">&times;</button></div><p style="color:var(--muted);margin-top:0">Material and notes requested by juniors from your college.</p><div class="juniors-req-content" id="juniorsReqContent"></div></div></div>
 
-  <div class="modal" id="profileModal" onclick="if(event.target===this)closeModals()">
+  <div class="modal profile-modal-wrap" id="profileModal" onclick="if(event.target===this)closeModals()">
     <div class="dialog profile-dialog">
       <div class="profile-sheet-handle"><span></span></div>
-      <div class="dialog-head">
-        <h2>Your profile</h2>
-        <button class="close" aria-label="Close dialog" onclick="closeModals()">&times;</button>
+      
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <h2 class="profile-heading">Your profile</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close dialog" onclick="closeModals()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
 
-      <div class="profile-id">
-        <div class="profile-avatar-wrap">
+      <!-- User Identity Card -->
+      <div class="profile-user-card">
+        <div class="profile-avatar-wrap" id="profileAvatarWrap" onclick="openEditProfileModal()" role="button" tabindex="0" title="Change photo">
           <img id="avatarImg" alt="Profile photo">
-          <button type="button" class="avatar-edit-badge bca-pressable" onclick="openEditProfileModal()" title="Change photo" aria-label="Change photo">
+          <button type="button" class="avatar-edit-badge bca-pressable" id="avatarEditBadge" onclick="event.stopPropagation();openEditProfileModal()" title="Change photo" aria-label="Change photo" hidden>
             <i class="fa-solid fa-camera"></i>
           </button>
         </div>
-        <div class="profile-id-copy">
+        <div class="profile-user-info">
           <strong class="profile-display-name" id="profileIdName">Guest</strong>
           <small class="profile-email" id="profileIdMail">Browsing as guest</small>
         </div>
-        <button type="button" class="secondary profile-edit-btn bca-pressable" id="profileEditBtn" onclick="openEditProfileModal()" aria-label="Edit profile">
+        <button type="button" class="profile-edit-btn bca-pressable" id="profileEditBtn" onclick="openEditProfileModal()" aria-label="Edit profile" hidden>
           <i class="fa-solid fa-pen"></i>
-          <span>Edit Profile</span>
+          <span>Edit</span>
         </button>
         <input id="avatarInput" type="file" accept="image/*" hidden onchange="changeAvatar(this)">
       </div>
 
-      <p class="profile-pref-hint">Your study preferences are saved on this device.</p>
-
+      <!-- 2-Column Stats Grid -->
       <div class="profile-stats-grid">
-        <div class="profile-stat-card" id="profileCollegeStat" onclick="openCollege()" role="button" tabindex="0" title="Tap to change college">
-          <div class="profile-stat-icon icon-college"><i class="fa-solid fa-building-columns"></i></div>
-          <div class="profile-stat-info">
-            <span>College</span>
-            <strong id="profileCollege">All Colleges</strong>
+        <div class="profile-stat-box bca-pressable" id="profileSavedStat" onclick="setTab('saved');closeModals()" role="button" tabindex="0" title="View saved items">
+          <div class="profile-stat-top">
+            <i class="fa-regular fa-bookmark"></i>
+            <span>Saved</span>
           </div>
-          <i class="fa-solid fa-chevron-right profile-stat-arrow"></i>
+          <div class="profile-stat-num" id="profileSaved">0</div>
+          <div class="profile-stat-sub">items</div>
         </div>
 
-        <div class="profile-stat-card" id="profileSemStat" onclick="openProfileSemesterSheet()" role="button" tabindex="0" title="Tap to change semester">
-          <div class="profile-stat-icon icon-semester"><i class="fa-solid fa-layer-group"></i></div>
-          <div class="profile-stat-info">
-            <span>Semester</span>
-            <strong id="profileSem">Semester 1</strong>
-          </div>
-          <i class="fa-solid fa-chevron-right profile-stat-arrow"></i>
-        </div>
-
-        <div class="profile-stat-card" id="profileSavedStat" onclick="setTab('saved');closeModals()" role="button" tabindex="0" title="View saved material">
-          <div class="profile-stat-icon icon-saved"><i class="fa-solid fa-bookmark"></i></div>
-          <div class="profile-stat-info">
-            <span>Saved items</span>
-            <strong id="profileSaved">0</strong>
-          </div>
-          <i class="fa-solid fa-chevron-right profile-stat-arrow"></i>
-        </div>
-
-        <div class="profile-stat-card" id="profileUploadsStat" onclick="document.querySelector('.my-uploads')?.scrollIntoView({behavior:'smooth'})" role="button" tabindex="0" title="View your uploads">
-          <div class="profile-stat-icon icon-uploads"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-          <div class="profile-stat-info">
+        <div class="profile-stat-box bca-pressable" id="profileUploadsStat" onclick="openMyUploadsSheet()" role="button" tabindex="0" title="View your uploads">
+          <div class="profile-stat-top">
+            <i class="fa-solid fa-arrow-up-from-bracket"></i>
             <span>My uploads</span>
-            <strong id="profileUploads">0</strong>
           </div>
-          <i class="fa-solid fa-chevron-right profile-stat-arrow"></i>
+          <div class="profile-stat-num" id="profileUploads">0</div>
+          <div class="profile-stat-sub" id="profileUploadsSub">0 live · 0 in review</div>
         </div>
       </div>
 
-      <section class="my-uploads">
-        <div class="my-uploads-head">
-          <h4>My uploads</h4>
-          <span class="my-uploads-summary" id="myUploadsSummary"></span>
+      <!-- Academic Info Group Card -->
+      <div class="profile-group-card">
+        <div class="profile-group-row bca-pressable" id="profileCollegeRow" onclick="openCollege()" role="button" tabindex="0" title="Change college">
+          <div class="profile-row-icon icon-blue">
+            <i class="fa-solid fa-building-columns"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-sub">College</span>
+            <strong class="profile-row-main" id="profileCollege">All Colleges</strong>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
         </div>
-        <div class="my-uploads-list" id="myUploadsList"></div>
-      </section>
-
-      <div class="profile-actions">
-        <button class="secondary profile-action-btn" onclick="closeModals();openFeedback()">
-          <i class="fa-solid fa-comment-dots"></i> Feedback &amp; support
-        </button>
-        <button class="secondary profile-action-btn" onclick="closeModals();openCollege()">
-          <i class="fa-solid fa-building-columns"></i> Change college
-        </button>
-        <button class="secondary profile-action-btn" onclick="openProfileSemesterSheet()">
-          <i class="fa-solid fa-layer-group"></i> Change semester
-        </button>
-        <button class="secondary profile-action-btn" onclick="resetPreferences()">
-          <i class="fa-solid fa-rotate-left"></i> Reset preferences
-        </button>
+        <div class="profile-group-divider"></div>
+        <div class="profile-group-row bca-pressable" id="profileSemRow" onclick="openProfileSemesterSheet()" role="button" tabindex="0" title="Change semester">
+          <div class="profile-row-icon icon-purple">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-sub">Semester</span>
+            <strong class="profile-row-main" id="profileSem">Semester 1</strong>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
       </div>
 
-      <section class="account-auth" id="accountAuth">
-        <h3 id="accountTitle">Create your account</h3>
-        <p id="accountDescription">Sign in to keep your study activity connected across devices.</p>
-        <form class="account-form" id="accountForm">
-          <label id="accountNameLabel" hidden>Username
-            <input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,'accountUsernameHint')">
-            <small class="field-hint" id="accountUsernameHint"></small>
-          </label>
-          <label id="accountEmailLabel">Email or Username
-            <input id="accountEmail" type="text" autocomplete="username" required>
-          </label>
-          <label>Password
-            <input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required>
-          </label>
-          <label id="accountConfirmLabel" hidden>Confirm Password
-            <input id="accountConfirm" type="password" autocomplete="new-password" minlength="6">
-          </label>
-          <button class="primary" id="accountSubmit" type="submit">Sign up</button>
-        </form>
-        <div class="oauth-actions">
-          <button class="oauth-button" type="button" onclick="signInWithProvider('google')">
-            <i class="fa-brands fa-google"></i> Continue with Google
-          </button>
-          <button class="oauth-button" type="button" onclick="signInWithProvider('linkedin_oidc')">
-            <i class="fa-brands fa-linkedin"></i> Continue with LinkedIn
-          </button>
+      <!-- Support & Preferences Group Card -->
+      <div class="profile-group-card">
+        <div class="profile-group-row bca-pressable" onclick="openFeedback()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-regular fa-comment-dots"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-title">Feedback &amp; support</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
         </div>
-        <p class="account-message" id="accountMessage" aria-live="polite"></p>
-        <button class="account-switch" id="accountSwitch" type="button">Already have an account? Login</button>
-      </section>
+        <div class="profile-group-divider"></div>
+        <div class="profile-group-row bca-pressable" onclick="resetPreferences()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-solid fa-rotate-left"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-title">Reset preferences</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Footer Card -->
+      <div class="profile-session-card" id="profileSessionCard">
+        <div class="profile-session-info">
+          <span class="profile-session-label" id="profileSessionLabel">Browsing as</span>
+          <span class="profile-session-email" id="profileSessionEmail">Guest mode</span>
+        </div>
+        <button class="profile-logout-btn bca-pressable" id="profileLogoutBtn" type="button" onclick="signOutAccount()" hidden>Log out</button>
+        <button class="profile-login-btn bca-pressable" id="profileLoginBtn" type="button" onclick="openSignUpPage()">Sign up / Log in</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Dedicated My Uploads Sheet -->
+  <div class="modal" id="myUploadsModal" onclick="if(event.target===this)closeMyUploadsSheet()" role="dialog" aria-modal="true" aria-labelledby="myUploadsSheetTitle">
+    <div class="dialog my-uploads-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="profile-header">
+        <h2 class="profile-heading" id="myUploadsSheetTitle">My uploads</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close dialog" onclick="closeMyUploadsSheet()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="my-uploads-head" style="margin-bottom:12px">
+        <span class="my-uploads-summary" id="myUploadsSummary"></span>
+      </div>
+      <div class="my-uploads-list" id="myUploadsList"></div>
+    </div>
+  </div>
+
+  <!-- Settings Bottom Sheet -->
+  <div class="modal pf-sheet-modal" id="settingsModal" onclick="if(event.target===this)closeSettingsSheet()" role="dialog" aria-modal="true" aria-labelledby="settingsSheetTitle">
+    <div class="dialog settings-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="profile-header">
+        <h2 class="profile-heading" id="settingsSheetTitle">Settings</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close settings" onclick="closeSettingsSheet()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="profile-group-card" style="margin-top:12px">
+        <div class="profile-group-row bca-pressable" onclick="openAboutModal()" role="button" tabindex="0">
+          <div class="profile-row-icon icon-blue">
+            <i class="fa-solid fa-circle-info"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-title">About BCAPrime</span>
+            <small class="profile-row-sub">Version 3.3.0 &bull; Built for BCA students</small>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- About BCAPrime Modal -->
+  <div class="modal" id="aboutModal" onclick="if(event.target===this)closeAboutModal()" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+    <div class="dialog about-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="profile-header">
+        <h2 class="profile-heading" id="aboutModalTitle">About</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close dialog" onclick="closeAboutModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="about-card">
+        <div class="about-brand">
+          <img src="assets/logo.png" alt="BCAPrime Logo" width="56" height="56">
+          <h3>BCA<span>Prime</span></h3>
+          <span class="about-version-badge">v3.3.0</span>
+        </div>
+        <p class="about-tagline">Your entire BCA study desk in one focused library &mdash; syllabus notes, past question papers, and student resources all in one place.</p>
+        <div class="about-features">
+          <div class="about-feat-item">
+            <i class="fa-solid fa-graduation-cap"></i>
+            <div>
+              <strong>College &amp; Semester Focused</strong>
+              <small>Curated study material tailored for BCA universities.</small>
+            </div>
+          </div>
+          <div class="about-feat-item">
+            <i class="fa-solid fa-bolt"></i>
+            <div>
+              <strong>Instant In-App Reading</strong>
+              <small>Fast, clutter-free reader online and offline.</small>
+            </div>
+          </div>
+          <div class="about-feat-item">
+            <i class="fa-solid fa-shield-halved"></i>
+            <div>
+              <strong>Cloud Sync &amp; Cross-Device</strong>
+              <small>Seamless study sync with cross-device QR login.</small>
+            </div>
+          </div>
+        </div>
+        <div class="about-legal-links">
+          <a href="privacy.html" target="_blank" class="about-link bca-pressable">Privacy Policy</a>
+          <span class="about-dot">&bull;</span>
+          <a href="terms.html" target="_blank" class="about-link bca-pressable">Terms of Service</a>
+        </div>
+        <button class="primary auth-pill-submit bca-pressable" type="button" onclick="closeAboutModal()" style="margin-top:16px;width:100%">Got it</button>
+      </div>
     </div>
   </div>
 
@@ -949,47 +1029,6 @@
           </button>
         </div>
       </form>
-    </div>
-  </div>
-  <div class="modal auth-modal-priority" id="accessAuthModal" style="z-index:9999" onclick="if(event.target===this)closeModals()">
-    <div class="dialog access-dialog">
-      <div class="access-sheet-handle"><span></span></div>
-      <div class="dialog-head">
-        <span></span>
-        <button class="close access-close-btn" aria-label="Close dialog" onclick="closeModals()">&times;</button>
-      </div>
-      <div class="access-brand">
-        <img src="assets/logo.png" alt="BCAPrime logo">
-        <span>BCA<span style="color:var(--brand)">Prime</span></span>
-      </div>
-      <h2 id="accessAuthTitle">Sign up to continue</h2>
-      <p id="accessAuthDescription">Create a free account to upload and download study material.</p>
-      <form class="account-form" id="accessAuthForm">
-        <label id="accessAuthNameLabel" hidden>Username
-          <input id="accessAuthName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,'accessAuthUsernameHint')">
-          <small class="field-hint" id="accessAuthUsernameHint"></small>
-        </label>
-        <label id="accessAuthEmailLabel">Email or Username
-          <input id="accessAuthEmail" type="text" autocomplete="username" required>
-        </label>
-        <label>Password
-          <input id="accessAuthPassword" type="password" autocomplete="new-password" minlength="6" required>
-        </label>
-        <label id="accessAuthConfirmLabel" hidden>Confirm Password
-          <input id="accessAuthConfirm" type="password" autocomplete="new-password" minlength="6">
-        </label>
-        <button class="primary" id="accessAuthSubmit" type="submit">Sign up</button>
-      </form>
-      <div class="oauth-actions">
-        <button class="oauth-button" type="button" onclick="signInWithProvider('google','accessAuthMessage')">
-          <i class="fa-brands fa-google"></i> Continue with Google
-        </button>
-        <button class="oauth-button" type="button" onclick="signInWithProvider('linkedin_oidc','accessAuthMessage')">
-          <i class="fa-brands fa-linkedin"></i> Continue with LinkedIn
-        </button>
-      </div>
-      <p class="account-message" id="accessAuthMessage" aria-live="polite"></p>
-      <button class="account-switch" id="accessAuthSwitch" type="button">Already have an account? Login</button>
     </div>
   </div>
 <!-- Strict email verification gate: unverified email/password users land here -->

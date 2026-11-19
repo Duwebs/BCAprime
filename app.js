@@ -1140,13 +1140,45 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       else $('library').scrollIntoView({behavior:'smooth',block:'start'});
       render();
     }
-    function toggleSave(id){state.saved=state.saved.includes(id)?state.saved.filter(x=>x!==id):[...state.saved,id];localStorage.setItem('bca-saved',JSON.stringify(state.saved));setTimeout(render,90)}
+    function toggleSave(id){
+      if(isGuestMode()){
+        requireAccount('Sign up or log in to bookmark and save study material.','save',id);
+        return;
+      }
+      state.saved=state.saved.includes(id)?state.saved.filter(x=>x!==id):[...state.saved,id];
+      localStorage.setItem('bca-saved',JSON.stringify(state.saved));
+      setTimeout(render,90);
+    }
     let restrictedAction=null;
-    function isGuestMode(){return !accountSession&&sessionStorage.getItem('bca-guest-mode')==='true'}
-    function setAccessAuthMode(mode){accessAuthMode=mode;$('accessAuthTitle').textContent=mode==='signup'?'Sign up to continue':'Login to continue';$('accessAuthDescription').textContent=mode==='signup'?'Create a free account to upload and download study material.':'Login to continue with this action.';$('accessAuthSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accessAuthSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accessAuthMessage').textContent='';$('accessAuthNameLabel').hidden=mode!=='signup';$('accessAuthConfirmLabel').hidden=mode!=='signup';$('accessAuthEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accessAuthName').setAttribute('required','');$('accessAuthConfirm').setAttribute('required','');$('accessAuthEmail').removeAttribute('required')}else{$('accessAuthName').removeAttribute('required');$('accessAuthConfirm').removeAttribute('required');$('accessAuthEmail').setAttribute('required','')}}
-    function requireAccount(message,action,title=''){if(accountSession)return true;restrictedAction={action,title};setAccessAuthMode('signup');$('accessAuthDescription').textContent=message;$('accessAuthMessage').textContent='';const modal=$('accessAuthModal');if(modal){if(modal.parentNode!==document.body)document.body.appendChild(modal);else document.body.appendChild(modal);modal.style.zIndex='9999';modal.classList.add('open');initAccessSheetGestures();try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}}return false}
-    function resumeRestrictedAction(){if(!accountSession||!restrictedAction)return;const action=restrictedAction;restrictedAction=null;closeModals();if(action.action==='upload')openUpload();if(action.action==='download')download(action.title);if(action.action==='feedback')openFeedback();if(action.action==='qr-login')openQrScanner();if(action.action==='mocktest'){if(typeof unlockDetailedAnalysisIfLoggedIn==='function')unlockDetailedAnalysisIfLoggedIn();if(typeof openMockTestHub==='function')openMockTestHub();}}
-    async function submitAccessAuth(event){event.preventDefault();if(!supabaseClient){$('accessAuthMessage').textContent='Sign-in is not available right now.';return}const password=$('accessAuthPassword').value;const msgEl=$('accessAuthMessage');if(accessAuthMode==='signup'){const username=$('accessAuthName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accessAuthConfirm'),msgEl))return;const usernameAvail=await checkUsernameAvailable(username);if(usernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accessAuthMessage');return}const loginEmail=await resolveLoginEmail($('accessAuthEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){resumeRestrictedAction()}}catch(error){$('accessAuthMessage').textContent=(error&&error.message)||'Could not log in.';return}}
+    function isGuestMode(){return !accountSession}
+    function openSignUpPage(message,action='',title=''){
+      if(accountSession)return true;
+      if(action) restrictedAction={action,title};
+      closeModals();
+      setGateMode('signup');
+      if(message&&$('gateAccountMessage')) $('gateAccountMessage').textContent=message;
+      $('authGate').hidden=false;
+      $('appShell').hidden=true;
+      $('appTabs').hidden=true;
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      return false;
+    }
+    function requireAccount(message,action,title=''){
+      if(accountSession)return true;
+      return openSignUpPage(message,action,title);
+    }
+    function setAccessAuthMode(mode){return openSignUpPage('',mode);}
+    function resumeRestrictedAction(){
+      if(!accountSession||!restrictedAction)return;
+      const action=restrictedAction;restrictedAction=null;closeModals();
+      if(action.action==='save'&&action.title)toggleSave(action.title);
+      if(action.action==='upload')openUpload();
+      if(action.action==='download')download(action.title);
+      if(action.action==='feedback')openFeedback();
+      if(action.action==='qr-login')openQrScanner();
+      if(action.action==='mocktest'){if(typeof unlockDetailedAnalysisIfLoggedIn==='function')unlockDetailedAnalysisIfLoggedIn();if(typeof openMockTestHub==='function')openMockTestHub();}
+    }
+    async function submitAccessAuth(event){if(event)event.preventDefault();return openSignUpPage();}
 
     /* Guess a file extension from the resource so the saved file is never extension-less. */
     function guessExt(resource){const n=((resource&&(resource.fileName||resource.fileUrl))||'').split(/[?#]/)[0];const m=n.match(/\.([a-z0-9]{1,5})$/i);return m?'.'+m[1].toLowerCase():''}
@@ -1513,8 +1545,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function sendGoogleWelcome(user){return sendWelcomeEmail(user)}
     function getUserName(user){user=user||accountSession;if(user&&user.displayName&&user.displayName.trim())return user.displayName.trim();if(user&&user.email){const local=user.email.split('@')[0]||'';const parts=local.split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1));if(parts.length)return parts.join(' ')}return 'there'}
     function getTimeBasedGreeting(name='there'){const hour=new Date().getHours();let prefix;if(hour>=4&&hour<12)prefix='Good Morning';else if(hour>=12&&hour<17)prefix='Good Afternoon';else if(hour>=17&&hour<21)prefix='Good Evening';else prefix='Good Night';return `${prefix}, ${name}!`}let greetingTimerId=null;function scheduleGreetingUpdate(){if(greetingTimerId)return;const now=new Date();const next=new Date(now);next.setHours(next.getHours()+1,0,0,0);const delay=Math.max(0,next-now);greetingTimerId=setTimeout(()=>{greetingTimerId=null;renderGreeting()},delay)}function renderGreeting(){const greeting=$('heroGreeting');const title=$('heroDefaultTitle');if(!greeting||!title)return;const isAuthed=accountSession||sessionStorage.getItem('bca-guest-mode')==='true';greeting.hidden=!isAuthed;title.hidden=!!isAuthed;$('heroGreetName').textContent=getTimeBasedGreeting(getUserName(accountSession)||'there');if(isAuthed)scheduleGreetingUpdate()}
-    function setAccountMode(mode){accountMode=mode;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
-    function renderAccount(){const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');$('accountAuth').innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="danger-logout account-logout-btn" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
+    function setAccountMode(mode){accountMode=mode;if(!$('accountTitle'))return;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
+    function renderAccount(){renderAvatar();const acctAuth=$('accountAuth');if(!acctAuth)return;const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');acctAuth.innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="danger-logout account-logout-btn" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
     let oauthRedirectTimer = null;
     function resetOAuthButtons(){
       if(oauthRedirectTimer){
@@ -2158,7 +2190,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     async function submitAccount(event){event.preventDefault();if(!supabaseClient){$('accountMessage').textContent='Sign-in is not available right now.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();updateQrButtonVisibility();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
     async function signOutAccount(){clearProfileRealtime();try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}accountSession=null;try{localStorage.removeItem('bca-email-verified')}catch(e){}try{sessionStorage.removeItem('bca-pending-signup');sessionStorage.removeItem('bca-pending-action')}catch(e){}try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}hideProfileCard();closeModals();hideAuthenticatedApp();const acctAuth=$('accountAuth');if(acctAuth){acctAuth.innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'linkedin_oidc\')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount()}toast('Logged out');setTimeout(maybeStartQrLogin,80)}
-    function bindAccountForm(){$('accountForm').addEventListener('submit',submitAccount);$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
+    function bindAccountForm(){if($('accountForm'))$('accountForm').addEventListener('submit',submitAccount);if($('accountSwitch'))$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
     function openCollege(){renderColleges();$('collegeModal').classList.add('open')};let profileSheetDragBound=false;
     function initProfileSheetGestures(){
       if(profileSheetDragBound) return;
@@ -2198,17 +2230,45 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function openProfile(){
       syncProfileUI();
-      $('profileCollege').textContent=(colleges.find(c=>c[0]===state.college)||colleges[0])[1];
-      $('profileSaved').textContent=state.saved.length;
-      $('profileUploads').textContent=JSON.parse(localStorage.getItem('bca-uploads')||'[]').length;
+      const colObj = (colleges.find(c=>c[0]===state.college)||colleges[0]);
+      if($('profileCollege')) $('profileCollege').textContent = colObj[1];
+      if($('profileSaved')) $('profileSaved').textContent = state.saved.length;
+      if(accountSession){
+        loadMyUploads().then(items => {
+          const list = items || [];
+          const pending = list.filter(item=>item.status==='pending').length;
+          const approved = list.filter(item=>item.status==='approved').length;
+          if($('profileUploads')) $('profileUploads').textContent = list.length;
+          if($('profileUploadsSub')) $('profileUploadsSub').textContent = `${approved} live · ${pending} in review`;
+        });
+      } else {
+        const localUploads = JSON.parse(localStorage.getItem('bca-uploads')||'[]');
+        if($('profileUploads')) $('profileUploads').textContent = localUploads.length;
+        if($('profileUploadsSub')) $('profileUploadsSub').textContent = `${localUploads.length} live · 0 in review`;
+      }
       renderAvatar();
-      renderAccount();
-      renderMyUploads();
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
       $('profileModal').classList.add('open');
       syncBottomNavTab();
       initProfileSheetGestures();
-    };let uploadSheetDragBound=false;
+    }
+    function openMyUploadsSheet(){
+      if(!accountSession && !getUploaderEmail() && !JSON.parse(localStorage.getItem('bca-uploads')||'[]').length){
+        requireAccount('Log in to track your uploaded study material and review status.','upload');
+        return;
+      }
+      const modal=$('myUploadsModal');
+      if(modal){
+        modal.classList.add('open');
+        renderMyUploads();
+        try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
+      }
+    }
+    function closeMyUploadsSheet(){
+      const modal=$('myUploadsModal');
+      if(modal) modal.classList.remove('open');
+    }
+    let uploadSheetDragBound=false;
     function initUploadSheetGestures(){
       if(uploadSheetDragBound) return;
       const modal=$('uploadModal');
@@ -2257,7 +2317,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       updateUploadSubjects();
     };function syncBottomNavTab(){const tabs=document.querySelectorAll('.bottom-tab');if(!tabs.length)return;const profModal=$('profileModal');const profOpen=profModal&&profModal.classList.contains('open');if(profOpen){tabs.forEach(t=>t.classList.toggle('active',t.classList.contains('bottom-tab-profile')))}else if(state.savedOnly){tabs.forEach((t,i)=>t.classList.toggle('active',i===3))}else{tabs.forEach((t,i)=>t.classList.toggle('active',i===0))}}function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}syncBottomNavTab();}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
-    function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
+    function initialsAvatar(name){
+      const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');
+      const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><defs><linearGradient id="avGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#f97316"/></linearGradient></defs><rect width="120" height="120" rx="60" fill="url(#avGrad)"/><text x="60" y="79" font-family="-apple-system,BlinkMacSystemFont,'Geist','Segoe UI',sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;
+      return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg);
+    }
     function getCurrentUsername(){
       const uid=accountUid();
       const cached=uid?contributorCache.get(String(uid)):null;
@@ -2277,8 +2341,57 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';
       const tb=$('topbarAvatar');if(tb)tb.src=getAvatar();
       const bta=$('bottomTabAvatar');if(bta)bta.src=getAvatar();
-      const edBtn=$('profileEditBtn');if(edBtn)edBtn.hidden=!accountSession;
+      
+      const camBadge=$('avatarEditBadge');
+      const edBtn=$('profileEditBtn');
+      const avWrap=$('profileAvatarWrap');
+      const footEmail=$('profileSessionEmail');
+      const footLabel=$('profileSessionLabel');
+      const logoutBtn=$('profileLogoutBtn');
+      const loginBtn=$('profileLoginBtn');
+
+      if(accountSession&&accountSession.email){
+        if(footLabel) footLabel.textContent='Signed in';
+        if(footEmail) footEmail.textContent=accountSession.email;
+        if(logoutBtn){ logoutBtn.hidden=false; logoutBtn.style.display=''; }
+        if(loginBtn){ loginBtn.hidden=true; loginBtn.style.display='none'; }
+        if(camBadge){ camBadge.hidden=false; camBadge.style.display='flex'; }
+        if(edBtn){ edBtn.hidden=false; edBtn.style.display=''; edBtn.onclick=openEditProfileModal; }
+        if(avWrap){ avWrap.onclick=openEditProfileModal; avWrap.style.cursor='pointer'; }
+      }else{
+        if(footLabel) footLabel.textContent='Browsing as';
+        if(footEmail) footEmail.textContent='Guest mode';
+        if(logoutBtn){ logoutBtn.hidden=true; logoutBtn.style.display='none'; }
+        if(loginBtn){ loginBtn.hidden=false; loginBtn.style.display=''; }
+        if(camBadge){ camBadge.hidden=true; camBadge.style.display='none'; }
+        if(edBtn){ edBtn.hidden=true; edBtn.style.display='none'; }
+        if(avWrap){ avWrap.onclick=()=>openSignUpPage('Sign up or log in to customize your profile.'); avWrap.style.cursor='pointer'; }
+      }
     }
+    function openSettingsSheet(){
+      closeModals();
+      const m=$('settingsModal');
+      if(m)m.classList.add('open');
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+    }
+    function closeSettingsSheet(){
+      const m=$('settingsModal');
+      if(m)m.classList.remove('open');
+    }
+    function openAboutModal(){
+      closeModals();
+      const m=$('aboutModal');
+      if(m)m.classList.add('open');
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+    }
+    function closeAboutModal(){
+      const m=$('aboutModal');
+      if(m)m.classList.remove('open');
+    }
+    window.openSettingsSheet=openSettingsSheet;
+    window.closeSettingsSheet=closeSettingsSheet;
+    window.openAboutModal=openAboutModal;
+    window.closeAboutModal=closeAboutModal;
     function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),username:getCurrentUsername(),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
 
     function openEditProfileModal(){
@@ -2678,12 +2791,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function renderMyUploads(){
       const listEl=$('myUploadsList');const summaryEl=$('myUploadsSummary');if(!listEl)return;
       if(!accountUid()&&!getUploaderEmail()){
-        summaryEl.textContent='';
+        if(summaryEl) summaryEl.textContent='';
+        if($('profileUploads')) $('profileUploads').textContent='0';
+        if($('profileUploadsSub')) $('profileUploadsSub').textContent='0 live · 0 in review';
         listEl.innerHTML=`<div class="profile-empty-state">
           <div class="profile-empty-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
           <h4>Track your uploads</h4>
           <p>Login to track your uploaded study material and review status.</p>
-          <button class="primary empty-action-btn" type="button" onclick="$('accountAuth').scrollIntoView({behavior:'smooth'})"><i class="fa-solid fa-arrow-down"></i> Sign in to view</button>
+          <button class="primary empty-action-btn bca-pressable" type="button" onclick="closeMyUploadsSheet();openSignUpPage('Sign in to track your uploaded study material.')"><i class="fa-solid fa-arrow-right"></i> Sign in to view</button>
         </div>`;
         return;
       }
@@ -2694,13 +2809,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const items=await loadMyUploads();
       const pending=items.filter(item=>item.status==='pending').length;
       const approved=items.filter(item=>item.status==='approved').length;
-      summaryEl.textContent=`${items.length} total · ${pending} in review · ${approved} live`;
+      if(summaryEl) summaryEl.textContent=`${items.length} total · ${pending} in review · ${approved} live`;
+      if($('profileUploads')) $('profileUploads').textContent=items.length;
+      if($('profileUploadsSub')) $('profileUploadsSub').textContent=`${approved} live · ${pending} in review`;
       if(!items.length){
         listEl.innerHTML=`<div class="profile-empty-state">
           <div class="profile-empty-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
           <h4>No uploads yet</h4>
           <p>Share your first notes or PYQ with your college students.</p>
-          <button class="primary empty-action-btn" type="button" onclick="closeModals();openUpload()"><i class="fa-solid fa-plus"></i> Upload material</button>
+          <button class="primary empty-action-btn bca-pressable" type="button" onclick="closeModals();openUpload()"><i class="fa-solid fa-plus"></i> Upload material</button>
         </div>`;
         return;
       }
@@ -2967,7 +3084,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount()}catch(e){}
     }
     async function initAccount(){return initAccountSupabase();}
-    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);$('gateAccountForm').addEventListener('submit',submitGateAccount);$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));$('accessAuthForm').addEventListener('submit',submitAccessAuth);$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();fetchRecentReadingProgress()});
+    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);if($('gateAccountForm'))$('gateAccountForm').addEventListener('submit',submitGateAccount);if($('gateAccountSwitch'))$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));if($('accessAuthForm'))$('accessAuthForm').addEventListener('submit',submitAccessAuth);if($('accessAuthSwitch'))$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();fetchRecentReadingProgress()});
     /* ================= Offline / online UX (offline-first PWA) =================
        Big-tech pattern (Google/Netflix ki tarah):
        - Jab user offline ho -> top par dismissible notification banner (ek baar)
