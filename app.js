@@ -1515,7 +1515,26 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function getTimeBasedGreeting(name='there'){const hour=new Date().getHours();let prefix;if(hour>=4&&hour<12)prefix='Good Morning';else if(hour>=12&&hour<17)prefix='Good Afternoon';else if(hour>=17&&hour<21)prefix='Good Evening';else prefix='Good Night';return `${prefix}, ${name}!`}let greetingTimerId=null;function scheduleGreetingUpdate(){if(greetingTimerId)return;const now=new Date();const next=new Date(now);next.setHours(next.getHours()+1,0,0,0);const delay=Math.max(0,next-now);greetingTimerId=setTimeout(()=>{greetingTimerId=null;renderGreeting()},delay)}function renderGreeting(){const greeting=$('heroGreeting');const title=$('heroDefaultTitle');if(!greeting||!title)return;const isAuthed=accountSession||sessionStorage.getItem('bca-guest-mode')==='true';greeting.hidden=!isAuthed;title.hidden=!!isAuthed;$('heroGreetName').textContent=getTimeBasedGreeting(getUserName(accountSession)||'there');if(isAuthed)scheduleGreetingUpdate()}
     function setAccountMode(mode){accountMode=mode;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
     function renderAccount(){const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');$('accountAuth').innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="danger-logout account-logout-btn" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
+    let oauthRedirectTimer = null;
+    function resetOAuthButtons(){
+      if(oauthRedirectTimer){
+        clearTimeout(oauthRedirectTimer);
+        oauthRedirectTimer = null;
+      }
+      document.querySelectorAll('.oauth-button').forEach(b => {
+        b.classList.remove('is-loading-oauth');
+        b.style.pointerEvents = '';
+      });
+      document.querySelectorAll('.oauth-inline-spinner-wrap').forEach(s => s.remove());
+    }
+    window.addEventListener('pageshow', () => { resetOAuthButtons(); });
+    document.addEventListener('visibilitychange', () => {
+      if(document.visibilityState === 'visible') resetOAuthButtons();
+    });
+    window.addEventListener('focus', () => { resetOAuthButtons(); });
+
     async function signInWithProvider(provider,messageId='accountMessage',triggerBtn=null){
+      resetOAuthButtons();
       if(!triggerBtn && messageId==='gateAccountMessage'){
         triggerBtn = (provider==='google' ? $('gateGoogleBtn') : $('gateLinkedinBtn'));
       }
@@ -1532,20 +1551,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         spin.innerHTML = '<svg class="oauth-inline-spinner" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" fill="none" stroke-dasharray="32" stroke-dashoffset="12"></circle></svg>';
         triggerBtn.appendChild(spin);
       }
+      oauthRedirectTimer = setTimeout(resetOAuthButtons, 8000);
       const msgEl = messageId ? $(messageId) : null;
       if(msgEl) msgEl.textContent = '';
       if(!supabaseClient){
         if(msgEl) msgEl.textContent = 'Sign-in is not available right now.';
-        if(actionsWrap){
-          actionsWrap.querySelectorAll('.oauth-button').forEach(b => {
-            b.classList.remove('is-loading-oauth');
-            b.style.pointerEvents = '';
-          });
-        }
-        if(triggerBtn){
-          const s = triggerBtn.querySelector('.oauth-inline-spinner-wrap');
-          if(s) s.remove();
-        }
+        resetOAuthButtons();
         return;
       }
       try{
@@ -1561,16 +1572,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(error)throw error;
       }catch(error){
         if(pendingSignup)pendingSignup=null;
-        if(actionsWrap){
-          actionsWrap.querySelectorAll('.oauth-button').forEach(b => {
-            b.classList.remove('is-loading-oauth');
-            b.style.pointerEvents = '';
-          });
-        }
-        if(triggerBtn){
-          const s = triggerBtn.querySelector('.oauth-inline-spinner-wrap');
-          if(s) s.remove();
-        }
+        resetOAuthButtons();
         const providerLabel = provider==='linkedin_oidc' ? 'LinkedIn' : (provider.charAt(0).toUpperCase()+provider.slice(1));
         if(msgEl) msgEl.textContent=(error&&error.message)||('Could not start '+providerLabel+' sign-in.');
       }
