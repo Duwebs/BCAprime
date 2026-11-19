@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=65">
+  <link rel="stylesheet" href="styles.css?v=66">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -300,7 +300,12 @@
         <button class="icon-btn notify-bell" id="notifyBell" onclick="toggleNotifications(event,this)" aria-label="Toggle notifications" title="Notifications" hidden><span class="bell-icon-wrapper"><i id="bellIcon" class="fa-regular fa-bell"></i></span></button>
         <button class="icon-btn mobile-qr-topbar" id="topbarQrBtn" onclick="openQrScanner()" aria-label="Scan QR — computer login" title="Log in on your computer (QR scan)"><i class="fa-solid fa-camera"></i></button>
         <button class="secondary install-button" id="installButton" onclick="installApp()" hidden><i class="fa-solid fa-download"></i> Install app</button>
-        <button class="topbar-avatar" id="topbarAvatarBtn" onclick="toggleProfileCard(event)" aria-label="Open profile card" title="Your profile"><img id="topbarAvatar" alt="Profile"></button>
+        <button class="icon-btn topbar-settings-btn bca-pressable" id="topbarSettingsBtn" onclick="openProfile()" aria-label="Settings" title="Settings">
+          <svg class="settings-hex-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M10.8 3.2L3.9 7.2C3.3 7.5 3 8.1 3 8.8V15.2C3 15.9 3.3 16.5 3.9 16.8L10.8 20.8C11.5 21.2 12.5 21.2 13.2 20.8L20.1 16.8C20.7 16.5 21 15.9 21 15.2V8.8C21 8.1 20.7 7.5 20.1 7.2L13.2 3.2C12.5 2.8 11.5 2.8 10.8 3.2Z" />
+            <circle cx="12" cy="12" r="2.8" />
+          </svg>
+        </button>
       </nav>
       <div class="profile-pop" id="profilePop" hidden>
         <div class="profile-pop-head"><img id="popAvatar" alt="Profile photo"><div class="profile-pop-copy"><strong id="popName">Guest</strong><small id="popMail">Browsing as guest</small></div></div>
@@ -596,7 +601,30 @@
       <p class="app-version" id="appVersion" title="Current app version"></p>
     </footer>
   </main>
-  <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden><button class="bottom-tab active" onclick="selectTab('library',this)"><i class="fa-solid fa-house"></i><span>Library</span></button><button class="bottom-tab" onclick="selectTab('semesters',this)"><i class="fa-solid fa-layer-group"></i><span>Semesters</span></button><button class="bottom-tab bottom-star" onclick="openUpload()"><span class="bottom-star-icon"><i class="fa-solid fa-plus"></i></span><span class="bottom-star-text">Upload</span></button><button class="bottom-tab" onclick="selectTab('saved',this)"><i class="fa-solid fa-bookmark"></i><span>Saved</span></button><button class="bottom-tab" onclick="selectTab('profile',this)"><i class="fa-solid fa-user"></i><span>Profile</span></button></nav>
+  <nav class="bottom-tabs" id="appTabs" aria-label="Quick navigation" hidden>
+    <button class="bottom-tab active bca-pressable" onclick="selectTab('library',this)">
+      <i class="fa-solid fa-house"></i>
+      <span>Library</span>
+    </button>
+    <button class="bottom-tab bca-pressable" onclick="selectTab('semesters',this)">
+      <i class="fa-solid fa-layer-group"></i>
+      <span>Semesters</span>
+    </button>
+    <button class="bottom-tab bottom-star bca-pressable" onclick="openUpload()">
+      <span class="bottom-star-icon"><i class="fa-solid fa-plus"></i></span>
+      <span class="bottom-star-text">Upload</span>
+    </button>
+    <button class="bottom-tab bca-pressable" onclick="selectTab('saved',this)">
+      <i class="fa-solid fa-bookmark"></i>
+      <span>Saved</span>
+    </button>
+    <button class="bottom-tab bottom-tab-profile bca-pressable" onclick="selectTab('profile',this)">
+      <div class="bottom-tab-avatar-wrap">
+        <img id="bottomTabAvatar" class="bottom-tab-avatar" src="assets/durgesh.jpeg" alt="Profile" onerror="this.onerror=null;this.src='assets/logo.png'">
+      </div>
+      <span>Profile</span>
+    </button>
+  </nav>
 
   <!-- PrimeFinder Semester Bottom Sheet -->
   <div class="modal pf-sheet-modal" id="pfSemSheet" role="dialog" aria-modal="true" aria-labelledby="pfSemSheetTitle">
@@ -1561,7 +1589,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=62"></script>
+  <script src="app.js?v=63"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>

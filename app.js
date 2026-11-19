@@ -2206,6 +2206,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       renderMyUploads();
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
       $('profileModal').classList.add('open');
+      syncBottomNavTab();
       initProfileSheetGestures();
     };let uploadSheetDragBound=false;
     function initUploadSheetGestures(){
@@ -2254,7 +2255,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       $('uploadModal').classList.add('open');
       initUploadSheetGestures();
       updateUploadSubjects();
-    };function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}}
+    };function syncBottomNavTab(){const tabs=document.querySelectorAll('.bottom-tab');if(!tabs.length)return;const profModal=$('profileModal');const profOpen=profModal&&profModal.classList.contains('open');if(profOpen){tabs.forEach(t=>t.classList.toggle('active',t.classList.contains('bottom-tab-profile')))}else if(state.savedOnly){tabs.forEach((t,i)=>t.classList.toggle('active',i===3))}else{tabs.forEach((t,i)=>t.classList.toggle('active',i===0))}}function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}syncBottomNavTab();}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120"><rect width="120" height="120" rx="60" fill="#23808f"/><text x="60" y="79" font-family="Arial,sans-serif" font-size="54" font-weight="700" text-anchor="middle" fill="#ffffff">${letter}</text></svg>`;return 'data:image/svg+xml;utf8,'+encodeURIComponent(svg)}
     function getCurrentUsername(){
@@ -2275,6 +2276,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const nameEl=$('profileIdName');if(nameEl)nameEl.textContent=accountSession?getUserName(accountSession):'Guest';
       const mailEl=$('profileIdMail');if(mailEl)mailEl.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';
       const tb=$('topbarAvatar');if(tb)tb.src=getAvatar();
+      const bta=$('bottomTabAvatar');if(bta)bta.src=getAvatar();
       const edBtn=$('profileEditBtn');if(edBtn)edBtn.hidden=!accountSession;
     }
     function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),username:getCurrentUsername(),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
