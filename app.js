@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v74 loaded ✔');
+console.info('[BCAPrime] app.js v77 loaded ✔');
 const ONBOARDING_COLLEGES = [
   ['amity', 'Amity University'],
   ['adbu', 'Assam Don Bosco University'],
@@ -1382,6 +1382,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
       closeModals();
       setGateMode('signup');
+      if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+        const gate=$('authGate');
+        if(gate)gate.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+      }
       if(message){
         if($('gateSubtitle')) $('gateSubtitle').textContent=message;
         if($('gateAccountMessage')) $('gateAccountMessage').textContent=message;
@@ -1776,10 +1780,61 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        Supabase me save hota hai. Password kabhi plaintext me store nahi hota —
        sirf Firebase (hashed) me rehta hai. */
     function setLabelText(labelEl,text){if(labelEl&&labelEl.childNodes&&labelEl.childNodes[0])labelEl.childNodes[0].nodeValue=text}
-    let pendingSignup=null,usernameCheckTimer=null;
+    let pendingSignup=null,usernameCheckTimer=null,usernameRequestId=0;
     function isValidUsername(u){return /^[a-z0-9_]{3,20}$/.test((u||'').trim().toLowerCase())}
     async function checkUsernameAvailable(u, currentUid){if(!supabaseClient)return null;try{const clean=(u||'').trim().toLowerCase();const{data}=await supabaseClient.from('user_profiles').select('uid').eq('username',clean).maybeSingle();if(!data)return true;if(currentUid&&data.uid===currentUid)return true;return false}catch(e){return null}}
-    async function liveUsernameCheck(input,hintId){const hint=$(hintId);if(!hint)return;const u=input.value.trim().toLowerCase();if(!u){hint.textContent='';return}if(!isValidUsername(u)){hint.textContent='3\u201320 letters, numbers or _';hint.className='field-hint bad';return}hint.textContent='Checking\u2026';hint.className='field-hint';clearTimeout(usernameCheckTimer);usernameCheckTimer=setTimeout(async()=>{const avail=await checkUsernameAvailable(u);if(avail===null){hint.textContent='';return}hint.textContent=avail?'\u2713 Available':'\u2717 Already taken';hint.className='field-hint '+(avail?'good':'bad')},350)}
+    async function liveUsernameCheck(input,hintId){
+      const hint=$(hintId);
+      if(!hint) return;
+      // 1. Immediate synchronous timer cancel & request invalidation
+      if(usernameCheckTimer){clearTimeout(usernameCheckTimer);usernameCheckTimer=null;}
+      const currentReqId = ++usernameRequestId;
+      const raw = input && typeof input.value === 'string' ? input.value : '';
+      const u = raw.trim().toLowerCase();
+      // 2. Immediate synchronous reset on empty or sub-length input
+      if(!u){
+        hint.textContent = '';
+        hint.className = 'field-hint';
+        return;
+      }
+      if(!isValidUsername(u)){
+        hint.textContent = '3\u201320 letters, numbers or _';
+        hint.className = 'field-hint bad';
+        return;
+      }
+      hint.textContent = 'Checking\u2026';
+      hint.className = 'field-hint';
+      usernameCheckTimer = setTimeout(async ()=>{
+        if(currentReqId !== usernameRequestId) return;
+        const preVal = input && typeof input.value === 'string' ? input.value.trim().toLowerCase() : '';
+        if(!preVal || preVal !== u){
+          if(!preVal){ hint.textContent = ''; hint.className = 'field-hint'; }
+          return;
+        }
+        try{
+          const avail = await checkUsernameAvailable(u);
+          // 3. Stale-response guard: confirm request ID and current DOM value strictly match queried username
+          if(currentReqId !== usernameRequestId) return;
+          const postVal = input && typeof input.value === 'string' ? input.value.trim().toLowerCase() : '';
+          if(!postVal || postVal !== u){
+            if(!postVal){ hint.textContent = ''; hint.className = 'field-hint'; }
+            return;
+          }
+          if(avail === null){
+            hint.textContent = '';
+            hint.className = 'field-hint';
+            return;
+          }
+          hint.textContent = avail ? '\u2713 Available' : '\u2717 Already taken';
+          hint.className = 'field-hint ' + (avail ? 'good' : 'bad');
+        }catch(e){
+          if(currentReqId === usernameRequestId){
+            hint.textContent = '';
+            hint.className = 'field-hint';
+          }
+        }
+      }, 350);
+    }
     /* Login helper: "username" ya "email" dono chalein. Username diya ho to
        user_profiles se uska email nikaal kar Supabase login karo. */
     async function resolveLoginEmail(identifier,msgEl){const id=(identifier||'').trim();if(!id)return '';if(id.indexOf('@')!==-1)return id.toLowerCase();if(!supabaseClient)return id;try{const{data}=await supabaseClient.from('user_profiles').select('email,username').eq('username',id.toLowerCase()).maybeSingle();if(data&&data.email)return data.email;if(msgEl)msgEl.textContent='No account found with that username. Try your email, or use Continue with Google.';return ''}catch(e){return id}}
@@ -1807,14 +1862,46 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function sendGoogleWelcome(user){return sendWelcomeEmail(user)}
     function getUserName(user){user=user||accountSession;if(user&&user.displayName&&user.displayName.trim())return user.displayName.trim();if(user&&user.email){const local=user.email.split('@')[0]||'';const parts=local.split(/[._+\-]+/).filter(Boolean).map(p=>p.charAt(0).toUpperCase()+p.slice(1));if(parts.length)return parts.join(' ')}return 'there'}
     function getTimeBasedGreeting(name='there'){const hour=new Date().getHours();let prefix;if(hour>=4&&hour<12)prefix='Good Morning';else if(hour>=12&&hour<17)prefix='Good Afternoon';else if(hour>=17&&hour<21)prefix='Good Evening';else prefix='Good Night';return `${prefix}, ${name}!`}let greetingTimerId=null;function scheduleGreetingUpdate(){if(greetingTimerId)return;const now=new Date();const next=new Date(now);next.setHours(next.getHours()+1,0,0,0);const delay=Math.max(0,next-now);greetingTimerId=setTimeout(()=>{greetingTimerId=null;renderGreeting()},delay)}function renderGreeting(){const greeting=$('heroGreeting');const title=$('heroDefaultTitle');if(!greeting||!title)return;const isAuthed=accountSession||sessionStorage.getItem('bca-guest-mode')==='true';greeting.hidden=!isAuthed;title.hidden=!!isAuthed;$('heroGreetName').textContent=getTimeBasedGreeting(getUserName(accountSession)||'there');if(isAuthed)scheduleGreetingUpdate()}
-    function setAccountMode(mode){accountMode=mode;if(!$('accountTitle'))return;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
+    function setAccountMode(mode){accountMode=mode;if(usernameCheckTimer){clearTimeout(usernameCheckTimer);usernameCheckTimer=null;}usernameRequestId++;const auHint=$('accountUsernameHint');if(auHint){auHint.textContent='';auHint.className='field-hint';}if(!$('accountTitle'))return;$('accountTitle').textContent=mode==='signup'?'Create your account':'Welcome back';$('accountDescription').textContent=mode==='signup'?'Sign in to keep your study activity connected across devices.':'Login to keep your study activity connected across devices.';$('accountSubmit').textContent=mode==='signup'?'Sign up':'Login';$('accountSwitch').textContent=mode==='signup'?'Already have an account? Login':'Need an account? Sign up';$('accountMessage').textContent='';$('accountNameLabel').hidden=mode!=='signup';$('accountConfirmLabel').hidden=mode!=='signup';$('accountEmailLabel').hidden=mode==='signup';if(mode==='signup'){$('accountName').setAttribute('required','');$('accountConfirm').setAttribute('required','');$('accountEmail').removeAttribute('required')}else{$('accountName').removeAttribute('required');$('accountConfirm').removeAttribute('required');$('accountEmail').setAttribute('required','')}}
     function renderAccount(){renderAvatar();const acctAuth=$('accountAuth');if(!acctAuth)return;const form=$('accountForm');if(accountSession){const name=escHtml(getUserName(accountSession));const identity=escHtml(accountSession.email||'Account connected');acctAuth.innerHTML=`<h3>Hi ${name}!</h3><p>Signed in as ${identity}</p><div class="account-user"><span>${identity}</span><button class="danger-logout account-logout-btn" type="button" onclick="signOutAccount()">Log out</button></div>`;return}if(!form)return;setAccountMode(accountMode)}
     let oauthRedirectTimer = null;
+    function setGateSubmitLoading(loading){
+      const btn = $('gateAccountSubmit');
+      if(!btn) return;
+      if(loading){
+        btn.disabled = true;
+        btn.classList.add('is-submitting');
+      }else{
+        btn.disabled = false;
+        btn.classList.remove('is-submitting');
+      }
+    }
+    window.setGateSubmitLoading = setGateSubmitLoading;
+
+    function togglePasswordVisibility(inputId, btn){
+      const input = document.getElementById(inputId);
+      if(!input) return;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      const icon = btn ? btn.querySelector('i') : null;
+      if(icon){
+        icon.className = isPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+      }
+      if(btn){
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      }
+      if(window.BCA_UI && window.BCA_UI.triggerLightHaptic){
+        window.BCA_UI.triggerLightHaptic(10);
+      }
+    }
+    window.togglePasswordVisibility = togglePasswordVisibility;
+
     function resetOAuthButtons(){
       if(oauthRedirectTimer){
         clearTimeout(oauthRedirectTimer);
         oauthRedirectTimer = null;
       }
+      setGateSubmitLoading(false);
       document.querySelectorAll('.oauth-button').forEach(b => {
         b.classList.remove('is-loading-oauth');
         b.style.pointerEvents = '';
@@ -1874,8 +1961,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let gateMode='signup';
     function setGateMode(mode){
       gateMode=mode;
-      const submitBtn=$('gateAccountSubmit');
-      if(submitBtn)submitBtn.textContent=mode==='signup'?'Sign up':'Log in';
+      setGateSubmitLoading(false);
+      if(usernameCheckTimer){clearTimeout(usernameCheckTimer);usernameCheckTimer=null;}
+      usernameRequestId++;
+      const uHint = $('gateUsernameHint');
+      if(uHint){ uHint.textContent=''; uHint.className='field-hint'; }
+      const submitText=document.querySelector('#gateAccountSubmit .auth-submit-text') || $('gateAccountSubmit');
+      if(submitText)submitText.textContent=mode==='signup'?'Sign up':'Log in';
+      const tabSignup=$('gateTabSignup');
+      const tabLogin=$('gateTabLogin');
+      if(tabSignup && tabLogin){
+        tabSignup.classList.toggle('active', mode==='signup');
+        tabLogin.classList.toggle('active', mode==='login');
+      }
       const switchBtn=$('gateAccountSwitch');
       if(switchBtn){
         switchBtn.innerHTML=mode==='signup'
@@ -1896,22 +1994,114 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(subtitle)subtitle.textContent=mode==='signup'
         ?'Create an account to access the BCA library, saved resources and uploads.'
         :'Log in to access the BCA library, saved resources and uploads.';
+      
+      const nameInput = $('gateAccountName');
+      const emailInput = $('gateAccountEmail');
+      const passInput = $('gateAccountPassword');
+      const confirmInput = $('gateAccountConfirm');
+
       if(mode==='signup'){
-        $('gateAccountName').setAttribute('required','');
-        $('gateAccountConfirm').setAttribute('required','');
-        $('gateAccountEmail').removeAttribute('required');
+        if(nameInput) {
+          nameInput.setAttribute('required','');
+          nameInput.placeholder = 'Choose a username';
+        }
+        if(confirmInput) {
+          confirmInput.setAttribute('required','');
+          confirmInput.placeholder = 'Re-enter password';
+          confirmInput.type = 'password';
+        }
+        if(passInput) {
+          passInput.placeholder = 'At least 8 characters';
+          passInput.type = 'password';
+        }
+        if(emailInput) emailInput.removeAttribute('required');
         setAuthMode('form');
       }else{
-        $('gateAccountName').removeAttribute('required');
-        $('gateAccountConfirm').removeAttribute('required');
-        $('gateAccountEmail').setAttribute('required','');
+        if(nameInput) {
+          nameInput.removeAttribute('required');
+          nameInput.placeholder = 'Enter username / email';
+        }
+        if(confirmInput) confirmInput.removeAttribute('required');
+        if(emailInput) {
+          emailInput.setAttribute('required','');
+          emailInput.placeholder = 'Enter username / email';
+        }
+        if(passInput) {
+          passInput.placeholder = 'Enter your password';
+          passInput.type = 'password';
+        }
       }
+      document.querySelectorAll('.auth-eye-btn i').forEach(icon => {
+        icon.className = 'fa-regular fa-eye';
+      });
+
       const qrTrig = $('desktopQrTrigger');
       if(qrTrig){
         qrTrig.hidden = (mode !== 'login');
       }
     }
-    async function submitGateAccount(event){event.preventDefault();if(!supabaseClient){$('gateAccountMessage').textContent='Sign-in is not available right now.';return}const password=$('gateAccountPassword').value;const msgEl=$('gateAccountMessage');if(gateMode==='signup'){const username=$('gateAccountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('gateAccountConfirm'),msgEl))return;const gateUsernameAvail=await checkUsernameAvailable(username);if(gateUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};if(msgEl)msgEl.textContent='';await signInWithProvider('google','gateAccountMessage',$('gateGoogleBtn'));return}const loginEmail=await resolveLoginEmail($('gateAccountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');showAuthenticatedApp()}}catch(error){$('gateAccountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
+    async function submitGateAccount(event){
+      event.preventDefault();
+      if(!supabaseClient){
+        $('gateAccountMessage').textContent='Sign-in is not available right now.';
+        return;
+      }
+      const password=$('gateAccountPassword').value;
+      const msgEl=$('gateAccountMessage');
+      if(gateMode==='signup'){
+        const username=$('gateAccountName').value.trim().toLowerCase();
+        if(!isValidUsername(username)){
+          msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';
+          setGateSubmitLoading(false);
+          return;
+        }
+        if(!checkPasswordMatch(password,$('gateAccountConfirm'),msgEl)){
+          setGateSubmitLoading(false);
+          return;
+        }
+        setGateSubmitLoading(true);
+        let gateUsernameAvail = true;
+        try {
+          gateUsernameAvail = await checkUsernameAvailable(username);
+        } catch(e) {
+          gateUsernameAvail = true;
+        }
+        if(gateUsernameAvail===false){
+          msgEl.textContent='That username is already taken. Please choose another one.';
+          setGateSubmitLoading(false);
+          return;
+        }
+        pendingSignup={username,password};
+        if(msgEl)msgEl.textContent='';
+        try {
+          await signInWithProvider('google','gateAccountMessage',$('gateGoogleBtn'));
+        } catch(e) {
+          setGateSubmitLoading(false);
+        }
+        return;
+      }
+      setGateSubmitLoading(true);
+      const loginEmail=await resolveLoginEmail($('gateAccountEmail').value,msgEl);
+      if(!loginEmail){
+        setGateSubmitLoading(false);
+        return;
+      }
+      msgEl.textContent='Working...';
+      try{
+        const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});
+        if(error)throw error;
+        accountSession=normalizeSupabaseUser(data.session.user);
+        await refreshVerificationFlag(accountSession);
+        if(await ensureVerified(accountSession)){
+          sessionStorage.removeItem('bca-guest-mode');
+          showAuthenticatedApp();
+        }
+      }catch(error){
+        setGateSubmitLoading(false);
+        $('gateAccountMessage').textContent=(error&&error.message)||'Could not log in.';
+        return;
+      }
+    }
     /* =============== QR Button Visibility Management =============== */
     function updateQrButtonVisibility(){
       const isGuest=isGuestMode();
@@ -3690,7 +3880,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount()}catch(e){}
     }
     async function initAccount(){return initAccountSupabase();}
-    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);if($('gateAccountForm'))$('gateAccountForm').addEventListener('submit',submitGateAccount);if($('gateAccountSwitch'))$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));if($('accessAuthForm'))$('accessAuthForm').addEventListener('submit',submitAccessAuth);if($('accessAuthSwitch'))$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();fetchRecentReadingProgress()});
+    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);if($('gateAccountForm'))$('gateAccountForm').addEventListener('submit',submitGateAccount);if($('gateAccountSwitch'))$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));if($('accessAuthForm'))$('accessAuthForm').addEventListener('submit',submitAccessAuth);if($('accessAuthSwitch'))$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();fetchRecentReadingProgress();if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){const gate=$('authGate');if(gate)gate.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));}});
     /* ================= Offline / online UX (offline-first PWA) =================
        Big-tech pattern (Google/Netflix ki tarah):
        - Jab user offline ho -> top par dismissible notification banner (ek baar)

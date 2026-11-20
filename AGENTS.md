@@ -4,10 +4,11 @@
 
 ---
 
-## Core UI Component Library Reference
+## Core UI Component Library & Typography Reference
 
 All core UI components and tokens reside in the `ui/` directory:
 - **Central Config & Tokens**: `ui/config.js` & `ui/ui.css`
+- **Condensed Typography Design System**: `.agents/skills/condensed-typography/SKILL.md` (A-to-Z font hierarchy: Barlow Condensed headings, Roboto Condensed body/inputs, monospace badges)
 - **PressableScale**: `ui/pressable.js` (`PressableScale`, `createPressable`, `triggerLightHaptic`)
 - **BottomSheet**: `ui/bottomSheet.js` (`BottomSheet`)
 - **Skeleton**: `ui/skeleton.js` (`Skeleton`, `SkeletonCard`)

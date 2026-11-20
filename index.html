@@ -206,10 +206,10 @@
   <link rel="icon" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=76">
+  <link rel="stylesheet" href="styles.css?v=79">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -247,21 +247,42 @@
           <button class="linklike auth-alt-link bca-pressable" type="button" onclick="setAuthMode('form')"><i class="fa-solid fa-arrow-left"></i> Back to password / OAuth login</button>
         </div>
         <div class="auth-form-wrap">
+          <div class="auth-segmented-tabs" role="tablist">
+            <button type="button" class="auth-tab-btn active bca-pressable" id="gateTabSignup" onclick="setGateMode('signup')">Sign up</button>
+            <button type="button" class="auth-tab-btn bca-pressable" id="gateTabLogin" onclick="setGateMode('login')">Log in</button>
+          </div>
           <form class="account-form" id="gateAccountForm">
             <label id="gateNameLabel">Username
-              <input id="gateAccountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,'gateUsernameHint')" required>
+              <input id="gateAccountName" type="text" autocomplete="username" minlength="3" maxlength="20" placeholder="Choose a username" oninput="liveUsernameCheck(this,'gateUsernameHint')" required>
               <small class="field-hint" id="gateUsernameHint"></small>
             </label>
             <label id="gateEmailLabel" hidden>Email or Username
-              <input id="gateAccountEmail" type="text" autocomplete="username">
+              <input id="gateAccountEmail" type="text" autocomplete="username" placeholder="Enter username / email">
             </label>
             <label id="gatePasswordLabel">Password
-              <input id="gateAccountPassword" type="password" autocomplete="new-password" minlength="6" required>
+              <div class="auth-input-wrap">
+                <input id="gateAccountPassword" type="password" autocomplete="new-password" minlength="6" placeholder="At least 8 characters" required>
+                <button type="button" class="auth-eye-btn bca-pressable" aria-label="Toggle password visibility" onclick="togglePasswordVisibility('gateAccountPassword', this)">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
             </label>
             <label id="gateConfirmLabel">Confirm Password
-              <input id="gateAccountConfirm" type="password" autocomplete="new-password" minlength="6" required>
+              <div class="auth-input-wrap">
+                <input id="gateAccountConfirm" type="password" autocomplete="new-password" minlength="6" placeholder="Re-enter password" required>
+                <button type="button" class="auth-eye-btn bca-pressable" aria-label="Toggle password visibility" onclick="togglePasswordVisibility('gateAccountConfirm', this)">
+                  <i class="fa-regular fa-eye"></i>
+                </button>
+              </div>
             </label>
-            <button class="primary auth-pill-submit bca-pressable" id="gateAccountSubmit" type="submit">Sign up</button>
+            <button class="primary auth-pill-submit bca-pressable" id="gateAccountSubmit" type="submit">
+              <span class="auth-submit-text">Sign up</span>
+              <span class="auth-submit-spinner-wrap" aria-hidden="true">
+                <svg class="auth-submit-spinner" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" fill="none" stroke-dasharray="38 18"></circle>
+                </svg>
+              </span>
+            </button>
           </form>
           <div class="auth-divider" id="gateAuthDivider">
             <span>or continue with</span>
@@ -269,19 +290,17 @@
           <div class="oauth-actions auth-social-grid" id="gateOauthActions">
             <button class="oauth-button auth-social-btn bca-pressable" id="gateGoogleBtn" type="button" onclick="signInWithProvider('google','gateAccountMessage',this)" aria-label="Continue with Google">
               <i class="fa-brands fa-google"></i>
-              <span class="auth-social-label">Continue with Google</span>
+              <span class="auth-social-label">Google</span>
             </button>
             <button class="oauth-button auth-social-btn bca-pressable" id="gateLinkedinBtn" type="button" onclick="signInWithProvider('linkedin_oidc','gateAccountMessage',this)" aria-label="Continue with LinkedIn">
               <i class="fa-brands fa-linkedin-in"></i>
-              <span class="auth-social-label">Continue with LinkedIn</span>
+              <span class="auth-social-label">LinkedIn</span>
             </button>
           </div>
           <p class="account-message" id="gateAccountMessage" aria-live="polite"></p>
-          <button class="account-switch bca-pressable" id="gateAccountSwitch" type="button">Already have an account? <span class="account-switch-highlight">Log in</span></button>
+          <button class="account-switch bca-pressable" id="gateAccountSwitch" type="button" style="display:none">Already have an account? <span class="account-switch-highlight">Log in</span></button>
           <button class="secondary guest-button auth-guest-pill bca-pressable" type="button" onclick="continueAsGuest()">
-            <i class="fa-regular fa-eye"></i>
-            <span>Continue as guest</span>
-            <span class="auth-guest-arrow">&gt;</span>
+            <span>Continue as guest &rarr;</span>
           </button>
           <button class="secondary desktop-qr-trigger bca-pressable" id="desktopQrTrigger" type="button" onclick="setAuthMode('qr')" hidden>
             <i class="fa-solid fa-qrcode"></i>
@@ -1994,7 +2013,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=74"></script>
+  <script src="app.js?v=77"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>
