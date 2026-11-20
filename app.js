@@ -1010,14 +1010,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function openFeedback(){
       if(!supabaseClient){toast('Feedback is unavailable right now');return}
-      if(!accountSession){requireAccount('Log in to send feedback or report a bug.', 'feedback');return}
-      
+      closeModals();
       const email = getUploaderEmail() || (accountSession && (accountSession.email || (accountSession.user_metadata && accountSession.user_metadata.email))) || '';
       const emailEl = $('fbAccountEmail');
-      if (emailEl) emailEl.textContent = email || 'Verified student account';
+      if (emailEl) emailEl.textContent = email || (accountSession ? 'Verified student account' : 'Guest visitor');
 
       setFeedbackKind(document.querySelector('.fb-kind.active') || document.querySelector('.fb-kind'));
-      $('feedbackModal').classList.add('open');
+      const fbModal = $('feedbackModal');
+      if (fbModal) fbModal.classList.add('open');
       initFeedbackSheetGestures();
 
       if (window.BCA_UI && window.BCA_UI.PressableScale) {
@@ -1070,7 +1070,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     async function submitFeedback(event){
       event.preventDefault();
-      if(!accountSession){toast('Please log in to send feedback');return}
       const form=event.target;
       const message=form.querySelector('textarea[name="message"]').value.trim();
       if(message.length<5){toast('Please add a little more detail');return}
@@ -1090,11 +1089,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           const {data:pub}=supabaseClient.storage.from('feedback').getPublicUrl(path);
           screenshotUrl=pub.publicUrl;
         }
-        const sessionName=(accountSession&&(accountSession.displayName||(accountSession.user_metadata&&accountSession.user_metadata.name)))||'';
+        const sessionName=(accountSession&&(accountSession.displayName||(accountSession.user_metadata&&accountSession.user_metadata.name)))||(accountSession?'Student':'Guest visitor');
+        const userEmail=getUploaderEmail()||(accountSession&&accountSession.email)||'guest@bcaprime.web';
         const row={
           kind:feedbackKind,
           message:message.slice(0,1000),
-          user_email:getUploaderEmail(),
+          user_email:userEmail,
           user_name:String(sessionName||'').slice(0,120),
           screenshot_url:screenshotUrl,
           page_url:location.href.slice(0,300),
@@ -2372,26 +2372,167 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       closeModals();
       const m=$('settingsModal');
       if(m)m.classList.add('open');
+      const verBadge=$('settingsListVersion');
+      if(verBadge&&typeof CURRENT_APP_VERSION!=='undefined') verBadge.textContent='v'+CURRENT_APP_VERSION;
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
     }
     function closeSettingsSheet(){
       const m=$('settingsModal');
       if(m)m.classList.remove('open');
     }
+    function openNotifySettingsSheet(){
+      closeModals();
+      syncNotifyToggleState();
+      const m=$('notifySettingsModal');
+      if(m)m.classList.add('open');
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+    }
+    function closeNotifySettingsSheet(){
+      const m=$('notifySettingsModal');
+      if(m)m.classList.remove('open');
+    }
+    function syncNotifyToggleState(){
+      const toggle=$('notifySettingsToggle');
+      const hint=$('notifyStatusHint');
+      const hasSupport='Notification' in window;
+      if(!hasSupport){
+        if(toggle){ toggle.checked=false; toggle.disabled=true; }
+        if(hint) hint.textContent='Push notifications are not supported on this browser.';
+        return;
+      }
+      const perm=Notification.permission;
+      const pref=localStorage.getItem('bca-notify-choice');
+      const isEnabled=perm==='granted' && pref!=='off';
+      if(toggle){
+        toggle.disabled=false;
+        toggle.checked=isEnabled;
+      }
+      if(hint){
+        if(perm==='denied'){
+          hint.textContent='Notifications blocked in browser settings. Please allow notifications in site permissions.';
+          hint.classList.add('is-blocked');
+        }else if(isEnabled){
+          hint.textContent='Notifications are active on this device.';
+          hint.classList.remove('is-blocked');
+        }else{
+          hint.textContent='Turn on to get instant alerts for notes, PYQs & college updates.';
+          hint.classList.remove('is-blocked');
+        }
+      }
+    }
+    async function toggleNotificationPref(checkbox){
+      const willEnable=checkbox?checkbox.checked:true;
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      if(!('Notification' in window)){
+        toast('Notifications not supported on this browser');
+        if(checkbox) checkbox.checked=false;
+        return;
+      }
+      if(willEnable){
+        if(Notification.permission==='denied'){
+          toast('Notifications are blocked in browser settings.');
+          if(checkbox) checkbox.checked=false;
+          syncNotifyToggleState();
+          return;
+        }
+        const perm=await Notification.requestPermission();
+        if(perm==='granted'){
+          localStorage.setItem('bca-notify-choice','on');
+          if(typeof window.toggleNotifications==='function'){
+            try{await window.toggleNotifications();}catch(e){}
+          }
+          toast('Notifications enabled 🔔');
+        }else{
+          localStorage.setItem('bca-notify-choice','off');
+          toast('Notifications permission not granted');
+          if(checkbox) checkbox.checked=false;
+        }
+      }else{
+        localStorage.setItem('bca-notify-choice','off');
+        try{
+          if('serviceWorker' in navigator){
+            const reg=await navigator.serviceWorker.getRegistration();
+            if(reg){
+              const sub=await reg.pushManager.getSubscription();
+              if(sub) await sub.unsubscribe();
+            }
+          }
+        }catch(e){}
+        toast('Notifications turned off');
+      }
+      syncNotifyToggleState();
+      if(typeof window.bcaSyncNotificationState==='function')window.bcaSyncNotificationState();
+    }
     function openAboutModal(){
       closeModals();
       const m=$('aboutModal');
       if(m)m.classList.add('open');
+      const vEl=$('aboutHeroVer');
+      if(vEl&&typeof CURRENT_APP_VERSION!=='undefined') vEl.textContent='Version '+CURRENT_APP_VERSION;
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
     }
     function closeAboutModal(){
       const m=$('aboutModal');
       if(m)m.classList.remove('open');
     }
+    function rateApp(){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
+      if(window.BCA_UI&&window.BCA_UI.Toast){
+        window.BCA_UI.Toast.success('Thanks for rating BCAPrime! ⭐⭐⭐⭐⭐');
+      }else{
+        toast('Thanks for rating BCAPrime! ⭐⭐⭐⭐⭐');
+      }
+      setTimeout(()=>{
+        openFeedback();
+        const kindBtn=document.querySelector('.fb-kind[data-kind="idea"]');
+        if(kindBtn)setFeedbackKind(kindBtn);
+      },900);
+    }
+    async function shareApp(){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
+      const shareData={
+        title:'BCAPrime — Free BCA Study Library',
+        text:'Access free BCA notes, past question papers, and syllabus resources all in one place!',
+        url:'https://bcaprime.vercel.app'
+      };
+      if(navigator.share){
+        try{
+          await navigator.share(shareData);
+          return;
+        }catch(err){
+          if(err.name==='AbortError')return;
+        }
+      }
+      try{
+        await navigator.clipboard.writeText('https://bcaprime.vercel.app');
+        toast('Link copied to clipboard! 📋');
+      }catch(e){
+        toast('Share: https://bcaprime.vercel.app');
+      }
+    }
+    function openPrivacyPolicy(){
+      window.open('privacy.html','_blank','noopener,noreferrer');
+    }
+    function openTermsOfService(){
+      window.open('terms.html','_blank','noopener,noreferrer');
+    }
+    function openOpenSource(){
+      window.open('https://github.com/Duwebs','_blank','noopener,noreferrer');
+    }
+
     window.openSettingsSheet=openSettingsSheet;
     window.closeSettingsSheet=closeSettingsSheet;
+    window.openNotifySettingsSheet=openNotifySettingsSheet;
+    window.closeNotifySettingsSheet=closeNotifySettingsSheet;
+    window.toggleNotificationPref=toggleNotificationPref;
     window.openAboutModal=openAboutModal;
     window.closeAboutModal=closeAboutModal;
+    window.rateApp=rateApp;
+    window.shareApp=shareApp;
+    window.openPrivacyPolicy=openPrivacyPolicy;
+    window.openTermsOfService=openTermsOfService;
+    window.openOpenSource=openOpenSource;
+    window.openFeedback=openFeedback;
     function changeAvatar(input){const f=input.files&&input.files[0];if(!f)return;if(!/^image\//.test(f.type)){toast('Please choose an image file');input.value='';return}if(f.size>2*1024*1024){toast('Pick an image under 2 MB');input.value='';return}const reader=new FileReader();reader.onload=async()=>{const avatar=reader.result;setCachedAvatar(avatar);if(accountSession)accountSession.photoURL=avatar;renderAvatar();applyContributorProfileLive(accountUid(),{uid:accountUid(),name:contributorNameFor(accountUid(),getUserName(accountSession)),username:getCurrentUsername(),avatar_url:avatar});if(accountUid()&&supabaseClient){const {error}=await supabaseClient.from('user_profiles').upsert({uid:accountUid(),avatar_url:avatar,updated_at:new Date().toISOString()},{onConflict:'uid'});if(error)toast('Photo updated here, but could not sync yet');else toast('Profile photo updated on all your uploads ✓')}else toast('Profile photo updated')};reader.readAsDataURL(f);input.value=''}
 
     function openEditProfileModal(){

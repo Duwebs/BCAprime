@@ -922,68 +922,165 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div class="profile-group-card" style="margin-top:12px">
+
+      <!-- Card Group 1 (Notifications) -->
+      <div class="profile-group-card settings-group-card" style="margin-top:10px">
+        <div class="profile-group-row bca-pressable" onclick="openNotifySettingsSheet()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-regular fa-bell"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Notification settings</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+      </div>
+
+      <!-- Card Group 2 (Support & Info) -->
+      <div class="profile-group-card settings-group-card">
+        <div class="profile-group-row bca-pressable" onclick="openFeedback()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-regular fa-envelope"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Feedback &amp; support</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+        <div class="profile-group-divider"></div>
         <div class="profile-group-row bca-pressable" onclick="openAboutModal()" role="button" tabindex="0">
-          <div class="profile-row-icon icon-blue">
+          <div class="profile-row-plain-icon">
             <i class="fa-solid fa-circle-info"></i>
           </div>
           <div class="profile-row-text">
-            <span class="profile-row-title">About BCAPrime</span>
-            <small class="profile-row-sub">Version 3.4.0 &bull; Built for BCA students</small>
+            <span class="profile-row-main">About</span>
           </div>
-          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+          <div class="settings-row-end">
+            <span class="settings-ver-badge" id="settingsListVersion">v3.4.0</span>
+            <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- About BCAPrime Modal -->
-  <div class="modal" id="aboutModal" onclick="if(event.target===this)closeAboutModal()" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
-    <div class="dialog about-dialog">
+  <!-- Dedicated Notification Settings Sub-View Sheet -->
+  <div class="modal pf-sheet-modal" id="notifySettingsModal" onclick="if(event.target===this)closeNotifySettingsSheet()" role="dialog" aria-modal="true" aria-labelledby="notifySettingsTitle">
+    <div class="dialog settings-dialog">
       <div class="profile-sheet-handle"><span></span></div>
-      <div class="profile-header">
-        <h2 class="profile-heading" id="aboutModalTitle">About</h2>
-        <button class="profile-close-btn bca-pressable" aria-label="Close dialog" onclick="closeAboutModal()">
+      <div class="profile-header with-back">
+        <button class="profile-back-btn bca-pressable" aria-label="Back to settings" onclick="closeNotifySettingsSheet();openSettingsSheet()">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h2 class="profile-heading" id="notifySettingsTitle">Notification settings</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close" onclick="closeModals()">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div class="about-card">
-        <div class="about-brand">
-          <img src="assets/logo.png" alt="BCAPrime Logo" width="56" height="56">
-          <h3>BCA<span>Prime</span></h3>
-          <span class="about-version-badge">v3.4.0</span>
-        </div>
-        <p class="about-tagline">Your entire BCA study desk in one focused library &mdash; syllabus notes, past question papers, and student resources all in one place.</p>
-        <div class="about-features">
-          <div class="about-feat-item">
-            <i class="fa-solid fa-graduation-cap"></i>
-            <div>
-              <strong>College &amp; Semester Focused</strong>
-              <small>Curated study material tailored for BCA universities.</small>
-            </div>
+
+      <div class="profile-group-card settings-group-card" style="margin-top:10px">
+        <div class="profile-group-row" style="cursor:default">
+          <div class="profile-row-plain-icon">
+            <i class="fa-regular fa-bell"></i>
           </div>
-          <div class="about-feat-item">
-            <i class="fa-solid fa-bolt"></i>
-            <div>
-              <strong>Instant In-App Reading</strong>
-              <small>Fast, clutter-free reader online and offline.</small>
-            </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Allow notifications</span>
+            <small class="profile-row-sub">Get alerts for new notes, syllabus updates &amp; notices</small>
           </div>
-          <div class="about-feat-item">
-            <i class="fa-solid fa-shield-halved"></i>
-            <div>
-              <strong>Cloud Sync &amp; Cross-Device</strong>
-              <small>Seamless study sync with cross-device QR login.</small>
-            </div>
-          </div>
+          <label class="toggle-switch bca-pressable" aria-label="Toggle notifications">
+            <input type="checkbox" id="notifySettingsToggle" onchange="toggleNotificationPref(this)">
+            <span class="toggle-slider"></span>
+          </label>
         </div>
-        <div class="about-legal-links">
-          <a href="privacy.html" target="_blank" class="about-link bca-pressable">Privacy Policy</a>
-          <span class="about-dot">&bull;</span>
-          <a href="terms.html" target="_blank" class="about-link bca-pressable">Terms of Service</a>
-        </div>
-        <button class="primary auth-pill-submit bca-pressable" type="button" onclick="closeAboutModal()" style="margin-top:16px;width:100%">Got it</button>
       </div>
+      <p class="notify-status-hint" id="notifyStatusHint">Turn on to get instant alerts for notes, PYQs &amp; college updates.</p>
+    </div>
+  </div>
+
+  <!-- About BCAPrime Modal / Sub-Page -->
+  <div class="modal pf-sheet-modal" id="aboutModal" onclick="if(event.target===this)closeAboutModal()" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+    <div class="dialog about-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="profile-header with-back">
+        <button class="profile-back-btn bca-pressable" aria-label="Back to settings" onclick="closeAboutModal();openSettingsSheet()">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h2 class="profile-heading" id="aboutModalTitle">About BCAPrime</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close dialog" onclick="closeModals()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Hero Brand Header (Centered) -->
+      <div class="about-hero">
+        <div class="about-hero-logo">
+          <img src="assets/logo.png" alt="BCAPrime Logo" width="60" height="60">
+        </div>
+        <h3 class="about-hero-title">BCAPrime</h3>
+        <p class="about-hero-ver" id="aboutHeroVer">Version 3.4.0</p>
+        <div class="about-hero-status">
+          <span class="status-indicator-dot"></span>
+          <span>Up to date</span>
+        </div>
+      </div>
+
+      <!-- Action Card Group 1 -->
+      <div class="profile-group-card settings-group-card">
+        <div class="profile-group-row bca-pressable" onclick="rateApp()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-regular fa-thumbs-up"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Rate us</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+        <div class="profile-group-divider"></div>
+        <div class="profile-group-row bca-pressable" onclick="shareApp()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-solid fa-share-nodes"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Share BCAPrime</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+      </div>
+
+      <!-- Legal & Open Source Card Group 2 -->
+      <div class="profile-group-card settings-group-card">
+        <div class="profile-group-row bca-pressable" onclick="openPrivacyPolicy()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Privacy Policy</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+        <div class="profile-group-divider"></div>
+        <div class="profile-group-row bca-pressable" onclick="openTermsOfService()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-solid fa-file-contract"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Terms of Service</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+        <div class="profile-group-divider"></div>
+        <div class="profile-group-row bca-pressable" onclick="openOpenSource()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon">
+            <i class="fa-solid fa-code"></i>
+          </div>
+          <div class="profile-row-text">
+            <span class="profile-row-main">Open Source</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+      </div>
+
+      <p class="about-copyright">&copy; 2026 BCAPrime.</p>
     </div>
   </div>
 
