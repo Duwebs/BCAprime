@@ -2589,7 +2589,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       window.open('terms.html','_blank','noopener,noreferrer');
     }
     function openOpenSource(){
-      window.open('https://github.com/Duwebs','_blank','noopener,noreferrer');
+      window.open('https://github.com/Duwebs/BCAprime','_blank','noopener,noreferrer');
     }
 
     window.openSettingsSheet=openSettingsSheet;
