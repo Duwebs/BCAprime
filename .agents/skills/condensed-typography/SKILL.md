@@ -16,13 +16,15 @@ BCAPrime uses an intentional, high-craft condensed font hierarchy to deliver a n
 1. **Barlow Condensed** (`'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif`):
    - **Weights**: `600` (SemiBold), `700` (Bold).
    - **Character**: Bold, punchy, architectural condensed grotesque font.
-   - **Usage**: Hero titles, page headings, brand wordmark, card titles, section banners, modal/sheet headers, bottom navigation labels, and pill badges.
-   - **Weight Rule**: Always use **SemiBold (`600`)** for hero and main headings (`"Welcome back."`, `"Welcome to your study desk."`). Never use heavy `800–900` weights for display headings.
+   - **Usage**: Hero titles, page headings, home hero greetings, semester callouts, brand wordmark, card titles, section banners, modal/sheet headers, bottom navigation labels, and pill badges.
+   - **Weight Rule**: Always use **SemiBold (`600`)** for hero and main headings (`"Welcome back."`, `"Welcome to your study desk."`, `"Good Night, Durgesh!"`, `"Semester 3 resources"`). Never use heavy `800–900` weights for display headings.
+   - **Bottom Nav Rule**: Always use **Bold (`700`)**, uppercase, `11px`, with `tracking-wider` (`0.07em`) for all docked bottom navbar labels.
 
 2. **Roboto Condensed** (`'Roboto Condensed', -apple-system, BlinkMacSystemFont, sans-serif`):
    - **Weights**: `400` (Regular), `500` (Medium), `600` (SemiBold), `700` (Bold).
    - **Character**: Highly legible, crisp humanist condensed sans-serif with natural open apertures.
    - **Usage**: Body copy, descriptions, subtitles, form inputs, placeholders, helper text, and secondary action buttons.
+   - **Description Rule**: Concise 1–2 lines max, `400` weight, `14px`, comfortable `1.35` line-height.
 
 3. **Monospace Stacks** (`'JetBrains Mono', 'Space Mono', monospace`):
    - **Weights**: `500`, `600`.
@@ -34,9 +36,13 @@ BCAPrime uses an intentional, high-craft condensed font hierarchy to deliver a n
 
 | Element | Font Family | Weight | Size | Line Height | Tracking | Transform |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Hero & Display Headings (`h1`, `h2`, Auth)** | `Barlow Condensed` | `600` (SemiBold) | `26px – 34px` | `1.05 – 1.15` | `-0.025em` | Normal |
+| **Hero Eyebrows (`YOUR STUDY DESK`)** | `Barlow Condensed` | `600` (SemiBold) | `14px` | `1.0` | `+0.08em` | `uppercase` |
+| **Hero Semester Callout (`Semester 3 resources`)** | `Barlow Condensed` | `600` (SemiBold) | `22px – 24px` | `1.15` | `-0.015em` | Normal |
+| **Hero Main Dynamic Greeting (`Good Night, Durgesh!`)** | `Barlow Condensed` | `600` (SemiBold) | `32px – 42px` | `1.08` | `-0.025em` | Normal (Flush Left) |
+| **Hero Descriptions (Concise 1–2 Lines)** | `Roboto Condensed` | `400` (Regular) | `14px` | `1.35` | `normal` | Normal |
+| **Auth Display Headings (`Welcome back.`)** | `Barlow Condensed` | `600` (SemiBold) | `26px – 32px` | `1.10` | `-0.025em` | Normal |
 | **Card Titles & Modal Headers (`h3`, Sheets)** | `Barlow Condensed` | `600` / `700` | `18px – 22px` | `1.15 – 1.20` | `-0.015em` | Normal |
-| **Bottom Navbar Labels** | `Barlow Condensed` | `700` (Bold) | `10px – 11px` | `1.0` | `+0.06em – +0.08em` | `uppercase` |
+| **Bottom Navbar Labels (`LIBRARY`, `UPLOAD`, etc.)** | `Barlow Condensed` | `700` (Bold) | `11px` | `1.1` | `+0.07em` | `uppercase` |
 | **Eyebrow Tags & Status Badges** | `Barlow Condensed` | `700` (Bold) | `10px – 12px` | `1.0` | `+0.05em – +0.08em` | `uppercase` |
 | **Primary Action Buttons (CTAs)** | `Roboto Condensed` | `600` / `700` | `15px – 16px` | `1.0` | `+0.01em` | Normal |
 | **Form Inputs & Placeholders** | `Roboto Condensed` | `500` | `16px` (mobile min) | `1.25` | `normal` | Normal |
@@ -51,23 +57,24 @@ BCAPrime uses an intentional, high-craft condensed font hierarchy to deliver a n
 ### Rule A: Never Use Ultra-Thin Weights in Dark Mode
 - Never render weights `< 400` (e.g., `300` Light / `200` Thin) anywhere in Dark Mode. On deep matte-black backgrounds (`#0D0D0F`), ultra-thin glyphs suffer severe subpixel rasterization degradation, causing fringing and illegibility.
 - Standard body text must be minimum `Roboto Condensed` `400` (with high-contrast `rgba(255, 255, 255, 0.9)` or `#FFFFFF`).
-- Secondary text must never dip below `rgba(255, 255, 255, 0.65)`.
+- Secondary text must never dip below `rgba(255, 255, 255, 0.65)` or `#9ca3af`.
 
 ### Rule B: Headings Must Be Tall, Sharp & Refined (SemiBold 600, Avoid Bulky 800–900)
-- **Always pair tall condensed display fonts (`Barlow Condensed`) with SemiBold (`600`)** (or `700` maximum for compact uppercase pill badges) rather than heavy `800–900` weights. This keeps hero headings (`"Welcome back."`, `"Welcome to your study desk."`, page banners) tall, razor-sharp, and refined without appearing overly thick, heavy, or chunky.
+- **Always pair tall condensed display fonts (`Barlow Condensed`) with SemiBold (`600`)** (or `700` maximum for compact uppercase pill badges and bottom nav labels) rather than heavy `800–900` weights. This keeps hero greetings (`"Good Night, Durgesh!"`), semester subtitles (`"Semester 3 resources"`), and auth headings (`"Welcome back."`, `"Welcome to your study desk."`) tall, razor-sharp, and refined without appearing overly thick, heavy, or chunky.
 - **Tight Line Height & Tracking**: Maintain a tight line height (`1.05 – 1.15`) with clean tight letter-spacing (`-0.025em`).
-- **Softer High-Contrast Tones**: Render in slightly softer off-white (`#F3F4F6`) in Dark Mode and crisp deep slate (`#111827`) in Light Mode for high-craft editorial poise.
-- **Continuous Living Reference**: Always keep updating this skill file whenever typography preferences are refined so future screens and components automatically adhere to this exact aesthetic taste.
+- **Flush Left Alignment**: All hero header components (`YOUR STUDY DESK`, `Semester 3 resources`, greeting heading, and description) must align flush on the left edge (`ml-0 pl-0`) without phantom icon spaces or indents.
+- **Softer High-Contrast Tones**: Render in slightly softer off-white (`#F3F4F6`) in Dark Mode and crisp deep slate (`#111827`) in Light Mode for high-craft editorial poise, highlighting hero dynamic names in royal blue (`#2563eb`).
 
 ### Rule C: Body Text Must Breathe
 - Because condensed typefaces compress horizontal glyph width, multi-line body paragraphs and help texts require a comfortable vertical line height (`1.45 – 1.50`) and relaxed margins. This maintains optimal scanning speed without feeling crowded.
+- Concise hero card descriptions must be 1–2 lines max with `1.35` line-height.
 
 ### Rule D: Mobile Input Zoom Prevention
 - Form input fields on touch devices (`input`, `textarea`, `select`) must have a minimum `font-size: 16px` (`text-[16px]`). This prevents iOS Safari and Android Chrome from performing unwanted automatic viewport zooms on focus.
 
 ### Rule E: Dark Mode & Light Mode Parity
 - All typographic hierarchies, weights, and letter-spacings must be visually identical between Dark Mode and Light Mode.
-- Light Mode uses `#111827` / `#1E293B` for high-contrast primary text, `#64748B` for secondary text, and `#94A3B8` for subtle placeholders.
+- Light Mode uses `#111827` / `#1E293B` for high-contrast primary text, `#4B5563` / `#64748B` for secondary text, and `#94A3B8` for subtle placeholders.
 
 ---
 
@@ -77,6 +84,7 @@ BCAPrime exposes central typography CSS variables in `styles.css`:
 
 ```css
 :root {
+  --font-barlow-condensed: 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-condensed-heading: 'Barlow Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-condensed-body: 'Roboto Condensed', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -86,5 +94,6 @@ BCAPrime exposes central typography CSS variables in `styles.css`:
 ### Direct Class Usage
 
 - **Headings & Titles**: `font-condensed-heading font-semibold` or `font-['Barlow_Condensed'] font-semibold`
+- **Bottom Navbar Labels**: `font-['Barlow_Condensed'] font-bold uppercase text-[11px] tracking-wider`
 - **Body & Inputs**: `font-condensed-body` or `font-['Roboto_Condensed']`
 - **Mono Badges**: `font-mono tracking-wider font-semibold`

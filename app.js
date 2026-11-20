@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v78 loaded ✔');
+console.info('[BCAPrime] app.js v79 loaded ✔');
 const ONBOARDING_COLLEGES = [
   ['amity', 'Amity University'],
   ['adbu', 'Assam Don Bosco University'],

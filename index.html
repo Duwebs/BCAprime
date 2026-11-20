@@ -209,7 +209,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=80">
+  <link rel="stylesheet" href="styles.css?v=81">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -498,7 +498,7 @@
     <section class="hero" id="top">
       <div>
         <div class="hero-copy-top">
-          <div class="eyebrow"><i class="fa-solid fa-book-open"></i> Your study desk</div>
+          <div class="eyebrow"><i class="fa-solid fa-book-open"></i> YOUR STUDY DESK</div>
           <button type="button" class="hero-notify-bell bca-pressable" id="heroNotifyBell" aria-label="Notifications" title="Notifications">
             <span class="bell-icon-wrapper">
               <i class="fa-regular fa-bell hero-bell-icon" id="heroBellIcon"></i>
@@ -506,8 +506,8 @@
             <span class="hero-bell-badge" id="heroBellBadge" hidden></span>
           </button>
         </div>
-         <h1 id="heroTitle"><span id="heroDefaultTitle">Make this semester <span class="accent">count.</span></span><strong id="deskSemester" class="hero-semester">Explore your semester</strong><span class="hero-greeting" id="heroGreeting" hidden><i class="fa-solid fa-hand-wave"></i><strong id="heroGreetName"></strong></span></h1>
-        <p>Find clear notes and previous year question papers for your BCA course, all in one focused library.</p>
+         <h1 id="heroTitle"><span id="heroDefaultTitle">Make this semester <span class="accent">count.</span></span><strong id="deskSemester" class="hero-semester">Explore your semester</strong><span class="hero-greeting" id="heroGreeting" hidden><strong id="heroGreetName"></strong></span></h1>
+        <p class="hero-subtext">Curated BCA notes and PYQs for your semester, all in one focused library.</p>
         <div class="hero-search"><i class="fa-solid fa-magnifying-glass"></i><input id="search" aria-label="Search notes, subjects or PYQs" placeholder="Search notes, subjects or PYQs&#8230;" oninput="searchResources(this.value)" onfocus="showSuggestions()"><button onclick="focusFinder()">Search</button><div class="suggestions" id="suggestions"></div></div>
       </div>
     </section>
@@ -2013,7 +2013,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=78"></script>
+  <script src="app.js?v=79"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>
