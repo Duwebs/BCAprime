@@ -253,7 +253,7 @@ const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['g
       updateSemesterOptions();
       if($('semesterFilter'))$('semesterFilter').value=state.finderSemester;
       const collegeName = (colleges.find(c=>c[0]===state.college)||colleges[0])[1];
-      $('collegeLabel').textContent = collegeName;
+      if($('collegeLabel')) $('collegeLabel').textContent = collegeName;
       syncNavSemBadge();
       syncProfileUI();
       if($('savedSummary')) $('savedSummary').textContent=state.saved.length?`${state.saved.length} resource${state.saved.length===1?'':'s'} saved for later`:'Keep important notes close';
@@ -2475,18 +2475,90 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const m=$('aboutModal');
       if(m)m.classList.remove('open');
     }
-    function rateApp(){
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
-      if(window.BCA_UI&&window.BCA_UI.Toast){
-        window.BCA_UI.Toast.success('Thanks for rating BCAPrime! ⭐⭐⭐⭐⭐');
-      }else{
-        toast('Thanks for rating BCAPrime! ⭐⭐⭐⭐⭐');
+    let currentRatingStar = 0;
+
+    function openRatingModal(){
+      closeModals();
+      resetRatingModal();
+      const m=$('ratingModal');
+      if(m)m.classList.add('open');
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+    }
+    function closeRatingModal(){
+      const m=$('ratingModal');
+      if(m)m.classList.remove('open');
+    }
+    function resetRatingModal(){
+      currentRatingStar = 0;
+      document.querySelectorAll('.rating-star-btn').forEach(btn=>{
+        btn.classList.remove('active');
+      });
+      const outcome=$('ratingOutcomeBox');
+      if(outcome){
+        outcome.hidden=true;
       }
-      setTimeout(()=>{
-        openFeedback();
-        const kindBtn=document.querySelector('.fb-kind[data-kind="idea"]');
-        if(kindBtn)setFeedbackKind(kindBtn);
-      },900);
+      const sub=$('ratingModalSub');
+      if(sub) sub.textContent="Tap a star to rate your study experience";
+    }
+    function selectRatingStar(star){
+      currentRatingStar = star;
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
+      
+      document.querySelectorAll('.rating-star-btn').forEach(btn=>{
+        const val = parseInt(btn.dataset.star,10);
+        btn.classList.toggle('active', val <= star);
+      });
+
+      const outcome=$('ratingOutcomeBox');
+      const msgEl=$('ratingOutcomeMessage');
+      const ctaBtn=$('ratingOutcomeCta');
+      const sub=$('ratingModalSub');
+
+      if(star >= 4){
+        if(sub) sub.textContent = star === 5 ? "⭐⭐⭐⭐⭐ Outstanding!" : "⭐⭐⭐⭐ Great!";
+        if(msgEl) msgEl.innerHTML = '<strong>Glad you\'re loving BCAPrime!</strong><span>Mind sharing a quick review on Trustpilot to support fellow students?</span>';
+        if(ctaBtn){
+          ctaBtn.innerHTML = '<i class="fa-solid fa-star"></i> <span>Continue to Trustpilot</span>';
+          ctaBtn.className = 'primary rating-cta-btn bca-pressable cta-trustpilot';
+          ctaBtn.onclick = continueToTrustpilot;
+        }
+      } else {
+        if(sub) sub.textContent = star === 3 ? "⭐⭐⭐ We can do better" : (star === 2 ? "⭐⭐ Let us improve" : "⭐ Needs work");
+        if(msgEl) msgEl.innerHTML = '<strong>Sorry to hear that!</strong><span>Tell us what we can improve — your feedback goes directly to our team.</span>';
+        if(ctaBtn){
+          ctaBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Send Feedback</span>';
+          ctaBtn.className = 'primary rating-cta-btn bca-pressable cta-feedback';
+          ctaBtn.onclick = submitRatingToFeedback;
+        }
+      }
+
+      if(outcome){
+        outcome.hidden = false;
+      }
+    }
+    function continueToTrustpilot(){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      window.open('https://www.trustpilot.com/evaluate/bcaprime.vercel.app','_blank','noopener,noreferrer');
+      closeRatingModal();
+      if(window.BCA_UI&&window.BCA_UI.Toast){
+        window.BCA_UI.Toast.success('Thank you for supporting BCAPrime on Trustpilot! 🙏');
+      }else{
+        toast('Thank you for supporting BCAPrime on Trustpilot! 🙏');
+      }
+    }
+    function submitRatingToFeedback(){
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      closeRatingModal();
+      openFeedback();
+      const kindBtn=document.querySelector('.fb-kind[data-kind="idea"]') || document.querySelector('.fb-kind[data-kind="bug"]');
+      if(kindBtn)setFeedbackKind(kindBtn);
+      const msgInput=$('fbMessage');
+      if(msgInput&&!msgInput.value.trim()){
+        msgInput.placeholder = `Tell us what disappointed you (${currentRatingStar} star review) or what we can fix...`;
+      }
+    }
+    function rateApp(){
+      openRatingModal();
     }
     async function shareApp(){
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
@@ -2527,6 +2599,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     window.toggleNotificationPref=toggleNotificationPref;
     window.openAboutModal=openAboutModal;
     window.closeAboutModal=closeAboutModal;
+    window.openRatingModal=openRatingModal;
+    window.closeRatingModal=closeRatingModal;
+    window.selectRatingStar=selectRatingStar;
+    window.continueToTrustpilot=continueToTrustpilot;
+    window.submitRatingToFeedback=submitRatingToFeedback;
     window.rateApp=rateApp;
     window.shareApp=shareApp;
     window.openPrivacyPolicy=openPrivacyPolicy;
@@ -2612,7 +2689,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
     async function logoutFromPop(){hideProfileCard();await signOutAccount()}
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].filter(c=>c[0]!=='all').sort((a,b)=>{if(a[0]==='avviare')return -1;if(b[0]==='avviare')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
-    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
+    function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);if($('collegeLabel'))$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
     let uploadFiles=[]; /* client-side managed File list (enables reorder/delete) */
     function showFile(input){
@@ -4335,7 +4412,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{$('onboarding').classList.remove('open')}catch(error){}
       try{
         updateSemesterOptions();
-        $('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];
+        if($('collegeLabel')) $('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];
         syncNavSemBadge();
         syncProfileUI();
         syncPrimeFinderUI();

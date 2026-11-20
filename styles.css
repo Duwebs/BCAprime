@@ -5164,11 +5164,12 @@ body.light .profile-session-card,
   display: none !important;
 }
 
-/* Dedicated My Uploads, Settings, Notification Settings & About Sheets */
+/* Dedicated My Uploads, Settings, Notification Settings, About & Rating Sheets */
 #myUploadsModal,
 #settingsModal,
 #notifySettingsModal,
-#aboutModal {
+#aboutModal,
+#ratingModal {
   position: fixed;
   inset: 0;
   display: flex !important;
@@ -5188,14 +5189,16 @@ body.light .profile-session-card,
 #myUploadsModal.open,
 #settingsModal.open,
 #notifySettingsModal.open,
-#aboutModal.open {
+#aboutModal.open,
+#ratingModal.open {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
 }
 .my-uploads-dialog,
 .settings-dialog,
-.about-dialog {
+.about-dialog,
+.rating-dialog {
   width: min(100%, 440px);
   max-height: 90dvh;
   overflow-y: auto;
@@ -5213,12 +5216,15 @@ body.light .profile-session-card,
 [data-theme="light"] .my-uploads-dialog,
 [data-theme="light"] .settings-dialog,
 [data-theme="light"] .about-dialog,
+[data-theme="light"] .rating-dialog,
 html[data-theme="light"] .my-uploads-dialog,
 html[data-theme="light"] .settings-dialog,
 html[data-theme="light"] .about-dialog,
+html[data-theme="light"] .rating-dialog,
 body.light .my-uploads-dialog,
 body.light .settings-dialog,
-body.light .about-dialog {
+body.light .about-dialog,
+body.light .rating-dialog {
   background: #ffffff !important;
   border-color: #e2e8f0;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.12);
@@ -5226,7 +5232,8 @@ body.light .about-dialog {
 #myUploadsModal.open .my-uploads-dialog,
 #settingsModal.open .settings-dialog,
 #notifySettingsModal.open .settings-dialog,
-#aboutModal.open .about-dialog {
+#aboutModal.open .about-dialog,
+#ratingModal.open .rating-dialog {
   transform: scale(1) translateY(0);
   opacity: 1;
 }
@@ -5440,16 +5447,175 @@ body.light .about-dialog {
   color: #94a3b8 !important;
 }
 
+/* Smart Star-Filter Rating Styles */
+.rating-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  padding: 10px 4px 16px !important;
+}
+.rating-badge-icon {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 50% !important;
+  background: rgba(234, 179, 8, 0.15) !important;
+  border: 1px solid rgba(234, 179, 8, 0.35) !important;
+  color: #eab308 !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 24px !important;
+  margin-bottom: 14px !important;
+  box-shadow: 0 0 24px rgba(234, 179, 8, 0.22) !important;
+}
+.rating-heading {
+  font: 800 20px/1.25 'Geist', sans-serif !important;
+  color: var(--ink, #ffffff) !important;
+  margin: 0 0 6px !important;
+  letter-spacing: -0.02em !important;
+}
+.rating-sub {
+  font-size: 13.5px !important;
+  color: #94a3b8 !important;
+  margin: 0 0 20px !important;
+  font-weight: 500 !important;
+}
+[data-theme="light"] .rating-sub {
+  color: #64748b !important;
+}
+.rating-stars-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  margin-bottom: 20px !important;
+}
+.rating-star-btn {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: #18202f !important;
+  color: #475569 !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 180ms ease,
+              background 180ms ease,
+              border-color 180ms ease,
+              box-shadow 180ms ease !important;
+}
+[data-theme="light"] .rating-star-btn {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #cbd5e1 !important;
+}
+.rating-star-btn:hover {
+  transform: scale(1.12) !important;
+}
+.rating-star-btn.active {
+  color: #eab308 !important;
+  background: rgba(234, 179, 8, 0.14) !important;
+  border-color: rgba(234, 179, 8, 0.45) !important;
+  box-shadow: 0 0 16px rgba(234, 179, 8, 0.28) !important;
+  transform: scale(1.05) !important;
+}
+
+.rating-outcome-box {
+  width: 100% !important;
+  background: #18202f !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 18px !important;
+  padding: 16px 18px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+  box-sizing: border-box !important;
+  animation: ratingIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+}
+[data-theme="light"] .rating-outcome-box {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+}
+.rating-outcome-msg {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  text-align: center !important;
+}
+.rating-outcome-msg strong {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--ink, #ffffff) !important;
+}
+.rating-outcome-msg span {
+  font-size: 13px !important;
+  color: #94a3b8 !important;
+  line-height: 1.4 !important;
+}
+[data-theme="light"] .rating-outcome-msg span {
+  color: #64748b !important;
+}
+.rating-cta-btn {
+  width: 100% !important;
+  min-height: 48px !important;
+  border-radius: 9999px !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  border: 0 !important;
+  outline: 0 !important;
+  user-select: none !important;
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 180ms ease !important;
+}
+.rating-cta-btn.cta-trustpilot {
+  background: #00b67a !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 182, 122, 0.35) !important;
+}
+.rating-cta-btn.cta-feedback {
+  background: var(--brand, #3b82f6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35) !important;
+}
+.rating-cta-btn:active {
+  transform: scale(0.97) !important;
+}
+
+@keyframes ratingIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media(max-width: 600px) {
   #settingsModal,
   #notifySettingsModal,
-  #aboutModal {
+  #aboutModal,
+  #ratingModal {
     padding: 0 !important;
     align-items: flex-end !important;
   }
   #settingsModal .settings-dialog,
   #notifySettingsModal .settings-dialog,
-  #aboutModal .about-dialog {
+  #aboutModal .about-dialog,
+  #ratingModal .rating-dialog {
     width: 100% !important;
     max-height: 90dvh !important;
     border-radius: 28px 28px 0 0 !important;
@@ -5461,7 +5627,8 @@ body.light .about-dialog {
   }
   #settingsModal.open .settings-dialog,
   #notifySettingsModal.open .settings-dialog,
-  #aboutModal.open .about-dialog {
+  #aboutModal.open .about-dialog,
+  #ratingModal.open .rating-dialog {
     transform: translateY(0) !important;
     opacity: 1 !important;
   }

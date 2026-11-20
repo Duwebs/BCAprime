@@ -295,7 +295,8 @@
     <header class="topbar">
       <a class="brand" href="#top" aria-label="BCAPrime home"><img class="brand-logo brand-logo-dark" src="assets/logo.png" alt="BCAPrime" width="35" height="35"><img class="brand-logo brand-logo-light" src="assets/logo-light.png" alt="BCAPrime" width="35" height="35"><strong>BCA<span>Prime</span></strong></a>
       <nav class="nav-actions" aria-label="Main actions">
-        <button class="college-btn" onclick="openProfile()" aria-label="Current college & semester. Change from Profile" title="Change preferences from Profile"><i class="fa-solid fa-building-columns"></i><span id="collegeLabel">All Colleges</span> <span id="navSemBadge" style="opacity:0.8;font-size:12px"></span><i class="fa-solid fa-user-gear" style="font-size:10px"></i></button>
+        <span id="collegeLabel" hidden></span>
+        <span id="navSemBadge" hidden></span>
         <button class="icon-btn" onclick="toggleTheme(event,this)" aria-label="Toggle theme" title="Toggle theme"><i id="themeIcon" class="fa-solid fa-sun"></i></button>
         <button class="icon-btn notify-bell" id="notifyBell" onclick="toggleNotifications(event,this)" aria-label="Toggle notifications" title="Notifications" hidden><span class="bell-icon-wrapper"><i id="bellIcon" class="fa-regular fa-bell"></i></span></button>
         <button class="icon-btn mobile-qr-topbar" id="topbarQrBtn" onclick="openQrScanner()" aria-label="Scan QR — computer login" title="Log in on your computer (QR scan)"><i class="fa-solid fa-camera"></i></button>
@@ -1081,6 +1082,57 @@
       </div>
 
       <p class="about-copyright">&copy; 2026 BCAPrime.</p>
+    </div>
+  </div>
+
+  <!-- Smart Rating / Review Bottom Sheet Modal -->
+  <div class="modal pf-sheet-modal" id="ratingModal" onclick="if(event.target===this)closeRatingModal()" role="dialog" aria-modal="true" aria-labelledby="ratingModalTitle">
+    <div class="dialog rating-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="profile-header with-back">
+        <button class="profile-back-btn bca-pressable" aria-label="Back to About" onclick="closeRatingModal();openAboutModal()">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h2 class="profile-heading" id="ratingModalTitle">Rate us</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close" onclick="closeModals()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="rating-body">
+        <div class="rating-badge-icon">
+          <i class="fa-solid fa-star"></i>
+        </div>
+        <h3 class="rating-heading">How's your experience with BCAPrime?</h3>
+        <p class="rating-sub" id="ratingModalSub">Tap a star to rate your study experience</p>
+
+        <!-- 1 to 5 Star Selector -->
+        <div class="rating-stars-wrap" role="radiogroup" aria-label="1 to 5 stars">
+          <button type="button" class="rating-star-btn bca-pressable" data-star="1" onclick="selectRatingStar(1)" aria-label="1 star">
+            <i class="fa-solid fa-star"></i>
+          </button>
+          <button type="button" class="rating-star-btn bca-pressable" data-star="2" onclick="selectRatingStar(2)" aria-label="2 stars">
+            <i class="fa-solid fa-star"></i>
+          </button>
+          <button type="button" class="rating-star-btn bca-pressable" data-star="3" onclick="selectRatingStar(3)" aria-label="3 stars">
+            <i class="fa-solid fa-star"></i>
+          </button>
+          <button type="button" class="rating-star-btn bca-pressable" data-star="4" onclick="selectRatingStar(4)" aria-label="4 stars">
+            <i class="fa-solid fa-star"></i>
+          </button>
+          <button type="button" class="rating-star-btn bca-pressable" data-star="5" onclick="selectRatingStar(5)" aria-label="5 stars">
+            <i class="fa-solid fa-star"></i>
+          </button>
+        </div>
+
+        <!-- Dynamic Outcome Card -->
+        <div class="rating-outcome-box" id="ratingOutcomeBox" hidden>
+          <div class="rating-outcome-msg" id="ratingOutcomeMessage"></div>
+          <button type="button" class="primary rating-cta-btn bca-pressable" id="ratingOutcomeCta">
+            <span>Continue</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
