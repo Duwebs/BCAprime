@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v59 loaded ✔');
+console.info('[BCAPrime] app.js v64 loaded ✔');
 const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
     /* ---- Subject-wise finder ----
@@ -1134,12 +1134,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.remove('active'));
       if(button) button.classList.add('active');
       if(tab==='profile'){state.savedOnly=false;openProfile();return}
+      if(tab==='saved' && isGuestMode()){
+        requireAccount('Sign up or log in to bookmark and view saved resources.','saved');
+        return;
+      }
       state.savedOnly=tab==='saved';
       if(tab==='semesters'){const grid=$('semesterGrid');if(grid)grid.scrollIntoView({behavior:'smooth',block:'start'});else $('library').scrollIntoView({behavior:'smooth',block:'start'});}
       else if(tab==='saved')$('resources').scrollIntoView({behavior:'smooth',block:'start'});
       else $('library').scrollIntoView({behavior:'smooth',block:'start'});
       render();
     }
+    window.selectTab=selectTab;
+    window.setTab=selectTab;
     function toggleSave(id){
       if(isGuestMode()){
         requireAccount('Sign up or log in to bookmark and save study material.','save',id);
@@ -1150,32 +1156,69 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       setTimeout(render,90);
     }
     let restrictedAction=null;
-    function isGuestMode(){return !accountSession}
+    function isGuestMode(){
+      return sessionStorage.getItem('bca-guest-mode')==='true' || !accountSession;
+    }
     function openSignUpPage(message,action='',title=''){
-      if(accountSession)return true;
-      if(action) restrictedAction={action,title};
+      if(!isGuestMode() && accountSession)return true;
+      if(action) {
+        restrictedAction={action,title};
+        try{sessionStorage.setItem('bca-pending-action',JSON.stringify({action,title}));}catch(e){}
+      }
       closeModals();
       setGateMode('signup');
-      if(message&&$('gateAccountMessage')) $('gateAccountMessage').textContent=message;
-      $('authGate').hidden=false;
-      $('appShell').hidden=true;
-      $('appTabs').hidden=true;
+      if(message){
+        if($('gateSubtitle')) $('gateSubtitle').textContent=message;
+        if($('gateAccountMessage')) $('gateAccountMessage').textContent=message;
+      }
+      try{
+        document.documentElement.classList.remove('auth-known');
+        document.documentElement.classList.add('auth-gate-open');
+      }catch(e){}
+      const gate=$('authGate');
+      if(gate){
+        gate.hidden=false;
+        gate.style.setProperty('display','flex','important');
+      }
+      const shell=$('appShell');
+      if(shell){
+        shell.hidden=true;
+        shell.style.setProperty('display','none','important');
+      }
+      const tabs=$('appTabs');
+      if(tabs){
+        tabs.hidden=true;
+        tabs.style.setProperty('display','none','important');
+      }
+      window.scrollTo({top:0,left:0,behavior:'instant'});
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
       return false;
     }
     function requireAccount(message,action,title=''){
-      if(accountSession)return true;
+      if(!isGuestMode() && accountSession)return true;
       return openSignUpPage(message,action,title);
     }
     function setAccessAuthMode(mode){return openSignUpPage('',mode);}
     function resumeRestrictedAction(){
-      if(!accountSession||!restrictedAction)return;
-      const action=restrictedAction;restrictedAction=null;closeModals();
+      if(!accountSession)return;
+      let action=restrictedAction;
+      if(!action){
+        try{
+          const raw=sessionStorage.getItem('bca-pending-action');
+          if(raw){sessionStorage.removeItem('bca-pending-action');action=JSON.parse(raw);}
+        }catch(e){}
+      }
+      restrictedAction=null;
+      if(!action)return;
+      closeModals();
       if(action.action==='save'&&action.title)toggleSave(action.title);
+      if(action.action==='saved')selectTab('saved');
       if(action.action==='upload')openUpload();
       if(action.action==='download')download(action.title);
       if(action.action==='feedback')openFeedback();
       if(action.action==='qr-login')openQrScanner();
+      if(action.action==='senior-request'||action.action==='senior-req')openSeniorRequest();
+      if(action.action==='juniors-request'||action.action==='juniors-req')openJuniorsRequest();
       if(action.action==='mocktest'){if(typeof unlockDetailedAnalysisIfLoggedIn==='function')unlockDetailedAnalysisIfLoggedIn();if(typeof openMockTestHub==='function')openMockTestHub();}
     }
     async function submitAccessAuth(event){if(event)event.preventDefault();return openSignUpPage();}
@@ -1248,15 +1291,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
     }
     async function download(title){
-      /* Strict auth guard: block the download completely and open the Login/Signup modal for guests.
-         Naya signup / session-restore race: Supabase ka LIVE session bhi accountSession maano —
-         tabhi freshly signed-up user ka pending download resume hota hai (onAuthStateChange se
-         pehle click karne par bhi). */
+      /* Strict auth guard: block the download completely and open the Login/Signup modal for guests. */
+      if(isGuestMode()){
+        requireAccount('Sign up or log in to download "'+title+'".','download',title);
+        return;
+      }
       if(!accountSession){
         try{ if(supabaseClient){ const {data}=await supabaseClient.auth.getSession(); if(data&&data.session)accountSession=normalizeSupabaseUser(data.session.user); } }catch(e){}
       }
       if(!accountSession){
-        requireAccount('Sign up or login to download this note.','download',title);
+        requireAccount('Sign up or log in to download "'+title+'".','download',title);
         return;
       }
       bumpDownload(rcId(title));
@@ -1424,6 +1468,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       window.addEventListener('pointercancel', onDragEnd);
     }
     function showGuestWelcome(){
+      if(sessionStorage.getItem('bca-guest-welcome-seen')==='true') return;
       const m=$('guestWelcomeModal');
       if(!m) return;
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
@@ -1431,14 +1476,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       initGwSheetGestures();
     }
     function closeGuestWelcome(){
+      sessionStorage.setItem('bca-guest-welcome-seen','true');
       const m=$('guestWelcomeModal');
       if(m) m.classList.remove('open');
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
     }
     function guestSignupPrompt(title){
       closeGuestWelcome();
-      if(title) requireAccount('Sign up or login to download "'+title+'".','download',title);
-      else requireAccount('Create a free account to unlock full downloads and uploads.','','');
+      if(title) requireAccount('Sign up or log in to download "'+title+'".','download',title);
+      else requireAccount('Create a free account to unlock full downloads and uploads.','download','');
     }
     /* ============ Strict Email Verification gate ============
        Email/password users MUST verify before entering the app.
@@ -1662,9 +1708,65 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function updateNotificationVisibility(){
       try{if(typeof window.bcaSyncNotificationState==='function')window.bcaSyncNotificationState()}catch(e){}
     }
-    function showAuthenticatedApp(){try{localStorage.setItem('bca-auth-known','1')}catch(e){}try{document.documentElement.classList.add('auth-known')}catch(e){}$('authGate').hidden=true;$('appShell').hidden=false;$('appTabs').hidden=false;renderGreeting();cacheProfile();renderAvatar();afterAccountAuth();updateQrButtonVisibility();setTimeout(showOnboardingIfNeeded,180);setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900)}
-    function continueAsGuest(){sessionStorage.setItem('bca-guest-mode','true');showAuthenticatedApp();setTimeout(showGuestWelcome,250)}
-    function hideAuthenticatedApp(){try{localStorage.removeItem('bca-auth-known')}catch(e){}try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}try{document.documentElement.classList.remove('auth-known')}catch(e){}$('authGate').hidden=false;$('appShell').hidden=true;$('appTabs').hidden=true;renderGreeting();updateQrButtonVisibility()}
+    function showAuthenticatedApp(){
+      try{localStorage.setItem('bca-auth-known','1')}catch(e){}
+      try{
+        document.documentElement.classList.remove('auth-gate-open');
+        document.documentElement.classList.add('auth-known');
+      }catch(e){}
+      const gate=$('authGate');
+      if(gate){
+        gate.hidden=true;
+        gate.style.removeProperty('display');
+      }
+      const shell=$('appShell');
+      if(shell){
+        shell.hidden=false;
+        shell.style.removeProperty('display');
+      }
+      const tabs=$('appTabs');
+      if(tabs){
+        tabs.hidden=false;
+        tabs.style.removeProperty('display');
+      }
+      renderGreeting();
+      cacheProfile();
+      renderAvatar();
+      afterAccountAuth();
+      updateQrButtonVisibility();
+      setTimeout(showOnboardingIfNeeded,180);
+      setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900);
+    }
+    function continueAsGuest(){
+      sessionStorage.setItem('bca-guest-mode','true');
+      showAuthenticatedApp();
+      setTimeout(showGuestWelcome,250);
+    }
+    function hideAuthenticatedApp(){
+      try{localStorage.removeItem('bca-auth-known')}catch(e){}
+      try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}
+      try{
+        document.documentElement.classList.remove('auth-known');
+        document.documentElement.classList.add('auth-gate-open');
+      }catch(e){}
+      const gate=$('authGate');
+      if(gate){
+        gate.hidden=false;
+        gate.style.setProperty('display','flex','important');
+      }
+      const shell=$('appShell');
+      if(shell){
+        shell.hidden=true;
+        shell.style.setProperty('display','none','important');
+      }
+      const tabs=$('appTabs');
+      if(tabs){
+        tabs.hidden=true;
+        tabs.style.setProperty('display','none','important');
+      }
+      renderGreeting();
+      updateQrButtonVisibility();
+    }
     /* ================== Account-bound college & semester ==================
        Ab account (Supabase uid) ki ek server-side profile hoti hai (college +
        semester). Login par is profile se sync hota hai, taaki SAME account har
@@ -2904,6 +3006,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     window.previewResource = previewResource;
     function showPreview(resource){const src=resource.fileUrl||resource.fileData;
+      window.currentPreviewResource = resource;
       $('previewTitle').textContent=resource.title;
       const kindLabel=resource.type==='pyq'?'Previous year paper':'Notes';
       $('previewMeta').textContent=`${kindLabel} · Semester ${resource.sem}${resource.fileName?' · '+resource.fileName:''}`;
@@ -4153,7 +4256,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
        Purana call kahin bacha ho to normal gated download flow me bhejo — seedha blob leak nahi. */
     async function downloadCurrentReaderFile(){
       const resource=currentReaderResource;if(!resource)return;
-      if(!accountSession){requireAccount('Sign up or login to download this note.','download',resource.title||'');return}
+      if(!accountSession){requireAccount('Sign up or log in to download "'+(resource.title||'this note')+'".','download',resource.title||'');return}
       download(resource.title||'');
     }
 
@@ -4224,7 +4327,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
 
     function openSeniorRequest(){
-      if(!accountSession){requireAccount('Log in to ask your seniors for notes/PYQs.','feedback');return}
+      if(!accountSession){requireAccount('Sign up or log in to ask your seniors for notes and PYQs.','senior-request');return}
       if(!canRequestSenior()){
         if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.info('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');
         else toast('You\'re in the final semester, so there are no seniors to ask. You can help juniors instead!');
@@ -4271,7 +4374,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
       else if(navigator.vibrate) navigator.vibrate(10);
 
-      if(!accountSession){requireAccount('Log in to ask your seniors.','feedback');return}
+      if(!accountSession){requireAccount('Sign up or log in to send requests to seniors.','senior-request');return}
       const sem=mySemNumber();
       if(!canRequestSenior()){
         if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.info('Final-semester students cannot request material from seniors');
@@ -4310,7 +4413,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     /* ---- Senior side: help juniors ---- */
     let seniorHelpTimer=null;
-    function seniorHelpVisible(){return mySemNumber()>=2}
+    function seniorHelpVisible(){return !isGuestMode() && mySemNumber()>=2}
     async function loadSeniorRequests(){
       const host=$('helpJuniors');if(!host)return;
       const mySem=mySemNumber();
@@ -4351,6 +4454,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function loadSeniorHelpDelayed(){if(seniorHelpTimer)clearTimeout(seniorHelpTimer);seniorHelpTimer=setTimeout(loadSeniorRequests,900)}
     function timeAgo(iso){try{const s=(Date.now()-new Date(iso).getTime())/1000;if(s<60)return'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
     async function markSeniorDone(id,btn){
+      if(!accountSession){requireAccount('Sign up or log in to help juniors and mark requests done.','juniors-request');return}
       if(btn){btn.disabled=true;btn.textContent='Saving…'}
       try{if(supabaseClient)await supabaseClient.from(SENIOR_TABLE).update({status:'done'}).eq('id',id)}catch(e){}
       fulfillJuniorRequest(helpJuniorCache[id],'done');
@@ -4369,6 +4473,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     const helpJuniorCache={};
     let pendingHelpRequest=null; /* jab is flow se upload hoga to junior ko notification jayegi */
     function openUploadForJunior(id){
+      if(!accountSession){requireAccount('Sign up or log in to upload study material for juniors.','upload');return}
       const r=helpJuniorCache[id];if(!r)return;
       pendingHelpRequest=r;
       openUpload();
@@ -4935,6 +5040,10 @@ window.openMockTestsRoute = openMockTestsRoute;
 
 function openSeniorRequestRoute() {
   setSeniorNotificationDot(false);
+  if (isGuestMode()) {
+    requireAccount('Sign up or log in to ask your seniors for notes and PYQs.', 'senior-request');
+    return;
+  }
   try {
     if (location.hash !== '#ask-seniors') {
       history.pushState(null, '', '#ask-seniors');
@@ -4955,6 +5064,10 @@ function openLostFoundRoute() {
 window.openLostFoundRoute = openLostFoundRoute;
 
 function openJuniorsRequestRoute() {
+  if (isGuestMode()) {
+    requireAccount('Sign up or log in to view and help junior student requests.', 'juniors-request');
+    return;
+  }
   try {
     if (location.hash !== '#juniors-request') {
       history.pushState(null, '', '#juniors-request');
@@ -4965,6 +5078,10 @@ function openJuniorsRequestRoute() {
 window.openJuniorsRequestRoute = openJuniorsRequestRoute;
 
 function openJuniorsRequest() {
+  if (isGuestMode()) {
+    requireAccount('Sign up or log in to view and help junior student requests.', 'juniors-request');
+    return;
+  }
   const modal = $('juniorsReqModal');
   if (!modal) return;
   modal.classList.add('open');
