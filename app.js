@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v69 loaded ✔');
+console.info('[BCAPrime] app.js v71 loaded ✔');
 const ONBOARDING_COLLEGES = [
   ['amity', 'Amity University'],
   ['adbu', 'Assam Don Bosco University'],
@@ -174,10 +174,28 @@ const colleges=[
       if(insertPromise&&insertPromise.then){insertPromise.then(()=>loadCloudSubjects(),()=>{})}
       return true;
     }
-    function getCustomSubjects(sem){try{return [...new Set(cloudSubjects.filter(s=>sem==null||sem===''||sem==='all'||String(s.semester)===String(sem)).map(s=>s.name))]}catch(error){return[]}}
+    function getCustomSubjects(sem){
+      try{
+        const fromCloud=cloudSubjects.filter(s=>sem==null||sem===''||sem==='all'||String(s.semester)===String(sem)).map(s=>s.name);
+        let fromLocal=[];
+        try{
+          const list=JSON.parse(localStorage.getItem('bca-custom-subjects')||'[]');
+          fromLocal=list.filter(s=>sem==null||sem===''||sem==='all'||String(s.semester)===String(sem)).map(s=>s.name);
+        }catch(e){}
+        return [...new Set([...fromCloud,...fromLocal])];
+      }catch(error){return[]}
+    }
     function addCustomSubject(sem,name){
       const clean=String(name||'').trim().replace(/\s+/g,' ');
       if(!clean)return false;
+      try{
+        const existing=JSON.parse(localStorage.getItem('bca-custom-subjects')||'[]');
+        const norm=normSubject(clean);
+        if(!existing.some(s=>String(s.semester)===String(sem)&&normSubject(s.name)===norm)){
+          existing.push({semester:Number(sem),name:clean,created_at:Date.now()});
+          localStorage.setItem('bca-custom-subjects',JSON.stringify(existing));
+        }
+      }catch(e){}
       try{return submitSubjectToCloud(sem,clean)}catch(error){return false}
     }
     const normSubject=s=>String(s||'').trim().replace(/\s+/g,' ').toLowerCase();
@@ -976,34 +994,88 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         return matchCollege&&matchSem;
       }).map(r=>String(r.subject||'').trim()).filter(Boolean))];
       enrolledResourceSubjects.forEach(s=>{if(!subjects.some(x=>normSubject(x)===normSubject(s)))subjects.push(s)});
-      if(!subjects.length){wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester in Profile — your subjects will show up here 📚</div>';return}
+
+      const addCardHtml=`<button class="subject-card subject-card-add bca-pressable" type="button" onclick="openAddSubjectModal()" aria-label="Add Subject">
+        <div class="subject-add-icon-wrap"><i class="fa-solid fa-plus"></i></div>
+        <strong class="subject-add-label">Add Subject</strong>
+      </button>`;
+
+      if(!subjects.length){
+        wrap.innerHTML='<div class="subject-empty"><i class="fa-solid fa-layer-group"></i><br>Pick your semester in Profile — your subjects will show up here 📚</div>'+addCardHtml;
+        if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+          wrap.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+        }
+        return;
+      }
       const seen=new Map();subjects.forEach(s=>{const key=normSubject(s);if(key&&!seen.has(key))seen.set(key,s)});
       const countFor=s=>resources.filter(r=>subjectMatchesFilter(r.subject,s)&&collegeMatchesFilter(r.college)&&(targetSem?Number(r.sem)===targetSem:true)).length;
       /* Har subject ke semesters: cloud subject + uploaded resources */
       const semsOf=s=>{const n=normSubject(s);const set=new Set();cloudSubjects.forEach(c=>{if(c.semester!=null&&normSubject(c.name)===n)set.add(Number(c.semester))});resources.forEach(r=>{if(r.subject&&r.sem!=null&&subjectMatchesFilter(r.subject,s))set.add(Number(r.sem))});return [...set].sort((a,b)=>a-b)};
-      wrap.innerHTML=[...seen.values()].map((s,i)=>{
+      const cardsHtml=[...seen.values()].map((s,i)=>{
         const hue=subjectHue(s);const count=countFor(s);const sems=semsOf(s);
         const semBadge=sems.length?`<span class="subject-badge-sem"><i class="fa-solid fa-layer-group"></i>Semester ${sems.join(' &amp; ')}</span>`:'';
-        return `<button class="subject-card" style="--hue:${hue};animation-delay:${Math.min(i*45,450)}ms" onclick="openSubjectType('${escJsStr(s)}')">
+        return `<button class="subject-card bca-pressable" style="--hue:${hue};animation-delay:${Math.min(i*45,450)}ms" onclick="openSubjectType('${escJsStr(s)}')">
           <span class="subject-card-icon"><i class="${subjectIcon(s)}"></i></span>
           <strong>${escHtml(s)}</strong>
           <span class="subject-card-meta">${semBadge}${count?`<small>${count} material${count>1?'s':''}</small>`:''}</span>
           <span class="subject-card-go"><i class="fa-solid fa-arrow-right"></i></span>
         </button>`}).join('');
+      wrap.innerHTML=cardsHtml+addCardHtml;
+      if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+        wrap.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+      }
     }
-    /* ---- Add a new custom subject -> card appears instantly ---- */
-    function addSubjectCard(){
-      const input=$('newSubjectInput');
+    function setSuggestedSubject(name){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const input=$('modalSubjectInput');
+      if(input){
+        input.value=name;
+        input.focus();
+      }
+    }
+    /* ---- Add a new custom subject -> modal / bottom sheet flow ---- */
+    function openAddSubjectModal(){
+      if(isGuestMode()){
+        requireAccount('Sign up or log in to add custom subjects.','add_subject');
+        return;
+      }
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const m=$('addSubjectModal');
+      if(!m)return;
+      const input=$('modalSubjectInput');
+      if(input)input.value='';
+      const profSem=state.profileSemester||getProfileSemester()||(state.sem!=='all'?state.sem:'');
+      const badge=$('addSubjectSemBadge');
+      if(badge)badge.innerHTML='<i class="fa-solid fa-layer-group"></i> '+(profSem&&profSem!=='all'?('Semester '+profSem):'Semester 1');
+      m.classList.add('open');
+      if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+        m.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+      }
+      setTimeout(()=>{if(input)input.focus();},120);
+    }
+    function closeAddSubjectModal(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const m=$('addSubjectModal');
+      if(m)m.classList.remove('open');
+      const input=$('modalSubjectInput');
+      if(input)input.blur();
+    }
+    function submitModalSubject(){
+      const input=$('modalSubjectInput');
       const name=(input&&input.value||'').trim().replace(/\s+/g,' ');
       if(!name){toast('Type a subject name');if(input)input.focus();return}
       if(name.length<2){toast('Please use a slightly longer name');return}
-      const targetSem=state.profileSemester||getProfileSemester()||(state.sem!=='all'?state.sem:'');
-      if(!targetSem||targetSem==='all'){toast('Set your semester in Profile first, then add subjects');return}
+      let targetSem=state.profileSemester||getProfileSemester()||(state.sem!=='all'?state.sem:'1');
+      if(!targetSem||targetSem==='all')targetSem='1';
       const ok=addCustomSubject(Number(targetSem),name);
-      if(input){input.value='';input.blur()}
+      closeAddSubjectModal();
       renderSubjectFilter();
+      renderSubjectCards();
       render();
-      toast(ok?('"'+name+'" submitted ✉️ It will appear here once an admin approves it'):('Could not submit "'+name+'". Please try again.'));
+      toast(ok?(`"${name}" added to Semester ${targetSem} 📚`):(`Could not add "${name}". Please try again.`));
+    }
+    function addSubjectCard(){
+      openAddSubjectModal();
     }
     let pendingSubject='';
     let stSheetDragBound=false;
@@ -1362,6 +1434,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(action.action==='qr-login')openQrScanner();
       if(action.action==='senior-request'||action.action==='senior-req')openSeniorRequest();
       if(action.action==='juniors-request'||action.action==='juniors-req')openJuniorsRequest();
+      if(action.action==='add_subject'||action.action==='add-subject')openAddSubjectModal();
       if(action.action==='mocktest'){if(typeof unlockDetailedAnalysisIfLoggedIn==='function')unlockDetailedAnalysisIfLoggedIn();if(typeof openMockTestHub==='function')openMockTestHub();}
     }
     async function submitAccessAuth(event){if(event)event.preventDefault();return openSignUpPage();}
@@ -2453,6 +2526,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(e.key==='Escape'){
         const m=$('logoutConfirmModal');
         if(m&&m.classList.contains('open'))closeLogoutConfirm();
+        const asm=$('addSubjectModal');
+        if(asm&&asm.classList.contains('open'))closeAddSubjectModal();
       }
     });
     async function executeSignOut(){

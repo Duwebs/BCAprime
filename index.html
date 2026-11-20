@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=72">
+  <link rel="stylesheet" href="styles.css?v=74">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -638,8 +638,7 @@
           <button class="secondary" onclick="cancelFinderAddSubject()" aria-label="Cancel">&times;</button>
         </div>
       </div>
-      <div class="section-head" style="margin-top:20px"><div><h2>Your subjects</h2></div><span class="count">Tap a subject - choose Notes or PYQ</span></div>
-      <div class="add-subject-row"><input id="newSubjectInput" type="text" maxlength="80" placeholder="Type your subject (e.g. Hindi Literature)&#8230;" onkeydown="if(event.key==='Enter')addSubjectCard()"><button class="primary" onclick="addSubjectCard()"><i class="fa-solid fa-plus"></i> Add subject</button></div>
+      <div class="section-head subjects-section-head" style="margin-top:20px"><div><h2>Your subjects</h2></div><span class="count">Tap a subject - choose Notes or PYQ</span></div>
       <div class="subject-cards" id="subjectCards"></div></section>
 
         <section class="section"><div class="resource-toolbar"><div class="section-head" style="margin:0"><div><h2>Latest resources</h2></div></div><span class="count" id="count"></span></div><div class="resource-grid" id="resources"></div></section>
@@ -1410,6 +1409,43 @@
     </div>
   </div>
 
+  <!-- Add Subject Modal / Bottom Sheet -->
+  <div class="modal add-subject-modal" id="addSubjectModal" onclick="if(event.target===this)closeAddSubjectModal()" role="dialog" aria-modal="true" aria-labelledby="addSubjectModalTitle">
+    <div class="dialog add-subject-dialog">
+      <div class="add-sub-sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="add-sub-head">
+        <div class="add-sub-head-left">
+          <h2 class="add-sub-title" id="addSubjectModalTitle">Add a new subject</h2>
+          <span class="add-sub-sem-badge" id="addSubjectSemBadge"><i class="fa-solid fa-layer-group"></i> Semester 1</span>
+        </div>
+        <button class="add-sub-close-btn bca-pressable" type="button" aria-label="Close dialog" onclick="closeAddSubjectModal()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      
+      <form class="add-sub-form" onsubmit="event.preventDefault();submitModalSubject()">
+        <div class="add-sub-field">
+          <label for="modalSubjectInput" class="add-sub-label">Subject name</label>
+          <input id="modalSubjectInput" class="add-sub-input" type="text" maxlength="80" placeholder="e.g. Data Structures, DBMS, Computer Networks" autocomplete="off" required>
+          
+          <div class="add-sub-suggestions">
+            <span class="add-sub-sugg-hint">Suggestions:</span>
+            <div class="add-sub-sugg-chips">
+              <button type="button" class="add-sub-chip bca-pressable" onclick="setSuggestedSubject('Data Structures')">+ Data Structures</button>
+              <button type="button" class="add-sub-chip bca-pressable" onclick="setSuggestedSubject('DBMS')">+ DBMS</button>
+              <button type="button" class="add-sub-chip bca-pressable" onclick="setSuggestedSubject('Computer Networks')">+ Computer Networks</button>
+              <button type="button" class="add-sub-chip bca-pressable" onclick="setSuggestedSubject('Discrete Mathematics')">+ Discrete Mathematics</button>
+            </div>
+          </div>
+        </div>
+        <div class="add-sub-actions">
+          <button type="button" class="add-sub-btn-cancel bca-pressable" onclick="closeAddSubjectModal()">Cancel</button>
+          <button type="submit" class="add-sub-btn-submit bca-pressable" id="modalSubjectSubmitBtn"><i class="fa-solid fa-plus"></i> Add subject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Phone side: QR login approval request (scan ke baad yahan aata hai) -->
   <div class="modal" id="qrApproveModal"><div class="dialog device-gate-dialog"><div class="device-gate-icon"><i class="fa-solid fa-laptop"></i></div><p class="st-kicker">QR login request</p><h2>Approve this computer?</h2><p class="st-sub">A computer wants to log in to your BCAPrime account. Once approved, it will log in instantly &mdash; no need to share your password.</p><div class="device-gate-actions"><button class="secondary" type="button" onclick="denyQrLogin()"><i class="fa-solid fa-xmark"></i> Deny</button><button class="primary" type="button" onclick="confirmQrLogin()"><i class="fa-solid fa-check"></i> Approve login</button></div><p class="st-sub" id="qrApproveMsg" aria-live="polite"></p></div></div>
 
@@ -1952,7 +1988,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=69"></script>
+  <script src="app.js?v=71"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>
