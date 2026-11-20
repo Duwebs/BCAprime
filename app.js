@@ -1,8 +1,151 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v64 loaded ✔');
-const colleges=[['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],['bangalore','Bangalore University'],['other','Other University']];
-    JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2)colleges.push(college)});
+console.info('[BCAPrime] app.js v68 loaded ✔');
+const ONBOARDING_COLLEGES = [
+  ['amity', 'Amity University'],
+  ['adbu', 'Assam Don Bosco University'],
+  ['avviare', 'Avviare Educational Hub'],
+  ['banasthali', 'Banasthali Vidyapith'],
+  ['bvp', 'Bharati Vidyapeeth'],
+  ['bitmesra', 'BIT Mesra'],
+  ['cu', 'Chandigarh University'],
+  ['chitkara', 'Chitkara University'],
+  ['christ', 'Christ University'],
+  ['davv', 'DAVV (Devi Ahilya Vishwavidyalaya)'],
+  ['gauhati', 'Gauhati University'],
+  ['glocal', 'Glocal University'],
+  ['goa', 'Goa University'],
+  ['geu', 'Graphic Era University'],
+  ['hpu', 'Himachal Pradesh University'],
+  ['kiit', 'KIIT University'],
+  ['kuk', 'Kurukshetra University'],
+  ['manipur', 'Manipur University'],
+  ['mizoram', 'Mizoram University'],
+  ['nagaland', 'Nagaland University'],
+  ['nirma', 'Nirma University'],
+  ['pu', 'Panjab University'],
+  ['patna', 'Patna University'],
+  ['pondi', 'Pondicherry University'],
+  ['rgu', 'Rajiv Gandhi University'],
+  ['smu', 'Sikkim Manipal University'],
+  ['srm', 'SRM Institute of Science and Technology'],
+  ['tripura', 'Tripura University'],
+  ['uok', 'University of Kashmir'],
+  ['kerala', 'University of Kerala']
+];
+
+function getCollegeBadgeData(id, name) {
+  const customMonograms = {
+    'amity': 'AU',
+    'adbu': 'AD',
+    'avviare': 'AE',
+    'banasthali': 'BV',
+    'bvp': 'BV',
+    'bitmesra': 'BM',
+    'cu': 'CU',
+    'chitkara': 'CU',
+    'christ': 'CU',
+    'davv': 'DA',
+    'gauhati': 'GU',
+    'glocal': 'GU',
+    'goa': 'GU',
+    'geu': 'GE',
+    'hpu': 'HP',
+    'kiit': 'KU',
+    'kuk': 'KU',
+    'manipur': 'MU',
+    'mizoram': 'MU',
+    'nagaland': 'NU',
+    'nirma': 'NU',
+    'pu': 'PU',
+    'patna': 'PU',
+    'pondi': 'PU',
+    'rgu': 'RG',
+    'smu': 'SM',
+    'srm': 'SR',
+    'tripura': 'TU',
+    'uok': 'UK',
+    'kerala': 'UK',
+    'ccsu': 'CC',
+    'du': 'DU',
+    'ipu': 'GG'
+  };
+
+  const badgeColors = {
+    'amity': '#2563eb',
+    'adbu': '#059669',
+    'avviare': '#2563eb',
+    'banasthali': '#db2777',
+    'bvp': '#7c3aed',
+    'bitmesra': '#d97706',
+    'cu': '#dc2626',
+    'chitkara': '#ea580c',
+    'christ': '#4f46e5',
+    'davv': '#0891b2',
+    'gauhati': '#16a34a',
+    'glocal': '#16a34a',
+    'goa': '#0284c7',
+    'geu': '#9333ea',
+    'hpu': '#e11d48',
+    'kiit': '#0d9488',
+    'kuk': '#6366f1',
+    'manipur': '#059669',
+    'mizoram': '#ca8a04',
+    'nagaland': '#2563eb',
+    'nirma': '#dc2626',
+    'pu': '#4338ca',
+    'patna': '#0891b2',
+    'pondi': '#0d9488',
+    'rgu': '#7c3aed',
+    'smu': '#0284c7',
+    'srm': '#ea580c',
+    'tripura': '#16a34a',
+    'uok': '#4f46e5',
+    'kerala': '#059669',
+    'ccsu': '#3b82f6',
+    'du': '#1e40af',
+    'ipu': '#dc2626'
+  };
+
+  let monogram = customMonograms[id];
+  if (!monogram && name) {
+    const clean = name.replace(/\([^)]*\)/g, '').trim().split(/\s+/).filter(w => !['of','and','the','in','for','&'].includes(w.toLowerCase()));
+    if (clean.length >= 2) {
+      monogram = (clean[0][0] + clean[1][0]).toUpperCase();
+    } else if (clean.length === 1 && clean[0].length >= 2) {
+      monogram = clean[0].slice(0, 2).toUpperCase();
+    } else {
+      monogram = (name.slice(0, 2) || 'BC').toUpperCase();
+    }
+  }
+
+  let color = badgeColors[id];
+  if (!color) {
+    const colors = ['#2563eb', '#16a34a', '#7c3aed', '#dc2626', '#d97706', '#0284c7', '#4f46e5', '#0d9488', '#e11d48'];
+    let hash = 0;
+    const str = id || name || 'college';
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    color = colors[Math.abs(hash) % colors.length];
+  }
+
+  return { monogram: monogram || 'BC', color: color || '#2563eb' };
+}
+
+const colleges=[
+  ['all','All Colleges'],
+  ...ONBOARDING_COLLEGES,
+  ['ccsu','CCSU Meerut'],
+  ['du','Delhi University'],
+  ['ipu','GGSIPU Delhi'],
+  ['aktu','AKTU / UPTU'],
+  ['ignou','IGNOU'],
+  ['mdu','MDU Rohtak'],
+  ['bhu','BHU'],
+  ['pune','Pune University'],
+  ['bangalore','Bangalore University'],
+  ['other','Other University']
+];
+    JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2&&!colleges.some(c=>c[0]===college[0]))colleges.push(college)});
     /* ---- Subject-wise finder ----
        Subjects ab sirf database se aate hain (admin-approved / public).
        Koi bhi hard-coded subject list nahi — college + semester ki
@@ -3494,7 +3637,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function cacheProfile(){
       try{if(!accountSession)return;localStorage.setItem('bca-profile-cache',JSON.stringify({name:getUserName(accountSession),email:accountSession.email||'',photo:accountSession.photoURL||''}))}catch(e){}
     }
-    function showOnboarding(){if(localStorage.getItem('bca-onboarded'))return;state.onboardingDone=false;state.onboardingSem='';renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2');$('onboarding').classList.add('open')}
+    function showOnboarding(force=false){openOnboardingFlow(force)}
     /* ===== NEW FEATURES =====
        1) Save for offline (Netflix-style) — files device pe cache
        2) Library skeleton loading — jaldi dikhe
@@ -4496,11 +4639,200 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }catch(e){}
     }
 
-    function showOnboardingIfNeeded(){if(localStorage.getItem('bca-onboarded')){if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);return}if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')showOnboarding()}
-    function renderOnboardingColleges(){const options=colleges.filter(c=>c[0]!=='other'&&c[0]!=='all').sort((a,b)=>{if(a[0]==='avviare')return -1;if(b[0]==='avviare')return 1;return 0});$('onboardingList').innerHTML=options.map(c=>`<button class="onboarding-option ${state.onboardingCollege===c[0]?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')"><span><b>${c[1]}</b><small>BCA resources</small></span><i class="fa-solid ${state.onboardingCollege===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
-    function chooseOnboardingCollege(id){state.onboardingCollege=id;renderOnboardingColleges();state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));const track=$('obTrack');if(track)track.classList.add('step2')}
-    function backToOnboardingCollege(){state.onboardingSem='';document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));renderOnboardingColleges();const track=$('obTrack');if(track)track.classList.remove('step2')}
-    function chooseOnboardingSemester(sem,button){state.onboardingSem=String(sem);document.querySelectorAll('#onboardingSemesters button').forEach(item=>item.classList.remove('selected'));button.classList.add('selected');if(state.onboardingCollege&&!state.onboardingDone)setTimeout(()=>finishOnboarding(),400)}
+    function openOnboardingFlow(force=false){
+      if(!force && localStorage.getItem('bca-onboarded')) return;
+      state.onboardingDone=false;
+      state.onboardingSem='';
+      const sInp=$('onboardingSearch');if(sInp)sInp.value='';
+      const sClr=$('obSearchClear');if(sClr)sClr.hidden=true;
+      toggleCustomCollegeDrawer(false);
+      const p1=$('obProgSeg1');if(p1)p1.classList.add('active');
+      const p2=$('obProgSeg2');if(p2)p2.classList.remove('active');
+      const p3=$('obProgSeg3');if(p3)p3.classList.remove('active');
+      const s1=$('obStep1');if(s1)s1.classList.add('active');
+      const s2=$('obStep2');if(s2)s2.classList.remove('active');
+      const track=$('obTrack');if(track)track.classList.remove('step2');
+      document.querySelectorAll('#onboardingSemesters .ob-sem-card').forEach(b=>b.classList.remove('selected'));
+      renderOnboardingColleges();
+      const modal=$('onboarding');if(modal)modal.classList.add('open');
+    }
+
+    function showOnboardingIfNeeded(){
+      if(localStorage.getItem('bca-onboarded')){
+        if(localStorage.getItem('bca-tour-seen')!=='true')setTimeout(startTour,200);
+        return;
+      }
+      if(accountSession||sessionStorage.getItem('bca-guest-mode')==='true')openOnboardingFlow();
+    }
+
+    function handleOnboardingBack(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const s2=$('obStep2');
+      if(s2&&s2.classList.contains('active')){
+        backToOnboardingCollege();
+      }else{
+        if(localStorage.getItem('bca-onboarded')||sessionStorage.getItem('bca-guest-mode')==='true'){
+          const modal=$('onboarding');if(modal)modal.classList.remove('open');
+        }else{
+          toast('Pick your college to personalize your study desk');
+        }
+      }
+    }
+
+    function toggleCustomCollegeDrawer(show){
+      const drawer=$('obCustomDrawer');
+      const addBtn=$('obAddCustomBtn');
+      if(!drawer)return;
+      if(show){
+        drawer.hidden=false;
+        if(addBtn)addBtn.hidden=true;
+        const inp=$('onboardingCustom');if(inp)inp.focus();
+      }else{
+        drawer.hidden=true;
+        if(addBtn)addBtn.hidden=false;
+      }
+    }
+
+    function prefillCustomCollege(name){
+      toggleCustomCollegeDrawer(true);
+      const inp=$('onboardingCustom');
+      if(inp){inp.value=name;inp.focus();}
+    }
+
+    let obSearchDebounceTimer=null;
+    function handleOnboardingSearch(val){
+      const sClr=$('obSearchClear');
+      if(sClr)sClr.hidden=!(val&&val.trim().length>0);
+      clearTimeout(obSearchDebounceTimer);
+      obSearchDebounceTimer=setTimeout(()=>{
+        renderOnboardingColleges(val);
+      },80);
+    }
+
+    function clearOnboardingSearch(){
+      const sInp=$('onboardingSearch');
+      if(sInp){sInp.value='';sInp.focus();}
+      const sClr=$('obSearchClear');
+      if(sClr)sClr.hidden=true;
+      renderOnboardingColleges('');
+    }
+
+    function renderOnboardingColleges(query=''){
+      const container=$('onboardingList');
+      if(!container)return;
+      const q=(query||'').trim().toLowerCase();
+
+      // Custom colleges stored in localStorage
+      const customList=[];
+      try{
+        const raw=JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]');
+        raw.forEach(c=>{
+          if(Array.isArray(c)&&c.length===2&&!ONBOARDING_COLLEGES.some(oc=>oc[0]===c[0])){
+            customList.push(c);
+          }
+        });
+      }catch(e){}
+
+      // Exact ordered list: custom colleges (if any), then the 30 specified colleges
+      const allList=[...customList,...ONBOARDING_COLLEGES];
+      const filtered=q?allList.filter(c=>{
+        const id=c[0].toLowerCase();
+        const name=c[1].toLowerCase();
+        const badge=getCollegeBadgeData(c[0],c[1]);
+        const mono=badge.monogram.toLowerCase();
+        return name.includes(q)||id.includes(q)||mono===q;
+      }):allList;
+
+      if(filtered.length===0){
+        container.innerHTML=`
+          <div class="ob-empty-state">
+            <i class="fa-solid fa-building-columns"></i>
+            <p>No college matching "<b>${escHtml(query)}</b>"</p>
+            <button type="button" class="ob-empty-add-btn bca-pressable" onclick="prefillCustomCollege('${escJsStr(query)}')">
+              <i class="fa-solid fa-plus"></i> Add "${escHtml(query)}"
+            </button>
+          </div>`;
+        if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+          container.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+        }
+        return;
+      }
+
+      container.innerHTML=filtered.map(c=>{
+        const isSelected=state.onboardingCollege===c[0];
+        const badge=getCollegeBadgeData(c[0],c[1]);
+        return `
+          <button type="button" class="ob-college-card bca-pressable ${isSelected?'selected':''}" onclick="chooseOnboardingCollege('${c[0]}')">
+            <span class="ob-college-badge" style="background:${badge.color};">${badge.monogram}</span>
+            <span class="ob-college-details">
+              <b class="ob-college-name">${escHtml(c[1])}</b>
+              <small class="ob-college-sub">BCA resources</small>
+            </span>
+            <i class="fa-solid ${isSelected?'fa-circle-check ob-college-check':'fa-chevron-right ob-college-arrow'}"></i>
+          </button>
+        `;
+      }).join('');
+
+      if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+        container.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+      }
+    }
+
+    function chooseOnboardingCollege(id){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      state.onboardingCollege=id;
+      const colObj=colleges.find(c=>c[0]===id)||[id,id];
+      const badge=getCollegeBadgeData(id,colObj[1]);
+
+      // Update Step 2 Hero badge and name
+      const badgeEl=$('obSelectedBadge');
+      if(badgeEl){
+        badgeEl.textContent=badge.monogram;
+        badgeEl.style.background=badge.color;
+      }
+      const nameEl=$('obSelectedName');
+      if(nameEl){
+        nameEl.textContent=colObj[1];
+      }
+
+      // Progress bar: step 2 active
+      const p2=$('obProgSeg2');if(p2)p2.classList.add('active');
+
+      // Highlight in list
+      document.querySelectorAll('#onboardingList .ob-college-card').forEach(b=>b.classList.remove('selected'));
+      const activeBtn=document.querySelector(`#onboardingList button[onclick*="'${id}'"]`);
+      if(activeBtn)activeBtn.classList.add('selected');
+
+      // Switch active step (zero horizontal overflow)
+      const s1=$('obStep1');if(s1)s1.classList.remove('active');
+      const s2=$('obStep2');if(s2)s2.classList.add('active');
+      const track=$('obTrack');if(track)track.classList.add('step2');
+    }
+
+    function backToOnboardingCollege(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      state.onboardingSem='';
+      document.querySelectorAll('#onboardingSemesters .ob-sem-card').forEach(item=>item.classList.remove('selected'));
+      const p2=$('obProgSeg2');if(p2)p2.classList.remove('active');
+      const p3=$('obProgSeg3');if(p3)p3.classList.remove('active');
+
+      // Switch active step back to Step 1
+      const s2=$('obStep2');if(s2)s2.classList.remove('active');
+      const s1=$('obStep1');if(s1)s1.classList.add('active');
+      const track=$('obTrack');if(track)track.classList.remove('step2');
+    }
+
+    function chooseOnboardingSemester(sem,button){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      state.onboardingSem=String(sem);
+      document.querySelectorAll('#onboardingSemesters .ob-sem-card').forEach(item=>item.classList.remove('selected'));
+      if(button)button.classList.add('selected');
+      const p3=$('obProgSeg3');if(p3)p3.classList.add('active');
+      if(state.onboardingCollege&&!state.onboardingDone){
+        setTimeout(()=>finishOnboarding(),320);
+      }
+    }
+
     function ensureCollegeOption(id){const college=colleges.find(c=>c[0]===id);const cf=$('collegeFilter');if(!college||!cf||cf.querySelector(`option[value="${id}"]`))return;const option=document.createElement('option');option.value=college[0];option.textContent=college[1];cf.append(option)}
     function completeOnboarding(id){
       if(state.onboardingDone)return;
@@ -4528,7 +4860,22 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       setTimeout(startTour,200);
     }
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem&&!state.profileSemester){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
-    function addOnboardingCollege(){const input=$('onboardingCustom');const name=input.value.trim();if(!name){input.focus();return}const id='custom-'+Date.now();const college=[id,name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';chooseOnboardingCollege(id)}
+    function addOnboardingCollege(){
+      const input=$('onboardingCustom');
+      const name=input?input.value.trim():'';
+      if(!name){if(input)input.focus();return}
+      const id='custom-'+Date.now();
+      const college=[id,name];
+      colleges.push(college);
+      try{
+        const existing=JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]');
+        localStorage.setItem('bca-custom-colleges',JSON.stringify([...existing,college]));
+      }catch(e){}
+      if(input)input.value='';
+      toggleCustomCollegeDrawer(false);
+      renderOnboardingColleges();
+      chooseOnboardingCollege(id);
+    }
     const tourSteps=[
       {icon:'fa-magnifying-glass',title:'Search anything',text:'Find notes, question papers and study material for any subject with one quick search.'},
       {icon:'fa-sliders',title:'Smart filters',text:'Narrow results by your college, year, semester and material type in seconds.'},

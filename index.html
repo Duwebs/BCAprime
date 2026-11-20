@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=67">
+  <link rel="stylesheet" href="styles.css?v=71">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -290,7 +290,166 @@
         </div>
       </div>
     </div></section>
-  <aside class="install-banner" id="installBanner" aria-live="polite"><span class="install-banner-icon"><img src="assets/logo.png" alt="BCAPrime logo" width="36" height="36"></span><span class="install-banner-copy"><strong>Install BCAPrime</strong><span>Keep your study library one tap away.</span></span><span class="install-banner-actions"><button class="primary" onclick="installApp()"><i class="fa-solid fa-download"></i> Install</button><button class="install-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss install prompt" title="Dismiss"><i class="fa-solid fa-xmark"></i><span>Later</span></button></span></aside>  <aside class="device-request-banner" id="deviceRequestBanner" aria-live="polite"><span class="device-request-icon"><i class="fa-solid fa-mobile-screen-button"></i></span><span class="device-request-copy"><strong>New device login request</strong><span id="deviceReqName">A new device wants to log in</span></span><span class="device-request-actions"><button class="primary" onclick="approveDeviceReq()"><i class="fa-solid fa-check"></i> Approve</button><button class="danger" onclick="denyDeviceReq()"><i class="fa-solid fa-xmark"></i> Deny</button></span></aside>  <div class="onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle"><div class="onboarding-dialog"><div class="onboarding-kicker"><i class="fa-solid fa-sparkles"></i> Personalise your library</div><div class="onboarding-viewport"><div class="onboarding-track" id="obTrack"><div class="onboarding-step" id="obStep1"><h2 id="onboardingTitle">Where do you study?</h2><p>Choose your college to see the most relevant BCA papers and notes first.</p><div class="onboarding-list" id="onboardingList"></div><div class="onboarding-custom"><input id="onboardingCustom" aria-label="Add your college name" placeholder="Can't find your college? Add it here&#8230;"><button class="primary" onclick="addOnboardingCollege()"><i class="fa-solid fa-plus"></i> Add college</button></div></div><div class="onboarding-step" id="obStep2"><button type="button" class="onboarding-back" onclick="backToOnboardingCollege()" aria-label="Back to college selection"><i class="fa-solid fa-arrow-left"></i></button><h2>Which semester are you in?</h2><p>Pick your current semester to personalise your study desk.</p><div class="onboarding-semesters open" id="onboardingSemesters"><button onclick="chooseOnboardingSemester(1,this)"><b>Semester 1</b><small>First year</small></button><button onclick="chooseOnboardingSemester(2,this)"><b>Semester 2</b><small>First year</small></button><button onclick="chooseOnboardingSemester(3,this)"><b>Semester 3</b><small>Second year</small></button><button onclick="chooseOnboardingSemester(4,this)"><b>Semester 4</b><small>Second year</small></button><button onclick="chooseOnboardingSemester(5,this)"><b>Semester 5</b><small>Third year</small></button><button onclick="chooseOnboardingSemester(6,this)"><b>Semester 6</b><small>Third year</small></button></div></div></div></div><select id="collegeFilter" class="onboarding-college-select" hidden><option value="">Select a college</option></select></div></div></div>
+  <aside class="install-banner" id="installBanner" aria-live="polite"><span class="install-banner-icon"><img src="assets/logo.png" alt="BCAPrime logo" width="36" height="36"></span><span class="install-banner-copy"><strong>Install BCAPrime</strong><span>Keep your study library one tap away.</span></span><span class="install-banner-actions"><button class="primary" onclick="installApp()"><i class="fa-solid fa-download"></i> Install</button><button class="install-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss install prompt" title="Dismiss"><i class="fa-solid fa-xmark"></i><span>Later</span></button></span></aside>  <aside class="device-request-banner" id="deviceRequestBanner" aria-live="polite"><span class="device-request-icon"><i class="fa-solid fa-mobile-screen-button"></i></span><span class="device-request-copy"><strong>New device login request</strong><span id="deviceReqName">A new device wants to log in</span></span><span class="device-request-actions"><button class="primary" onclick="approveDeviceReq()"><i class="fa-solid fa-check"></i> Approve</button><button class="danger" onclick="denyDeviceReq()"><i class="fa-solid fa-xmark"></i> Deny</button></span></aside>  <div class="onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+    <div class="ob-shell">
+      <!-- Top Navigation Bar -->
+      <header class="ob-topbar">
+        <button type="button" class="ob-back-btn bca-pressable" id="obBackBtn" onclick="handleOnboardingBack()" aria-label="Back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <div class="ob-progress" id="obProgress" aria-label="Onboarding progress">
+          <span class="ob-progress-segment active" id="obProgSeg1"></span>
+          <span class="ob-progress-segment" id="obProgSeg2"></span>
+          <span class="ob-progress-segment" id="obProgSeg3"></span>
+        </div>
+        <div class="ob-topbar-spacer" aria-hidden="true"></div>
+      </header>
+
+      <!-- Viewport: Only the active step is rendered (Zero right-edge horizontal bleeding) -->
+      <div class="ob-viewport" id="obViewport">
+        <!-- STEP 1: College Selection -->
+        <div class="ob-step ob-step-1 active" id="obStep1">
+          <div class="ob-hero ob-hero-step1">
+            <div class="ob-hero-copy">
+              <h1 class="ob-title" id="onboardingTitle">Where do you study?</h1>
+              <p class="ob-subtitle">Pick your college to see the right papers and notes.</p>
+            </div>
+          </div>
+
+          <!-- Overlapping Bottom Sheet -->
+          <div class="ob-sheet">
+            <!-- Peeking Mascot (hanging over top-right seam, strictly clear of text) -->
+            <div class="ob-mascot ob-mascot-step1" aria-hidden="true">
+              <img src="assets/mascot-peeking.png" alt="" width="125" height="93" loading="eager">
+            </div>
+
+            <!-- Sticky / Fixed Search Bar -->
+            <div class="ob-search-wrap">
+              <i class="fa-solid fa-magnifying-glass ob-search-icon" aria-hidden="true"></i>
+              <input type="search" id="onboardingSearch" class="ob-search-input" placeholder="Search your college" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="handleOnboardingSearch(this.value)">
+              <button type="button" class="ob-search-clear" id="obSearchClear" onclick="clearOnboardingSearch()" aria-label="Clear search" hidden>
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+
+            <!-- Scrollable College List -->
+            <div class="ob-college-list" id="onboardingList" role="radiogroup" aria-label="Colleges">
+              <!-- Dynamically rendered colleges -->
+            </div>
+
+            <!-- Custom College Drawer / Input Form -->
+            <div class="ob-custom-drawer" id="obCustomDrawer" hidden>
+              <div class="ob-custom-row">
+                <input type="text" id="onboardingCustom" class="ob-custom-input" placeholder="Enter your college / university name" autocomplete="off">
+                <button type="button" class="ob-custom-submit-btn bca-pressable" onclick="addOnboardingCollege()">Add</button>
+                <button type="button" class="ob-custom-cancel-btn bca-pressable" onclick="toggleCustomCollegeDrawer(false)" aria-label="Cancel">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Pinned Bottom Action: + Can't find it? Add your college -->
+            <div class="ob-pinned-bottom">
+              <button type="button" class="ob-add-custom-btn bca-pressable" id="obAddCustomBtn" onclick="toggleCustomCollegeDrawer(true)">
+                <i class="fa-solid fa-plus"></i> Can't find it? Add your college
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: Semester Selection (Bold, Centered & Visually Engaging) -->
+        <div class="ob-step ob-step-2" id="obStep2">
+          <div class="ob-hero ob-hero-step2">
+            <h1 class="ob-title ob-title-center">Which semester are you in?</h1>
+            <!-- Centered Hero College Showcase -->
+            <div class="ob-selected-college-center">
+              <span class="ob-college-badge-lg" id="obSelectedBadge">AE</span>
+              <strong class="ob-selected-college-name-center" id="obSelectedName">Avviare Educational Hub</strong>
+              <span class="ob-college-program-tag"><i class="fa-solid fa-graduation-cap"></i> BCA Program &middot; 3 Years</span>
+              <button type="button" class="ob-change-college-pill bca-pressable" onclick="backToOnboardingCollege()" aria-label="Change college">
+                <i class="fa-solid fa-rotate"></i> Change college
+              </button>
+            </div>
+          </div>
+
+          <!-- Overlapping Bottom Sheet -->
+          <div class="ob-sheet ob-sheet-sem">
+            <!-- Centered Mascot Resting on the Semester Sheet seam, pointing down -->
+            <div class="ob-mascot ob-mascot-step2-center" aria-hidden="true">
+              <img src="assets/mascot-pointing.png" alt="" width="132" height="118" loading="eager">
+            </div>
+
+            <!-- Upgraded 2x3 Grid of Interactive Academic Semester Cards -->
+            <div class="ob-semester-grid" id="onboardingSemesters" role="radiogroup" aria-label="Choose your semester">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="1" onclick="chooseOnboardingSemester(1,this)">
+                <div class="ob-sem-top-row">
+                  <span class="ob-sem-tag">SEM 01</span>
+                  <span class="ob-sem-year-pill">1st Year</span>
+                </div>
+                <div class="ob-sem-main-row">
+                  <strong class="ob-sem-title">Semester 1</strong>
+                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
+                </div>
+              </button>
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="2" onclick="chooseOnboardingSemester(2,this)">
+                <div class="ob-sem-top-row">
+                  <span class="ob-sem-tag">SEM 02</span>
+                  <span class="ob-sem-year-pill">1st Year</span>
+                </div>
+                <div class="ob-sem-main-row">
+                  <strong class="ob-sem-title">Semester 2</strong>
+                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
+                </div>
+              </button>
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="3" onclick="chooseOnboardingSemester(3,this)">
+                <div class="ob-sem-top-row">
+                  <span class="ob-sem-tag">SEM 03</span>
+                  <span class="ob-sem-year-pill">2nd Year</span>
+                </div>
+                <div class="ob-sem-main-row">
+                  <strong class="ob-sem-title">Semester 3</strong>
+                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
+                </div>
+              </button>
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="4" onclick="chooseOnboardingSemester(4,this)">
+                <div class="ob-sem-top-row">
+                  <span class="ob-sem-tag">SEM 04</span>
+                  <span class="ob-sem-year-pill">2nd Year</span>
+                </div>
+                <div class="ob-sem-main-row">
+                  <strong class="ob-sem-title">Semester 4</strong>
+                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
+                </div>
+              </button>
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="5" onclick="chooseOnboardingSemester(5,this)">
+                <div class="ob-sem-top-row">
+                  <span class="ob-sem-tag">SEM 05</span>
+                  <span class="ob-sem-year-pill">3rd Year</span>
+                </div>
+                <div class="ob-sem-main-row">
+                  <strong class="ob-sem-title">Semester 5</strong>
+                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
+                </div>
+              </button>
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="6" onclick="chooseOnboardingSemester(6,this)">
+                <div class="ob-sem-top-row">
+                  <span class="ob-sem-tag">SEM 06</span>
+                  <span class="ob-sem-year-pill">3rd Year</span>
+                </div>
+                <div class="ob-sem-main-row">
+                  <strong class="ob-sem-title">Semester 6</strong>
+                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
+                </div>
+              </button>
+            </div>
+
+            <p class="ob-sem-note">Tap one. You can change it later.</p>
+          </div>
+        </div>
+      </div>
+      <select id="collegeFilter" class="onboarding-college-select" hidden><option value="">Select a college</option></select>
+    </div>
+  </div>
   <main class="app" id="appShell" hidden>
     <header class="topbar">
       <a class="brand" href="#top" aria-label="BCAPrime home"><img class="brand-logo brand-logo-dark" src="assets/logo.png" alt="BCAPrime" width="35" height="35"><img class="brand-logo brand-logo-light" src="assets/logo-light.png" alt="BCAPrime" width="35" height="35"><strong>BCA<span>Prime</span></strong></a>
@@ -1777,7 +1936,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=64"></script>
+  <script src="app.js?v=68"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>
