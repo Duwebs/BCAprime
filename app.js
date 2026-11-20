@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v68 loaded ✔');
+console.info('[BCAPrime] app.js v69 loaded ✔');
 const ONBOARDING_COLLEGES = [
   ['amity', 'Amity University'],
   ['adbu', 'Assam Don Bosco University'],
@@ -2434,7 +2434,55 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const m=$('qrScanModal');if(m)m.classList.remove('open');
     }
     async function submitAccount(event){event.preventDefault();if(!supabaseClient){$('accountMessage').textContent='Sign-in is not available right now.';return}const password=$('accountPassword').value;const msgEl=$('accountMessage');if(accountMode==='signup'){const username=$('accountName').value.trim().toLowerCase();if(!isValidUsername(username)){msgEl.textContent='Username must be 3\u201320 letters, numbers or _ (no spaces).';return}if(!checkPasswordMatch(password,$('accountConfirm'),msgEl))return;const acctUsernameAvail=await checkUsernameAvailable(username);if(acctUsernameAvail===false){msgEl.textContent='That username is already taken. Please choose another one.';return}pendingSignup={username,password};msgEl.textContent='Opening Google sign-in\u2026';await signInWithProvider('google','accountMessage');return}const loginEmail=await resolveLoginEmail($('accountEmail').value,msgEl);if(!loginEmail)return;msgEl.textContent='Working...';try{const {data,error}=await supabaseClient.auth.signInWithPassword({email:loginEmail,password});if(error)throw error;accountSession=normalizeSupabaseUser(data.session.user);await refreshVerificationFlag(accountSession);if(await ensureVerified(accountSession)){sessionStorage.removeItem('bca-guest-mode');renderGreeting();renderAccount();updateQrButtonVisibility();toast('Account connected')}else{renderAccount()}}catch(error){$('accountMessage').textContent=(error&&error.message)||'Could not log in.';return}}
-    async function signOutAccount(){clearProfileRealtime();try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}accountSession=null;try{localStorage.removeItem('bca-email-verified')}catch(e){}try{sessionStorage.removeItem('bca-pending-signup');sessionStorage.removeItem('bca-pending-action')}catch(e){}try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}hideProfileCard();closeModals();hideAuthenticatedApp();const acctAuth=$('accountAuth');if(acctAuth){acctAuth.innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'linkedin_oidc\')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';bindAccountForm();renderAccount()}toast('Logged out');setTimeout(maybeStartQrLogin,80)}
+    function openLogoutConfirm(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const m=$('logoutConfirmModal');
+      if(m){
+        m.classList.add('open');
+        if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
+          m.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
+        }
+      }
+    }
+    function closeLogoutConfirm(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const m=$('logoutConfirmModal');
+      if(m)m.classList.remove('open');
+    }
+    document.addEventListener('keydown',e=>{
+      if(e.key==='Escape'){
+        const m=$('logoutConfirmModal');
+        if(m&&m.classList.contains('open'))closeLogoutConfirm();
+      }
+    });
+    async function executeSignOut(){
+      closeLogoutConfirm();
+      await signOutAccount(true);
+    }
+    async function signOutAccount(confirmed=false){
+      if(!confirmed && accountSession){
+        openLogoutConfirm();
+        return;
+      }
+      clearProfileRealtime();
+      try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}
+      accountSession=null;
+      try{localStorage.removeItem('bca-email-verified')}catch(e){}
+      try{sessionStorage.removeItem('bca-pending-signup');sessionStorage.removeItem('bca-pending-action')}catch(e){}
+      try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}
+      try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}
+      hideProfileCard();
+      closeModals();
+      hideAuthenticatedApp();
+      const acctAuth=$('accountAuth');
+      if(acctAuth){
+        acctAuth.innerHTML='<h3 id="accountTitle"></h3><p id="accountDescription"></p><form class="account-form" id="accountForm"><label id="accountNameLabel" hidden>Username<input id="accountName" type="text" autocomplete="username" minlength="3" maxlength="20" oninput="liveUsernameCheck(this,\'accountUsernameHint\')"><small class="field-hint" id="accountUsernameHint"></small></label><label id="accountEmailLabel">Email or Username<input id="accountEmail" type="text" autocomplete="username" required></label><label>Password<input id="accountPassword" type="password" autocomplete="new-password" minlength="6" required></label><label id="accountConfirmLabel" hidden>Confirm Password<input id="accountConfirm" type="password" autocomplete="new-password" minlength="6"></label><button class="primary" id="accountSubmit" type="submit"></button></form><div class="oauth-actions"><button class="oauth-button" type="button" onclick="signInWithProvider(\'google\')"><i class="fa-brands fa-google"></i> Continue with Google</button><button class="oauth-button" type="button" onclick="signInWithProvider(\'linkedin_oidc\')"><i class="fa-brands fa-linkedin"></i> Continue with LinkedIn</button></div><p class="account-message" id="accountMessage" aria-live="polite"></p><button class="account-switch" id="accountSwitch" type="button"></button>';
+        bindAccountForm();
+        renderAccount();
+      }
+      toast('Logged out');
+      setTimeout(maybeStartQrLogin,80);
+    }
     function bindAccountForm(){if($('accountForm'))$('accountForm').addEventListener('submit',submitAccount);if($('accountSwitch'))$('accountSwitch').addEventListener('click',()=>setAccountMode(accountMode==='signup'?'login':'signup'))}
     function openCollege(){renderColleges();$('collegeModal').classList.add('open')};let profileSheetDragBound=false;
     function initProfileSheetGestures(){
@@ -2932,7 +2980,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function toggleProfileCard(event){if(event)event.stopPropagation();const pop=$('profilePop');if(!pop)return;const willShow=pop.hidden;if(willShow){const av=$('popAvatar');if(av)av.src=getAvatar();const n=$('popName');if(n)n.textContent=accountSession?getUserName(accountSession):'Guest';const m=$('popMail');if(m)m.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const c=$('popCollege');if(c)c.textContent=(colleges.find(cc=>cc[0]===state.college)||colleges[0])[1];const profSem=state.profileSemester||getProfileSemester();const s=$('popSem');if(s)s.textContent=profSem?('Semester '+profSem):'All semesters';}const lo=$('popLogoutBtn');if(lo)lo.hidden=!accountSession;const lb=$('popLoginBtn');if(lb)lb.hidden=!!accountSession;const sc=$('popScanBtn');if(sc)sc.hidden=isGuestMode();pop.hidden=!willShow}
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
-    async function logoutFromPop(){hideProfileCard();await signOutAccount()}
+    async function logoutFromPop(){hideProfileCard();openLogoutConfirm()}
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].filter(c=>c[0]!=='all').sort((a,b)=>{if(a[0]==='avviare')return -1;if(b[0]==='avviare')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
     function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);if($('collegeLabel'))$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
     function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}

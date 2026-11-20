@@ -209,7 +209,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=71">
+  <link rel="stylesheet" href="styles.css?v=72">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -1050,10 +1050,26 @@
           <span class="profile-session-label" id="profileSessionLabel">Browsing as</span>
           <span class="profile-session-email" id="profileSessionEmail">Guest mode</span>
         </div>
-        <button class="profile-logout-btn bca-pressable" id="profileLogoutBtn" type="button" onclick="signOutAccount()" hidden>Log out</button>
+        <button class="profile-logout-btn bca-pressable" id="profileLogoutBtn" type="button" onclick="openLogoutConfirm()" hidden>Log out</button>
         <button class="profile-login-btn bca-pressable" id="profileLoginBtn" type="button" onclick="openSignUpPage()">Sign up / Log in</button>
       </div>
 
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Dialog / Bottom Sheet -->
+  <div class="modal logout-modal-wrap" id="logoutConfirmModal" onclick="if(event.target===this)closeLogoutConfirm()" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle">
+    <div class="dialog logout-confirm-dialog">
+      <div class="logout-sheet-handle" aria-hidden="true"><span></span></div>
+      <div class="logout-icon-wrap" aria-hidden="true">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </div>
+      <h2 class="logout-confirm-title" id="logoutConfirmTitle">Log out of BCAPrime?</h2>
+      <p class="logout-confirm-sub">You'll need to sign back in to access your saved notes, uploads, and synced progress.</p>
+      <div class="logout-confirm-actions">
+        <button type="button" class="logout-btn-cancel bca-pressable" onclick="closeLogoutConfirm()">Cancel</button>
+        <button type="button" class="logout-btn-confirm bca-pressable" onclick="executeSignOut()">Yes, log out</button>
+      </div>
     </div>
   </div>
 
@@ -1936,7 +1952,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=68"></script>
+  <script src="app.js?v=69"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>
