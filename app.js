@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v72 loaded ✔');
+console.info('[BCAPrime] app.js v74 loaded ✔');
 const ONBOARDING_COLLEGES = [
   ['amity', 'Amity University'],
   ['adbu', 'Assam Don Bosco University'],
@@ -1955,10 +1955,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function continueAsGuest(){
       sessionStorage.setItem('bca-guest-mode','true');
+      if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
+      currentReadingUserId = '';
       showAuthenticatedApp();
+      fetchRecentReadingProgress();
       setTimeout(showGuestWelcome,250);
     }
     function hideAuthenticatedApp(){
+      if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
+      currentReadingUserId = '';
       try{localStorage.removeItem('bca-auth-known')}catch(e){}
       try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}
       try{
@@ -2540,6 +2545,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         return;
       }
       clearProfileRealtime();
+      if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
+      currentReadingUserId = '';
       try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}
       accountSession=null;
       try{localStorage.removeItem('bca-email-verified')}catch(e){}
@@ -3612,6 +3619,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }catch(e){accountSession=null}
         if(!accountSession)restoreQrSession();
         if(accountSession){
+          currentReadingUserId = accountSession.uid;
           sessionStorage.removeItem('bca-guest-mode');
           await refreshVerificationFlag(accountSession);
           /* Purana Firebase-uid data pehle claim ho jaye (gaalat order me
@@ -3635,6 +3643,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const user=session?normalizeSupabaseUser(session.user):null;
       /* QR synthetic session ko signed-out event se overwrite hone se bachao */
       accountSession=user||(qrLinked&&accountSession&&accountSession.uid?accountSession:null);
+
+      // Strict Account-Scoped Isolation for Continue Reading
+      const activeUid = (user && user.uid) ? user.uid : (accountSession && accountSession.uid ? accountSession.uid : '');
+      if (currentReadingUserId !== activeUid) {
+        if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
+        currentReadingUserId = activeUid;
+      }
+
       if(authSuppress)return;
       if(user){
         sessionStorage.removeItem('bca-guest-mode');
@@ -3665,7 +3681,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         };
         refreshVerificationFlag(user).then(finish,finish);
       }else{
-        stopVerifyPolling();clearProfileRealtime();fetchRecentReadingProgress();
+        stopVerifyPolling();clearProfileRealtime();
+        if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
+        currentReadingUserId = '';
+        fetchRecentReadingProgress();
         if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();
       }
       try{if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount()}catch(e){}
@@ -3831,7 +3850,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ============================================================
        User Reading Progress Manager (Supabase cross-device sync)
        ============================================================ */
-    const READING_PROGRESS_KEY = 'bca-user-reading-progress';
+    let currentReadingUserId = null;
+    let readingProgressToken = 0;
     let currentReaderInitialPage = 1;
     let currentReaderPage = 1;
     let totalReaderPages = 1;
@@ -3839,6 +3859,17 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let pendingReadingProgressSync = null;
     let readerOpenedAt = 0;
     let readerEngagementTimer = null;
+
+    // Purge un-namespaced legacy key to prevent cross-account leakage
+    try { localStorage.removeItem('bca-user-reading-progress'); } catch (e) {}
+
+    function getReadingProgressStorageKey(uid) {
+      const resolvedUid = (uid !== undefined && uid !== null) ? String(uid).trim() : accountUid();
+      if (resolvedUid) {
+        return `bcaprime_continue_reading_${resolvedUid}`;
+      }
+      return 'bcaprime_continue_reading_guest';
+    }
 
     function isReadingCompleted(item) {
       if (!item) return false;
@@ -3866,28 +3897,49 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       } catch (e) {}
     }
 
-    function getLocalReadingProgress() {
+    function getLocalReadingProgress(uid) {
       try {
-        return JSON.parse(localStorage.getItem(READING_PROGRESS_KEY) || '[]');
+        const key = getReadingProgressStorageKey(uid);
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : [];
       } catch (e) {
         return [];
       }
     }
 
-    function saveLocalReadingProgress(item) {
+    function saveLocalReadingProgress(item, uid) {
+      if (!item || !item.pdf_id) return;
       try {
-        let list = getLocalReadingProgress();
+        const key = getReadingProgressStorageKey(uid);
+        let list = getLocalReadingProgress(uid);
         list = list.filter(x => String(x.pdf_id) !== String(item.pdf_id));
         list.unshift(item);
         list = list.slice(0, 15);
-        localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(list));
+        localStorage.setItem(key, JSON.stringify(list));
       } catch (e) {}
     }
 
+    function resetContinueReadingState() {
+      clearTimeout(readerScrollDebounceTimer);
+      clearTimeout(readerEngagementTimer);
+      pendingReadingProgressSync = null;
+      readingProgressToken++;
+      const container = $('continueReadingCarousel');
+      const section = $('continueReadingSection');
+      if (container) {
+        container.innerHTML = '';
+        container.classList.remove('is-single');
+      }
+      if (section) {
+        section.hidden = true;
+      }
+    }
+
     async function syncReadingProgressToSupabase(item) {
-      if (!supabaseClient) return;
+      if (!supabaseClient || !item) return;
       const uid = accountUid();
-      if (!uid) return;
+      // Strictly sync only when authenticated and user owns this item
+      if (!uid || (item._ownerUid && item._ownerUid !== uid)) return;
       try {
         const payload = {
           user_id: uid,
@@ -3915,9 +3967,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const title = String(resource.title || 'Untitled Document');
       const validPage = Math.max(1, parseInt(page, 10) || 1);
       const validTotal = Math.max(1, parseInt(totalPages, 10) || 1);
+      const activeUid = accountUid();
 
-      // Preserve previously achieved engagement for this PDF
-      const prevList = getLocalReadingProgress();
+      // Preserve previously achieved engagement for this PDF within the active scope
+      const prevList = getLocalReadingProgress(activeUid);
       const prev = prevList.find(x => String(x.pdf_id) === pdfId);
       const isEngaged = Boolean(extraOpts.engaged || (prev && prev.engaged) || (validTotal > 1 && validPage > 1));
 
@@ -3927,24 +3980,32 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         current_page: validPage,
         total_pages: validTotal,
         engaged: isEngaged,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        _ownerUid: activeUid
       };
 
-      saveLocalReadingProgress(item);
-      pendingReadingProgressSync = item;
-      clearTimeout(readerScrollDebounceTimer);
-      readerScrollDebounceTimer = setTimeout(() => {
-        if (pendingReadingProgressSync) {
-          syncReadingProgressToSupabase(pendingReadingProgressSync);
-          pendingReadingProgressSync = null;
-        }
-      }, 600);
+      saveLocalReadingProgress(item, activeUid);
+
+      if (activeUid) {
+        pendingReadingProgressSync = item;
+        clearTimeout(readerScrollDebounceTimer);
+        readerScrollDebounceTimer = setTimeout(() => {
+          if (pendingReadingProgressSync) {
+            if (pendingReadingProgressSync._ownerUid === accountUid()) {
+              syncReadingProgressToSupabase(pendingReadingProgressSync);
+            }
+            pendingReadingProgressSync = null;
+          }
+        }, 600);
+      }
     }
 
     function flushPendingReadingProgress() {
       clearTimeout(readerScrollDebounceTimer);
       if (pendingReadingProgressSync) {
-        syncReadingProgressToSupabase(pendingReadingProgressSync);
+        if (pendingReadingProgressSync._ownerUid === accountUid()) {
+          syncReadingProgressToSupabase(pendingReadingProgressSync);
+        }
         pendingReadingProgressSync = null;
       }
     }
@@ -4013,6 +4074,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const section = $('continueReadingSection');
       if (!container || !section) return;
 
+      const currentReadingToken = ++readingProgressToken;
       const uid = accountUid();
       let items = [];
 
@@ -4025,8 +4087,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             .order('updated_at', { ascending: false })
             .limit(10); // Query top 10 so completed multi-page items can be filtered cleanly
 
+          // Discard if token changed or user switched during network fetch
+          if (currentReadingToken !== readingProgressToken || accountUid() !== uid) {
+            return;
+          }
+
           if (!error && Array.isArray(data) && data.length > 0) {
-            const localList = getLocalReadingProgress();
+            const localList = getLocalReadingProgress(uid);
             items = data.map(cloudItem => {
               const matchedLocal = localList.find(l => String(l.pdf_id) === String(cloudItem.pdf_id));
               return {
@@ -4035,7 +4102,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
               };
             });
             try {
-              localStorage.setItem(READING_PROGRESS_KEY, JSON.stringify(items));
+              const key = getReadingProgressStorageKey(uid);
+              localStorage.setItem(key, JSON.stringify(items));
             } catch (e) {}
           }
         } catch (err) {
@@ -4043,8 +4111,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       }
 
+      // Guard against race conditions after async operation
+      if (currentReadingToken !== readingProgressToken || accountUid() !== uid) {
+        return;
+      }
+
       if (!items.length) {
-        items = getLocalReadingProgress();
+        items = getLocalReadingProgress(uid);
       }
 
       // Rule: Filter out completed multi-page PDFs; keep 1-page PYQs/notes for quick access
@@ -4053,6 +4126,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if (!activeItems.length) {
         section.hidden = true;
         container.innerHTML = '';
+        container.classList.remove('is-single');
         return;
       }
 
@@ -4067,10 +4141,95 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if (!items || !items.length) {
         section.hidden = true;
         container.innerHTML = '';
+        container.classList.remove('is-single');
         return;
       }
 
       const list = items.slice(0, 3);
+
+      // Adaptive Rule 1: When list has exactly 1 recent item, render sleek full-width horizontal hero card
+      if (list.length === 1) {
+        container.classList.add('is-single');
+        const item = list[0];
+        const cur = Math.max(1, parseInt(item.current_page, 10) || 1);
+        const tot = Math.max(1, parseInt(item.total_pages, 10) || 1);
+        const title = escHtml(item.title || 'Notes');
+        const safeTitleJs = escJsStr(item.title || '');
+        const safePdfIdJs = escJsStr(String(item.pdf_id));
+        const cachedThumb = getCachedPdfThumb(item.pdf_id);
+
+        let percent;
+        let progressLabel;
+        let pillText;
+
+        if (tot <= 1) {
+          if (item.engaged) {
+            percent = 100;
+            pillText = '100% COMPLETED';
+            progressLabel = 'Reviewed · 1 page';
+          } else {
+            percent = 45;
+            pillText = 'READING';
+            progressLabel = 'Opened · 1 page';
+          }
+        } else {
+          percent = Math.min(99, Math.max(1, Math.round((cur / tot) * 100)));
+          pillText = `${percent}% COMPLETED`;
+          progressLabel = `Last read: Page ${cur} of ${tot}`;
+        }
+
+        const thumbHtml = cachedThumb
+          ? `<img class="cr-thumb-img" src="${cachedThumb}" alt="${title}" loading="lazy">`
+          : `<div class="cr-doc-mock">
+              <div class="cr-doc-mock-bar"></div>
+              <div class="cr-doc-mock-title">${title}</div>
+              <div class="cr-doc-mock-lines">
+                <div class="cr-doc-mock-line"></div>
+                <div class="cr-doc-mock-line short"></div>
+                <div class="cr-doc-mock-line medium"></div>
+              </div>
+            </div>`;
+
+        container.innerHTML = `
+          <div class="cr-hero-card bca-pressable" 
+               role="button" 
+               tabindex="0"
+               aria-label="Resume reading ${title}, ${progressLabel}"
+               onclick="continueReadingPdf('${safePdfIdJs}', '${safeTitleJs}', ${cur})"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();continueReadingPdf('${safePdfIdJs}', '${safeTitleJs}', ${cur});}">
+            <div class="cr-hero-thumb-area">
+              <span class="cr-thumb-badge">PDF</span>
+              ${thumbHtml}
+            </div>
+            <div class="cr-hero-body">
+              <div class="cr-hero-pill-wrap">
+                <span class="cr-hero-pill">${pillText}</span>
+              </div>
+              <h3 class="cr-hero-title">${title}</h3>
+              <div class="cr-hero-progress">
+                <span class="cr-hero-progress-text">${progressLabel}</span>
+                <div class="cr-progress-track">
+                  <div class="cr-progress-fill" style="width: ${percent}%;"></div>
+                </div>
+              </div>
+            </div>
+            <div class="cr-hero-action">
+              <span class="cr-hero-cta">Resume <i class="fa-solid fa-arrow-right"></i></span>
+            </div>
+          </div>
+        `;
+
+        section.hidden = false;
+        if (window.BCA_UI && window.BCA_UI.PressableScale) {
+          container.querySelectorAll('.cr-hero-card').forEach(card => {
+            window.BCA_UI.PressableScale(card, { scale: 0.98, haptic: true });
+          });
+        }
+        return;
+      }
+
+      // Adaptive Rule 2: When >= 2 items, switch back to horizontal multi-card carousel
+      container.classList.remove('is-single');
       const cardsHtml = list.map(item => {
         const cur = Math.max(1, parseInt(item.current_page, 10) || 1);
         const tot = Math.max(1, parseInt(item.total_pages, 10) || 1);
@@ -4157,15 +4316,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
         window.BCA_UI.triggerLightHaptic(10);
       }
-      let list = getLocalReadingProgress();
+      const uid = accountUid();
+      let list = getLocalReadingProgress(uid);
       const target = list.find(x => String(x.pdf_id) === String(pdfId));
       if (target) {
         target.completed = true;
         target.current_page = Math.max(2, target.total_pages || 2);
         target.total_pages = Math.max(2, target.total_pages || 2);
-        saveLocalReadingProgress(target);
+        target.updated_at = new Date().toISOString();
+        saveLocalReadingProgress(target, uid);
       }
-      const uid = accountUid();
       if (uid && supabaseClient && target) {
         try {
           await supabaseClient
@@ -4182,6 +4342,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       toast('Marked as finished \u2705');
       fetchRecentReadingProgress();
     };
+
+    window.resetContinueReadingState = resetContinueReadingState;
+    window.getReadingProgressStorageKey = getReadingProgressStorageKey;
 
     window.continueReadingPdf = async function(pdfId, title, page) {
       if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
