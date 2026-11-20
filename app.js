@@ -1,6 +1,6 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
-console.info('[BCAPrime] app.js v77 loaded ✔');
+console.info('[BCAPrime] app.js v78 loaded ✔');
 const ONBOARDING_COLLEGES = [
   ['amity', 'Amity University'],
   ['adbu', 'Assam Don Bosco University'],
@@ -1908,11 +1908,47 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       });
       document.querySelectorAll('.oauth-inline-spinner-wrap').forEach(s => s.remove());
     }
-    window.addEventListener('pageshow', () => { resetOAuthButtons(); });
+    function resetAuthGateState(options = {}){
+      setGateSubmitLoading(false);
+      resetOAuthButtons();
+      const gateMsg = $('gateAccountMessage');
+      if(gateMsg) gateMsg.textContent = '';
+      const acctMsg = $('accountMessage');
+      if(acctMsg) acctMsg.textContent = '';
+      const accessMsg = $('accessAuthMessage');
+      if(accessMsg) accessMsg.textContent = '';
+      if(usernameCheckTimer){
+        clearTimeout(usernameCheckTimer);
+        usernameCheckTimer = null;
+      }
+      usernameRequestId++;
+      const uHint = $('gateUsernameHint');
+      if(uHint){ uHint.textContent = ''; uHint.className = 'field-hint'; }
+      const auHint = $('accountUsernameHint');
+      if(auHint){ auHint.textContent = ''; auHint.className = 'field-hint'; }
+
+      if(options && options.clearInputs){
+        const fieldIds = [
+          'gateAccountName', 'gateAccountEmail', 'gateAccountPassword', 'gateAccountConfirm',
+          'accountName', 'accountEmail', 'accountPassword', 'accountConfirm'
+        ];
+        fieldIds.forEach(id => {
+          const el = $(id);
+          if(el) el.value = '';
+        });
+        document.querySelectorAll('.auth-eye-btn i').forEach(icon => {
+          icon.className = 'fa-regular fa-eye';
+        });
+        const p1 = $('gateAccountPassword'); if(p1) p1.type = 'password';
+        const p2 = $('gateAccountConfirm'); if(p2) p2.type = 'password';
+      }
+    }
+    window.resetAuthGateState = resetAuthGateState;
+    window.addEventListener('pageshow', () => { resetAuthGateState({ clearInputs: false }); });
     document.addEventListener('visibilitychange', () => {
-      if(document.visibilityState === 'visible') resetOAuthButtons();
+      if(document.visibilityState === 'visible') resetAuthGateState({ clearInputs: false });
     });
-    window.addEventListener('focus', () => { resetOAuthButtons(); });
+    window.addEventListener('focus', () => { resetAuthGateState({ clearInputs: false }); });
 
     async function signInWithProvider(provider,messageId='accountMessage',triggerBtn=null){
       resetOAuthButtons();
@@ -1961,11 +1997,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let gateMode='signup';
     function setGateMode(mode){
       gateMode=mode;
-      setGateSubmitLoading(false);
-      if(usernameCheckTimer){clearTimeout(usernameCheckTimer);usernameCheckTimer=null;}
-      usernameRequestId++;
-      const uHint = $('gateUsernameHint');
-      if(uHint){ uHint.textContent=''; uHint.className='field-hint'; }
+      resetAuthGateState({ clearInputs: false });
       const submitText=document.querySelector('#gateAccountSubmit .auth-submit-text') || $('gateAccountSubmit');
       if(submitText)submitText.textContent=mode==='signup'?'Sign up':'Log in';
       const tabSignup=$('gateTabSignup');
@@ -2077,6 +2109,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           await signInWithProvider('google','gateAccountMessage',$('gateGoogleBtn'));
         } catch(e) {
           setGateSubmitLoading(false);
+        } finally {
+          setGateSubmitLoading(false);
         }
         return;
       }
@@ -2095,11 +2129,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(await ensureVerified(accountSession)){
           sessionStorage.removeItem('bca-guest-mode');
           showAuthenticatedApp();
+          resetAuthGateState({ clearInputs: true });
         }
       }catch(error){
         setGateSubmitLoading(false);
         $('gateAccountMessage').textContent=(error&&error.message)||'Could not log in.';
         return;
+      }finally{
+        setGateSubmitLoading(false);
       }
     }
     /* =============== QR Button Visibility Management =============== */
@@ -2115,6 +2152,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{if(typeof window.bcaSyncNotificationState==='function')window.bcaSyncNotificationState()}catch(e){}
     }
     function showAuthenticatedApp(){
+      resetAuthGateState({ clearInputs: true });
       try{localStorage.setItem('bca-auth-known','1')}catch(e){}
       try{
         document.documentElement.classList.remove('auth-gate-open');
@@ -2147,6 +2185,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       sessionStorage.setItem('bca-guest-mode','true');
       if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
       currentReadingUserId = '';
+      resetAuthGateState({ clearInputs: true });
       showAuthenticatedApp();
       fetchRecentReadingProgress();
       setTimeout(showGuestWelcome,250);
@@ -2154,6 +2193,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function hideAuthenticatedApp(){
       if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
       currentReadingUserId = '';
+      resetAuthGateState({ clearInputs: true });
       try{localStorage.removeItem('bca-auth-known')}catch(e){}
       try{sessionStorage.removeItem('bca-guest-mode')}catch(e){}
       try{
@@ -2739,6 +2779,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       currentReadingUserId = '';
       try{if(supabaseClient)await supabaseClient.auth.signOut()}catch(e){console.warn('[BCAPrime] signOut error:',e)}
       accountSession=null;
+      resetAuthGateState({ clearInputs: true });
       try{localStorage.removeItem('bca-email-verified')}catch(e){}
       try{sessionStorage.removeItem('bca-pending-signup');sessionStorage.removeItem('bca-pending-action')}catch(e){}
       try{stopQrSession();sessionStorage.removeItem('bca-qr-linked');sessionStorage.removeItem('bca-qr-account')}catch(e){}
@@ -3821,6 +3862,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
         __pendQr=readQrParam();
         supabaseClient.auth.onAuthStateChange(function(event,session){
+          if(event === 'SIGNED_OUT' || !session){
+            resetAuthGateState({ clearInputs: true });
+          }
           try{handleAuthState(session)}catch(e){console.warn('[BCAPrime] auth state handler failed:',e)}
         });
       }
@@ -3874,6 +3918,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         stopVerifyPolling();clearProfileRealtime();
         if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
         currentReadingUserId = '';
+        resetAuthGateState({ clearInputs: true });
         fetchRecentReadingProgress();
         if(sessionStorage.getItem('bca-guest-mode')!=='true'&&sessionStorage.getItem('bca-qr-linked')!=='true')hideAuthenticatedApp();
       }
