@@ -586,6 +586,18 @@ INSERT INTO courses VALUES
         notify('Execution finished with error', 'error');
       }
 
+      // Track Code Lab execution event in analytics
+      try {
+        if (typeof trackEvent === 'function') {
+          trackEvent('codelab_run', {
+            title: currentLang,
+            type: 'code_execution',
+            seconds: parseFloat(elapsed) || 0,
+            results: executionResult.exitCode === 0 ? 1 : 0
+          });
+        }
+      } catch (_e) {}
+
     } catch (error) {
       console.error('[CodeLab] Execution error:', error);
       consoleOutput.innerHTML = `<span class="codelab-console-error">Execution Failed:\n${escapeHtml(error.message || String(error))}</span>`;

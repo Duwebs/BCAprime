@@ -7,42 +7,56 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-XS6DNV433X');
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BCAPrime Analytics Suite</title>
+  <meta name="description" content="Executive student intelligence, live growth KPIs, and academic content telemetry for BCAPrime.">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="theme-color" content="#05080b">
+  <meta name="theme-color" content="#0D0D0F">
+
+  <!-- Standalone PWA Manifest & App Icons -->
+  <link rel="manifest" href="analytics-manifest.json">
   <link rel="icon" href="../assets/logo.png">
-  <link rel="apple-touch-icon" href="../assets/logo.png">
+  <link rel="apple-touch-icon" href="../assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BCA Analytics">
+
+  <!-- Condensed Typography & Fonts (Barlow Condensed + Roboto Condensed + JetBrains Mono) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="analytics.css?v=3">
+  
+  <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="analytics.css?v=5">
 </head>
 <body>
 
   <!-- ================= Auth Gate ================= -->
   <section class="auth-gate" id="authGate">
     <div class="auth-card">
-      <div class="auth-logo">
-        <img src="../assets/logo.png" alt="BCAPrime" width="48" height="48">
+      <div class="auth-brand-badge">
+        <span class="auth-brand-dot"></span>
+        <span class="eyebrow">BCAPRIME SUITE</span>
       </div>
-      <div class="eyebrow">Analytics Suite</div>
-      <h1>Admin Access Required</h1>
-      <p>Sign in with an authorized administrator account to access the analytics dashboard.</p>
+      <div class="auth-logo">
+        <img src="../assets/logo.png" alt="BCAPrime" width="52" height="52">
+      </div>
+      <h1>Analytics Console</h1>
+      <p>Sign in with verified administrator credentials to view live student engagement telemetry.</p>
       <form class="auth-form" id="authForm">
-        <label>Email
-          <input id="authEmail" type="email" autocomplete="email" required placeholder="admin@bcaprime.in">
+        <label>Admin Email
+          <input id="authEmail" type="email" autocomplete="email" required placeholder="admin@bcaprime.web">
         </label>
         <label>Password
-          <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="••••••••">
         </label>
-        <button class="btn btn-primary btn-full" type="submit" id="authSubmit">
-          <i class="fa-solid fa-lock"></i> Sign In
+        <button class="btn btn-primary btn-full bca-pressable" type="submit" id="authSubmit">
+          <i class="fa-solid fa-lock"></i>
+          <span>Access Analytics</span>
         </button>
       </form>
       <p class="auth-msg" id="authMsg" aria-live="polite"></p>
@@ -52,399 +66,394 @@
   <!-- ================= Dashboard Shell ================= -->
   <div class="dashboard" id="dashboard" hidden>
 
-    <!-- Sidebar -->
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-brand">
-        <img src="../assets/logo.png" alt="" width="32" height="32">
-        <span>BCA<span class="brand-accent">Prime</span></span>
-        <button class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">
+    <!-- PWA Install Banner (Dismissible & Native-Prompt Ready) -->
+    <div class="pwa-install-banner" id="pwaInstallBanner" hidden>
+      <div class="pwa-install-left">
+        <div class="pwa-install-icon">
+          <i class="fa-solid fa-chart-line"></i>
+        </div>
+        <div class="pwa-install-text">
+          <strong class="pwa-install-title">Install Analytics App</strong>
+          <span class="pwa-install-sub" id="pwaInstallSub">Add to Home Screen for 1-tap executive telemetry</span>
+        </div>
+      </div>
+      <div class="pwa-install-actions">
+        <button type="button" class="btn btn-sm btn-primary bca-pressable" id="btnPwaInstall" onclick="installAnalyticsPwa()">
+          <i class="fa-solid fa-download"></i>
+          <span>Install</span>
+        </button>
+        <button type="button" class="pwa-dismiss-btn bca-pressable" onclick="dismissPwaBanner()" aria-label="Dismiss banner">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+    </div>
 
-      <nav class="sidebar-nav">
-        <button class="nav-item active" data-section="overview" onclick="switchSection('overview')">
-          <i class="fa-solid fa-chart-pie"></i>
-          <span>Overview</span>
-        </button>
-        <button class="nav-item" data-section="live" onclick="switchSection('live')">
-          <i class="fa-solid fa-bolt"></i>
-          <span>Live Feed</span>
-          <span class="nav-badge pulse" id="navLiveBadge">0</span>
-        </button>
-        <button class="nav-item" data-section="content" onclick="switchSection('content')">
-          <i class="fa-solid fa-layer-group"></i>
-          <span>Content</span>
-        </button>
-        <button class="nav-item" data-section="search" onclick="switchSection('search')">
-          <i class="fa-solid fa-magnifying-glass-chart"></i>
-          <span>Search Intel</span>
-        </button>
-        <button class="nav-item" data-section="funnel" onclick="switchSection('funnel')">
-          <i class="fa-solid fa-filter"></i>
-          <span>Conversion</span>
-        </button>
-        <button class="nav-item" data-section="system" onclick="switchSection('system')">
-          <i class="fa-solid fa-server"></i>
-          <span>System</span>
-        </button>
-      </nav>
-
-      <div class="sidebar-footer">
-        <a href="../admin/admin.html" class="sidebar-link"><i class="fa-solid fa-arrow-left"></i> Admin Panel</a>
-        <a href="../index.html" class="sidebar-link"><i class="fa-solid fa-book-open"></i> Library</a>
-        <button class="sidebar-link logout-btn" onclick="signOut()"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</button>
+    <!-- Sticky Executive Top App Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a href="../admin/admin.html" class="btn-topbar-back bca-pressable" title="Return to Admin Panel" aria-label="Back to Admin Panel">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="topbar-back-text">Admin</span>
+        </a>
+        <div class="topbar-brand">
+          <span class="topbar-brand-mark">B</span>
+          <div class="topbar-brand-meta">
+            <span class="topbar-brand-title">BCA<span class="brand-accent">Analytics</span></span>
+            <span class="topbar-brand-eyebrow">EXECUTIVE SUITE</span>
+          </div>
+        </div>
       </div>
-    </aside>
 
-    <!-- Main Content -->
-    <div class="main">
+      <!-- Live Heartbeat Pulse Indicator -->
+      <div class="live-indicator-pill" id="liveIndicator">
+        <span class="live-emerald-dot"></span>
+        <span class="live-count tabular-nums" id="activeUserCount">0</span>
+        <span class="live-label">LIVE</span>
+      </div>
 
-      <!-- Top Header -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <button class="hamburger" id="hamburgerBtn" aria-label="Open sidebar">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <div class="live-indicator" id="liveIndicator">
-            <span class="live-dot"></span>
-            <span class="live-count" id="activeUserCount">0</span>
-            <span class="live-label">active now</span>
+      <div class="topbar-right">
+        <!-- Theme Toggle -->
+        <button type="button" class="btn-topbar-icon bca-pressable" id="themeToggleBtn" onclick="toggleAnalyticsTheme()" title="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+        <!-- Manual Refresh Button -->
+        <button type="button" class="btn-topbar-icon bca-pressable" id="refreshBtn" onclick="refreshAll()" title="Refresh Telemetry" aria-label="Refresh Data">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Horizontally Scrollable Range & Module Nav Bar -->
+    <div class="nav-and-controls-bar">
+      <!-- Time-Range Selector Pills -->
+      <div class="time-range-bar" role="tablist" aria-label="Time-range selector">
+        <button type="button" class="range-pill active bca-pressable" data-range="1" onclick="setRange(1)">
+          <span>Today</span>
+        </button>
+        <button type="button" class="range-pill bca-pressable" data-range="7" onclick="setRange(7)">
+          <span>7D</span>
+        </button>
+        <button type="button" class="range-pill bca-pressable" data-range="30" onclick="setRange(30)">
+          <span>30D</span>
+        </button>
+        <button type="button" class="range-pill bca-pressable" data-range="0" onclick="setRange(0)">
+          <span>All Time</span>
+        </button>
+      </div>
+
+      <!-- Quick Section Segmented Tab Bar -->
+      <div class="section-segmented-bar" role="tablist" aria-label="Dashboard views">
+        <button type="button" class="seg-tab active bca-pressable" data-tab="pulse" onclick="switchSuiteTab('pulse')">
+          <i class="fa-solid fa-heart-pulse"></i>
+          <span>Pulse</span>
+        </button>
+        <button type="button" class="seg-tab bca-pressable" data-tab="engagement" onclick="switchSuiteTab('engagement')">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>Engagement</span>
+        </button>
+        <button type="button" class="seg-tab bca-pressable" data-tab="academic" onclick="switchSuiteTab('academic')">
+          <i class="fa-solid fa-graduation-cap"></i>
+          <span>Academic Intel</span>
+        </button>
+        <button type="button" class="seg-tab bca-pressable" data-tab="livefeed" onclick="switchSuiteTab('livefeed')">
+          <i class="fa-solid fa-stream"></i>
+          <span>Stream</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="suite-main">
+
+      <!-- ================= MODULE 1: PULSE (Hero 2x2 Grid + Quick Stats) ================= -->
+      <section class="suite-module-view active" id="module-pulse">
+        
+        <!-- Hero 2x2 KPI Pulse Grid -->
+        <div class="pulse-hero-grid">
+          
+          <!-- Card 1: Total Students & Active -->
+          <div class="pulse-kpi-card bca-pressable">
+            <div class="pulse-kpi-head">
+              <span class="pulse-eyebrow">TOTAL STUDENTS</span>
+              <span class="pulse-delta delta-up" id="deltaStudents">
+                <i class="fa-solid fa-arrow-trend-up"></i> +14%
+              </span>
+            </div>
+            <div class="pulse-metric-row">
+              <span class="pulse-big-val tabular-nums" id="kpiTotalStudents">0</span>
+              <span class="pulse-sub-pill" id="kpiActiveToday">0 Active Today</span>
+            </div>
+            <div class="pulse-sparkline-wrap">
+              <canvas id="sparklineStudents" height="28"></canvas>
+            </div>
+          </div>
+
+          <!-- Card 2: Notes & PYQs Consumed -->
+          <div class="pulse-kpi-card bca-pressable">
+            <div class="pulse-kpi-head">
+              <span class="pulse-eyebrow">RESOURCES CONSUMED</span>
+              <span class="pulse-delta delta-up" id="deltaResources">
+                <i class="fa-solid fa-arrow-trend-up"></i> +28%
+              </span>
+            </div>
+            <div class="pulse-metric-row">
+              <span class="pulse-big-val tabular-nums" id="kpiTotalResources">0</span>
+              <span class="pulse-sub-pill" id="kpiViewsDlBreakdown">0 Reads • 0 DLs</span>
+            </div>
+            <div class="pulse-sparkline-wrap">
+              <canvas id="sparklineResources" height="28"></canvas>
+            </div>
+          </div>
+
+          <!-- Card 3: Code Lab & Mock Tests -->
+          <div class="pulse-kpi-card bca-pressable">
+            <div class="pulse-kpi-head">
+              <span class="pulse-eyebrow">INTERACTIVE LABS</span>
+              <span class="pulse-delta delta-up" id="deltaLabs">
+                <i class="fa-solid fa-bolt"></i> +32%
+              </span>
+            </div>
+            <div class="pulse-metric-row">
+              <span class="pulse-big-val tabular-nums" id="kpiInteractiveTotal">0</span>
+              <span class="pulse-sub-pill" id="kpiLabsBreakdown">0 Code Runs • 0 Tests</span>
+            </div>
+            <div class="pulse-sparkline-wrap">
+              <canvas id="sparklineLabs" height="28"></canvas>
+            </div>
+          </div>
+
+          <!-- Card 4: Community Activity -->
+          <div class="pulse-kpi-card bca-pressable">
+            <div class="pulse-kpi-head">
+              <span class="pulse-eyebrow">COMMUNITY & HELP</span>
+              <span class="pulse-delta delta-good" id="deltaCommunity">
+                <i class="fa-solid fa-circle-check"></i> High
+              </span>
+            </div>
+            <div class="pulse-metric-row">
+              <span class="pulse-big-val tabular-nums" id="kpiCommunityTotal">0</span>
+              <span class="pulse-sub-pill" id="kpiCommunityBreakdown">Requests • Lost/Found</span>
+            </div>
+            <div class="pulse-sparkline-wrap">
+              <canvas id="sparklineCommunity" height="28"></canvas>
+            </div>
+          </div>
+
+        </div><!-- /pulse-hero-grid -->
+
+        <!-- Secondary Metric Tickers -->
+        <div class="ticker-metrics-row">
+          <div class="ticker-metric-item">
+            <span class="ticker-label">SEARCHES</span>
+            <span class="ticker-val tabular-nums" id="kpiSearchesCount">0</span>
+          </div>
+          <div class="ticker-metric-item">
+            <span class="ticker-label">AVG SESSION</span>
+            <span class="ticker-val tabular-nums" id="kpiAvgDuration">0s</span>
+          </div>
+          <div class="ticker-metric-item">
+            <span class="ticker-label">GUEST VISITORS</span>
+            <span class="ticker-val tabular-nums" id="kpiGuestCount">0</span>
+          </div>
+          <div class="ticker-metric-item">
+            <span class="ticker-label">AVG RATING</span>
+            <span class="ticker-val tabular-nums text-emerald" id="kpiRatingAvg">4.9★</span>
           </div>
         </div>
 
-        <div class="topbar-center">
-          <div class="date-picker">
-            <button class="date-btn active" data-range="1" onclick="setRange(1)">Today</button>
-            <button class="date-btn" data-range="7" onclick="setRange(7)">7D</button>
-            <button class="date-btn" data-range="30" onclick="setRange(30)">30D</button>
-            <button class="date-btn" data-range="90" onclick="setRange(90)">90D</button>
-            <button class="date-btn" data-range="0" onclick="setRange(0)">All</button>
-          </div>
-        </div>
+      </section>
 
-        <div class="topbar-right">
-          <span class="last-refresh" id="lastRefresh">—</span>
-          <button class="btn btn-sm" onclick="refreshAll()" id="refreshBtn">
-            <i class="fa-solid fa-arrows-rotate"></i> Refresh
-          </button>
-          <button class="btn btn-sm btn-primary" onclick="exportCSV()">
-            <i class="fa-solid fa-download"></i> Export
-          </button>
-        </div>
-      </header>
-
-      <!-- ================= Section: Overview ================= -->
-      <section class="content-section active" id="section-overview">
-        <!-- KPI Cards Row -->
-        <div class="kpi-grid">
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:200"><i class="fa-solid fa-users"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiVisitors">—</span>
-              <span class="kpi-label">Total Users</span>
+      <!-- ================= MODULE 2: ENGAGEMENT CHARTS ================= -->
+      <section class="suite-module-view" id="module-engagement">
+        
+        <!-- Activity & Signups Chart -->
+        <div class="suite-card">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow">USER ACTIVITY &amp; READS</span>
+              <h2 class="suite-card-title">Engagement Velocity</h2>
+            </div>
+            <div class="chart-legend-dots">
+              <span class="legend-dot-item"><span class="dot dot-blue"></span>Reads</span>
+              <span class="legend-dot-item"><span class="dot dot-emerald"></span>Downloads</span>
+              <span class="legend-dot-item"><span class="dot dot-amber"></span>Signups</span>
             </div>
           </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:142"><i class="fa-solid fa-eye"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiViews">—</span>
-              <span class="kpi-label">Views</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:42"><i class="fa-solid fa-download"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiDownloads">—</span>
-              <span class="kpi-label">Downloads</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:280"><i class="fa-solid fa-user-plus"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiSignedUp">—</span>
-              <span class="kpi-label">Signed Up</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:0"><i class="fa-solid fa-magnifying-glass"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiSearches">—</span>
-              <span class="kpi-label">Searches</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:170"><i class="fa-solid fa-clock"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiAvgTime">—</span>
-              <span class="kpi-label">Avg Session</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:320"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiUploads">—</span>
-              <span class="kpi-label">Uploads</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:60"><i class="fa-solid fa-moon"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="kpiGuests">—</span>
-              <span class="kpi-label">Guests</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Daily Trend Chart -->
-        <div class="card glass">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-chart-line"></i> Daily Activity Trend</h3>
-            <div class="chart-legend">
-              <span class="legend-dot" style="--dot:#67c9dc"></span>Visits
-              <span class="legend-dot" style="--dot:#70d1a9"></span>Views
-              <span class="legend-dot" style="--dot:#f5a623"></span>Downloads
-            </div>
-          </div>
-          <div class="chart-container">
+          <div class="chart-canvas-box">
             <canvas id="trendChart"></canvas>
           </div>
         </div>
 
-        <!-- Two-column: Devices + Top Resources -->
-        <div class="grid-2">
-          <div class="card glass">
-            <div class="card-header"><h3><i class="fa-solid fa-mobile-screen"></i> Devices & Browsers</h3></div>
-            <div class="device-chips" id="deviceChips"></div>
-            <div class="chart-container chart-sm">
-              <canvas id="deviceChart"></canvas>
+        <!-- Feature Usage Breakdown (Library vs Code Lab vs Mock Tests vs Community) -->
+        <div class="suite-card">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow">ECOSYSTEM TELEMETRY</span>
+              <h2 class="suite-card-title">Feature Usage Breakdown</h2>
             </div>
+            <span class="suite-badge-pill" id="featureUsageTotalBadge">100% Student Mix</span>
           </div>
-          <div class="card glass">
-            <div class="card-header"><h3><i class="fa-solid fa-trophy"></i> Top Resources</h3></div>
-            <div class="table-scroll">
-              <table class="data-table" id="topResourcesTable">
-                <thead><tr><th>Resource</th><th>Reads</th><th>DLs</th><th>DL %</th></tr></thead>
-                <tbody id="topResourcesBody"></tbody>
-              </table>
-            </div>
+          <div class="chart-canvas-box" style="height: 240px;">
+            <canvas id="featureUsageChart"></canvas>
+          </div>
+          <div class="feature-breakdown-legend" id="featureBreakdownLegend">
+            <!-- Populated dynamically with percentage bars -->
           </div>
         </div>
-      </section>
 
-      <!-- ================= Section: Live Feed ================= -->
-      <section class="content-section" id="section-live">
-        <div class="live-wall">
-          <div class="live-hero glass">
-            <div class="live-big-count">
-              <span class="live-dot big"></span>
-              <span id="liveBigCount">0</span>
+        <!-- Devices & Browsers Split -->
+        <div class="suite-card">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow">HARDWARE &amp; BROWSERS</span>
+              <h2 class="suite-card-title">Student Device Demographics</h2>
             </div>
-            <p class="live-subtitle">Active users in the last 5 minutes</p>
           </div>
-
-          <div class="card glass">
-            <div class="card-header">
-              <h3><i class="fa-solid fa-stream"></i> Real-Time Activity Stream</h3>
-              <span class="auto-badge"><span class="live-dot small"></span> Auto-updating</span>
-            </div>
-            <div class="live-stream" id="liveStream">
-              <div class="empty-state"><i class="fa-solid fa-satellite-dish"></i><br>Waiting for live events…</div>
-            </div>
+          <div class="device-chips-row" id="deviceChips"></div>
+          <div class="chart-canvas-box" style="height: 180px;">
+            <canvas id="deviceChart"></canvas>
           </div>
         </div>
+
       </section>
 
-      <!-- ================= Section: Content Performance ================= -->
-      <section class="content-section" id="section-content">
-        <div class="card glass">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-ranking-star"></i> Content & Resource Performance Matrix</h3>
-            <div class="filters">
-              <select class="select-sm" id="contentSort" onchange="sortContentTable()">
-                <option value="score">Best Overall</option>
-                <option value="reads">Most Reads</option>
-                <option value="downloads">Most Downloads</option>
-                <option value="rate">Highest DL Rate</option>
-              </select>
+      <!-- ================= MODULE 3: ACADEMIC INTELLIGENCE ================= -->
+      <section class="suite-module-view" id="module-academic">
+        
+        <!-- Semester Distribution & College Spread -->
+        <div class="academic-grid-2">
+          
+          <!-- Semester Distribution -->
+          <div class="suite-card">
+            <div class="suite-card-header">
+              <div>
+                <span class="suite-card-eyebrow">SEMESTER DISTRIBUTION</span>
+                <h2 class="suite-card-title">Active Semesters (1 to 6)</h2>
+              </div>
+            </div>
+            <div class="sem-dist-list" id="semDistList">
+              <!-- Rendered via JS -->
             </div>
           </div>
-          <div class="table-scroll">
-            <table class="data-table" id="contentMatrix">
+
+          <!-- Top Active Colleges -->
+          <div class="suite-card">
+            <div class="suite-card-header">
+              <div>
+                <span class="suite-card-eyebrow">CAMPUS REACH</span>
+                <h2 class="suite-card-title">Top Active Colleges</h2>
+              </div>
+            </div>
+            <div class="college-leaderboard" id="collegeLeaderboard">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Top Downloaded & Searched Subjects -->
+        <div class="suite-card">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow">CURRICULUM POPULARITY</span>
+              <h2 class="suite-card-title">Top Searched &amp; Studied Subjects</h2>
+            </div>
+            <span class="suite-badge-pill">Ranked by Demand</span>
+          </div>
+          <div class="subject-demand-list" id="topSubjectsList">
+            <!-- Progress-bar ranked items -->
+          </div>
+        </div>
+
+        <!-- Zero-Result Search Queries (Content Gaps) -->
+        <div class="suite-card content-gaps-card">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow" style="color:var(--danger)">CONTENT GAPS &amp; MISSED DEMAND</span>
+              <h2 class="suite-card-title">Zero-Result Searches</h2>
+            </div>
+            <span class="badge-alert-count" id="zeroSearchCountBadge">0 Gaps</span>
+          </div>
+          <p class="content-gaps-desc">Topics students searched for that returned 0 results. Use this list to prioritize upcoming notes and PYQ uploads.</p>
+          <div class="gaps-pill-wrap" id="zeroResultPills">
+            <!-- Clickable search pills with hit counts -->
+          </div>
+        </div>
+
+        <!-- Top Resources Matrix -->
+        <div class="suite-card">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow">LEADERBOARD</span>
+              <h2 class="suite-card-title">Top Study Resources</h2>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table" id="topResourcesTable">
               <thead>
                 <tr>
-                  <th class="sortable" onclick="sortBy('title')">Resource <i class="fa-solid fa-sort"></i></th>
-                  <th>Type</th>
-                  <th>Subject</th>
-                  <th>Sem</th>
-                  <th class="sortable" onclick="sortBy('reads')">Reads <i class="fa-solid fa-sort"></i></th>
-                  <th class="sortable" onclick="sortBy('downloads')">Downloads <i class="fa-solid fa-sort"></i></th>
-                  <th class="sortable" onclick="sortBy('rate')">DL Rate <i class="fa-solid fa-sort"></i></th>
+                  <th>Resource</th>
+                  <th>Reads</th>
+                  <th>Downloads</th>
+                  <th>Conv %</th>
                 </tr>
               </thead>
-              <tbody id="contentMatrixBody"></tbody>
+              <tbody id="topResourcesBody"></tbody>
             </table>
           </div>
         </div>
 
-        <div class="card glass">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-chart-bar"></i> Views vs Downloads Trend</h3>
-          </div>
-          <div class="chart-container">
-            <canvas id="contentTrendChart"></canvas>
-          </div>
-        </div>
       </section>
 
-      <!-- ================= Section: Search Intelligence ================= -->
-      <section class="content-section" id="section-search">
-        <div class="card glass">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-brain"></i> Search & Demand Intelligence</h3>
-            <div class="filters">
-              <label class="toggle-label">
-                <input type="checkbox" id="showFailingOnly" onchange="filterSearchTable()">
-                <span class="toggle-switch"></span>
-                Show zero-result only
-              </label>
+      <!-- ================= MODULE 4: LIVE STUDENT STREAM & FEEDBACK ================= -->
+      <section class="suite-module-view" id="module-livefeed">
+        
+        <!-- Live Stream Hero -->
+        <div class="suite-card stream-hero-card">
+          <div class="stream-hero-left">
+            <div class="live-pulse-large">
+              <span class="live-emerald-ring"></span>
+              <span class="live-emerald-core"></span>
+            </div>
+            <div>
+              <h2 class="stream-hero-title">Live Activity Stream</h2>
+              <p class="stream-hero-subtitle">Real-time chronological events from active student sessions</p>
             </div>
           </div>
-          <div class="table-scroll">
-            <table class="data-table" id="searchTable">
-              <thead>
-                <tr>
-                  <th>Search Query</th>
-                  <th>Total</th>
-                  <th>Has Results</th>
-                  <th>Zero Results</th>
-                  <th>Status</th>
-                  <th>Last Searched</th>
-                </tr>
-              </thead>
-              <tbody id="searchTableBody"></tbody>
-            </table>
+          <div class="stream-hero-right">
+            <span class="stream-status-tag"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Polling 15s</span>
           </div>
-          <p class="card-note">Queries highlighted in red indicate missing material students are actively looking for — prioritize these for content acquisition.</p>
         </div>
 
-        <div class="grid-2">
-          <div class="card glass">
-            <div class="card-header"><h3><i class="fa-solid fa-fire"></i> Top Searches</h3></div>
-            <div class="tag-cloud" id="topSearchCloud"></div>
-          </div>
-          <div class="card glass">
-            <div class="card-header"><h3><i class="fa-solid fa-triangle-exclamation"></i> Demand Gaps</h3></div>
-            <div class="demand-gaps" id="demandGaps"></div>
-          </div>
+        <!-- Stream Feed List -->
+        <div class="live-event-stream" id="liveStreamFeed">
+          <div class="stream-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to live feed...</div>
         </div>
+
       </section>
 
-      <!-- ================= Section: Conversion Funnel ================= -->
-      <section class="content-section" id="section-funnel">
-        <div class="card glass">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-filter"></i> Guest-to-Student Conversion Funnel</h3>
-          </div>
-          <div class="funnel-container" id="funnelContainer">
-            <div class="funnel-visual">
-              <div class="funnel-step" id="funnelStep1">
-                <div class="funnel-bar" style="--w:100%"></div>
-                <div class="funnel-info">
-                  <span class="funnel-value" id="funnelGuests">—</span>
-                  <span class="funnel-label">Total Visitors</span>
-                </div>
-              </div>
-              <div class="funnel-step" id="funnelStep2">
-                <div class="funnel-bar" style="--w:80%"></div>
-                <div class="funnel-info">
-                  <span class="funnel-value" id="funnelReads">—</span>
-                  <span class="funnel-label">PDF Reads</span>
-                  <span class="funnel-rate" id="funnelRate1">—</span>
-                </div>
-              </div>
-              <div class="funnel-step" id="funnelStep3">
-                <div class="funnel-bar" style="--w:60%"></div>
-                <div class="funnel-info">
-                  <span class="funnel-value" id="funnelDownloads">—</span>
-                  <span class="funnel-label">Downloads</span>
-                  <span class="funnel-rate" id="funnelRate2">—</span>
-                </div>
-              </div>
-              <div class="funnel-step" id="funnelStep4">
-                <div class="funnel-bar" style="--w:40%"></div>
-                <div class="funnel-info">
-                  <span class="funnel-value" id="funnelSearch">—</span>
-                  <span class="funnel-label">Search / Explore</span>
-                  <span class="funnel-rate" id="funnelRate3">—</span>
-                </div>
-              </div>
-              <div class="funnel-step" id="funnelStep5">
-                <div class="funnel-bar" style="--w:25%"></div>
-                <div class="funnel-info">
-                  <span class="funnel-value" id="funnelSignups">—</span>
-                  <span class="funnel-label">Signed Up</span>
-                  <span class="funnel-rate" id="funnelRate4">—</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <p class="card-note">The funnel shows how many unique visitors progress through each step. Conversion rates are calculated between consecutive steps.</p>
-        </div>
-      </section>
+    </main><!-- /suite-main -->
 
-      <!-- ================= Section: System Health ================= -->
-      <section class="content-section" id="section-system">
-        <div class="kpi-grid kpi-3">
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:142"><i class="fa-solid fa-database"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="sysTotalEvents">—</span>
-              <span class="kpi-label">Total Events Logged</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:200"><i class="fa-solid fa-microchip"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value" id="sysLastEvent">—</span>
-              <span class="kpi-label">Last Event</span>
-            </div>
-          </div>
-          <div class="kpi-card glass">
-            <div class="kpi-icon" style="--kpi-hue:42"><i class="fa-solid fa-shield-halved"></i></div>
-            <div class="kpi-data">
-              <span class="kpi-value">Admin Only</span>
-              <span class="kpi-label">Access Level</span>
-            </div>
-          </div>
-        </div>
+    <!-- Mobile Bottom Navigation Bar (Tabs) -->
+    <nav class="mobile-bottom-tabs" aria-label="Mobile Navigation">
+      <button type="button" class="mob-tab-btn active bca-pressable" data-tab="pulse" onclick="switchSuiteTab('pulse')">
+        <i class="fa-solid fa-heart-pulse"></i>
+        <span>Pulse</span>
+      </button>
+      <button type="button" class="mob-tab-btn bca-pressable" data-tab="engagement" onclick="switchSuiteTab('engagement')">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Engage</span>
+      </button>
+      <button type="button" class="mob-tab-btn bca-pressable" data-tab="academic" onclick="switchSuiteTab('academic')">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span>Academic</span>
+      </button>
+      <button type="button" class="mob-tab-btn bca-pressable" data-tab="livefeed" onclick="switchSuiteTab('livefeed')">
+        <i class="fa-solid fa-stream"></i>
+        <span>Stream</span>
+      </button>
+    </nav>
 
-        <div class="card glass">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-gauge-high"></i> Event Type Distribution</h3>
-            <button class="btn btn-sm" onclick="refreshAnalyticsCache()">
-              <i class="fa-solid fa-arrows-rotate"></i> Refresh Cache
-            </button>
-          </div>
-          <div class="chart-container chart-md">
-            <canvas id="eventDistChart"></canvas>
-          </div>
-        </div>
-
-        <div class="card glass">
-          <div class="card-header"><h3><i class="fa-solid fa-clock-rotate-left"></i> Recent Events (System Log)</h3></div>
-          <div class="table-scroll">
-            <table class="data-table">
-              <thead>
-                <tr><th>Time</th><th>Event</th><th>User</th><th>Resource</th><th>Device</th></tr>
-              </thead>
-              <tbody id="sysEventLog"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-    </div><!-- /main -->
   </div><!-- /dashboard -->
 
   <!-- ================= Scripts ================= -->
@@ -452,6 +461,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
-  <script src="analytics.js?v=2"></script>
+  <script type="module" src="../ui/index.js"></script>
+  <script src="analytics.js?v=5"></script>
 </body>
 </html>

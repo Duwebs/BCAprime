@@ -1277,6 +1277,20 @@
         answers: answersRecord,
         time_taken_seconds: timeTaken
       });
+
+      // Track Mock Test attempt event in analytics
+      try {
+        if (typeof trackEvent === 'function') {
+          trackEvent('mocktest_submit', {
+            title: (mtState.activeQuiz && mtState.activeQuiz.title) || 'Mock Test',
+            type: 'mocktest',
+            subject: (mtState.activeQuiz && mtState.activeQuiz.subject) || '',
+            sem: (mtState.activeQuiz && mtState.activeQuiz.semester) || null,
+            seconds: timeTaken || 0,
+            results: percentage
+          });
+        }
+      } catch (_trackErr) {}
     } catch (e) {
       console.warn('[MockTest] Result persistence warning:', e.message);
     }
