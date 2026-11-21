@@ -16,7 +16,7 @@
   <meta name="description" content="BCAPrime admin portal - review and moderate shared BCA study material.">
   <meta name="robots" content="noindex">
   <link rel="manifest" href="admin-manifest.webmanifest">
-  <meta name="theme-color" content="#05080b">
+  <meta name="theme-color" content="#0D0D0F">
   <link rel="apple-touch-icon" href="../assets/logo.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,27 +24,33 @@
   <link rel="icon" href="../assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="admin.css?v=16">
+  <link rel="stylesheet" href="admin.css?v=17">
 </head>
 <body>
 
   <!-- ================= Auth screen ================= -->
   <section class="auth-screen" id="authScreen">
     <div class="auth-card">
-      <div class="eyebrow">BCAPrime admin</div>
-      <h1 id="authTitle">Admin portal</h1>
-      <p id="authDescription">Sign in with authorized administrator credentials.</p>
+      <div class="auth-brand-badge">
+        <span class="auth-brand-dot"></span>
+        <span class="eyebrow">BCAPRIME CONSOLE</span>
+      </div>
+      <h1 id="authTitle">Admin Portal</h1>
+      <p id="authDescription">Sign in with authorized administrator credentials to manage library and community queues.</p>
       <form class="auth-form" id="authForm">
         <label>Admin Email
-          <input id="authEmail" type="email" autocomplete="email" required>
+          <input id="authEmail" type="email" autocomplete="email" placeholder="admin@bcaprime.edu" required>
         </label>
         <label>Password
-          <input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="••••••••" required>
         </label>
-        <button class="button primary" id="authSubmit" type="submit">Secure Login</button>
+        <button class="button primary bca-pressable" id="authSubmit" type="submit">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Secure Login</span>
+        </button>
       </form>
       <p class="auth-message" id="authMessage" aria-live="polite"></p>
     </div>
@@ -53,41 +59,125 @@
   <!-- ================= Admin dashboard ================= -->
   <main class="shell" id="adminShell" hidden>
 
-    <!-- Topbar -->
-    <header class="topbar">
-      <a class="brand" href="../index.html">
-        <span class="brand-mark">B</span>
-        <span>BCA<span>Prime</span> Admin</span>
-      </a>
-            <div class="actions">
-        <button class="button" onclick="toggleTheme()">Theme</button>
-        <button class="button" id="adminNotifyBtn" onclick="adminSubscribeToPush()" title="Get push notifications for new uploads and signups">
-          <i class="fa-solid fa-bell"></i> Admin Alerts
+    <!-- Sticky Admin Topbar -->
+    <header class="adm-topbar">
+      <div class="adm-topbar-left">
+        <a class="adm-back-btn bca-pressable" href="../index.html" aria-label="Back to main app">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="adm-back-text">App</span>
+        </a>
+        <div class="adm-brand">
+          <span class="adm-brand-mark">B</span>
+          <div class="adm-brand-info">
+            <span class="adm-brand-title">BCA<span class="adm-brand-accent">Prime</span></span>
+            <span class="adm-console-badge">ADMIN CONSOLE</span>
+          </div>
+        </div>
+      </div>
+      <div class="adm-topbar-actions">
+        <button type="button" class="adm-icon-btn bca-pressable" id="admRefreshBtn" onclick="refreshAdminData()" title="Refresh Dashboard Data" aria-label="Refresh Dashboard">
+          <i class="fa-solid fa-arrows-rotate"></i>
         </button>
-        <a class="button primary" href="../index.html">Open library</a>
-        <button class="button logout-button danger" id="logoutButton" onclick="logout()">Log out</button>
+        <button type="button" class="adm-icon-btn bca-pressable" id="admThemeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button type="button" class="adm-icon-btn bca-pressable" id="adminNotifyBtn" onclick="adminSubscribeToPush()" title="Admin Alerts" aria-label="Admin Alerts">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <button type="button" class="adm-logout-btn bca-pressable" id="logoutButton" onclick="logout()" title="Log out">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span>Exit</span>
+        </button>
       </div>
     </header>
 
-    <!-- Intro -->
-    <section class="intro">
-      <div class="eyebrow">Content control</div>
-      <h1>Keep the library useful.</h1>
-      <p>Review shared material, manage colleges, and keep student resources tidy.</p>
+    <!-- 2×2 Compact KPI Grid (Core Admin Command Center) -->
+    <section class="adm-kpi-grid" aria-label="Key Performance Indicators">
+      <!-- KPI 1: Total Students -->
+      <div class="adm-kpi-card bca-pressable" onclick="switchTab('users')" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">TOTAL STUDENTS</span>
+          <span class="adm-kpi-icon kpi-blue"><i class="fa-solid fa-users"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiTotalStudents">—</div>
+        <div class="adm-kpi-foot">
+          <span>Active student accounts</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <!-- KPI 2: Pending Uploads -->
+      <div class="adm-kpi-card bca-pressable" onclick="focusPending()" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">PENDING UPLOADS</span>
+          <span class="adm-kpi-icon kpi-amber"><i class="fa-solid fa-inbox"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiPendingUploads">0</div>
+        <div class="adm-kpi-foot">
+          <span>Awaiting moderation</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <!-- KPI 3: Internal Feedback (1–3★) -->
+      <div class="adm-kpi-card bca-pressable" onclick="switchTab('feedback')" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">FEEDBACK (1–3★)</span>
+          <span class="adm-kpi-icon kpi-gold"><i class="fa-solid fa-star"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiStarFeedback">0</div>
+        <div class="adm-kpi-foot">
+          <span>Smart Star-Filter Inbox</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <!-- KPI 4: Community Posts -->
+      <div class="adm-kpi-card bca-pressable" onclick="switchTab('community')" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">COMMUNITY POSTS</span>
+          <span class="adm-kpi-icon kpi-green"><i class="fa-solid fa-comments"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiCommunityPosts">0</div>
+        <div class="adm-kpi-foot">
+          <span>Requests &amp; Lost/Found</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
     </section>
 
-    <!-- Admin tabs -->
-    <nav class="admin-tabs" aria-label="Admin sections">
-      <button class="tab active" data-tab="material" onclick="switchTab('material')"><i class="fa-solid fa-box-archive"></i> Material</button>
-      <button class="tab" data-tab="subjects" onclick="switchTab('subjects')"><i class="fa-solid fa-book"></i> Subjects</button>
-      <button class="tab" data-tab="pending" onclick="switchTab('pending')"><i class="fa-solid fa-inbox"></i> Pending Subjects<span class="tab-badge" id="pendingBadge">0</span></button>
-      <button class="tab" data-tab="lostfound" onclick="switchTab('lostfound')"><i class="fa-solid fa-circle-question"></i> Lost &amp; Found</button>
-      <button class="tab" data-tab="reports" onclick="switchTab('reports')"><i class="fa-solid fa-flag"></i> Reports<span class="tab-badge" id="reportsBadge" hidden>0</span></button>
-      <button class="tab" data-tab="quizzes" onclick="switchTab('quizzes')"><i class="fa-solid fa-graduation-cap"></i> Mock Tests &amp; MCQs</button>
-      <button class="tab" data-tab="users" onclick="switchTab('users')"><i class="fa-solid fa-users"></i> Users &amp; Stats</button>
+    <!-- Horizontally Scrollable Segmented Tab Bar -->
+    <nav class="adm-segmented-tabs admin-tabs" aria-label="Admin sections">
+      <button type="button" class="tab adm-tab active bca-pressable" data-tab="material" onclick="switchTab('material')">
+        <i class="fa-solid fa-box-archive"></i>
+        <span>Notes &amp; PYQ</span>
+        <span class="adm-tab-badge" id="tabMaterialBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="feedback" onclick="switchTab('feedback')">
+        <i class="fa-solid fa-star"></i>
+        <span>Feedback &amp; Stars</span>
+        <span class="adm-tab-badge gold" id="tabFeedbackBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="community" onclick="switchTab('community')">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Community</span>
+        <span class="adm-tab-badge" id="tabCommunityBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="users" onclick="switchTab('users')">
+        <i class="fa-solid fa-users"></i>
+        <span>Users &amp; Badges</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="subjects" onclick="switchTab('subjects')">
+        <i class="fa-solid fa-book"></i>
+        <span>Subjects</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="quizzes" onclick="switchTab('quizzes')">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span>Mock Tests</span>
+      </button>
     </nav>
 
-        <!-- ============ TAB: Material ============ -->
+    <!-- ============ TAB: Material (Notes & PYQ Queue) ============ -->
     <section class="tab-panel" id="tab-material">
 
     <!-- New upload banner (shown when new pending resources arrive) -->
@@ -98,49 +188,68 @@
       <button class="button" id="uploadBannerDismiss" onclick="dismissUploadBanner()">Dismiss</button>
     </div>
 
-    <!-- Stats -->
-    <section class="stats">
-      <div class="stat">
-        <strong id="totalCount">0</strong>
-        <span>Total uploads</span>
-      </div>
-      <div class="stat">
-        <strong id="collegeCount">0</strong>
-        <span>Colleges represented</span>
-      </div>
-      <div class="stat">
-        <strong id="activeCount">0</strong>
-        <span>Active resources</span>
-      </div>
-    </section>
+    <!-- Legacy Stats (kept for JS data binding) -->
+    <div class="stats adm-hidden-stats" style="display:none">
+      <div class="stat"><strong id="totalCount">0</strong><span>Total uploads</span></div>
+      <div class="stat"><strong id="collegeCount">0</strong><span>Colleges represented</span></div>
+      <div class="stat"><strong id="activeCount">0</strong><span>Active resources</span></div>
+    </div>
 
     <!-- Review panel -->
     <section class="panel">
       <div class="toolbar">
-        <h2>Shared material</h2>
-        <div class="filters">
-          <input class="search" id="search" placeholder="Search title or college" oninput="render()">
-          <select class="select" id="statusFilter" onchange="render()">
-            <option value="all">All status</option>
-            <option value="pending">Needs review</option>
-            <option value="approved">Active</option>
-            <option value="rejected">Rejected</option>
-            <option value="archived">Archived</option>
-          </select>
+        <div>
+          <h2>Shared Material Queue</h2>
+          <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Review student notes &amp; university question papers before publishing.</p>
         </div>
+      </div>
+
+      <!-- Segmented Status Filter Pills -->
+      <div class="adm-filter-pills" role="tablist" aria-label="Material status filters">
+        <button type="button" class="adm-pill active bca-pressable" data-status="pending" onclick="setMaterialStatusFilter('pending')">
+          <span>Needs Review</span>
+          <span class="adm-pill-count" id="pillPendingCount">0</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="approved" onclick="setMaterialStatusFilter('approved')">
+          <span>Active (Approved)</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="rejected" onclick="setMaterialStatusFilter('rejected')">
+          <span>Rejected</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="archived" onclick="setMaterialStatusFilter('archived')">
+          <span>Archived</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="all" onclick="setMaterialStatusFilter('all')">
+          <span>All Uploads</span>
+        </button>
+      </div>
+
+      <div class="adm-search-bar-wrap">
+        <div class="adm-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="search" id="search" placeholder="Search by title, subject, college, or uploader…" oninput="render()">
+        </div>
+        <!-- Hidden dropdown kept for JS compatibility -->
+        <select class="select" id="statusFilter" onchange="render()" style="display:none">
+          <option value="all">All status</option>
+          <option value="pending" selected>Needs review</option>
+          <option value="approved">Active</option>
+          <option value="rejected">Rejected</option>
+          <option value="archived">Archived</option>
+        </select>
       </div>
 
       <!-- Bulk actions (shown when rows are selected) -->
       <div class="bulk-actions" id="bulkActions">
         <span class="bulk-count" id="bulkCount">0 selected</span>
-        <button class="button primary" onclick="bulkUpdateStatus('approved')">Approve Selected</button>
-        <button class="button danger" onclick="bulkUpdateStatus('rejected')">Reject Selected</button>
-        <button class="button danger" onclick="bulkDelete()">Delete Selected</button>
+        <button class="button primary" onclick="bulkUpdateStatus('approved')"><i class="fa-solid fa-check"></i> Approve Selected</button>
+        <button class="button danger" onclick="bulkUpdateStatus('rejected')"><i class="fa-solid fa-xmark"></i> Reject Selected</button>
+        <button class="button danger" onclick="bulkDelete()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
       </div>
 
-      <!-- Uploads table -->
+      <!-- Uploads table (turns into mobile cards on phones) -->
       <div class="table-wrap">
-        <table class="table">
+        <table class="table adm-table">
           <thead>
             <tr>
               <th class="col-check"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th>
@@ -156,13 +265,16 @@
         </table>
       </div>
 
-      <div class="note">Review pending uploads before approving them. Only approved resources appear in the student library.</div>
+      <div class="note"><i class="fa-solid fa-circle-info"></i> Review pending uploads before approving. Only approved resources appear in the student library.</div>
     </section>
 
     <!-- Broadcast notifications -->
     <section class="panel">
       <div class="toolbar">
-        <h2>Send notification</h2>
+        <div>
+          <h2>Send Broadcast Notification</h2>
+          <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Send instant push alerts to enrolled students' phones.</p>
+        </div>
       </div>
       <form class="notify-form" id="notifyForm">
         <input class="search notify-title" id="notifyTitle" placeholder="Title — e.g. New DBMS notes just dropped 📚" maxlength="80" required>
@@ -198,21 +310,129 @@
           <input type="checkbox" id="notifyOnApprove" checked>
           <span>Auto-notify users whenever I approve a resource</span>
         </label>
-        <button class="button primary" id="notifySend" type="submit"><i>&#128276;</i> Send notification</button>
+        <button class="button primary" id="notifySend" type="submit"><i class="fa-solid fa-paper-plane"></i> Send notification</button>
       </form>
-            <div class="note">Select a college + semester to send the notification only to users enrolled in that college &amp; semester. Leave empty to broadcast to all. Auto-notifications are always targeted by the resource's college + semester.</div>
-    </section>
-
-    <!-- User feedback / bug reports -->
-    <section class="panel">
-      <div class="toolbar">
-        <h2>User feedback</h2>
-        <button class="button" onclick="loadFeedback()">Refresh</button>
-      </div>
-      <div id="feedbackList" class="feedback-list"><p class="note">Loading&hellip;</p></div>
     </section>
 
     </section><!-- /tab-material -->
+
+    <!-- ============ TAB: Feedback & Smart Star-Filter Inbox ============ -->
+    <section class="tab-panel" id="tab-feedback" hidden>
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Feedback &amp; Ratings Inbox</h2>
+            <p style="color:var(--muted);font-size:13px;margin:2px 0 0">User reviews, 1–3★ ratings from Trustpilot star-filter, bug reports, and suggestions.</p>
+          </div>
+          <div class="actions">
+            <button class="button bca-pressable" onclick="loadFeedback()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- Feedback Filter Pills -->
+        <div class="adm-filter-pills" role="tablist" aria-label="Feedback category filters">
+          <button type="button" class="adm-pill active bca-pressable" data-fb-filter="all" onclick="setFeedbackFilter('all')">
+            <span>All Feedback</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="stars" onclick="setFeedbackFilter('stars')">
+            <span><i class="fa-solid fa-star" style="color:#eab308"></i> 1–3★ Star Ratings</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="bug" onclick="setFeedbackFilter('bug')">
+            <span><i class="fa-solid fa-bug"></i> Bugs</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="idea" onclick="setFeedbackFilter('idea')">
+            <span><i class="fa-solid fa-lightbulb"></i> Ideas</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="open" onclick="setFeedbackFilter('open')">
+            <span>Open Issues</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="resolved" onclick="setFeedbackFilter('resolved')">
+            <span>Resolved</span>
+          </button>
+        </div>
+
+        <div id="feedbackList" class="feedback-list">
+          <p class="note">Loading feedback&hellip;</p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============ TAB: Community Moderation ============ -->
+    <section class="tab-panel" id="tab-community" hidden>
+      <!-- Sub-filter navigation -->
+      <div class="adm-sub-tabs" role="tablist" aria-label="Community sections">
+        <button type="button" class="adm-sub-tab active bca-pressable" data-sub="lostfound" onclick="switchCommunitySub('lostfound')">
+          <i class="fa-solid fa-circle-question"></i> Lost &amp; Found
+        </button>
+        <button type="button" class="adm-sub-tab bca-pressable" data-sub="reports" onclick="switchCommunitySub('reports')">
+          <i class="fa-solid fa-flag"></i> Resource Reports
+          <span class="tab-badge" id="reportsBadgeSub" hidden>0</span>
+        </button>
+        <button type="button" class="adm-sub-tab bca-pressable" data-sub="requests" onclick="switchCommunitySub('requests')">
+          <i class="fa-solid fa-users"></i> Junior / Senior Requests
+        </button>
+        <button type="button" class="adm-sub-tab bca-pressable" data-sub="pending-subjects" onclick="switchCommunitySub('pending-subjects')">
+          <i class="fa-solid fa-inbox"></i> Pending Subjects
+          <span class="tab-badge" id="pendingSubjectsBadgeSub" hidden>0</span>
+        </button>
+      </div>
+
+      <!-- Sub-panel 1: Lost & Found -->
+      <div class="comm-sub-panel" id="commSub-lostfound">
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Lost &amp; Found Moderation</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Approve or reject campus lost and found notices.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="lostfoundQueue" class="lf-admin-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+
+      <!-- Sub-panel 2: Resource Reports -->
+      <div class="comm-sub-panel" id="commSub-reports" hidden>
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Resource Reports</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Broken links, wrong files or corrupted pages reported by students.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadReports()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="reportsQueue" class="reports-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+
+      <!-- Sub-panel 3: Junior / Senior Requests -->
+      <div class="comm-sub-panel" id="commSub-requests" hidden>
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Junior &amp; Senior Requests</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Study material requests submitted through Ask Seniors &amp; Juniors Request.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadCommunityRequests()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="communityRequestsQueue" class="community-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+
+      <!-- Sub-panel 4: Pending Subjects -->
+      <div class="comm-sub-panel" id="commSub-pending-subjects" hidden>
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Pending Subject Requests</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Student-requested subjects awaiting syllabus verification.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadPendingSubjects()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="pendingQueue" class="pending-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+    </section>
 
     <!-- ============ TAB: Subjects ============ -->
     <section class="tab-panel" id="tab-subjects" hidden>
@@ -660,6 +880,6 @@
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
   <script type="module" src="../ui/index.js"></script>
-  <script src="admin.js?v=16"></script>
+  <script src="admin.js?v=17"></script>
 </body>
 </html>

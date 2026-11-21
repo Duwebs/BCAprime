@@ -99,13 +99,10 @@ function dismissUploadBanner() {
 
 // Focus the Material tab and scroll to pending items
 function focusPending() {
-  const matTab = document.querySelector('.tab[data-tab="material"]');
-  if (matTab) matTab.click();
-  const firstPending = document.querySelector('.new-pending');
-  if (firstPending) {
-    firstPending.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    firstPending.classList.add('scanned');
-  }
+  switchTab('material');
+  setMaterialStatusFilter('pending');
+  const queueSection = $('materialQueue');
+  if (queueSection) queueSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   dismissUploadBanner();
 }
 
@@ -149,12 +146,17 @@ async function showAdmin(session) {
   }
   $('authScreen').hidden = true;
   $('adminShell').hidden = false;
-  $('logoutButton').style.display = 'inline-block';
+  const lBtn = $('logoutButton');
+  if (lBtn) lBtn.style.display = 'inline-block';
+  const admLBtn = $('admLogoutBtn');
+  if (admLBtn) admLBtn.style.display = 'inline-flex';
+  updateThemeIcon();
   load();
   loadSubjects();
   loadReports();
   loadUserStats();
   startAdminLiveSync();
+  initAdminPressables();
 }
 
 async function logout() {
@@ -165,17 +167,28 @@ async function logout() {
 function resetToAuthScreen() {
   $('adminShell').hidden = true;
   $('authScreen').hidden = false;
-  $('logoutButton').style.display = 'none';
+  const lBtn = $('logoutButton');
+  if (lBtn) lBtn.style.display = 'none';
+  const admLBtn = $('admLogoutBtn');
+  if (admLBtn) admLBtn.style.display = 'none';
   setAuthMessage('Logged out');
   $('authForm').reset();
 }
 
 /* ---- Admin panel: Supabase-backed moderation ---- */
+function updateThemeIcon() {
+  const icon = $('admThemeIcon');
+  if (!icon) return;
+  const isLight = document.documentElement.dataset.theme === 'light';
+  icon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+}
+
 function toggleTheme() {
   const root = document.documentElement;
   root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
   localStorage.setItem('bca-theme', root.dataset.theme);
   try { localStorage.setItem('bca-theme-manual', '1'); } catch (e) {}
+  updateThemeIcon();
 }
 
 function escapeHtml(value) {
@@ -266,6 +279,24 @@ function startAdminLiveSync() {
 
 
 
+/* ---- Material status filter pills ---- */
+function setMaterialStatusFilter(status) {
+  document.querySelectorAll('.adm-filter-pills .adm-pill[data-status]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.status === status);
+  });
+  const sel = $('statusFilter');
+  if (sel && sel.value !== status) {
+    sel.value = status;
+  }
+  render();
+}
+
+function confirmRejectMaterial(id) {
+  openSafeDelete('Reject and remove this material from the active library?', () => {
+    updateStatus(id, 'rejected');
+  });
+}
+
 /* ---- Rendering ---- */
 function filteredUploads() {
   const query = ($('search').value || '').toLowerCase();
@@ -273,7 +304,9 @@ function filteredUploads() {
   return uploads.filter(item => {
     const matchQuery = !query ||
       (item.title || '').toLowerCase().includes(query) ||
-      (item.college || '').toLowerCase().includes(query);
+      (item.college || '').toLowerCase().includes(query) ||
+      (item.subject || '').toLowerCase().includes(query) ||
+      (item.uploader || '').toLowerCase().includes(query);
     const matchStatus = status === 'all' || item.status === status;
     return matchQuery && matchStatus;
   });
@@ -286,10 +319,12 @@ function render() {
   $('collegeCount').textContent = new Set(uploads.map(item => item.college)).size;
   $('activeCount').textContent = uploads.filter(item => item.status === 'approved').length;
 
+  if (typeof updateAdminKpis === 'function') updateAdminKpis();
+
   [...selectedIds].forEach(id => {
     if (!uploads.some(item => String(item.id) === id)) selectedIds.delete(id);
   });
-    const bulkEl = $('bulkActions');
+  const bulkEl = $('bulkActions');
   if (selectedIds.size) {
     bulkEl.classList.add('visible');
   } else {
@@ -300,30 +335,64 @@ function render() {
 
   const tbody = $('rows');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No material found for this filter.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No study material found for this filter.</div></td></tr>';
     return;
   }
   tbody.innerHTML = list.map(item => {
     const id = String(item.id);
-    const badgeClass = item.status === 'approved' ? '' : 'archived';
+    const badgeClass = item.status === 'approved' ? 'badge-approved' : (item.status === 'rejected' ? 'badge-rejected' : 'badge-pending');
     const typeLabel = item.type === 'pyq' ? 'PYQ' : 'Notes';
     const typeClass = item.type === 'pyq' ? 'type-pyq' : 'type-notes';
     const isNewPending = item.status === 'pending' && item.date && isRecentlyAdded(item.date);
     const rowClass = isNewPending ? 'new-pending' : '';
-    return `<tr class="${rowClass}">
-          <td><input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)"></td>
-          <td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.subject || '')}${item.fileName ? ` &middot; ${escapeHtml(item.fileName)}` : ''}</small>${item.fileUrl ? `<small><a href="#" onclick="event.preventDefault();openResourceFile('${escapeHtml(item.fileUrl)}')" >Open file</a></small>` : ''}</td>
-          <td><span class="type-badge ${typeClass}">${typeLabel === 'PYQ' ? '📝 PYQ' : '📚 Notes'}</span></td>
-          <td>${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}${item.uploader ? `<small>${item.uploaderAvatar ? `<img src="${escapeHtml(item.uploaderAvatar)}" alt="" width="16" height="16" style="border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:5px">` : ''}by ${escapeHtml(item.uploader)}</small>` : ''}</td>
-          <td>Semester ${item.sem}${item.year ? `<small>Year ${item.year}</small>` : ''}</td>
-          <td><span class="badge ${badgeClass}">${item.status}</span></td>
-          <td><div class="row-actions">
-            ${item.status !== 'approved' ? `<button class="button primary" onclick="updateStatus('${id}','approved')">Approve</button>` : ''}
-            ${item.status !== 'rejected' ? `<button class="button danger" onclick="updateStatus('${id}','rejected')">Reject</button>` : ''}
-            ${item.status !== 'archived' ? `<button class="button" onclick="updateStatus('${id}','archived')">Archive</button>` : ''}
-          </div></td>
-        </tr>`;
+    const uploaderHandle = item.uploader ? `@${item.uploader.replace(/\s+/g, '_').toLowerCase()}` : '@student';
+
+    return `<tr class="${rowClass} adm-material-row" data-id="${id}">
+      <td class="col-check">
+        <label class="adm-card-check-wrap">
+          <input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)">
+        </label>
+      </td>
+      <td class="col-title">
+        <div class="adm-mat-title-wrap">
+          <b class="adm-mat-title">${escapeHtml(item.title)}</b>
+          <div class="adm-mat-meta-tags">
+            ${item.subject ? `<span class="adm-tag-subject"><i class="fa-solid fa-book"></i> ${escapeHtml(item.subject)}</span>` : ''}
+            <span class="adm-tag-sem"><i class="fa-solid fa-graduation-cap"></i> Sem ${item.sem}</span>
+            ${item.year ? `<span class="adm-tag-year">Year ${item.year}</span>` : ''}
+          </div>
+          ${item.fileName ? `<small class="adm-mat-filename"><i class="fa-regular fa-file-lines"></i> ${escapeHtml(item.fileName)}</small>` : ''}
+          ${item.fileUrl ? `
+            <div class="adm-preview-wrap">
+              <a href="#" class="adm-preview-btn bca-pressable" onclick="event.preventDefault();openResourceFile('${escapeHtml(item.fileUrl)}')">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Preview PDF
+              </a>
+            </div>` : ''}
+        </div>
+      </td>
+      <td class="col-type"><span class="type-badge ${typeClass}">${typeLabel === 'PYQ' ? '📝 PYQ' : '📚 Notes'}</span></td>
+      <td class="col-college">
+        <div class="adm-mat-uploader">
+          <span class="adm-college-name">${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}</span>
+          <span class="adm-uploader-pill">
+            ${item.uploaderAvatar ? `<img src="${escapeHtml(item.uploaderAvatar)}" alt="" class="adm-uploader-avatar">` : '<i class="fa-regular fa-user"></i>'}
+            <span class="adm-uploader-handle">${escapeHtml(uploaderHandle)}</span>
+          </span>
+        </div>
+      </td>
+      <td class="col-sem">Semester ${item.sem}${item.year ? `<small>Year ${item.year}</small>` : ''}</td>
+      <td class="col-status"><span class="badge ${badgeClass}">${item.status}</span></td>
+      <td class="col-actions">
+        <div class="row-actions">
+          ${item.status !== 'approved' ? `<button class="button primary bca-pressable" onclick="updateStatus('${id}','approved')"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
+          ${item.status !== 'rejected' ? `<button class="button danger bca-pressable" onclick="confirmRejectMaterial('${id}')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
+          ${item.status !== 'archived' ? `<button class="button bca-pressable" onclick="updateStatus('${id}','archived')"><i class="fa-solid fa-box-archive"></i> Archive</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
   }).join('');
+
+  initAdminPressables();
 }
 
 /* ---- Selection ---- */
@@ -570,58 +639,354 @@ async function handleNotifyFormSubmit(event) {
 }
 $('notifyForm').addEventListener('submit', handleNotifyFormSubmit);
 
-/* ---- User feedback panel ---- */
-async function loadFeedback(){
-  const list=$('feedbackList');if(!list)return;
-  list.innerHTML='<p class="note">Loading&hellip;</p>';
-  if(typeof adminSupabaseClient==='undefined'||!adminSupabaseClient){list.innerHTML='<p class="note">Supabase is not configured.</p>';return}
-  const {data,error}=await adminSupabaseClient.from('feedback').select('*').order('created_at',{ascending:false}).limit(50);
-  if(error){list.innerHTML='<p class="note">Load failed: '+error.message+'</p>';return}
-    if(!data||!data.length){list.innerHTML='<p class="note">No feedback yet. 🎉</p>';return}
-  list.innerHTML=data.map(item=>{
-    const kindClass={bug:'k-bug',idea:'k-idea',question:'k-question'}[item.kind]||'k-idea';
-    const whoLine=[item.user_name,item.user_email].filter(Boolean).join(' · ');
-    return `<div class="feedback-item ${item.status}">
-      <div class="fi-head"><span class="fi-kind ${kindClass}">${item.kind}</span><small>${new Date(item.created_at).toLocaleString()}</small></div>
-      <p class="fi-msg">${escapeHtml(item.message)}</p>
-      ${item.screenshot_url?`<a href="${escapeHtml(item.screenshot_url)}" target="_blank" rel="noopener"><img src="${escapeHtml(item.screenshot_url)}" class="fi-shot" alt="screenshot"></a>`:''}
-      ${whoLine?`<div class="fi-who"><i class="fa-solid fa-user"></i>${escapeHtml(whoLine)}${item.page_url?`<small>&middot; ${escapeHtml((item.page_url||'').slice(0,40))}</small>`:''}</div>`:''}
-      <div class="fi-meta">${escapeHtml((item.user_agent||'').slice(0,70))}</div>
-      <div class="row-actions">
-        ${item.status==='open'?`<button class="button primary" onclick="resolveFeedback(${item.id})">Mark resolved</button>`:'<span class="fi-resolved">✔ Resolved</span>'}
-        <button class="button danger" onclick="deleteFeedback(${item.id})">Delete</button>
-      </div>
-    </div>`}).join('');
+/* ============================================================
+   KPI Metrics & Dashboard Synchronizer
+   ============================================================ */
+async function updateAdminKpis() {
+  // 1. Pending Uploads
+  const pendingCount = (uploads || []).filter(item => item.status === 'pending').length;
+  if ($('kpiPendingUploads')) $('kpiPendingUploads').textContent = pendingCount;
+  if ($('pillPendingCount')) $('pillPendingCount').textContent = pendingCount;
+  if ($('pendingBadge')) {
+    $('pendingBadge').textContent = pendingCount;
+    $('pendingBadge').hidden = pendingCount === 0;
+  }
+
+  // 2. Total Students
+  if (window.userStatsCache && window.userStatsCache.total_users) {
+    if ($('kpiTotalStudents')) $('kpiTotalStudents').textContent = Number(window.userStatsCache.total_users).toLocaleString();
+    if ($('usersBadge')) {
+      $('usersBadge').textContent = window.userStatsCache.total_users;
+      $('usersBadge').hidden = false;
+    }
+  }
+
+  // 3. Feedback count & star ratings (1–3★)
+  if (window.allFeedbackCache && window.allFeedbackCache.length) {
+    const lowStarOrOpen = window.allFeedbackCache.filter(item => {
+      const msg = item.message || '';
+      const isLowStar = /\[Rating:\s*([1-3])\/5/i.test(msg) || (item.rating && item.rating <= 3);
+      return isLowStar || item.status === 'open';
+    }).length;
+    if ($('kpiStarFeedback')) $('kpiStarFeedback').textContent = lowStarOrOpen;
+    if ($('feedbackBadge')) {
+      const openCount = window.allFeedbackCache.filter(item => item.status === 'open').length;
+      $('feedbackBadge').textContent = openCount;
+      $('feedbackBadge').hidden = openCount === 0;
+    }
+  }
+
+  // 4. Community Posts (Lost & Found + Reports + Junior/Senior Requests)
+  if (adminSupabaseClient) {
+    try {
+      const [lfRes, repRes, reqRes] = await Promise.allSettled([
+        adminSupabaseClient.from('lost_found').select('id, status', { count: 'exact', head: true }),
+        adminSupabaseClient.from('resource_reports').select('id, status', { count: 'exact', head: true }).eq('status', 'open'),
+        adminSupabaseClient.from('senior_requests').select('id, status', { count: 'exact', head: true })
+      ]);
+      const lfCount = lfRes.status === 'fulfilled' ? (lfRes.value.count || 0) : 0;
+      const repCount = repRes.status === 'fulfilled' ? (repRes.value.count || 0) : 0;
+      const reqCount = reqRes.status === 'fulfilled' ? (reqRes.value.count || 0) : 0;
+
+      const totalComm = lfCount + repCount + reqCount;
+      if ($('kpiCommunityPosts')) $('kpiCommunityPosts').textContent = totalComm;
+
+      const actionable = repCount + (reqRes.status === 'fulfilled' ? reqCount : 0);
+      if ($('communityBadge')) {
+        $('communityBadge').textContent = actionable;
+        $('communityBadge').hidden = actionable === 0;
+      }
+      if ($('reportsBadgeSub')) {
+        $('reportsBadgeSub').textContent = repCount;
+        $('reportsBadgeSub').hidden = repCount === 0;
+      }
+    } catch (e) {
+      console.warn('Could not update community KPIs:', e.message);
+    }
+  }
 }
-async function resolveFeedback(id){
-  if(typeof adminSupabaseClient==='undefined'||!adminSupabaseClient)return;
-  await adminSupabaseClient.from('feedback').update({status:'resolved'}).eq('id',id);
+
+async function refreshAdminData() {
+  const btn = $('admRefreshBtn');
+  if (btn) btn.classList.add('rotating');
+  if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
+    window.BCA_UI.triggerLightHaptic(12);
+  }
+  showAdminToast('Refreshing admin consoles & queues...', 'info');
+  try {
+    await Promise.allSettled([
+      load(),
+      loadSubjects(),
+      loadReports(),
+      loadFeedback(),
+      loadCommunityRequests(),
+      loadLostFoundAdmin(),
+      loadUserStats()
+    ]);
+    await updateAdminKpis();
+    showAdminToast('Dashboard synchronized with latest data', 'success');
+  } catch (err) {
+    showAdminToast('Refresh completed', 'info');
+  } finally {
+    if (btn) {
+      setTimeout(() => btn.classList.remove('rotating'), 600);
+    }
+  }
+}
+
+/* ============================================================
+   Feedback & Smart Star-Filter Inbox
+   ============================================================ */
+window.allFeedbackCache = [];
+window.feedbackFilter = 'all';
+
+async function loadFeedback() {
+  const list = $('feedbackList');
+  if (!list) return;
+  list.innerHTML = '<p class="note">Loading feedback &amp; ratings&hellip;</p>';
+  if (typeof adminSupabaseClient === 'undefined' || !adminSupabaseClient) {
+    list.innerHTML = '<p class="note">Supabase is not configured.</p>';
+    return;
+  }
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('feedback')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    window.allFeedbackCache = data || [];
+    updateAdminKpis();
+    renderFeedbackList();
+  } catch (err) {
+    list.innerHTML = '<p class="note">Load failed: ' + escapeHtml(err.message) + '</p>';
+  }
+}
+
+function setFeedbackFilter(filter) {
+  window.feedbackFilter = filter;
+  document.querySelectorAll('[data-fb-filter]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.fbFilter === filter);
+  });
+  renderFeedbackList();
+}
+
+function renderFeedbackList() {
+  const list = $('feedbackList');
+  if (!list) return;
+  const items = window.allFeedbackCache || [];
+  const filter = window.feedbackFilter || 'all';
+
+  const filtered = items.filter(item => {
+    const msg = item.message || '';
+    const ratingMatch = msg.match(/\[Rating:\s*([1-5])\/5\s*stars?\]/i);
+    const starVal = ratingMatch ? parseInt(ratingMatch[1], 10) : (item.rating || 0);
+
+    if (filter === 'stars') return starVal >= 1 && starVal <= 3;
+    if (filter === 'bug') return item.kind === 'bug';
+    if (filter === 'idea') return item.kind === 'idea' || item.kind === 'question';
+    if (filter === 'open') return item.status === 'open' || !item.status;
+    if (filter === 'resolved') return item.status === 'resolved';
+    return true;
+  });
+
+  if (!filtered.length) {
+    list.innerHTML = `
+      <div class="empty-state-wrap">
+        <i class="fa-regular fa-comment-dots" style="font-size:32px;color:var(--muted);margin-bottom:12px;display:block"></i>
+        <h3 style="margin:0 0 6px;font-size:16px">No feedback in this view</h3>
+        <p style="color:var(--muted);font-size:13px;margin:0">No user feedback matching "${filter}" criteria.</p>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(item => {
+    const msg = item.message || '';
+    const ratingMatch = msg.match(/\[Rating:\s*([1-5])\/5\s*stars?\]/i);
+    const starVal = ratingMatch ? parseInt(ratingMatch[1], 10) : (item.rating || 0);
+    const cleanMsg = msg.replace(/\[Rating:\s*([1-5])\/5\s*stars?\]\s*/i, '');
+
+    const kindClass = { bug: 'k-bug', idea: 'k-idea', question: 'k-question' }[item.kind] || 'k-idea';
+    const whoLine = [item.user_name, item.user_email].filter(Boolean).join(' · ');
+    const isResolved = item.status === 'resolved';
+
+    let starBadgeHtml = '';
+    if (starVal > 0) {
+      const starClass = starVal <= 2 ? 'fi-star-bad' : (starVal === 3 ? 'fi-star-mid' : 'fi-star-good');
+      const starIcons = '★'.repeat(starVal) + '☆'.repeat(Math.max(0, 5 - starVal));
+      starBadgeHtml = `<span class="fi-star-badge ${starClass}">
+        <span class="fi-stars-symbols">${starIcons}</span>
+        <span>${starVal}/5 Stars</span>
+      </span>`;
+    }
+
+    return `<div class="feedback-item ${isResolved ? 'resolved' : 'open'}" data-id="${item.id}">
+      <div class="fi-head">
+        ${starBadgeHtml}
+        <span class="fi-kind ${kindClass}">${escapeHtml(item.kind || 'feedback')}</span>
+        <span class="badge ${isResolved ? 'badge-resolved' : 'badge-open'}">${isResolved ? 'Resolved' : 'Open'}</span>
+        <small class="fi-time">${formatISTDate(item.created_at)}</small>
+      </div>
+      <p class="fi-msg">${escapeHtml(cleanMsg || msg)}</p>
+      ${item.screenshot_url ? `<a href="${escapeHtml(item.screenshot_url)}" target="_blank" rel="noopener"><img src="${escapeHtml(item.screenshot_url)}" class="fi-shot" alt="User screenshot"></a>` : ''}
+      ${whoLine ? `<div class="fi-who"><i class="fa-solid fa-user"></i><span>${escapeHtml(whoLine)}</span>${item.page_url ? `<small>&middot; ${escapeHtml((item.page_url || '').slice(0, 45))}</small>` : ''}</div>` : ''}
+      ${item.user_agent ? `<div class="fi-meta"><i class="fa-solid fa-mobile-screen"></i> ${escapeHtml((item.user_agent || '').slice(0, 85))}</div>` : ''}
+      <div class="row-actions">
+        ${!isResolved 
+          ? `<button class="button primary bca-pressable" onclick="resolveFeedback(${item.id})"><i class="fa-solid fa-check"></i> Mark Resolved</button>`
+          : `<button class="button bca-pressable" onclick="reopenFeedback(${item.id})"><i class="fa-solid fa-arrow-rotate-left"></i> Reopen</button>`}
+        <button class="button danger bca-pressable" onclick="deleteFeedback(${item.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  initAdminPressables();
+}
+
+async function resolveFeedback(id) {
+  if (typeof adminSupabaseClient === 'undefined' || !adminSupabaseClient) return;
+  await adminSupabaseClient.from('feedback').update({ status: 'resolved' }).eq('id', id);
+  showAdminToast('Feedback marked as resolved', 'success');
   loadFeedback();
 }
-async function deleteFeedback(id){
+
+async function reopenFeedback(id) {
+  if (typeof adminSupabaseClient === 'undefined' || !adminSupabaseClient) return;
+  await adminSupabaseClient.from('feedback').update({ status: 'open' }).eq('id', id);
+  showAdminToast('Feedback reopened', 'info');
+  loadFeedback();
+}
+
+async function deleteFeedback(id) {
   openSafeDelete('This feedback entry will be permanently removed. This cannot be undone.', async () => doDeleteFeedback(id));
 }
-async function doDeleteFeedback(id){
-  if(typeof adminSupabaseClient==='undefined'||!adminSupabaseClient)return;
-  await adminSupabaseClient.from('feedback').delete().eq('id',id);
+
+async function doDeleteFeedback(id) {
+  if (typeof adminSupabaseClient === 'undefined' || !adminSupabaseClient) return;
+  await adminSupabaseClient.from('feedback').delete().eq('id', id);
+  showAdminToast('Feedback deleted', 'success');
   loadFeedback();
+}
+
+/* ============================================================
+   Community & Content Moderation Handlers
+   ============================================================ */
+function switchCommunitySub(sub) {
+  document.querySelectorAll('.adm-sub-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.sub === sub));
+  ['lostfound', 'reports', 'requests', 'pending-subjects'].forEach(id => {
+    const el = $('commSub-' + id);
+    if (el) el.hidden = (id !== sub);
+  });
+  if (sub === 'lostfound') loadLostFoundAdmin();
+  if (sub === 'reports') loadReports();
+  if (sub === 'requests') loadCommunityRequests();
+  if (sub === 'pending-subjects') loadPendingSubjects();
+}
+
+async function loadCommunityRequests() {
+  const host = $('communityRequestsQueue');
+  if (!host) return;
+  if (!adminSupabaseClient) { host.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  host.innerHTML = '<p class="note">Loading junior/senior requests&hellip;</p>';
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('senior_requests')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(60);
+    if (error) throw error;
+    if (!data || !data.length) {
+      host.innerHTML = '<p class="note">No junior or senior requests found in database.</p>';
+      return;
+    }
+    host.innerHTML = data.map(item => {
+      const typeLabel = item.type === 'pyq' ? '📝 PYQ' : '📚 Notes';
+      const semLabel = `Semester ${item.semester || '?'}`;
+      const statusClass = item.status === 'done' ? 'badge-approved' : 'badge-pending';
+      return `<div class="comm-card ${item.status || ''}">
+        <div class="comm-card-head">
+          <span class="comm-badge ${item.type === 'pyq' ? 'type-pyq' : 'type-notes'}">${typeLabel}</span>
+          <span class="badge ${statusClass}">${escapeHtml(item.status || 'open')}</span>
+          <span class="comm-time">${formatISTDate(item.created_at)}</span>
+        </div>
+        <div class="comm-card-body">
+          <div class="comm-card-title">${escapeHtml(item.subject || 'Material Request')}</div>
+          ${item.message ? `<p class="comm-card-msg">${escapeHtml(item.message)}</p>` : ''}
+          <div class="comm-card-meta">
+            <span><i class="fa-solid fa-graduation-cap"></i> ${semLabel}</span>
+            <span><i class="fa-solid fa-building-columns"></i> ${escapeHtml(collegeNames[item.college] || item.college || 'All Colleges')}</span>
+            <span><i class="fa-solid fa-user"></i> ${escapeHtml(item.requester_name || 'Student')}</span>
+          </div>
+        </div>
+        <div class="row-actions">
+          ${item.status !== 'done' ? `<button class="button primary bca-pressable" onclick="resolveCommunityRequest(${item.id})"><i class="fa-solid fa-check"></i> Mark Done</button>` : ''}
+          <button class="button danger bca-pressable" onclick="deleteCommunityRequest(${item.id})"><i class="fa-solid fa-trash"></i> Delete</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    initAdminPressables();
+  } catch (e) {
+    host.innerHTML = '<p class="note">Error loading requests: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+async function resolveCommunityRequest(id) {
+  if (!adminSupabaseClient) return;
+  const { error } = await adminSupabaseClient.from('senior_requests').update({ status: 'done' }).eq('id', id);
+  if (error) { alert('Update failed: ' + error.message); return; }
+  showAdminToast('Request marked as done', 'success');
+  loadCommunityRequests();
+}
+
+async function deleteCommunityRequest(id) {
+  openSafeDelete('Permanently delete this junior request?', async () => {
+    if (!adminSupabaseClient) return;
+    const { error } = await adminSupabaseClient.from('senior_requests').delete().eq('id', id);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    showAdminToast('Request deleted', 'success');
+    loadCommunityRequests();
+  });
 }
 
 /* ============================================================
    Admin Tabs
    ============================================================ */
-function switchTab(tab){
+function switchTab(tab) {
+  // Legacy alias redirects
+  if (tab === 'pending') {
+    switchTab('community');
+    switchCommunitySub('pending-subjects');
+    return;
+  }
+  if (tab === 'lostfound') {
+    switchTab('community');
+    switchCommunitySub('lostfound');
+    return;
+  }
+  if (tab === 'reports') {
+    switchTab('community');
+    switchCommunitySub('reports');
+    return;
+  }
+
   document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['material','subjects','pending','lostfound','reports','quizzes','users'].forEach(id => {
+  ['material', 'feedback', 'community', 'subjects', 'quizzes', 'users'].forEach(id => {
     const el = $('tab-' + id);
     if (el) el.hidden = (id !== tab);
   });
+
+  if (tab === 'material') render();
+  if (tab === 'feedback') loadFeedback();
+  if (tab === 'community') {
+    const activeSub = document.querySelector('.adm-sub-tab.active')?.dataset.sub || 'lostfound';
+    switchCommunitySub(activeSub);
+  }
   if (tab === 'subjects') { if (!$('subjectCollege').options.length) populateSubjectFilters(); renderSubjects(); }
-  if (tab === 'pending') loadPendingSubjects();
-  if (tab === 'lostfound') loadLostFoundAdmin();
-  if (tab === 'reports') loadReports();
   if (tab === 'quizzes') loadAdminQuizzes();
   if (tab === 'users') loadUserStats();
+
+  initAdminPressables();
 }
 
 /* ============================================================
@@ -906,9 +1271,29 @@ async function removeLostFoundPost(id){
 }
 /* ---- Boot ---- */
 document.documentElement.dataset.theme = localStorage.getItem('bca-theme') || 'dark';
+updateThemeIcon();
 $('authForm').addEventListener('submit', submitAuth);
 
+function initAdminPressables() {
+  if (window.BCA_UI && window.BCA_UI.PressableScale) {
+    document.querySelectorAll('.bca-pressable, .adm-kpi-card, .adm-tab, .adm-pill, .adm-sub-tab, .button').forEach(el => {
+      if (!el.dataset.pressableInit) {
+        el.dataset.pressableInit = 'true';
+        window.BCA_UI.PressableScale(el, { scale: 0.97, haptic: true });
+      }
+    });
+  }
+}
+
+// Global pressable listener on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  updateThemeIcon();
+  initAdminPressables();
+});
+
 async function initAuth() {
+  updateThemeIcon();
+  initAdminPressables();
   if (!adminSupabaseClient) { setAuthMessage('Supabase is not configured.'); return; }
   const { data } = await adminSupabaseClient.auth.getSession();
   if (data.session) await showAdmin(data.session);
@@ -2160,6 +2545,9 @@ async function loadUserStats(showToastFeedback = false) {
     if ($('statUsersWeek')) $('statUsersWeek').textContent = Number(stats.users_this_week || 0).toLocaleString();
     if ($('statUsersMonth')) $('statUsersMonth').textContent = Number(stats.users_this_month || 0).toLocaleString();
     if ($('statUsersLastMonth')) $('statUsersLastMonth').textContent = Number(stats.users_last_month || 0).toLocaleString();
+
+    window.userStatsCache = stats;
+    updateAdminKpis();
 
     recentUsersList = recent;
     renderRecentUsers(recentUsersList);
