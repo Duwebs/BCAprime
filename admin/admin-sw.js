@@ -4,7 +4,7 @@
    Handles push notifications (admin alerts: new uploads, new signups)
    and caches the app shell for offline use.
    ============================================================ */
-const CACHE_NAME = 'bcaprime-admin-v2';
+const CACHE_NAME = 'bcaprime-admin-v3';
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME));

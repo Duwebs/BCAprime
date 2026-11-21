@@ -27,7 +27,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="admin.css?v=17">
+  <link rel="stylesheet" href="admin.css?v=18">
 </head>
 <body>
 
@@ -84,9 +84,9 @@
         <button type="button" class="adm-icon-btn bca-pressable" id="adminNotifyBtn" onclick="adminSubscribeToPush()" title="Admin Alerts" aria-label="Admin Alerts">
           <i class="fa-solid fa-bell"></i>
         </button>
-        <button type="button" class="adm-logout-btn bca-pressable" id="logoutButton" onclick="logout()" title="Log out">
+        <button type="button" class="adm-icon-btn adm-logout-btn bca-pressable" id="logoutButton" onclick="logout()" title="Log out" aria-label="Log out">
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
-          <span>Exit</span>
+          <span class="adm-exit-text">Exit</span>
         </button>
       </div>
     </header>
@@ -880,6 +880,6 @@
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
   <script type="module" src="../ui/index.js"></script>
-  <script src="admin.js?v=17"></script>
+  <script src="admin.js?v=18"></script>
 </body>
 </html>

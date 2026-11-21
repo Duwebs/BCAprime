@@ -1326,9 +1326,10 @@ function setAdminNotifyButton() {
   if (!btn) return;
   const enabled = localStorage.getItem(ADMIN_ALERT_PREF_KEY) === 'on';
   btn.classList.toggle('active', enabled);
+  btn.title = enabled ? 'Admin Alerts Enabled (tap to disable)' : 'Enable Admin Push Alerts';
   btn.innerHTML = enabled
-    ? '<i class="fa-solid fa-bell-slash"></i> Alerts On'
-    : '<i class="fa-solid fa-bell"></i> Admin Alerts';
+    ? '<i class="fa-solid fa-bell-slash"></i>'
+    : '<i class="fa-solid fa-bell"></i>';
 }
 
 async function saveAdminSubscription(subscription, uid) {

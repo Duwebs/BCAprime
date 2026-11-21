@@ -434,10 +434,11 @@ body {
 }
 
 .adm-kpi-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px 14px;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  gap: 8px;
+  padding: 14px 14px 12px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -445,6 +446,8 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
+  min-height: 104px;
   transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
@@ -453,13 +456,31 @@ body {
   box-shadow: var(--shadow);
 }
 
+.adm-kpi-head {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  gap: 6px;
+}
+
+.adm-kpi-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
 .adm-kpi-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
-  font-size: 16px;
+  font-size: 12px;
   flex-shrink: 0;
 }
 
@@ -478,46 +499,44 @@ body {
   color: #eab308;
 }
 
-.adm-kpi-icon.kpi-emerald {
+.adm-kpi-icon.kpi-emerald,
+.adm-kpi-icon.kpi-green {
   background: rgba(34, 197, 94, 0.12);
   color: #22c55e;
 }
 
-.adm-kpi-content {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.adm-kpi-label {
+.adm-kpi-val {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--muted);
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-
-.adm-kpi-value {
-  font-family: var(--font-display);
-  font-weight: 600;
   font-size: 28px;
   line-height: 1.1;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
+  margin: 2px 0;
 }
 
-.adm-kpi-sub {
+.adm-kpi-foot {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted-dim);
-  margin-top: 2px;
+}
+
+.adm-kpi-foot span {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding-right: 4px;
+}
+
+.adm-kpi-foot i {
+  font-size: 9px;
+  color: var(--muted-dim);
+  flex-shrink: 0;
 }
 
 /* ============================================================
@@ -1020,6 +1039,48 @@ body {
 
 .search { min-width: 220px; }
 
+/* Embedded Icon Search Box */
+.adm-search-bar-wrap {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.adm-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.adm-search-box i {
+  position: absolute;
+  left: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.adm-search-box .search {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 44px;
+  padding: 0 14px 0 38px !important;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.adm-search-box .search:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-glow);
+}
+
 /* ============================================================
    Eyebrow
    ============================================================ */
@@ -1422,49 +1483,74 @@ body {
    Admin tabs
    ============================================================ */
 .admin-tabs {
-  display: flex;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   gap: 6px;
-  flex-wrap: wrap;
-  margin: 0 0 20px;
+  margin: 0 0 16px;
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 14px;
+  box-sizing: border-box;
+}
+.admin-tabs::-webkit-scrollbar {
+  display: none !important;
 }
 .admin-tabs .tab {
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   gap: 7px;
-  padding: 9px 16px;
-  border: 0;
-  border-radius: 9px;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   background: transparent;
   color: var(--muted);
-  font: 600 13px var(--font-sans);
+  font: 700 12.5px var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
   cursor: pointer;
-  transition: all .18s ease;
+  transition: all .15s ease;
 }
-.admin-tabs .tab:hover { color: var(--ink); }
+.admin-tabs .tab:hover { color: var(--ink); background: var(--surface2); }
 .admin-tabs .tab.active {
-  background: var(--brand);
-  color: #05080b;
-  font-weight: 700;
+  background: var(--brand) !important;
+  color: #0D0D0F !important;
+  font-weight: 800 !important;
+  box-shadow: 0 4px 12px var(--brand-glow);
+}
+[data-theme="light"] .admin-tabs .tab.active {
+  color: #ffffff !important;
 }
 .admin-tabs .tab i { font-size: 13px; }
 .tab-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   background: var(--danger);
   color: #fff;
-  font-size: 11px;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
   font-weight: 700;
+  margin-left: 4px;
 }
-.admin-tabs .tab.active .tab-badge { background: #05080b; color: var(--brand); }
+.admin-tabs .tab.active .tab-badge {
+  background: #0D0D0F;
+  color: var(--brand);
+}
+[data-theme="light"] .admin-tabs .tab.active .tab-badge {
+  background: #ffffff;
+  color: var(--brand);
+}
 
 /* ============================================================
    Subject Manager
@@ -1688,12 +1774,63 @@ body {
 
   .adm-topbar {
     margin: 0 -12px 14px;
-    padding: 8px 12px;
+    padding: 8px 10px;
+    min-height: 56px;
+    gap: 8px;
   }
 
-  .adm-segmented-tabs {
-    top: 60px;
-    margin-bottom: 14px;
+  .adm-topbar-left {
+    gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .adm-back-btn {
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .adm-back-text {
+    display: none !important;
+  }
+
+  .adm-brand-mark {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+    border-radius: 8px;
+  }
+
+  .adm-brand-title {
+    font-size: 16px;
+  }
+
+  .adm-console-badge {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+
+  .adm-topbar-actions {
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .adm-icon-btn {
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
+    font-size: 13.5px;
+    border-radius: 8px;
+    padding: 0;
+  }
+
+  .adm-exit-text {
+    display: none !important;
   }
 
   .adm-kpi-grid {
@@ -1703,22 +1840,93 @@ body {
   }
 
   .adm-kpi-card {
-    padding: 12px 10px;
-    gap: 8px;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    padding: 12px 10px 10px !important;
+    min-height: 98px !important;
+    gap: 4px !important;
+  }
+
+  .adm-kpi-head {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .adm-kpi-eyebrow {
+    font-size: 10px !important;
+    letter-spacing: 0.05em;
   }
 
   .adm-kpi-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 11px !important;
   }
 
-  .adm-kpi-value {
-    font-size: 22px;
+  .adm-kpi-val {
+    font-size: 24px !important;
+    margin: 2px 0 !important;
   }
 
-  .adm-kpi-label {
-    font-size: 10px;
+  .adm-kpi-foot {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    font-size: 10px !important;
+  }
+
+  .adm-segmented-tabs,
+  .admin-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    top: 56px;
+    margin-bottom: 12px;
+    padding: 4px;
+    border-radius: 12px;
+  }
+
+  .adm-segmented-tabs::-webkit-scrollbar,
+  .admin-tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .adm-tab,
+  .admin-tabs .tab {
+    min-height: 40px !important;
+    padding: 0 12px !important;
+    font-size: 12px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .adm-filter-pills {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px 0 10px;
+    margin-bottom: 8px;
+    gap: 6px;
+  }
+
+  .adm-filter-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .adm-pill {
+    min-height: 38px !important;
+    padding: 0 12px !important;
+    font-size: 11.5px !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
   }
 
   /* Transform desktop tables into mobile action cards */
