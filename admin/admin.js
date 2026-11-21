@@ -2517,135 +2517,117 @@ function showAdminToast(message, type = 'info') {
 }
 
 // Fetch user metrics and recent signups
+let currentStudentSemFilter = 'all';
+
+function formatCollegeLabel(code) {
+  if (!code) return 'Avviare Educational Hub';
+  const c = String(code).toLowerCase();
+  return collegeNames[c] || (c.startsWith('custom-') ? 'Custom College' : c.toUpperCase());
+}
+
+function setStudentSemFilter(sem) {
+  currentStudentSemFilter = String(sem);
+  document.querySelectorAll('#studentSemFilterPills .adm-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.sem === currentStudentSemFilter);
+  });
+  filterRecentUsers();
+}
+
+// Fetch user metrics and all registered student profiles
 async function loadUserStats(showToastFeedback = false) {
+  const cardsContainer = $('studentCardsList');
   const tbody = $('userRows');
   const countBadge = $('userListCountBadge');
   const emptyWrap = $('usersEmptyState');
 
   if (emptyWrap) emptyWrap.hidden = true;
 
-  // Render content-shaped skeleton loading rows (Rule 4: Skeleton Shimmer Placeholders on Loading)
-  if (tbody) {
-    tbody.innerHTML = [1, 2, 3, 4, 5].map((i) => `
-      <tr class="skeleton-row">
-        <td style="width:48px"><div class="shimmer-box" style="width:20px;height:16px"></div></td>
-        <td>
-          <div class="user-cell">
-            <div class="shimmer-box" style="width:34px;height:34px;border-radius:50%"></div>
-            <div style="display:flex;flex-direction:column;gap:6px">
-              <div class="shimmer-box" style="width:${90 + (i * 15)}px;height:15px"></div>
-              <div class="shimmer-box" style="width:${60 + (i * 10)}px;height:11px"></div>
-            </div>
-          </div>
-        </td>
-        <td><div class="shimmer-box" style="width:${130 + (i * 12)}px;height:14px"></div></td>
-        <td>
-          <div style="display:flex;flex-direction:column;gap:4px">
-            <div class="shimmer-box" style="width:120px;height:14px"></div>
-            <div class="shimmer-box" style="width:50px;height:11px"></div>
-          </div>
-        </td>
-      </tr>
+  // Render content-shaped skeleton loading cards (Rule 4: Skeleton Shimmer Placeholders on Loading)
+  if (cardsContainer) {
+    cardsContainer.innerHTML = [1, 2, 3, 4].map(i => `
+      <div class="student-admin-card skeleton-card" style="pointer-events:none">
+        <div class="shimmer-box" style="width:44px;height:44px;border-radius:50%;flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+          <div class="shimmer-box" style="width:${100 + i * 20}px;height:16px"></div>
+          <div class="shimmer-box" style="width:${140 + i * 15}px;height:12px"></div>
+          <div class="shimmer-box" style="width:80px;height:11px"></div>
+        </div>
+      </div>
     `).join('');
   }
 
   try {
     let stats = null;
-    let recent = [];
+    let profiles = [];
 
     if (adminSupabaseClient) {
-      // 1. Primary: Server-side RPC get_admin_user_stats
-      const { data, error } = await adminSupabaseClient.rpc('get_admin_user_stats', { p_limit: 50 });
+      // Fetch full student profiles
+      const { data: profData, error: profErr } = await adminSupabaseClient
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        stats = data;
-        recent = Array.isArray(data.recent_users) ? data.recent_users : [];
+      if (!profErr && Array.isArray(profData) && profData.length > 0) {
+        profiles = profData.map(p => ({
+          id: p.uid,
+          uid: p.uid,
+          name: p.name || 'Student',
+          username: p.username || '',
+          email: p.email || '',
+          college: p.college || 'avviare',
+          semester: p.semester || 1,
+          avatar_url: p.avatar_url || '',
+          is_admin: Boolean(p.is_admin),
+          can_download: p.can_download !== false,
+          is_email_verified: Boolean(p.is_email_verified),
+          created_at: p.created_at || p.updated_at || new Date().toISOString(),
+          updated_at: p.updated_at || p.created_at || new Date().toISOString()
+        }));
+      }
+
+      // Also invoke RPC get_admin_user_stats for signup counts
+      try {
+        const { data: rpcData, error: rpcErr } = await adminSupabaseClient.rpc('get_admin_user_stats', { p_limit: 100 });
+        if (!rpcErr && rpcData) {
+          stats = rpcData;
+        }
+      } catch (_rpcE) {}
+    }
+
+    // Compute stats from profiles if RPC was unavailable
+    if (profiles.length > 0) {
+      const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const todayStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
+      const weekStart = new Date(todayStart);
+      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+      const monthStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), 1);
+      const lastMonthStart = new Date(nowIST.getFullYear(), nowIST.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(nowIST.getFullYear(), nowIST.getMonth(), 0, 23, 59, 59, 999);
+
+      let tCount = 0, wCount = 0, mCount = 0, lmCount = 0;
+      profiles.forEach(r => {
+        const rDate = new Date(new Date(r.created_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        if (rDate >= todayStart) tCount++;
+        if (rDate >= weekStart) wCount++;
+        if (rDate >= monthStart) mCount++;
+        if (rDate >= lastMonthStart && rDate <= lastMonthEnd) lmCount++;
+      });
+
+      if (!stats) {
+        stats = {
+          total_users: profiles.length,
+          users_today: tCount,
+          users_this_week: wCount,
+          users_this_month: mCount,
+          users_last_month: lmCount
+        };
       } else {
-        console.warn('[Admin] RPC get_admin_user_stats unavailable, attempting fallback:', error);
-        let profs = null;
-        try {
-          const { data: pData, error: pErr } = await adminSupabaseClient
-            .from('profiles')
-            .select('id, full_name, email, created_at, updated_at')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          if (!pErr && Array.isArray(pData) && pData.length > 0) {
-            profs = pData.map(p => ({
-              id: p.id,
-              name: p.full_name || 'Student',
-              email: p.email || '',
-              created_at: p.created_at || p.updated_at || new Date().toISOString()
-            }));
-          }
-        } catch (e) {}
-
-        if (!profs || profs.length === 0) {
-          try {
-            const { data: upData, error: upErr } = await adminSupabaseClient
-              .from('user_profiles')
-              .select('uid, name, email, created_at, updated_at')
-              .order('created_at', { ascending: false })
-              .limit(50);
-            if (!upErr && Array.isArray(upData) && upData.length > 0) {
-              profs = upData.map(p => ({
-                id: p.uid,
-                name: p.name || 'Student',
-                email: p.email || '',
-                created_at: p.created_at || p.updated_at || new Date().toISOString()
-              }));
-            } else {
-              const { data: upOldData } = await adminSupabaseClient
-                .from('user_profiles')
-                .select('uid, name, email, updated_at')
-                .order('updated_at', { ascending: false })
-                .limit(50);
-              if (Array.isArray(upOldData)) {
-                profs = upOldData.map(p => ({
-                  id: p.uid,
-                  name: p.name || 'Student',
-                  email: p.email || '',
-                  created_at: p.updated_at || new Date().toISOString()
-                }));
-              }
-            }
-          } catch (e) {}
-        }
-
-        if (Array.isArray(profs)) {
-          recent = profs;
-
-          // Calculate approximate stats in IST
-          const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-          const todayStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
-          const weekStart = new Date(todayStart);
-          weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-          const monthStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), 1);
-          const lastMonthStart = new Date(nowIST.getFullYear(), nowIST.getMonth() - 1, 1);
-          const lastMonthEnd = new Date(nowIST.getFullYear(), nowIST.getMonth(), 0, 23, 59, 59, 999);
-
-          let tCount = 0, wCount = 0, mCount = 0, lmCount = 0;
-          recent.forEach(r => {
-            const rDate = new Date(new Date(r.created_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-            if (rDate >= todayStart) tCount++;
-            if (rDate >= weekStart) wCount++;
-            if (rDate >= monthStart) mCount++;
-            if (rDate >= lastMonthStart && rDate <= lastMonthEnd) lmCount++;
-          });
-
-          stats = {
-            total_users: recent.length,
-            users_today: tCount,
-            users_this_week: wCount,
-            users_this_month: mCount,
-            users_last_month: lmCount,
-            recent_users: recent
-          };
-        }
+        stats.total_users = Math.max(Number(stats.total_users || 0), profiles.length);
       }
     }
 
     if (!stats) {
-      throw new Error('Unable to fetch user stats. Please execute supabase-user-stats-telegram.sql in Supabase SQL Editor.');
+      stats = { total_users: 0, users_today: 0, users_this_week: 0, users_this_month: 0, users_last_month: 0 };
     }
 
     // Populate stat counters
@@ -2656,109 +2638,151 @@ async function loadUserStats(showToastFeedback = false) {
     if ($('statUsersLastMonth')) $('statUsersLastMonth').textContent = Number(stats.users_last_month || 0).toLocaleString();
 
     window.userStatsCache = stats;
+    window.allStudentsList = profiles;
+    recentUsersList = profiles;
     updateAdminKpis();
 
-    recentUsersList = recent;
-    renderRecentUsers(recentUsersList);
+    filterRecentUsers();
 
     if (showToastFeedback) {
-      showAdminToast('User statistics & signups updated.', 'success');
+      showAdminToast('Student directory & signups synchronized.', 'success');
     }
   } catch (err) {
     console.error('[Admin] loadUserStats failed:', err);
-    if (tbody) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="4" class="empty" style="text-align:center;padding:36px 16px;">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size:26px;color:var(--brand);margin-bottom:10px;display:block"></i>
-            <div style="font-weight:600;font-size:14px;margin-bottom:6px">Could not load user stats</div>
-            <div style="color:var(--muted);font-size:12.5px;max-width:440px;margin:0 auto 16px;line-height:1.5">
-              ${escapeHtml(err.message || 'Please check connection or ensure SQL migration has been executed.')}
-            </div>
-            <button class="button primary" onclick="loadUserStats(true)" style="min-height:44px;padding:0 20px">
-              <i class="fa-solid fa-arrows-rotate"></i> Retry
-            </button>
-          </td>
-        </tr>
+    if (cardsContainer) {
+      cardsContainer.innerHTML = `
+        <div class="empty-state-wrap" style="grid-column:1/-1;padding:36px 16px;text-align:center">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:28px;color:var(--brand);margin-bottom:10px;display:block"></i>
+          <h3 style="margin:0 0 6px;font-size:16px">Could not load students directory</h3>
+          <p style="color:var(--muted);font-size:13px;max-width:400px;margin:0 auto 16px;line-height:1.5">
+            ${escapeHtml(err.message || 'Please check network connection.')}
+          </p>
+          <button class="button primary bca-pressable" onclick="loadUserStats(true)" style="min-height:44px;padding:0 20px">
+            <i class="fa-solid fa-arrows-rotate"></i> Retry
+          </button>
+        </div>
       `;
     }
     if (showToastFeedback) {
-      showAdminToast('Error loading stats: ' + (err.message || 'Unknown error'), 'error');
+      showAdminToast('Error loading students: ' + (err.message || 'Unknown error'), 'error');
     }
   }
 }
 
-// Render recent user rows
+// Render recent user rows and mobile cards
 function renderRecentUsers(usersToRender) {
+  const cardsContainer = $('studentCardsList');
   const tbody = $('userRows');
   const countBadge = $('userListCountBadge');
   const emptyWrap = $('usersEmptyState');
 
-  if (!tbody) return;
-
   if (countBadge) {
-    countBadge.textContent = `${usersToRender.length} ${usersToRender.length === 1 ? 'user' : 'users'}`;
+    countBadge.textContent = `${usersToRender.length} ${usersToRender.length === 1 ? 'student' : 'students'}`;
   }
 
   // Dedicated EmptyState fallback (Rule 5: Dedicated EmptyState for Every List & Feed)
   if (!usersToRender || usersToRender.length === 0) {
-    tbody.innerHTML = '';
+    if (cardsContainer) cardsContainer.innerHTML = '';
+    if (tbody) tbody.innerHTML = '';
     if (emptyWrap) {
       emptyWrap.hidden = false;
       emptyWrap.innerHTML = `
         <div style="padding:28px 16px;text-align:center">
           <i class="fa-solid fa-users-slash" style="font-size:32px;color:var(--muted);margin-bottom:12px;display:block"></i>
-          <h3 style="margin:0 0 6px;font-size:16px">No users found</h3>
-          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">No registered student accounts match your filter criteria.</p>
-          <button class="button" onclick="clearUserFilter()" style="min-height:44px;padding:0 18px">
+          <h3 style="margin:0 0 6px;font-size:16px;font-family:var(--font-condensed-heading);font-weight:600">No students found</h3>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 16px;font-family:var(--font-condensed-body)">No registered student accounts match your filter criteria.</p>
+          <button class="button bca-pressable" onclick="clearUserFilter()" style="min-height:44px;padding:0 18px">
             <i class="fa-solid fa-xmark"></i> Clear Filter
           </button>
         </div>
       `;
-      if (window.BCA_UI && window.BCA_UI.PressableScale) {
-        const btn = emptyWrap.querySelector('button');
-        if (btn) window.BCA_UI.PressableScale(btn);
-      }
+      initAdminPressables();
     }
     return;
   }
 
   if (emptyWrap) emptyWrap.hidden = true;
 
-  tbody.innerHTML = usersToRender.map((u, idx) => {
-    const displayName = escapeHtml(u.name || 'Student');
-    const displayEmail = escapeHtml(u.email || 'No email');
-    const firstLetter = (u.name || u.email || 'S').trim().charAt(0).toUpperCase();
-    const avatarColor = getUserAvatarColor(u.name || u.email);
-    const dateIST = formatISTDate(u.created_at);
-    const relTime = getRelativeTime(u.created_at);
+  if (cardsContainer) {
+    cardsContainer.innerHTML = usersToRender.map(u => {
+      const displayName = escapeHtml(u.name || 'Student');
+      const username = escapeHtml(u.username || (u.email ? u.email.split('@')[0] : 'student'));
+      const collegeLabel = escapeHtml(formatCollegeLabel(u.college));
+      const semBadge = `SEM ${u.semester || 1}`;
+      const firstLetter = (u.name || u.email || 'S').trim().charAt(0).toUpperCase();
+      const avatarColor = getUserAvatarColor(u.name || u.email);
+      const dateIST = formatISTDate(u.created_at);
+      const relTime = getRelativeTime(u.created_at);
 
-    return `
-      <tr>
-        <td style="color:var(--muted);font-weight:600;font-size:12px;width:48px">${idx + 1}</td>
-        <td>
-          <div class="user-cell">
-            <div class="user-avatar-circle" style="background:${avatarColor}">${firstLetter}</div>
-            <div class="user-info">
-              <span class="user-name-text">${displayName}</span>
-              ${u.id ? `<small style="display:block;color:var(--muted-dim);font-size:11px;font-family:monospace">UID: ${escapeHtml(String(u.id).slice(0, 8))}&hellip;</small>` : ''}
+      const avatarHtml = u.avatar_url
+        ? `<div class="student-card-avatar"><img src="${escapeHtml(u.avatar_url)}" alt="${displayName}" onerror="this.parentElement.innerHTML='${firstLetter}'"></div>`
+        : `<div class="student-card-avatar" style="background:${avatarColor}">${firstLetter}</div>`;
+
+      return `
+        <div class="student-admin-card bca-pressable" role="button" tabindex="0" onclick="openStudentAdminProfile('${escapeHtml(u.uid || u.id)}')">
+          ${avatarHtml}
+          <div class="student-card-main">
+            <div class="student-card-top">
+              <span class="student-name-text">${displayName}</span>
+              <span class="student-username-tag">@${username}</span>
+              <span class="adm-sem-tag">${semBadge}</span>
+            </div>
+            <div class="student-card-college">
+              <i class="fa-solid fa-building-columns"></i>
+              <span>${collegeLabel}</span>
+            </div>
+            <div class="student-card-bottom">
+              <span><i class="fa-regular fa-envelope"></i> ${escapeHtml(u.email || 'No email')}</span>
+              <span>&bull;</span>
+              <span><i class="fa-regular fa-clock"></i> ${relTime || dateIST}</span>
             </div>
           </div>
-        </td>
-        <td>
-          <span class="user-email-text">${displayEmail}</span>
-        </td>
-        <td>
-          <div class="user-time-cell">
-            <span class="user-time-main">
-              <i class="fa-regular fa-clock"></i> ${dateIST}
-            </span>
-            ${relTime ? `<span class="user-time-rel">${relTime}</span>` : ''}
+          <div class="student-chevron">
+            <i class="fa-solid fa-chevron-right"></i>
           </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
+        </div>
+      `;
+    }).join('');
+  }
+
+  if (tbody) {
+    tbody.innerHTML = usersToRender.map((u, idx) => {
+      const displayName = escapeHtml(u.name || 'Student');
+      const displayEmail = escapeHtml(u.email || 'No email');
+      const firstLetter = (u.name || u.email || 'S').trim().charAt(0).toUpperCase();
+      const avatarColor = getUserAvatarColor(u.name || u.email);
+      const dateIST = formatISTDate(u.created_at);
+      const relTime = getRelativeTime(u.created_at);
+
+      return `
+        <tr onclick="openStudentAdminProfile('${escapeHtml(u.uid || u.id)}')" style="cursor:pointer">
+          <td style="color:var(--muted);font-weight:600;font-size:12px;width:48px">${idx + 1}</td>
+          <td>
+            <div class="user-cell">
+              <div class="user-avatar-circle" style="background:${avatarColor}">${firstLetter}</div>
+              <div class="user-info">
+                <span class="user-name-text">${displayName}</span>
+                ${u.id || u.uid ? `<small style="display:block;color:var(--muted-dim);font-size:11px;font-family:monospace">UID: ${escapeHtml(String(u.uid || u.id).slice(0, 8))}&hellip;</small>` : ''}
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="user-email-text">${displayEmail}</span>
+          </td>
+          <td>
+            <div class="user-time-cell">
+              <span class="user-time-main">
+                <i class="fa-regular fa-clock"></i> ${dateIST}
+              </span>
+              ${relTime ? `<span class="user-time-rel">${relTime}</span>` : ''}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  initAdminPressables();
 }
 
 // Live real-time search without find/submit buttons (Rule 7: Live Real-Time Filtering & Search)
@@ -2766,28 +2790,232 @@ function filterRecentUsers() {
   clearTimeout(userSearchDebounceTimer);
   userSearchDebounceTimer = setTimeout(() => {
     const q = ($('userSearchInput')?.value || '').trim().toLowerCase();
-    if (!q) {
-      renderRecentUsers(recentUsersList);
-      return;
-    }
+    const colFilter = ($('userCollegeFilter')?.value || 'all').toLowerCase();
+    const list = window.allStudentsList || recentUsersList || [];
 
-    const filtered = recentUsersList.filter(u => {
-      const name = (u.name || '').toLowerCase();
-      const email = (u.email || '').toLowerCase();
-      const uid = String(u.id || '').toLowerCase();
-      return name.includes(q) || email.includes(q) || uid.includes(q);
+    const filtered = list.filter(u => {
+      // Text search
+      if (q) {
+        const name = (u.name || '').toLowerCase();
+        const uname = (u.username || '').toLowerCase();
+        const email = (u.email || '').toLowerCase();
+        const college = (u.college || '').toLowerCase();
+        const uid = String(u.uid || u.id || '').toLowerCase();
+        const matchesQ = name.includes(q) || uname.includes(q) || email.includes(q) || college.includes(q) || uid.includes(q);
+        if (!matchesQ) return false;
+      }
+
+      // College filter
+      if (colFilter !== 'all') {
+        const uCol = (u.college || '').toLowerCase();
+        if (colFilter === 'other') {
+          const known = ['avviare', 'glocal', 'ccsu', 'du', 'ipu', 'aktu', 'ignou', 'pune', 'bangalore'];
+          if (known.includes(uCol)) return false;
+        } else if (uCol !== colFilter) {
+          return false;
+        }
+      }
+
+      // Semester filter
+      if (currentStudentSemFilter !== 'all') {
+        if (String(u.semester) !== currentStudentSemFilter) return false;
+      }
+
+      return true;
     });
 
     renderRecentUsers(filtered);
-  }, 250);
+  }, 200);
 }
 
 // Clear search input filter
 function clearUserFilter() {
   const input = $('userSearchInput');
   if (input) input.value = '';
-  renderRecentUsers(recentUsersList);
+  const colSelect = $('userCollegeFilter');
+  if (colSelect) colSelect.value = 'all';
+  setStudentSemFilter('all');
 }
+
+// Student Admin Profile Modal Functions
+async function openStudentAdminProfile(uid) {
+  if (!uid) return;
+  const modal = $('studentAdminModal');
+  const body = $('studentAdminModalBody');
+  if (!modal || !body) return;
+
+  const student = (window.allStudentsList || []).find(s => String(s.uid || s.id) === String(uid)) || { uid };
+
+  const displayName = escapeHtml(student.name || 'Student');
+  const username = escapeHtml(student.username || (student.email ? student.email.split('@')[0] : 'student'));
+  const firstLetter = (student.name || student.email || 'S').trim().charAt(0).toUpperCase();
+  const avatarColor = getUserAvatarColor(student.name || student.email);
+  const collegeLabel = escapeHtml(formatCollegeLabel(student.college));
+  const sem = student.semester || 1;
+  const email = escapeHtml(student.email || 'No email on record');
+  const dateIST = formatISTDate(student.created_at);
+  const relTime = getRelativeTime(student.created_at);
+
+  const avatarHtml = student.avatar_url
+    ? `<div class="student-modal-avatar"><img src="${escapeHtml(student.avatar_url)}" alt="${displayName}" onerror="this.parentElement.innerHTML='${firstLetter}'"></div>`
+    : `<div class="student-modal-avatar" style="background:${avatarColor}">${firstLetter}</div>`;
+
+  modal.hidden = false;
+  body.innerHTML = `
+    <div class="student-modal-header-hero">
+      ${avatarHtml}
+      <h3 class="student-modal-name">${displayName}</h3>
+      <span class="student-modal-username">@${username}</span>
+      <div class="student-uid-chip bca-pressable" onclick="copyStudentUid('${student.uid}')" title="Click to copy UID">
+        <i class="fa-regular fa-copy"></i>
+        <span>UID: ${escapeHtml(String(student.uid).slice(0, 16))}&hellip;</span>
+        <span style="font-size:10px;opacity:0.75">(Copy)</span>
+      </div>
+    </div>
+
+    <!-- Live Uploads & Community Highlights -->
+    <div class="student-stats-row">
+      <div class="student-stat-pill">
+        <span class="student-stat-pill-num" id="admModalUploadsCount">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size:12px"></i>
+        </span>
+        <span class="student-stat-pill-label">Uploads</span>
+      </div>
+      <div class="student-stat-pill">
+        <span class="student-stat-pill-num" id="admModalCommunityCount">
+          <i class="fa-solid fa-spinner fa-spin" style="font-size:12px"></i>
+        </span>
+        <span class="student-stat-pill-label">Community</span>
+      </div>
+      <div class="student-stat-pill">
+        <span class="student-stat-pill-num">${student.is_email_verified ? '<i class="fa-solid fa-check" style="color:var(--good)"></i>' : '<i class="fa-solid fa-xmark" style="color:var(--muted)"></i>'}</span>
+        <span class="student-stat-pill-label">${student.is_email_verified ? 'Verified' : 'Unverified'}</span>
+      </div>
+    </div>
+
+    <!-- Account Details 2x2 Grid -->
+    <div class="student-profile-grid">
+      <div class="profile-field-block">
+        <span class="profile-field-label">Selected College</span>
+        <span class="profile-field-val">${collegeLabel}</span>
+      </div>
+      <div class="profile-field-block">
+        <span class="profile-field-label">Current Semester</span>
+        <span class="profile-field-val" style="font-family:var(--font-mono);font-weight:600">SEM ${sem}</span>
+      </div>
+      <div class="profile-field-block" style="grid-column:1/-1">
+        <span class="profile-field-label">Registered Email</span>
+        <span class="profile-field-val">${email}</span>
+      </div>
+      <div class="profile-field-block" style="grid-column:1/-1">
+        <span class="profile-field-label">Joined On (IST)</span>
+        <span class="profile-field-val">${dateIST} (${relTime || 'recently'})</span>
+      </div>
+    </div>
+
+    <!-- Moderation & Role Toggles -->
+    <div class="student-actions-block">
+      <div class="student-toggle-row">
+        <span><i class="fa-solid fa-shield-halved" style="color:${student.is_admin ? 'var(--good)' : 'var(--muted)'};margin-right:8px"></i> Admin Console Privileges</span>
+        <button class="button bca-pressable" onclick="toggleStudentAdminRole('${student.uid}', ${student.is_admin})" style="min-height:36px;font-size:12px;padding:0 12px">
+          ${student.is_admin ? '<i class="fa-solid fa-ban"></i> Revoke' : '<i class="fa-solid fa-shield"></i> Make Admin'}
+        </button>
+      </div>
+
+      <div class="student-toggle-row">
+        <span><i class="fa-solid fa-download" style="color:${student.can_download ? 'var(--good)' : 'var(--danger)'};margin-right:8px"></i> Download Access</span>
+        <button class="button bca-pressable" onclick="toggleStudentDownloadAccess('${student.uid}', ${student.can_download})" style="min-height:36px;font-size:12px;padding:0 12px">
+          ${student.can_download ? '<i class="fa-solid fa-lock"></i> Suspend' : '<i class="fa-solid fa-unlock"></i> Allow'}
+        </button>
+      </div>
+
+      <!-- Shortcut to Full Telemetry in BCAPrime Stats -->
+      <a href="../analytics/index.html?student=${encodeURIComponent(student.uid)}" target="_blank" class="adm-telemetry-btn bca-pressable" style="margin-top:6px">
+        <i class="fa-solid fa-chart-line"></i>
+        <span>Open Full Telemetry in BCAPrime Stats &rarr;</span>
+      </a>
+    </div>
+  `;
+
+  initAdminPressables();
+
+  // Fetch counts asynchronously
+  try {
+    if (adminSupabaseClient) {
+      const [upRes, reqRes, lfRes] = await Promise.allSettled([
+        adminSupabaseClient.from('resources').select('id', { count: 'exact', head: true }).eq('uploader_uid', student.uid),
+        adminSupabaseClient.from('senior_requests').select('id', { count: 'exact', head: true }).eq('requester_uid', student.uid),
+        adminSupabaseClient.from('lost_found').select('id', { count: 'exact', head: true }).eq('user_id', student.uid)
+      ]);
+
+      const upCount = upRes.status === 'fulfilled' && upRes.value ? (upRes.value.count || 0) : 0;
+      const commCount = (reqRes.status === 'fulfilled' && reqRes.value ? (reqRes.value.count || 0) : 0) +
+                        (lfRes.status === 'fulfilled' && lfRes.value ? (lfRes.value.count || 0) : 0);
+
+      const elUp = $('admModalUploadsCount');
+      if (elUp) elUp.textContent = upCount;
+      const elComm = $('admModalCommunityCount');
+      if (elComm) elComm.textContent = commCount;
+    }
+  } catch (_e) {
+    const elUp = $('admModalUploadsCount');
+    if (elUp) elUp.textContent = '0';
+    const elComm = $('admModalCommunityCount');
+    if (elComm) elComm.textContent = '0';
+  }
+}
+
+function closeStudentAdminModal() {
+  const modal = $('studentAdminModal');
+  if (modal) modal.hidden = true;
+}
+
+function copyStudentUid(uid) {
+  if (!uid) return;
+  try {
+    navigator.clipboard.writeText(uid);
+    showAdminToast('User ID copied to clipboard!', 'success');
+  } catch (_e) {
+    showAdminToast('UID: ' + uid, 'info');
+  }
+}
+
+async function toggleStudentAdminRole(uid, currentIsAdmin) {
+  if (!adminSupabaseClient || !uid) return;
+  try {
+    const newStatus = !currentIsAdmin;
+    const { error } = await adminSupabaseClient.from('user_profiles').update({ is_admin: newStatus }).eq('uid', uid);
+    if (error) throw error;
+    showAdminToast(`Student admin status updated to ${newStatus ? 'Admin' : 'Student'}`, 'success');
+    const s = (window.allStudentsList || []).find(x => x.uid === uid);
+    if (s) s.is_admin = newStatus;
+    openStudentAdminProfile(uid);
+  } catch (err) {
+    showAdminToast('Failed to update role: ' + (err.message || 'Error'), 'error');
+  }
+}
+
+async function toggleStudentDownloadAccess(uid, currentCanDownload) {
+  if (!adminSupabaseClient || !uid) return;
+  try {
+    const newStatus = !currentCanDownload;
+    const { error } = await adminSupabaseClient.from('user_profiles').update({ can_download: newStatus }).eq('uid', uid);
+    if (error) throw error;
+    showAdminToast(`Download access ${newStatus ? 'allowed' : 'suspended'}`, 'success');
+    const s = (window.allStudentsList || []).find(x => x.uid === uid);
+    if (s) s.can_download = newStatus;
+    openStudentAdminProfile(uid);
+  } catch (err) {
+    showAdminToast('Failed to update download access: ' + (err.message || 'Error'), 'error');
+  }
+}
+
+window.openStudentAdminProfile = openStudentAdminProfile;
+window.closeStudentAdminModal = closeStudentAdminModal;
+window.copyStudentUid = copyStudentUid;
+window.toggleStudentAdminRole = toggleStudentAdminRole;
+window.toggleStudentDownloadAccess = toggleStudentDownloadAccess;
+window.setStudentSemFilter = setStudentSemFilter;
 
 // Send test Telegram notification ping
 async function triggerTestTelegramAlert() {

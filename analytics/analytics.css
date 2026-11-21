@@ -1372,3 +1372,590 @@ h1, h2, h3, h4, .font-heading {
 .mob-tab-btn.active {
   color: var(--brand);
 }
+
+/* ============================================================
+   Student Directory & A-to-Z Telemetry Inspector (Mobile-Native)
+   ============================================================ */
+.stats-search-input {
+  height: 38px;
+  padding: 0 12px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color var(--anim-duration) var(--anim-curve);
+}
+
+.stats-search-input:focus {
+  border-color: var(--brand);
+}
+
+.stats-select {
+  height: 38px;
+  padding: 0 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+}
+
+.stats-count-badge {
+  font-family: var(--font-display);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 5px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.stats-student-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 768px) {
+  .stats-student-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+.stats-student-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  cursor: pointer;
+  transition: all var(--anim-duration) var(--anim-curve);
+  text-align: left;
+}
+
+.stats-student-card:hover {
+  border-color: var(--brand);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+[data-theme="light"] .stats-student-card:hover {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.stats-student-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-student-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1.5px solid var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+}
+
+.stats-student-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.stats-student-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.stats-student-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.stats-student-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.stats-student-username {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--brand);
+  background: rgba(0, 182, 122, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.stats-student-sem-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 4px;
+  margin-left: auto;
+  color: var(--ink-dim);
+}
+
+[data-theme="light"] .stats-student-sem-badge {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.stats-student-meta {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 3 Telemetry Summary Pills on Cards */
+.stats-student-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.telemetry-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.telemetry-pill.pill-reads {
+  background: rgba(0, 182, 122, 0.12);
+  color: #00B67A;
+}
+
+.telemetry-pill.pill-dls {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+}
+
+.telemetry-pill.pill-searches {
+  background: rgba(168, 85, 247, 0.12);
+  color: #c084fc;
+}
+
+/* ============================================================
+   Full-Screen / Slide-Up Student A-to-Z Telemetry Inspector
+   ============================================================ */
+.student-inspector-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+@media (min-width: 768px) {
+  .student-inspector-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.student-inspector-sheet {
+  background: var(--bg);
+  width: 100%;
+  max-width: 720px;
+  height: 94vh;
+  max-height: 94vh;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (min-width: 768px) {
+  .student-inspector-sheet {
+    height: 88vh;
+    border-radius: 20px;
+  }
+}
+
+.inspector-sticky-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.inspector-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.inspector-header-title {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.inspector-eyebrow {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+
+.inspector-student-header-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inspector-close-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.inspector-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+/* Student Hero Card in Inspector */
+.inspector-hero-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.inspector-hero-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--brand);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.inspector-hero-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inspector-hero-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.inspector-hero-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--ink);
+  line-height: 1.2;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.inspector-hero-meta {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* 4-Tile Activity Pulse Grid */
+.inspector-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+@media (min-width: 600px) {
+  .inspector-pulse-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.inspector-pulse-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inspector-pulse-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector-pulse-label {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.inspector-pulse-icon {
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+
+.inspector-pulse-val {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.inspector-pulse-val.text-emerald {
+  color: #00B67A;
+}
+
+.inspector-pulse-val.text-rose {
+  color: #F43F5E;
+}
+
+.inspector-pulse-sub {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+
+/* Inspector Sections */
+.inspector-section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.inspector-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+
+.inspector-section-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.inspector-section-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--surface2);
+  color: var(--muted);
+}
+
+.inspector-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inspector-item-row {
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inspector-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inspector-item-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inspector-item-meta {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.inspector-tag.tag-success {
+  background: rgba(0, 182, 122, 0.15);
+  color: #00B67A;
+  border: 1px solid rgba(0, 182, 122, 0.3);
+}
+
+.inspector-tag.tag-failed {
+  background: rgba(244, 63, 94, 0.15);
+  color: #F43F5E;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+
+.inspector-tag.tag-found {
+  background: rgba(0, 182, 122, 0.15);
+  color: #00B67A;
+}
+
+.inspector-tag.tag-zero {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.inspector-progress-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.inspector-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #00B67A);
+  border-radius: 2px;
+}
+
+.inspector-item-time {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted-dim);
+  white-space: nowrap;
+}

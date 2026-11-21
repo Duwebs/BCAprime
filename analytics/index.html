@@ -157,6 +157,10 @@
           <i class="fa-solid fa-stream"></i>
           <span>Stream</span>
         </button>
+        <button type="button" class="seg-tab bca-pressable" data-tab="students" onclick="switchSuiteTab('students')">
+          <i class="fa-solid fa-user-graduate"></i>
+          <span>Students</span>
+        </button>
       </div>
     </div>
 
@@ -430,6 +434,72 @@
 
       </section>
 
+      <!-- ============ MODULE 5: STUDENTS DIRECTORY & DRILL-DOWN ============ -->
+      <section class="suite-module-view" id="module-students" hidden>
+
+        <!-- Directory Header Card -->
+        <div class="suite-card">
+          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
+            <div>
+              <span class="suite-card-eyebrow">STUDENT DIRECTORY &amp; DRILL-DOWN</span>
+              <h2 class="suite-card-title">Individual Student Telemetry Suite</h2>
+              <p class="suite-card-desc">Deep reading history, download tracking, search queries, and activity logs per student.</p>
+            </div>
+            <div class="suite-head-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, or college…" oninput="filterStatsStudents()" style="min-width:240px">
+              <select class="stats-select" id="statsStudentCollegeFilter" onchange="filterStatsStudents()">
+                <option value="all">All Colleges</option>
+                <option value="avviare">Avviare Educational Hub</option>
+                <option value="glocal">Glocal University</option>
+                <option value="ccsu">CCSU Meerut</option>
+                <option value="du">Delhi University</option>
+                <option value="ipu">GGSIPU Delhi</option>
+                <option value="aktu">AKTU / UPTU</option>
+                <option value="ignou">IGNOU</option>
+                <option value="pune">Pune University</option>
+                <option value="bangalore">Bangalore University</option>
+                <option value="other">Other Colleges</option>
+              </select>
+              <span class="stats-count-badge tabular-nums" id="statsStudentCountBadge">0 Students</span>
+            </div>
+          </div>
+
+          <!-- Semester Filter Pills -->
+          <div class="stats-filter-pills" id="statsSemFilterPills" role="tablist" aria-label="Semester filter pills" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px">
+            <button type="button" class="range-pill active bca-pressable" data-sem="all" onclick="setStatsStudentSemFilter('all')">
+              <span>All Semesters</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-sem="1" onclick="setStatsStudentSemFilter('1')">
+              <span>SEM 1</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-sem="2" onclick="setStatsStudentSemFilter('2')">
+              <span>SEM 2</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-sem="3" onclick="setStatsStudentSemFilter('3')">
+              <span>SEM 3</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-sem="4" onclick="setStatsStudentSemFilter('4')">
+              <span>SEM 4</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-sem="5" onclick="setStatsStudentSemFilter('5')">
+              <span>SEM 5</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-sem="6" onclick="setStatsStudentSemFilter('6')">
+              <span>SEM 6</span>
+            </button>
+          </div>
+
+          <!-- Student Cards Grid -->
+          <div class="stats-student-grid" id="statsStudentListContainer">
+            <!-- Rendered by renderStatsStudents() -->
+          </div>
+
+          <!-- Dedicated Empty State -->
+          <div id="statsStudentsEmptyState" class="empty-state-wrap" hidden></div>
+        </div>
+
+      </section>
+
     </main><!-- /suite-main -->
 
     <!-- Mobile Bottom Navigation Bar (Tabs) -->
@@ -450,9 +520,38 @@
         <i class="fa-solid fa-stream"></i>
         <span>Stream</span>
       </button>
+      <button type="button" class="mob-tab-btn bca-pressable" data-tab="students" onclick="switchSuiteTab('students')">
+        <i class="fa-solid fa-user-graduate"></i>
+        <span>Students</span>
+      </button>
     </nav>
 
   </div><!-- /dashboard -->
+
+  <!-- ================= Full-Screen / Slide-Up Student A-to-Z Telemetry Inspector ================= -->
+  <div class="student-inspector-overlay" id="studentInspectorModal" hidden onclick="if(event.target===this)closeStudentInspector()">
+    <div class="student-inspector-sheet">
+      <!-- Sticky Inspector Header -->
+      <header class="inspector-sticky-topbar">
+        <button type="button" class="inspector-back-btn bca-pressable" onclick="closeStudentInspector()">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>Students</span>
+        </button>
+        <div class="inspector-header-title">
+          <span class="inspector-eyebrow">STUDENT TELEMETRY</span>
+          <span class="inspector-student-header-name" id="inspHeaderStudentName">Telemetry Inspector</span>
+        </div>
+        <button type="button" class="inspector-close-btn bca-pressable" onclick="closeStudentInspector()" aria-label="Close">
+          &times;
+        </button>
+      </header>
+
+      <!-- Inspector Body Content -->
+      <div class="inspector-body" id="studentInspectorBody">
+        <!-- Injected dynamically by openStudentInspector() -->
+      </div>
+    </div>
+  </div>
 
   <!-- ================= Scripts ================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

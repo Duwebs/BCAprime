@@ -311,7 +311,7 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
     const analyticsSessionId=(()=>{try{let s=sessionStorage.getItem('bca-sid');if(!s){s='s-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);sessionStorage.setItem('bca-sid',s)}return s}catch(e){return 'sess'}})();
     const sessionStartTs=Date.now();
     function parseDeviceInfo(){const ua=navigator.userAgent;const os=/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Mac OS/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Unknown';const tablet=/iPad|Tablet/i.test(ua);const mobile=/Mobi|Android|iPhone/i.test(ua);const browser=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/SamsungBrowser/.test(ua)?'Samsung Internet':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':/Firefox\//.test(ua)?'Firefox':'Other';return{device:tablet?'Tablet':mobile?'Mobile':'Desktop',os,browser}}
-    function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:accountSession&&accountSession.uid?accountSession.uid:'',user_email:accountSession&&accountSession.email?accountSession.email:'',user_name:accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||''),resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
+    function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();let uid=accountSession&&accountSession.uid?accountSession.uid:'';let email=accountSession&&accountSession.email?accountSession.email:'';let name=accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||'');if(!uid){try{if(typeof accountUid==='function'){uid=accountUid()||'';}}catch(_e){}}if(!uid){try{const lsKeys=Object.keys(localStorage);const tokenKey=lsKeys.find(k=>k.includes('-auth-token')&&!k.includes('bca-admin')&&!k.includes('bca-analytics'));if(tokenKey){const tokenObj=JSON.parse(localStorage.getItem(tokenKey)||'{}');const sUser=tokenObj?.user||tokenObj?.currentSession?.user;if(sUser?.id){uid=sUser.id;if(!email)email=sUser.email||'';if(!name)name=sUser.user_metadata?.full_name||sUser.user_metadata?.name||'';}}}catch(_e){}}supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:uid,user_email:email,user_name:name,resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const cloud=(await fetchApprovedResourceRows()).map(mapCloudResourceRow);const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render();checkDirectResourceLanding();fetchRecentReadingProgress();}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
@@ -575,7 +575,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             },350);
           }catch(e){}
         }
-        async function readResource(id, initialPage){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);openReader(signed?{...resource,fileUrl:signed}:resource, initialPage)}
+        async function readResource(id, initialPage){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);try{trackEvent('view',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});trackEvent('note_read',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});}catch(_e){}if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);openReader(signed?{...resource,fileUrl:signed}:resource, initialPage)}
     /* ============================================================
        PrimeFinder Native Mobile UX Engine
        ============================================================ */
@@ -911,7 +911,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function resetFinder(){clearAllPrimeFilters()}
     let lastSearchTrack={query:'',ts:0};
-    function searchResources(value){clearTimeout(__searchTimeout);__searchTimeout=setTimeout(()=>{state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count})}}catch(error){}},200)}
+    function searchResources(value){clearTimeout(__searchTimeout);__searchTimeout=setTimeout(()=>{state.query=value;showSuggestions();render();try{const q=String(value||'').trim().toLowerCase();const now=Date.now();if(q.length>=3&&(q!==lastSearchTrack.query||now-lastSearchTrack.ts>4000)){lastSearchTrack={query:q,ts:now};const count=resources.filter(r=>`${r.title} ${r.subject}`.toLowerCase().includes(q)).length;trackEvent('search',{title:q,results:count});trackEvent('search_query',{title:q,results:count});}}catch(error){}},200)}
     /* ---- Subject filter engine ----
        Options = base subjects (per semester) + custom subjects the user added
        + subjects already present in uploads for the active college/semester.
@@ -1564,8 +1564,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       bumpDownload(rcId(title));
       const resource=resources.find(item=>item.title===title);
       trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});
+      trackEvent('download_success',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});
       if(resource&&(resource.fileData||resource.fileUrl)){
-        if(!await ensureFileAvailable(resource,'download'))return;
+        if(!await ensureFileAvailable(resource,'download')){
+          trackEvent('download_failed',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem,reason:'unavailable'});
+          return;
+        }
         const fileName=resource.fileName||((title||'note').replace(/\W+/g,'-')+guessExt(resource));
         if(resource.fileData){
           /* data: URL — convert to Blob for mobile browsers that reject large data: URL downloads */
@@ -1581,6 +1585,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           if(!signed){
             /* Token hi nahi mila (QR-linked/synthetic session) -> is device par proper
                login zaroori hai; misleading generic error ki jagah login wall do. */
+            trackEvent('download_failed',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem,reason:'unsigned'});
             const token=await firebaseIdToken();
             if(!token){
               requireAccount('For secure downloads, log in with your account on this device.','download',title);
@@ -3732,7 +3737,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         body.innerHTML='<div class="preview-fallback"><i class="fa-solid fa-file-circle-question"></i><strong>Inline preview is not available for this format</strong><small>This file opens only in the secure in-app reader.</small></div>';
       }
       const _pol=$('previewOpenLink');if(_pol){try{_pol.removeAttribute('href')}catch(e){}}
-      trackEvent('view',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});bumpView(rcId(resource.title));
+      trackEvent('view',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});
+      trackEvent('note_read',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});
+      bumpView(rcId(resource.title));
       $('previewModal').classList.add('open');
       enableSecureGuards();
     }

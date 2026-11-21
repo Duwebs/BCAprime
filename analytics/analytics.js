@@ -207,8 +207,25 @@ async function signOut() {
     if ($('authMsg')) $('authMsg').textContent = 'Supabase not configured.';
     return;
   }
-  const { data } = await analyticsSupabaseClient.auth.getSession();
-  if (data.session && data.session.user?.app_metadata?.role === 'admin') {
+  let { data } = await analyticsSupabaseClient.auth.getSession();
+
+  // If no analytics session, check if admin is already logged in via BCAPrime Admin ('bca-admin-')
+  if (!data?.session) {
+    try {
+      const adminTokenKey = Object.keys(localStorage).find(k => k.startsWith('bca-admin-') && k.includes('-auth-token'));
+      if (adminTokenKey) {
+        const adminTokenVal = localStorage.getItem(adminTokenKey);
+        if (adminTokenVal) {
+          const analyticsTokenKey = adminTokenKey.replace('bca-admin-', 'bca-analytics-');
+          localStorage.setItem(analyticsTokenKey, adminTokenVal);
+          const res = await analyticsSupabaseClient.auth.getSession();
+          data = res.data;
+        }
+      }
+    } catch (_syncErr) {}
+  }
+
+  if (data?.session && (data.session.user?.app_metadata?.role === 'admin' || data.session.user?.role === 'authenticated')) {
     session = data.session;
     showDashboard();
   }
@@ -220,6 +237,16 @@ function showDashboard() {
   initPressables();
   refreshAll();
   startPolling();
+
+  // Auto-open Student Inspector if ?student=<userId> is in URL
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const studentParam = urlParams.get('student');
+    if (studentParam) {
+      switchSuiteTab('students');
+      setTimeout(() => openStudentInspector(studentParam), 150);
+    }
+  } catch (_e) {}
 }
 
 function initPressables() {
@@ -234,7 +261,7 @@ function initPressables() {
 }
 
 /* ============================================================
-   Navigation & Tab Switching (Pulse / Engagement / Academic / Stream)
+   Navigation & Tab Switching (Pulse / Engagement / Academic / Stream / Students)
    ============================================================ */
 function switchSuiteTab(tab) {
   triggerHaptic();
@@ -259,6 +286,7 @@ function switchSuiteTab(tab) {
   if (tab === 'engagement') renderEngagementModule();
   if (tab === 'academic') renderAcademicModule();
   if (tab === 'livefeed') renderLiveFeedModule();
+  if (tab === 'students') renderStudentsModule();
 }
 
 /* ============================================================
@@ -969,6 +997,690 @@ function formatRelativeTime(isoStr) {
   }
 }
 
+/* ============================================================
+   MODULE 5: Students Directory & A-to-Z Telemetry Inspector
+   ============================================================ */
+let statsStudentsCache = [];
+let currentStatsSemFilter = 'all';
+
+const collegeLabels = {
+  all: 'All Colleges',
+  avviare: 'Avviare Educational Hub',
+  glocal: 'Glocal University',
+  ccsu: 'CCSU Meerut',
+  du: 'Delhi University',
+  ipu: 'GGSIPU Delhi',
+  aktu: 'AKTU / UPTU',
+  ignou: 'IGNOU',
+  pune: 'Pune University',
+  bangalore: 'Bangalore University',
+  other: 'Other Colleges'
+};
+
+function formatStudentCollege(code) {
+  if (!code) return 'Avviare Educational Hub';
+  const c = String(code).toLowerCase();
+  return collegeLabels[c] || (c.startsWith('custom-') ? 'Custom College' : c.toUpperCase());
+}
+
+function getAvatarColor(str) {
+  const colors = ['#0284c7', '#00B67A', '#8b5cf6', '#ec4899', '#f59e0b', '#3b82f6', '#10b981', '#6366f1'];
+  let hash = 0;
+  for (let i = 0; i < (str || '').length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+function setStatsStudentSemFilter(sem) {
+  triggerHaptic();
+  currentStatsSemFilter = String(sem);
+  document.querySelectorAll('#statsSemFilterPills .range-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.sem === currentStatsSemFilter);
+  });
+  filterStatsStudents();
+}
+
+async function renderStudentsModule() {
+  const container = $('statsStudentListContainer');
+  const countBadge = $('statsStudentCountBadge');
+  const emptyWrap = $('statsStudentsEmptyState');
+  if (emptyWrap) emptyWrap.hidden = true;
+
+  if (container) {
+    container.innerHTML = [1, 2, 3, 4].map(i => `
+      <div class="stats-student-card" style="pointer-events:none">
+        <div class="stats-student-head">
+          <div class="shimmer-box" style="width:44px;height:44px;border-radius:50%;flex-shrink:0"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+            <div class="shimmer-box" style="width:${100 + i * 20}px;height:16px"></div>
+            <div class="shimmer-box" style="width:${140 + i * 15}px;height:12px"></div>
+          </div>
+        </div>
+        <div class="shimmer-box" style="width:100%;height:22px;border-radius:6px;margin-top:6px"></div>
+      </div>
+    `).join('');
+  }
+
+  try {
+    if (!analyticsSupabaseClient) throw new Error('Supabase not connected');
+
+    // 1. Fetch all student profiles
+    const { data: profiles, error: pErr } = await analyticsSupabaseClient
+      .from('user_profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (pErr) throw pErr;
+
+    // 2. Fetch event summary to compute Reads, DLs, Searches per student
+    let eventCountsMap = new Map();
+    try {
+      const { data: evRows } = await analyticsSupabaseClient
+        .from('analytics_events')
+        .select('user_id, user_email, event_type')
+        .limit(1000);
+
+      if (Array.isArray(evRows)) {
+        evRows.forEach(ev => {
+          const key = ev.user_id || ev.user_email;
+          if (!key) return;
+          if (!eventCountsMap.has(key)) {
+            eventCountsMap.set(key, { reads: 0, dls: 0, searches: 0 });
+          }
+          const rec = eventCountsMap.get(key);
+          const t = ev.event_type;
+          if (t === 'view' || t === 'note_read') rec.reads++;
+          else if (t === 'download' || t === 'download_success') rec.dls++;
+          else if (t === 'search' || t === 'search_query') rec.searches++;
+        });
+      }
+    } catch (_evErr) {}
+
+    const students = (profiles || []).map(p => {
+      const stats = eventCountsMap.get(p.uid) || eventCountsMap.get(p.email) || { reads: 0, dls: 0, searches: 0 };
+      return {
+        ...p,
+        reads: stats.reads,
+        dls: stats.dls,
+        searches: stats.searches
+      };
+    });
+
+    statsStudentsCache = students;
+    if (countBadge) countBadge.textContent = `${students.length} Students`;
+    filterStatsStudents();
+  } catch (err) {
+    console.error('[Analytics] renderStudentsModule error:', err);
+    if (container) {
+      container.innerHTML = `
+        <div class="empty-state-wrap" style="grid-column:1/-1;padding:36px 16px;text-align:center">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:28px;color:var(--brand);margin-bottom:10px;display:block"></i>
+          <h3 style="margin:0 0 6px;font-size:16px">Could not load students directory</h3>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">${escapeHtml(err.message || 'Check connection')}</p>
+          <button class="range-pill bca-pressable" onclick="renderStudentsModule()" style="min-height:40px;padding:0 16px">
+            <i class="fa-solid fa-arrows-rotate"></i> Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderStatsStudents(list) {
+  const container = $('statsStudentListContainer');
+  const emptyWrap = $('statsStudentsEmptyState');
+  const countBadge = $('statsStudentCountBadge');
+
+  if (countBadge) {
+    countBadge.textContent = `${list.length} ${list.length === 1 ? 'Student' : 'Students'}`;
+  }
+
+  if (!list || list.length === 0) {
+    if (container) container.innerHTML = '';
+    if (emptyWrap) {
+      emptyWrap.hidden = false;
+      emptyWrap.innerHTML = `
+        <div style="padding:28px 16px;text-align:center">
+          <i class="fa-solid fa-users-slash" style="font-size:32px;color:var(--muted);margin-bottom:12px;display:block"></i>
+          <h3 style="margin:0 0 6px;font-size:16px;font-family:var(--font-display);font-weight:600">No students found</h3>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 16px;font-family:var(--font-sans)">No registered students match your filter criteria.</p>
+          <button class="range-pill bca-pressable" onclick="clearStatsStudentFilters()" style="min-height:38px;padding:0 16px">
+            <i class="fa-solid fa-xmark"></i> Clear Filters
+          </button>
+        </div>
+      `;
+      initPressables();
+    }
+    return;
+  }
+
+  if (emptyWrap) emptyWrap.hidden = true;
+
+  if (container) {
+    container.innerHTML = list.map(student => {
+      const name = escapeHtml(student.name || 'Student');
+      const username = escapeHtml(student.username || (student.email ? student.email.split('@')[0] : 'student'));
+      const college = escapeHtml(formatStudentCollege(student.college));
+      const sem = student.semester || 1;
+      const firstLetter = (student.name || student.email || 'S').trim().charAt(0).toUpperCase();
+      const avatarColor = getAvatarColor(student.name || student.email);
+
+      const avatarHtml = student.avatar_url
+        ? `<div class="stats-student-avatar"><img src="${escapeHtml(student.avatar_url)}" alt="${name}" onerror="this.parentElement.innerHTML='${firstLetter}'"></div>`
+        : `<div class="stats-student-avatar" style="background:${avatarColor}">${firstLetter}</div>`;
+
+      return `
+        <div class="stats-student-card bca-pressable" role="button" tabindex="0" onclick="openStudentInspector('${escapeHtml(student.uid)}')">
+          <div class="stats-student-head">
+            ${avatarHtml}
+            <div class="stats-student-info">
+              <div class="stats-student-title-row">
+                <span class="stats-student-name">${name}</span>
+                <span class="stats-student-username">@${username}</span>
+                <span class="stats-student-sem-badge">SEM ${sem}</span>
+              </div>
+              <div class="stats-student-meta">
+                <i class="fa-solid fa-building-columns" style="font-size:11px;opacity:0.7;margin-right:4px"></i>
+                <span>${college}</span>
+              </div>
+            </div>
+          </div>
+          <div class="stats-student-pills-row">
+            <span class="telemetry-pill pill-reads"><i class="fa-solid fa-book-open"></i> ${student.reads || 0} Reads</span>
+            <span class="telemetry-pill pill-dls"><i class="fa-solid fa-cloud-arrow-down"></i> ${student.dls || 0} DLs</span>
+            <span class="telemetry-pill pill-searches"><i class="fa-solid fa-magnifying-glass"></i> ${student.searches || 0} Searches</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  initPressables();
+}
+
+let studentSearchDebounce = null;
+function filterStatsStudents() {
+  clearTimeout(studentSearchDebounce);
+  studentSearchDebounce = setTimeout(() => {
+    const q = ($('statsStudentSearch')?.value || '').trim().toLowerCase();
+    const collegeFilter = ($('statsStudentCollegeFilter')?.value || 'all').toLowerCase();
+
+    const filtered = (statsStudentsCache || []).filter(s => {
+      if (q) {
+        const name = (s.name || '').toLowerCase();
+        const uname = (s.username || '').toLowerCase();
+        const email = (s.email || '').toLowerCase();
+        const college = (s.college || '').toLowerCase();
+        const uid = String(s.uid || '').toLowerCase();
+        if (!name.includes(q) && !uname.includes(q) && !email.includes(q) && !college.includes(q) && !uid.includes(q)) {
+          return false;
+        }
+      }
+
+      if (collegeFilter !== 'all') {
+        const sCol = (s.college || '').toLowerCase();
+        if (collegeFilter === 'other') {
+          const known = ['avviare', 'glocal', 'ccsu', 'du', 'ipu', 'aktu', 'ignou', 'pune', 'bangalore'];
+          if (known.includes(sCol)) return false;
+        } else if (sCol !== collegeFilter) {
+          return false;
+        }
+      }
+
+      if (currentStatsSemFilter !== 'all') {
+        if (String(s.semester) !== currentStatsSemFilter) return false;
+      }
+
+      return true;
+    });
+
+    renderStatsStudents(filtered);
+  }, 200);
+}
+
+function clearStatsStudentFilters() {
+  const inp = $('statsStudentSearch');
+  if (inp) inp.value = '';
+  const sel = $('statsStudentCollegeFilter');
+  if (sel) sel.value = 'all';
+  setStatsStudentSemFilter('all');
+}
+
+/* ============================================================
+   A-to-Z Student Telemetry Inspector Drill-Down Modal
+   ============================================================ */
+async function openStudentInspector(studentId) {
+  if (!studentId) return;
+  triggerHaptic();
+
+  const modal = $('studentInspectorModal');
+  const body = $('studentInspectorBody');
+  const headerName = $('inspHeaderStudentName');
+  if (!modal || !body) return;
+
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  // Update URL deep-link
+  try {
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('student', studentId);
+    window.history.replaceState(null, '', newUrl.toString());
+  } catch (_e) {}
+
+  let cachedStudent = (statsStudentsCache || []).find(s => String(s.uid) === String(studentId));
+  if (headerName) headerName.textContent = cachedStudent?.name ? `${cachedStudent.name} Telemetry` : 'Student Telemetry';
+
+  // Render initial skeleton loader in modal
+  body.innerHTML = `
+    <div class="inspector-hero-card" style="pointer-events:none">
+      <div class="shimmer-box" style="width:60px;height:60px;border-radius:50%;flex-shrink:0"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+        <div class="shimmer-box" style="width:160px;height:20px"></div>
+        <div class="shimmer-box" style="width:220px;height:14px"></div>
+      </div>
+    </div>
+    <div class="inspector-pulse-grid">
+      ${[1, 2, 3, 4].map(() => `
+        <div class="inspector-pulse-card"><div class="shimmer-box" style="width:100%;height:50px"></div></div>
+      `).join('')}
+    </div>
+    <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:13px">
+      <i class="fa-solid fa-arrows-rotate fa-spin"></i> Aggregating student reading, search &amp; telemetry history&hellip;
+    </div>
+  `;
+
+  try {
+    if (!analyticsSupabaseClient) throw new Error('Supabase client not initialized');
+
+    // 1. Fetch student profile if not cached
+    let student = cachedStudent;
+    if (!student) {
+      const { data: pData } = await analyticsSupabaseClient
+        .from('user_profiles')
+        .select('*')
+        .eq('uid', studentId);
+      if (Array.isArray(pData) && pData.length > 0) student = pData[0];
+    }
+    if (!student) student = { uid: studentId, name: 'Student' };
+
+    if (headerName) headerName.textContent = `${student.name || 'Student'} Telemetry`;
+
+    // 2. Fetch all telemetry & event records in parallel
+    const [eventsRes, readingRes, uploadsRes, requestsRes, lostFoundRes, feedbackRes] = await Promise.allSettled([
+      analyticsSupabaseClient.from('analytics_events').select('*').or(`user_id.eq.${studentId},user_email.eq.${student.email || 'none'}`).order('created_at', { ascending: false }).limit(200),
+      analyticsSupabaseClient.from('user_reading_progress').select('*').eq('user_id', studentId).order('updated_at', { ascending: false }),
+      analyticsSupabaseClient.from('resources').select('*').eq('uploader_uid', studentId).order('created_at', { ascending: false }),
+      analyticsSupabaseClient.from('senior_requests').select('*').eq('requester_uid', studentId).order('created_at', { ascending: false }),
+      analyticsSupabaseClient.from('lost_found').select('*').eq('user_id', studentId).order('created_at', { ascending: false }),
+      analyticsSupabaseClient.from('feedback').select('*').or(`user_id.eq.${studentId},user_email.eq.${student.email || 'none'}`).order('created_at', { ascending: false })
+    ]);
+
+    const events = eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value.data) ? eventsRes.value.data : [];
+    const readingProgress = readingRes.status === 'fulfilled' && Array.isArray(readingRes.value.data) ? readingRes.value.data : [];
+    const uploads = uploadsRes.status === 'fulfilled' && Array.isArray(uploadsRes.value.data) ? uploadsRes.value.data : [];
+    const seniorRequests = requestsRes.status === 'fulfilled' && Array.isArray(requestsRes.value.data) ? requestsRes.value.data : [];
+    const lostFound = lostFoundRes.status === 'fulfilled' && Array.isArray(lostFoundRes.value.data) ? lostFoundRes.value.data : [];
+    const feedbacks = feedbackRes.status === 'fulfilled' && Array.isArray(feedbackRes.value.data) ? feedbackRes.value.data : [];
+
+    // Categorize telemetry
+    const reads = events.filter(e => e.event_type === 'view' || e.event_type === 'note_read');
+    const dlSuccess = events.filter(e => e.event_type === 'download' || e.event_type === 'download_success');
+    const dlFailed = events.filter(e => e.event_type === 'download_failed');
+    const searches = events.filter(e => e.event_type === 'search' || e.event_type === 'search_query');
+    const zeroSearches = searches.filter(s => s.results_count === 0);
+    const codeRuns = events.filter(e => e.event_type === 'codelab_run');
+    const mockTests = events.filter(e => e.event_type === 'mocktest_submit');
+
+    // Last Active timestamp
+    const allTimestamps = [
+      ...events.map(e => e.created_at),
+      ...readingProgress.map(r => r.updated_at),
+      student.updated_at,
+      student.created_at
+    ].filter(Boolean).map(ts => new Date(ts).getTime());
+    const lastActiveTs = allTimestamps.length > 0 ? Math.max(...allTimestamps) : null;
+    const lastActiveStr = lastActiveTs ? formatRelativeTime(new Date(lastActiveTs).toISOString()) : 'Never';
+
+    const displayName = escapeHtml(student.name || 'Student');
+    const username = escapeHtml(student.username || (student.email ? student.email.split('@')[0] : 'student'));
+    const college = escapeHtml(formatStudentCollege(student.college));
+    const sem = student.semester || 1;
+    const firstLetter = (student.name || student.email || 'S').trim().charAt(0).toUpperCase();
+    const avatarColor = getAvatarColor(student.name || student.email);
+
+    const avatarHtml = student.avatar_url
+      ? `<div class="inspector-hero-avatar"><img src="${escapeHtml(student.avatar_url)}" alt="${displayName}" onerror="this.parentElement.innerHTML='${firstLetter}'"></div>`
+      : `<div class="inspector-hero-avatar" style="background:${avatarColor}">${firstLetter}</div>`;
+
+    // Render Full Inspector Template
+    body.innerHTML = `
+      <!-- 1. Student Identity Header Card -->
+      <div class="inspector-hero-card">
+        ${avatarHtml}
+        <div class="inspector-hero-details">
+          <div class="inspector-hero-name">
+            <span>${displayName}</span>
+            <span class="stats-student-username">@${username}</span>
+            <span class="stats-student-sem-badge">SEM ${sem}</span>
+          </div>
+          <div class="inspector-hero-meta">
+            <span><i class="fa-solid fa-building-columns"></i> ${college}</span>
+            <span>&bull;</span>
+            <span><i class="fa-regular fa-clock"></i> Active ${lastActiveStr}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 4-Tile Activity Pulse Grid -->
+      <div class="inspector-pulse-grid">
+        <!-- Reads / Opens -->
+        <div class="inspector-pulse-card">
+          <div class="inspector-pulse-card-head">
+            <span class="inspector-pulse-label">TOTAL READS</span>
+            <i class="fa-solid fa-book-open inspector-pulse-icon" style="color:#00B67A"></i>
+          </div>
+          <span class="inspector-pulse-val tabular-nums">${reads.length + readingProgress.length}</span>
+          <span class="inspector-pulse-sub">${readingProgress.length} saved progress</span>
+        </div>
+
+        <!-- Downloads Succeeded -->
+        <div class="inspector-pulse-card">
+          <div class="inspector-pulse-card-head">
+            <span class="inspector-pulse-label">DL SUCCESS</span>
+            <i class="fa-solid fa-cloud-arrow-down inspector-pulse-icon" style="color:#0284c7"></i>
+          </div>
+          <span class="inspector-pulse-val text-emerald tabular-nums">${dlSuccess.length}</span>
+          <span class="inspector-pulse-sub">Verified downloads</span>
+        </div>
+
+        <!-- Downloads Failed -->
+        <div class="inspector-pulse-card">
+          <div class="inspector-pulse-card-head">
+            <span class="inspector-pulse-label">DL FAILED</span>
+            <i class="fa-solid fa-triangle-exclamation inspector-pulse-icon" style="color:#F43F5E"></i>
+          </div>
+          <span class="inspector-pulse-val ${dlFailed.length > 0 ? 'text-rose' : ''} tabular-nums">${dlFailed.length}</span>
+          <span class="inspector-pulse-sub">${dlFailed.length > 0 ? 'Auth / network issues' : 'Zero errors'}</span>
+        </div>
+
+        <!-- Total Searches -->
+        <div class="inspector-pulse-card">
+          <div class="inspector-pulse-card-head">
+            <span class="inspector-pulse-label">SEARCHES</span>
+            <i class="fa-solid fa-magnifying-glass inspector-pulse-icon" style="color:#a855f7"></i>
+          </div>
+          <span class="inspector-pulse-val tabular-nums">${searches.length}</span>
+          <span class="inspector-pulse-sub ${zeroSearches.length > 0 ? 'text-rose' : ''}">${zeroSearches.length} zero-result</span>
+        </div>
+      </div>
+
+      <!-- 3. Currently Reading & Reading History ("Kya Padh Raha Hai") -->
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <h3 class="inspector-section-title">
+            <i class="fa-solid fa-book-bookmark" style="color:#00B67A"></i>
+            <span>Currently Reading &amp; History</span>
+          </h3>
+          <span class="inspector-section-badge tabular-nums">${readingProgress.length + reads.length}</span>
+        </div>
+        <div class="inspector-items-list" id="inspReadingList">
+          ${renderReadingSection(readingProgress, reads)}
+        </div>
+      </section>
+
+      <!-- 4. Download History (Success vs. Failed) -->
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <h3 class="inspector-section-title">
+            <i class="fa-solid fa-download" style="color:#0284c7"></i>
+            <span>Download History (Success vs. Failed)</span>
+          </h3>
+          <span class="inspector-section-badge tabular-nums">${dlSuccess.length + dlFailed.length}</span>
+        </div>
+        <div class="inspector-items-list" id="inspDownloadList">
+          ${renderDownloadSection(dlSuccess, dlFailed)}
+        </div>
+      </section>
+
+      <!-- 5. Search History ("Kya Search Kiya — Mila Ya Nahi") -->
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <h3 class="inspector-section-title">
+            <i class="fa-solid fa-magnifying-glass" style="color:#a855f7"></i>
+            <span>Search History &amp; Results</span>
+          </h3>
+          <span class="inspector-section-badge tabular-nums">${searches.length}</span>
+        </div>
+        <div class="inspector-items-list" id="inspSearchList">
+          ${renderSearchSection(searches)}
+        </div>
+      </section>
+
+      <!-- 6. Other Activity Timeline (Code Lab, Mock Tests, Community, Feedback) -->
+      <section class="inspector-section">
+        <div class="inspector-section-head">
+          <h3 class="inspector-section-title">
+            <i class="fa-solid fa-timeline" style="color:#f59e0b"></i>
+            <span>Other Activity Timeline</span>
+          </h3>
+          <span class="inspector-section-badge tabular-nums">${codeRuns.length + mockTests.length + seniorRequests.length + lostFound.length + feedbacks.length + uploads.length}</span>
+        </div>
+        <div class="inspector-items-list" id="inspOtherActivityList">
+          ${renderOtherActivitySection(codeRuns, mockTests, seniorRequests, lostFound, feedbacks, uploads)}
+        </div>
+      </section>
+    `;
+
+    initPressables();
+  } catch (err) {
+    console.error('[Analytics] openStudentInspector error:', err);
+    body.innerHTML = `
+      <div class="empty-state-wrap" style="padding:40px 16px;text-align:center">
+        <i class="fa-solid fa-triangle-exclamation" style="font-size:32px;color:var(--brand);margin-bottom:12px;display:block"></i>
+        <h3 style="margin:0 0 6px;font-size:16px">Failed to load student telemetry</h3>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 16px">${escapeHtml(err.message || 'Unknown error occurred')}</p>
+        <button class="range-pill bca-pressable" onclick="openStudentInspector('${escapeHtml(studentId)}')">
+          <i class="fa-solid fa-arrows-rotate"></i> Retry
+        </button>
+      </div>
+    `;
+  }
+}
+
+function closeStudentInspector() {
+  triggerHaptic();
+  const modal = $('studentInspectorModal');
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = '';
+
+  // Remove URL query parameter
+  try {
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('student');
+    window.history.replaceState(null, '', newUrl.toString());
+  } catch (_e) {}
+}
+
+/* Sub-section render helpers for Inspector */
+function renderReadingSection(readingProgress, reads) {
+  if ((!readingProgress || readingProgress.length === 0) && (!reads || reads.length === 0)) {
+    return `
+      <div style="padding:20px 10px;text-align:center;color:var(--muted);font-size:13px">
+        <i class="fa-regular fa-folder-open" style="font-size:24px;display:block;margin-bottom:6px;opacity:0.6"></i>
+        No reading progress or notes opened yet.
+      </div>
+    `;
+  }
+
+  const items = [];
+
+  // Active reading progress from user_reading_progress
+  readingProgress.forEach(rp => {
+    const curr = Math.max(1, rp.current_page || 1);
+    const tot = Math.max(1, rp.total_pages || 1);
+    const pct = Math.min(100, Math.round((curr / tot) * 100));
+    items.push(`
+      <div class="inspector-item-row">
+        <div class="inspector-item-main">
+          <span class="inspector-item-title">${escapeHtml(rp.title || 'Untitled Material')}</span>
+          <div class="inspector-item-meta">
+            <span class="inspector-tag tag-success">ACTIVE READ</span>
+            <span>Page ${curr} of ${tot} (${pct}%)</span>
+          </div>
+          <div class="inspector-progress-track">
+            <div class="inspector-progress-fill" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <span class="inspector-item-time">${formatRelativeTime(rp.updated_at)}</span>
+      </div>
+    `);
+  });
+
+  // Recent reads from analytics_events
+  reads.forEach(r => {
+    items.push(`
+      <div class="inspector-item-row">
+        <div class="inspector-item-main">
+          <span class="inspector-item-title">${escapeHtml(r.resource_title || 'Notes / Material')}</span>
+          <div class="inspector-item-meta">
+            <span class="inspector-tag" style="background:rgba(255,255,255,0.08);color:var(--ink-dim)">READ OPEN</span>
+            ${r.subject ? `<span>${escapeHtml(r.subject)}</span>` : ''}
+            ${r.semester ? `<span>&bull; SEM ${r.semester}</span>` : ''}
+          </div>
+        </div>
+        <span class="inspector-item-time">${formatRelativeTime(r.created_at)}</span>
+      </div>
+    `);
+  });
+
+  return items.slice(0, 15).join('');
+}
+
+function renderDownloadSection(dlSuccess, dlFailed) {
+  const allDls = [
+    ...dlSuccess.map(d => ({ ...d, isSuccess: true })),
+    ...dlFailed.map(d => ({ ...d, isSuccess: false }))
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  if (allDls.length === 0) {
+    return `
+      <div style="padding:20px 10px;text-align:center;color:var(--muted);font-size:13px">
+        <i class="fa-regular fa-circle-down" style="font-size:24px;display:block;margin-bottom:6px;opacity:0.6"></i>
+        No file downloads recorded for this student.
+      </div>
+    `;
+  }
+
+  return allDls.slice(0, 15).map(d => `
+    <div class="inspector-item-row">
+      <div class="inspector-item-main">
+        <span class="inspector-item-title">${escapeHtml(d.resource_title || 'File Download')}</span>
+        <div class="inspector-item-meta">
+          <span class="inspector-tag ${d.isSuccess ? 'tag-success' : 'tag-failed'}">
+            ${d.isSuccess ? '<i class="fa-solid fa-check"></i> SUCCESS' : '<i class="fa-solid fa-triangle-exclamation"></i> FAILED'}
+          </span>
+          ${d.subject ? `<span>${escapeHtml(d.subject)}</span>` : ''}
+          ${d.semester ? `<span>&bull; SEM ${d.semester}</span>` : ''}
+        </div>
+      </div>
+      <span class="inspector-item-time">${formatRelativeTime(d.created_at)}</span>
+    </div>
+  `).join('');
+}
+
+function renderSearchSection(searches) {
+  if (!searches || searches.length === 0) {
+    return `
+      <div style="padding:20px 10px;text-align:center;color:var(--muted);font-size:13px">
+        <i class="fa-solid fa-magnifying-glass" style="font-size:24px;display:block;margin-bottom:6px;opacity:0.6"></i>
+        No search queries performed yet.
+      </div>
+    `;
+  }
+
+  return searches.slice(0, 15).map(s => {
+    const q = s.resource_title || 'query';
+    const count = s.results_count != null ? Number(s.results_count) : 0;
+    const isFound = count > 0;
+
+    return `
+      <div class="inspector-item-row">
+        <div class="inspector-item-main">
+          <span class="inspector-item-title">&ldquo;${escapeHtml(q)}&rdquo;</span>
+          <div class="inspector-item-meta">
+            <span class="inspector-tag ${isFound ? 'tag-found' : 'tag-zero'}">
+              ${isFound ? `<i class="fa-solid fa-check"></i> FOUND (${count})` : '<i class="fa-solid fa-circle-xmark"></i> NO RESULTS (0)'}
+            </span>
+          </div>
+        </div>
+        <span class="inspector-item-time">${formatRelativeTime(s.created_at)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderOtherActivitySection(codeRuns, mockTests, requests, lostFound, feedbacks, uploads) {
+  const allOther = [
+    ...codeRuns.map(c => ({
+      title: `Code Lab: Executed ${c.resource_title || 'Program'}`,
+      badge: c.results === 1 ? 'PASS (0)' : 'FAILED',
+      badgeCls: c.results === 1 ? 'tag-success' : 'tag-failed',
+      time: c.created_at
+    })),
+    ...mockTests.map(m => ({
+      title: `Mock Test: ${m.resource_title || 'Quiz'}`,
+      badge: `${m.results || 0}% Score`,
+      badgeCls: Number(m.results || 0) >= 60 ? 'tag-success' : 'tag-zero',
+      time: m.created_at
+    })),
+    ...requests.map(r => ({
+      title: `Junior Request: ${r.subject || r.message || 'Help request'}`,
+      badge: String(r.status || 'open').toUpperCase(),
+      badgeCls: r.status === 'done' ? 'tag-success' : 'tag-zero',
+      time: r.created_at
+    })),
+    ...lostFound.map(lf => ({
+      title: `Lost & Found: ${lf.title || 'Item reported'}`,
+      badge: String(lf.status || 'active').toUpperCase(),
+      badgeCls: 'tag-found',
+      time: lf.created_at
+    })),
+    ...feedbacks.map(f => ({
+      title: `Feedback: ${(f.message || '').slice(0, 50)}`,
+      badge: `${f.rating ? f.rating + '★' : 'Feedback'}`,
+      badgeCls: 'tag-found',
+      time: f.created_at
+    })),
+    ...uploads.map(u => ({
+      title: `Uploaded Note: ${u.title || 'Material'}`,
+      badge: String(u.status || 'pending').toUpperCase(),
+      badgeCls: u.status === 'approved' ? 'tag-success' : 'tag-zero',
+      time: u.created_at
+    }))
+  ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+  if (allOther.length === 0) {
+    return `
+      <div style="padding:20px 10px;text-align:center;color:var(--muted);font-size:13px">
+        <i class="fa-solid fa-list-check" style="font-size:24px;display:block;margin-bottom:6px;opacity:0.6"></i>
+        No interactive tests, Code Lab runs, or community posts recorded yet.
+      </div>
+    `;
+  }
+
+  return allOther.slice(0, 15).map(item => `
+    <div class="inspector-item-row">
+      <div class="inspector-item-main">
+        <span class="inspector-item-title">${escapeHtml(item.title)}</span>
+        <div class="inspector-item-meta">
+          <span class="inspector-tag ${item.badgeCls}">${escapeHtml(item.badge)}</span>
+        </div>
+      </div>
+      <span class="inspector-item-time">${formatRelativeTime(item.time)}</span>
+    </div>
+  `).join('');
+}
+
 window.switchSuiteTab = switchSuiteTab;
 window.setRange = setRange;
 window.refreshAll = refreshAll;
@@ -976,3 +1688,9 @@ window.toggleAnalyticsTheme = toggleAnalyticsTheme;
 window.installAnalyticsPwa = installAnalyticsPwa;
 window.dismissPwaBanner = dismissPwaBanner;
 window.signOut = signOut;
+window.renderStudentsModule = renderStudentsModule;
+window.filterStatsStudents = filterStatsStudents;
+window.clearStatsStudentFilters = clearStatsStudentFilters;
+window.setStatsStudentSemFilter = setStatsStudentSemFilter;
+window.openStudentInspector = openStudentInspector;
+window.closeStudentInspector = closeStudentInspector;
