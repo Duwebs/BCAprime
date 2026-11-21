@@ -1950,7 +1950,44 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     });
     window.addEventListener('focus', () => { resetAuthGateState({ clearInputs: false }); });
 
+    function triggerAuthHaptic(ms = 12){
+      try{
+        if(typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function'){
+          navigator.vibrate(ms);
+        }
+      }catch(_){}
+    }
+    window.triggerAuthHaptic = triggerAuthHaptic;
+
+    function initAuthTactileInteractions(){
+      const selectors = [
+        '#gateTabSignup',
+        '#gateTabLogin',
+        '#gateAccountSubmit',
+        '#gateGoogleBtn',
+        '#gateLinkedinBtn',
+        '.auth-guest-pill'
+      ];
+      selectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(btn => {
+          if(btn && !btn._authTactileBound){
+            btn._authTactileBound = true;
+            btn.addEventListener('pointerdown', (e) => {
+              if(e.pointerType === 'mouse' && e.button !== 0) return;
+              triggerAuthHaptic(12);
+            }, { passive: true });
+          }
+        });
+      });
+    }
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', initAuthTactileInteractions);
+    } else {
+      initAuthTactileInteractions();
+    }
+
     async function signInWithProvider(provider,messageId='accountMessage',triggerBtn=null){
+      triggerAuthHaptic(12);
       resetOAuthButtons();
       if(!triggerBtn && messageId==='gateAccountMessage'){
         triggerBtn = (provider==='google' ? $('gateGoogleBtn') : $('gateLinkedinBtn'));
@@ -1997,9 +2034,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     let gateMode='signup';
     function setGateMode(mode){
       gateMode=mode;
+      triggerAuthHaptic(12);
       resetAuthGateState({ clearInputs: false });
       const submitText=document.querySelector('#gateAccountSubmit .auth-submit-text') || $('gateAccountSubmit');
       if(submitText)submitText.textContent=mode==='signup'?'Sign up':'Log in';
+      const segTabs = $('gateSegmentedTabs') || document.querySelector('.auth-segmented-tabs');
+      if(segTabs){
+        segTabs.setAttribute('data-active', mode);
+        segTabs.classList.toggle('is-signup', mode==='signup');
+        segTabs.classList.toggle('is-login', mode==='login');
+      }
       const tabSignup=$('gateTabSignup');
       const tabLogin=$('gateTabLogin');
       if(tabSignup && tabLogin){
@@ -2182,6 +2226,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900);
     }
     function continueAsGuest(){
+      triggerAuthHaptic(12);
       sessionStorage.setItem('bca-guest-mode','true');
       if (typeof resetContinueReadingState === 'function') resetContinueReadingState();
       currentReadingUserId = '';
