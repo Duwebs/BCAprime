@@ -45,6 +45,8 @@ BCAPrime uses an intentional, high-craft condensed font hierarchy to deliver a n
 | **Bottom Navbar Labels (`LIBRARY`, `UPLOAD`, etc.)** | `Barlow Condensed` | `700` (Bold) | `11px` | `1.1` | `+0.07em` | `uppercase` |
 | **Eyebrow Tags & Status Badges** | `Barlow Condensed` | `700` (Bold) | `10px – 12px` | `1.0` | `+0.05em – +0.08em` | `uppercase` |
 | **Footer Verification Pill Badges (`VERIFIED ON TRUSTPILOT`)** | `Barlow Condensed` | `600` (SemiBold) | `11px` | `1.0` | `+0.08em` | `uppercase` |
+| **Code Lab Title (`Code Lab`) & Mode Tabs** | `Barlow Condensed` | `600` / `700` | `14px – 21px` | `1.15` | `-0.01em` | `uppercase` tabs / Normal title |
+| **Code Editor, Stdin & Output Console** | `JetBrains Mono` / Monospace | `400` / `500` | `13px – 13.5px` | `1.50` | `normal` | Monospace Code |
 | **Primary Action Buttons (CTAs)** | `Roboto Condensed` | `600` / `700` | `15px – 16px` | `1.0` | `+0.01em` | Normal |
 | **Form Inputs & Placeholders** | `Roboto Condensed` | `500` | `16px` (mobile min) | `1.25` | `normal` | Normal |
 | **Body Paragraphs & Descriptions** | `Roboto Condensed` | `400` | `14px – 15px` | `1.45 – 1.50` | `normal` | Normal |

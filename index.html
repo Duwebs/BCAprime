@@ -212,6 +212,7 @@
   <link rel="stylesheet" href="styles.css?v=84">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
+  <link rel="stylesheet" href="codelab.css?v=2">
 </head>
 <body>
   <div class="splash" id="splash" aria-label="Loading BCAPrime">
@@ -542,6 +543,27 @@
         <div class="cr-carousel" id="continueReadingCarousel" role="region" aria-label="Recent reading documents">
           <!-- Populated dynamically: up to 3 cards or skeleton placeholders -->
         </div>
+      </div>
+
+      <!-- Featured Quick Action: Code Lab -->
+      <div class="qa-featured-wrap">
+        <button type="button" class="qa-featured-card bca-pressable" id="qaCodeLabBtn" onclick="openCodeLabRoute()" aria-label="Code Lab — Run C, C++, Java, Python, SQL and Web live">
+          <div class="qa-featured-left">
+            <span class="qa-icon-wrap qa-icon-codelab">
+              <i class="fa-solid fa-code"></i>
+            </span>
+            <div class="qa-featured-info">
+              <div class="qa-featured-header-row">
+                <span class="qa-featured-title">Code Lab</span>
+                <span class="qa-new-badge qa-codelab-badge">New</span>
+              </div>
+              <p class="qa-featured-subtitle">Run C, C++, Java, Python, SQL &amp; Web live</p>
+            </div>
+          </div>
+          <span class="qa-featured-arrow">
+            <i class="fa-solid fa-arrow-right"></i>
+          </span>
+        </button>
       </div>
 
       <!-- Grid: 4 columns on desktop, 2x2 on mobile/tablet -->
@@ -1720,6 +1742,248 @@
     </div>
   </div>
 
+  <!-- ================= Code Lab Modal ================= -->
+  <div class="codelab-modal" id="codeLabModal" role="dialog" aria-modal="true" aria-labelledby="codeLabTitle">
+    <!-- Header -->
+    <header class="codelab-header">
+      <div class="codelab-header-left">
+        <button type="button" class="codelab-back-btn bca-pressable" id="codelabBackBtn" aria-label="Back to home">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="codelab-back-text">Back</span>
+        </button>
+        <div class="codelab-title-wrap">
+          <span class="codelab-header-icon"><i class="fa-solid fa-code"></i></span>
+          <h2 class="codelab-title" id="codeLabTitle">Code Lab</h2>
+          <span class="codelab-title-badge">BCA</span>
+        </div>
+      </div>
+      <div class="codelab-header-actions">
+        <button type="button" class="codelab-action-btn bca-pressable" id="codelabCopyBtn" title="Copy code" aria-label="Copy code">
+          <i class="fa-regular fa-copy"></i>
+          <span class="codelab-action-text">Copy</span>
+        </button>
+        <button type="button" class="codelab-action-btn bca-pressable" id="codelabResetBtn" title="Reset starter template" aria-label="Reset starter template">
+          <i class="fa-solid fa-rotate-left"></i>
+          <span class="codelab-action-text">Reset</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Mode Switcher -->
+    <nav class="codelab-mode-bar" aria-label="Code Lab Modes">
+      <div class="codelab-mode-segments">
+        <button type="button" class="codelab-mode-btn active" data-mode="compiler">
+          <i class="fa-solid fa-terminal"></i> <span>Compiler</span>
+        </button>
+        <button type="button" class="codelab-mode-btn" data-mode="webdev">
+          <i class="fa-solid fa-globe"></i> <span>Web Dev</span>
+        </button>
+        <button type="button" class="codelab-mode-btn" data-mode="sqllab">
+          <i class="fa-solid fa-database"></i> <span>SQL Lab</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="codelab-body">
+      <!-- Mode A: Compiler -->
+      <section class="codelab-compiler-view" id="codelabCompilerView">
+        <div class="codelab-sub-toolbar">
+          <div class="codelab-lang-pills">
+            <button type="button" class="codelab-lang-pill active" data-lang="c">C</button>
+            <button type="button" class="codelab-lang-pill" data-lang="cpp">C++</button>
+            <button type="button" class="codelab-lang-pill" data-lang="java">Java</button>
+            <button type="button" class="codelab-lang-pill" data-lang="python">Python</button>
+          </div>
+          <!-- Mobile View Toggle (Editor vs Console) -->
+          <div class="codelab-view-toggle-wrap">
+            <button type="button" class="codelab-toggle-pill-btn active" id="codelabCompilerEditorToggle" data-view="editor">
+              <i class="fa-solid fa-code"></i> Code
+            </button>
+            <button type="button" class="codelab-toggle-pill-btn" id="codelabCompilerConsoleToggle" data-view="console">
+              <i class="fa-solid fa-terminal"></i> Console
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Symbol Toolbar -->
+        <div class="codelab-symbol-toolbar" id="codelabCompilerSymbolBar" aria-label="Quick code symbols">
+          <button type="button" class="codelab-sym-btn" data-sym="{ }">{ }</button>
+          <button type="button" class="codelab-sym-btn" data-sym="( )">( )</button>
+          <button type="button" class="codelab-sym-btn" data-sym="[ ]">[ ]</button>
+          <button type="button" class="codelab-sym-btn" data-sym=";">;</button>
+          <button type="button" class="codelab-sym-btn" data-sym='" "'>" "</button>
+          <button type="button" class="codelab-sym-btn" data-sym="' ">' '</button>
+          <button type="button" class="codelab-sym-btn" data-sym="=">=</button>
+          <button type="button" class="codelab-sym-btn" data-sym="<">&lt;</button>
+          <button type="button" class="codelab-sym-btn" data-sym=">">&gt;</button>
+          <button type="button" class="codelab-sym-btn" data-sym="Tab">Tab</button>
+          <button type="button" class="codelab-sym-btn" data-sym="Clear">Clear</button>
+        </div>
+
+        <!-- Split Panes: Editor on Left, Output on Right -->
+        <div class="codelab-split-container">
+          <div class="codelab-editor-pane" id="codelabCompilerEditorPane">
+            <div class="codelab-editor-wrap">
+              <div class="codelab-line-numbers" id="codelabCompilerLines">1</div>
+              <textarea class="codelab-code-input" id="codelabCompilerEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Compiler code editor"></textarea>
+            </div>
+            <!-- Collapsible Stdin Box -->
+            <div class="codelab-stdin-wrap">
+              <button type="button" class="codelab-stdin-toggle" id="codelabStdinToggle" aria-expanded="false">
+                <span><i class="fa-solid fa-terminal" style="font-size:11px"></i> Custom Input (stdin)</span>
+                <i class="fa-solid fa-chevron-down" id="codelabStdinChevron"></i>
+              </button>
+              <div class="codelab-stdin-content" id="codelabStdinContent" hidden>
+                <textarea class="codelab-stdin-input" id="codelabCompilerStdin" placeholder="Pass input for scanf(), cin, Scanner, or input()..." spellcheck="false"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <div class="codelab-console-pane" id="codelabCompilerConsolePane">
+            <div class="codelab-console-head">
+              <span class="codelab-console-title"><i class="fa-solid fa-laptop-code"></i> Output Console</span>
+              <button type="button" class="codelab-sym-btn" id="codelabClearConsoleBtn" title="Clear console">Clear</button>
+            </div>
+            <div class="codelab-console-output" id="codelabCompilerConsole">
+              <span class="codelab-console-info">Press '▶ Run Code' to execute. Output will appear here.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Execution Bar -->
+        <div class="codelab-exec-bar">
+          <div class="codelab-exec-status" id="codelabCompilerStatus">Ready</div>
+          <div class="codelab-exec-actions">
+            <button type="button" class="codelab-backto-btn" id="codelabBackToCodeBtn" hidden>
+              <i class="fa-solid fa-code"></i> <span>Editor</span>
+            </button>
+            <button type="button" class="codelab-run-btn bca-pressable" id="codelabCompilerRunBtn">
+              <i class="fa-solid fa-play"></i>
+              <span>Run Code</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode B: Web Dev Playground -->
+      <section class="codelab-webdev-view" id="codelabWebdevView" hidden>
+        <div class="codelab-sub-toolbar">
+          <div class="codelab-file-tabs">
+            <button type="button" class="codelab-file-tab active" data-file="html">
+              <i class="fa-brands fa-html5" style="color: #f97316;"></i> index.html
+            </button>
+            <button type="button" class="codelab-file-tab" data-file="css">
+              <i class="fa-brands fa-css3-alt" style="color: #38bdf8;"></i> style.css
+            </button>
+            <button type="button" class="codelab-file-tab" data-file="js">
+              <i class="fa-brands fa-js" style="color: #facc15;"></i> script.js
+            </button>
+          </div>
+          <div class="codelab-view-toggle-wrap">
+            <button type="button" class="codelab-toggle-pill-btn active" id="codelabWebEditorToggle" data-view="editor">Editor</button>
+            <button type="button" class="codelab-toggle-pill-btn" id="codelabWebPreviewToggle" data-view="preview">Preview</button>
+          </div>
+        </div>
+
+        <div class="codelab-symbol-toolbar" id="codelabWebSymbolBar" aria-label="Quick web symbols">
+          <button type="button" class="codelab-sym-btn" data-sym="<">&lt;</button>
+          <button type="button" class="codelab-sym-btn" data-sym=">">&gt;</button>
+          <button type="button" class="codelab-sym-btn" data-sym="{ }">{ }</button>
+          <button type="button" class="codelab-sym-btn" data-sym="( )">( )</button>
+          <button type="button" class="codelab-sym-btn" data-sym="=">=</button>
+          <button type="button" class="codelab-sym-btn" data-sym=";">;</button>
+          <button type="button" class="codelab-sym-btn" data-sym='" "'>" "</button>
+          <button type="button" class="codelab-sym-btn" data-sym="Tab">Tab</button>
+          <button type="button" class="codelab-sym-btn" data-sym="Clear">Clear</button>
+        </div>
+
+        <div class="codelab-web-content">
+          <div class="codelab-web-editor-pane" id="codelabWebEditorPane">
+            <div class="codelab-editor-wrap">
+              <div class="codelab-line-numbers" id="codelabWebLines">1</div>
+              <textarea class="codelab-code-input" id="codelabWebEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Web code editor"></textarea>
+            </div>
+          </div>
+          <div class="codelab-preview-pane" id="codelabWebPreviewPane">
+            <iframe class="codelab-preview-frame" id="codelabWebPreviewFrame" sandbox="allow-scripts allow-modals" title="Live Web Preview"></iframe>
+          </div>
+        </div>
+
+        <div class="codelab-exec-bar">
+          <div class="codelab-exec-status">Instant Live Preview Active</div>
+          <div class="codelab-exec-actions">
+            <button type="button" class="codelab-run-btn bca-pressable" id="codelabWebRunBtn">
+              <i class="fa-solid fa-bolt"></i>
+              <span>Refresh Preview</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Mode C: SQL Lab (SQLite Sandbox) -->
+      <section class="codelab-sql-view" id="codelabSqlView" hidden>
+        <div class="codelab-sub-toolbar">
+          <div class="codelab-sql-chips">
+            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT * FROM students;')">SELECT * Students</button>
+            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT * FROM courses;')">SELECT * Courses</button>
+            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT id, name, semester, cgpa FROM students WHERE semester = 3 ORDER BY cgpa DESC;')">Top Sem 3</button>
+            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT s.name, s.semester, c.course_name FROM students s JOIN courses c ON s.semester = c.semester;')">JOIN Query</button>
+            <button type="button" class="codelab-sql-chip" onclick="resetSqlDb()" title="Reset to fresh sample database"><i class="fa-solid fa-rotate-left"></i> Reset DB</button>
+          </div>
+          <div class="codelab-view-toggle-wrap">
+            <button type="button" class="codelab-toggle-pill-btn active" id="codelabSqlEditorToggle" data-view="editor">Editor</button>
+            <button type="button" class="codelab-toggle-pill-btn" id="codelabSqlResultsToggle" data-view="results">Results</button>
+          </div>
+        </div>
+
+        <div class="codelab-symbol-toolbar" id="codelabSqlSymbolBar" aria-label="Quick SQL keywords">
+          <button type="button" class="codelab-sym-btn" data-sym="SELECT ">SELECT</button>
+          <button type="button" class="codelab-sym-btn" data-sym="FROM ">FROM</button>
+          <button type="button" class="codelab-sym-btn" data-sym="WHERE ">WHERE</button>
+          <button type="button" class="codelab-sym-btn" data-sym="ORDER BY ">ORDER BY</button>
+          <button type="button" class="codelab-sym-btn" data-sym="JOIN ">JOIN</button>
+          <button type="button" class="codelab-sym-btn" data-sym="*">*</button>
+          <button type="button" class="codelab-sym-btn" data-sym=";">;</button>
+          <button type="button" class="codelab-sym-btn" data-sym="Clear">Clear</button>
+        </div>
+
+        <div class="codelab-split-container">
+          <div class="codelab-editor-pane" id="codelabSqlEditorPane">
+            <div class="codelab-editor-wrap">
+              <div class="codelab-line-numbers" id="codelabSqlLines">1</div>
+              <textarea class="codelab-code-input" id="codelabSqlEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQL query editor"></textarea>
+            </div>
+          </div>
+          <div class="codelab-sql-result-pane" id="codelabSqlResultsPane">
+            <div class="codelab-console-head">
+              <span class="codelab-console-title"><i class="fa-solid fa-table"></i> Query Results</span>
+              <span class="codelab-exec-status" id="codelabSqlMeta" style="font-size:11.5px;">Ready</span>
+            </div>
+            <div class="codelab-table-wrap" id="codelabSqlResultWrap">
+              <div style="padding: 16px; color: #94a3b8; text-align: center; font-size: 13px;">
+                Tap '▶ Run SQL Query' or choose a quick query above to view results table.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="codelab-exec-bar">
+          <div class="codelab-exec-status" id="codelabSqlStatus"><i class="fa-solid fa-database" style="color:#38bdf8"></i> SQLite 3 Ready</div>
+          <div class="codelab-exec-actions">
+            <button type="button" class="codelab-backto-btn" id="codelabSqlBackToCodeBtn" hidden>
+              <i class="fa-solid fa-code"></i> <span>Editor</span>
+            </button>
+            <button type="button" class="codelab-run-btn bca-pressable" id="codelabSqlRunBtn">
+              <i class="fa-solid fa-play"></i>
+              <span>Run SQL</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
   <!-- ================= Mock Test Modal ================= -->
   <div class="mt-modal" id="mockTestModal" role="dialog" aria-modal="true" aria-labelledby="mtModalTitle" onclick="if(event.target===this)closeMockTestModal()">
     <div class="mt-dialog">
@@ -2045,6 +2309,8 @@
   <script src="app.js?v=82"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
+  <script src="codelab.js?v=2"></script>
 </body>
 </html>
 

@@ -2968,7 +2968,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       $('uploadModal').classList.add('open');
       initUploadSheetGestures();
       updateUploadSubjects();
-    };function syncBottomNavTab(){const tabs=document.querySelectorAll('.bottom-tab');if(!tabs.length)return;const profModal=$('profileModal');const profOpen=profModal&&profModal.classList.contains('open');if(profOpen){tabs.forEach(t=>t.classList.toggle('active',t.classList.contains('bottom-tab-profile')))}else if(state.savedOnly){tabs.forEach((t,i)=>t.classList.toggle('active',i===3))}else{tabs.forEach((t,i)=>t.classList.toggle('active',i===0))}}function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}syncBottomNavTab();}
+    };function syncBottomNavTab(){const tabs=document.querySelectorAll('.bottom-tab');if(!tabs.length)return;const profModal=$('profileModal');const profOpen=profModal&&profModal.classList.contains('open');if(profOpen){tabs.forEach(t=>t.classList.toggle('active',t.classList.contains('bottom-tab-profile')))}else if(state.savedOnly){tabs.forEach((t,i)=>t.classList.toggle('active',i===3))}else{tabs.forEach((t,i)=>t.classList.toggle('active',i===0))}}function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();try{if(typeof closeCodeLab==='function')closeCodeLab(false);}catch(e){}closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}syncBottomNavTab();}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){
       const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');
@@ -6055,6 +6055,18 @@ async function submitResourceReport(event){
 /* ============================================================
    Quick Actions Routes & Juniors Request Modal Handlers
    ============================================================ */
+function openCodeLabRoute() {
+  try {
+    if (location.hash !== '#codelab') {
+      history.pushState(null, '', '#codelab');
+    }
+  } catch (e) { location.hash = '#codelab'; }
+  if (typeof openCodeLab === 'function') {
+    openCodeLab();
+  }
+}
+window.openCodeLabRoute = openCodeLabRoute;
+
 function openMockTestsRoute() {
   try {
     if (location.hash !== '#mocktests') {
