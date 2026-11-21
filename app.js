@@ -1306,9 +1306,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
         const sessionName=(accountSession&&(accountSession.displayName||(accountSession.user_metadata&&accountSession.user_metadata.name)))||(accountSession?'Student':'Guest visitor');
         const userEmail=getUploaderEmail()||(accountSession&&accountSession.email)||'guest@bcaprime.web';
+        const formattedMsg = feedbackRatingTag ? `[Rating: ${feedbackRatingTag}/5 stars]\n${message}` : message;
         const row={
           kind:feedbackKind,
-          message:message.slice(0,1000),
+          message:formattedMsg.slice(0,1000),
           user_email:userEmail,
           user_name:String(sessionName||'').slice(0,120),
           screenshot_url:screenshotUrl,
@@ -1316,6 +1317,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           user_agent:navigator.userAgent.slice(0,300)
         };
         const {error}=await supabaseClient.from('feedback').insert(row);
+        feedbackRatingTag = null;
         if(error)throw error;
         closeModals();
         form.reset();
@@ -3128,12 +3130,22 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     let currentRatingStar = 0;
 
-    function openRatingModal(){
+    let ratingOpenedFromAbout = false;
+    let feedbackRatingTag = null;
+
+    function openRatingModal(fromAbout = false){
+      ratingOpenedFromAbout = Boolean(fromAbout);
       closeModals();
       resetRatingModal();
       const m=$('ratingModal');
       if(m)m.classList.add('open');
+      const backBtn = $('ratingBackBtn');
+      if(backBtn) backBtn.style.visibility = ratingOpenedFromAbout ? 'visible' : 'hidden';
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+    }
+    function handleRatingBack(){
+      closeRatingModal();
+      if(ratingOpenedFromAbout) openAboutModal();
     }
     function closeRatingModal(){
       const m=$('ratingModal');
@@ -3141,6 +3153,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function resetRatingModal(){
       currentRatingStar = 0;
+      feedbackRatingTag = null;
       document.querySelectorAll('.rating-star-btn').forEach(btn=>{
         btn.classList.remove('active');
       });
@@ -3189,7 +3202,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function continueToTrustpilot(){
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
-      window.open('https://www.trustpilot.com/evaluate/bcaprime.vercel.app','_blank','noopener,noreferrer');
+      const starParam = (currentRatingStar === 4 || currentRatingStar === 5) ? `?stars=${currentRatingStar}` : '';
+      window.open(`https://www.trustpilot.com/evaluate/bcaprime.vercel.app${starParam}`,'_blank','noopener,noreferrer');
       closeRatingModal();
       if(window.BCA_UI&&window.BCA_UI.Toast){
         window.BCA_UI.Toast.success('Thank you for supporting BCAPrime on Trustpilot! 🙏');
@@ -3199,17 +3213,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function submitRatingToFeedback(){
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      const ratedStar = currentRatingStar;
+      feedbackRatingTag = ratedStar;
       closeRatingModal();
       openFeedback();
       const kindBtn=document.querySelector('.fb-kind[data-kind="idea"]') || document.querySelector('.fb-kind[data-kind="bug"]');
       if(kindBtn)setFeedbackKind(kindBtn);
       const msgInput=$('fbMessage');
       if(msgInput&&!msgInput.value.trim()){
-        msgInput.placeholder = `Tell us what disappointed you (${currentRatingStar} star review) or what we can fix...`;
+        msgInput.placeholder = `Tell us what went wrong (${ratedStar} star review) or what we should improve/add...`;
       }
     }
     function rateApp(){
-      openRatingModal();
+      openRatingModal(true);
     }
     async function shareApp(){
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
@@ -3351,6 +3367,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     window.closeAboutModal=closeAboutModal;
     window.openRatingModal=openRatingModal;
     window.closeRatingModal=closeRatingModal;
+    window.handleRatingBack=handleRatingBack;
     window.selectRatingStar=selectRatingStar;
     window.continueToTrustpilot=continueToTrustpilot;
     window.submitRatingToFeedback=submitRatingToFeedback;

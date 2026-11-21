@@ -44,6 +44,7 @@ BCAPrime uses an intentional, high-craft condensed font hierarchy to deliver a n
 | **Card Titles & Modal Headers (`h3`, Sheets)** | `Barlow Condensed` | `600` / `700` | `18px – 22px` | `1.15 – 1.20` | `-0.015em` | Normal |
 | **Bottom Navbar Labels (`LIBRARY`, `UPLOAD`, etc.)** | `Barlow Condensed` | `700` (Bold) | `11px` | `1.1` | `+0.07em` | `uppercase` |
 | **Eyebrow Tags & Status Badges** | `Barlow Condensed` | `700` (Bold) | `10px – 12px` | `1.0` | `+0.05em – +0.08em` | `uppercase` |
+| **Footer Verification Pill Badges (`VERIFIED ON TRUSTPILOT`)** | `Barlow Condensed` | `600` (SemiBold) | `11px` | `1.0` | `+0.08em` | `uppercase` |
 | **Primary Action Buttons (CTAs)** | `Roboto Condensed` | `600` / `700` | `15px – 16px` | `1.0` | `+0.01em` | Normal |
 | **Form Inputs & Placeholders** | `Roboto Condensed` | `500` | `16px` (mobile min) | `1.25` | `normal` | Normal |
 | **Body Paragraphs & Descriptions** | `Roboto Condensed` | `400` | `14px – 15px` | `1.45 – 1.50` | `normal` | Normal |
@@ -96,4 +97,5 @@ BCAPrime exposes central typography CSS variables in `styles.css`:
 - **Headings & Titles**: `font-condensed-heading font-semibold` or `font-['Barlow_Condensed'] font-semibold`
 - **Bottom Navbar Labels**: `font-['Barlow_Condensed'] font-bold uppercase text-[11px] tracking-wider`
 - **Body & Inputs**: `font-condensed-body` or `font-['Roboto_Condensed']`
+- **Footer Verification Badges**: `font-['Barlow_Condensed'] font-semibold text-[11px] uppercase tracking-wider` (with `#00B67A` star icon; never include numerical star counts or review numbers)
 - **Mono Badges**: `font-mono tracking-wider font-semibold`

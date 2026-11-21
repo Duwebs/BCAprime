@@ -1,6 +1,6 @@
 /* BCAPrime stylesheet - extracted from index.html */
 /* App version label (footer ke neeche, chhota sa) */
-.app-version{text-align:center;margin:14px 0 0;color:var(--muted);opacity:.65;font-size:11px;font-weight:600;letter-spacing:.05em;font-variant-numeric:tabular-nums}
+.app-version{text-align:center;margin:8px 0 0;color:var(--muted);opacity:.65;font-size:11px;font-weight:600;letter-spacing:.05em;font-variant-numeric:tabular-nums}
 /* ==== What's New Update Modal (Native App Redesign) ==== */
 .wn-modal {
   position: fixed;
@@ -4076,6 +4076,86 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
 .founder-insta{padding:8px 15px!important;border-radius:999px!important;color:#fff!important;background:linear-gradient(92deg,#833ab4,#e1306c 55%,#f77737);transition:transform .2s ease,box-shadow .2s ease}
 .founder-insta:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(225,48,108,.4)}
 .qr-steps b{color:var(--ink);margin-right:6px}
+
+/* ---- Verified on Trustpilot Footer Badge ---- */
+.footer-trustpilot-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 12px auto 2px;
+}
+
+.footer-trustpilot-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6.5px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  cursor: pointer;
+  text-decoration: none;
+  background-color: rgba(0, 182, 122, 0.05);
+  border: 1px solid rgba(0, 182, 122, 0.20);
+  color: #334155;
+  transition: transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.footer-trustpilot-badge::after {
+  content: "";
+  position: absolute;
+  inset: -8px -6px;
+}
+
+.footer-trustpilot-badge:hover {
+  background-color: rgba(0, 182, 122, 0.10);
+  border-color: rgba(0, 182, 122, 0.35);
+  color: #0f172a;
+}
+
+.footer-trustpilot-badge:active {
+  transform: scale(0.95) !important;
+}
+
+[data-theme="dark"] .footer-trustpilot-badge,
+html[data-theme="dark"] .footer-trustpilot-badge,
+body.dark .footer-trustpilot-badge {
+  background-color: rgba(0, 182, 122, 0.07);
+  border: 1px solid rgba(0, 182, 122, 0.20);
+  color: #e4e4e7;
+}
+
+[data-theme="dark"] .footer-trustpilot-badge:hover,
+html[data-theme="dark"] .footer-trustpilot-badge:hover,
+body.dark .footer-trustpilot-badge:hover {
+  background-color: rgba(0, 182, 122, 0.12);
+  border-color: rgba(0, 182, 122, 0.35);
+  color: #ffffff;
+}
+
+.trustpilot-star-icon {
+  width: 13px;
+  height: 13px;
+  display: inline-block;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.trustpilot-badge-text {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  line-height: 1 !important;
+  white-space: nowrap;
+}
 
 /* ---- Mobile footer (replaces broken nested media query) ---- */
 @media(max-width:640px){
