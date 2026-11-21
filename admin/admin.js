@@ -2945,7 +2945,7 @@ async function openStudentAdminProfile(uid) {
       const [upRes, reqRes, lfRes] = await Promise.allSettled([
         adminSupabaseClient.from('resources').select('id', { count: 'exact', head: true }).eq('uploader_uid', student.uid),
         adminSupabaseClient.from('senior_requests').select('id', { count: 'exact', head: true }).eq('requester_uid', student.uid),
-        adminSupabaseClient.from('lost_found').select('id', { count: 'exact', head: true }).eq('user_id', student.uid)
+        adminSupabaseClient.from('lost_found').select('id', { count: 'exact', head: true }).eq('poster_uid', student.uid)
       ]);
 
       const upCount = upRes.status === 'fulfilled' && upRes.value ? (upRes.value.count || 0) : 0;

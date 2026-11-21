@@ -6,6 +6,17 @@ console.info('[BCAPrime Analytics] Executive Suite v4 initializing...');
 
 const $ = id => document.getElementById(id);
 
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+const escHtml = escapeHtml;
+if (typeof window !== 'undefined') {
+  window.escapeHtml = escapeHtml;
+  window.escHtml = escapeHtml;
+}
+
 /* ---- Isolated Storage for Analytics ---- */
 function createIsolatedStorage(prefix) {
   return {
@@ -1307,12 +1318,16 @@ async function openStudentInspector(studentId) {
 
     // 2. Fetch all telemetry & event records in parallel
     const [eventsRes, readingRes, uploadsRes, requestsRes, lostFoundRes, feedbackRes] = await Promise.allSettled([
-      analyticsSupabaseClient.from('analytics_events').select('*').or(`user_id.eq.${studentId},user_email.eq.${student.email || 'none'}`).order('created_at', { ascending: false }).limit(200),
+      student.email
+        ? analyticsSupabaseClient.from('analytics_events').select('*').or(`user_id.eq.${studentId},user_email.eq.${student.email}`).order('created_at', { ascending: false }).limit(200)
+        : analyticsSupabaseClient.from('analytics_events').select('*').eq('user_id', studentId).order('created_at', { ascending: false }).limit(200),
       analyticsSupabaseClient.from('user_reading_progress').select('*').eq('user_id', studentId).order('updated_at', { ascending: false }),
       analyticsSupabaseClient.from('resources').select('*').eq('uploader_uid', studentId).order('created_at', { ascending: false }),
       analyticsSupabaseClient.from('senior_requests').select('*').eq('requester_uid', studentId).order('created_at', { ascending: false }),
-      analyticsSupabaseClient.from('lost_found').select('*').eq('user_id', studentId).order('created_at', { ascending: false }),
-      analyticsSupabaseClient.from('feedback').select('*').or(`user_id.eq.${studentId},user_email.eq.${student.email || 'none'}`).order('created_at', { ascending: false })
+      analyticsSupabaseClient.from('lost_found').select('*').eq('poster_uid', studentId).order('created_at', { ascending: false }),
+      student.email
+        ? analyticsSupabaseClient.from('feedback').select('*').eq('user_email', student.email).order('created_at', { ascending: false })
+        : Promise.resolve({ data: [] })
     ]);
 
     const events = eventsRes.status === 'fulfilled' && Array.isArray(eventsRes.value.data) ? eventsRes.value.data : [];
