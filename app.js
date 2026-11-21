@@ -3233,15 +3233,114 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         toast('Share: https://bcaprime.vercel.app');
       }
     }
-    function openPrivacyPolicy(){
-      window.open('privacy.html','_blank','noopener,noreferrer');
+    function openLegalModal(type = 'terms', event = null) {
+      if (event && event.preventDefault) event.preventDefault();
+      triggerAuthHaptic(12);
+      const modal = $('legalModal');
+      const title = $('legalModalTitle');
+      const body = $('legalModalBody');
+      const extLink = $('legalModalExtLink');
+      if (!modal || !title || !body) {
+        if (type === 'privacy') {
+          window.open('privacy.html', '_blank', 'noopener,noreferrer');
+        } else {
+          window.open('terms.html', '_blank', 'noopener,noreferrer');
+        }
+        return;
+      }
+
+      if (type === 'privacy') {
+        title.innerHTML = '<i class="fa-solid fa-shield-halved" style="color:#3b82f6;margin-right:8px"></i>Privacy Policy';
+        if (extLink) extLink.href = 'privacy.html';
+        body.innerHTML = `
+          <p class="legal-doc-updated">Last updated: 9 September 2026</p>
+          <p class="legal-doc-intro">BCAPrime (&quot;we&quot;, &quot;our&quot;, &quot;the app&quot;) is a free study library for BCA students &mdash; notes and previous year question papers (PYQs), organised by college and semester. This policy explains what data we collect, why, and the choices you have. By using BCAPrime you agree to this policy.</p>
+          <h3 class="legal-doc-h3">1. What we collect</h3>
+          <ul class="legal-doc-ul">
+            <li><strong>Account details</strong> &mdash; your email address, display name and profile photo (when you sign in with email/OTP or Google).</li>
+            <li><strong>Uploaded content</strong> &mdash; notes/PYQ files you submit, plus the title, subject, semester, college and uploader name you attach to them.</li>
+            <li><strong>Google Drive data</strong> &mdash; if you use &quot;Import from Google Drive&quot;, we request read-only access only to the file(s) you pick. We never read, list or store any other Drive files.</li>
+            <li><strong>Analytics</strong> &mdash; anonymous usage events (searches, views/downloads counts, device type) to improve the app.</li>
+            <li><strong>Local data</strong> &mdash; preferences (theme, college, semester, saved items) stored in your browser only.</li>
+          </ul>
+          <h3 class="legal-doc-h3">2. How we use your data</h3>
+          <ul class="legal-doc-ul">
+            <li>To operate the library: show approved resources, counts, and your &quot;My uploads&quot; status.</li>
+            <li>To verify accounts and send notification emails.</li>
+            <li>To moderate uploads: submissions go to admins for review before becoming public.</li>
+            <li>To keep the platform safe and prevent abuse.</li>
+          </ul>
+          <p class="legal-doc-highlight">We <strong>never sell</strong> your personal data.</p>
+          <h3 class="legal-doc-h3">3. Third-party services</h3>
+          <ul class="legal-doc-ul">
+            <li><strong>Supabase</strong> &mdash; database and file storage.</li>
+            <li><strong>Firebase / Google</strong> &mdash; authentication and Drive file picker.</li>
+            <li><strong>Vercel & Resend</strong> &mdash; hosting and transactional emails.</li>
+          </ul>
+          <h3 class="legal-doc-h3">4. Content you upload</h3>
+          <p>Uploads are held privately for admin review. After approval they become publicly viewable and downloadable by all BCAPrime users, credited with your uploader name.</p>
+          <h3 class="legal-doc-h3">5. Contact & Data Deletion</h3>
+          <p>You can request deletion of your account or uploaded files anytime by emailing <strong>openmailon@gmail.com</strong>.</p>
+        `;
+      } else {
+        title.innerHTML = '<i class="fa-solid fa-file-contract" style="color:#22c55e;margin-right:8px"></i>Terms of Service';
+        if (extLink) extLink.href = 'terms.html';
+        body.innerHTML = `
+          <p class="legal-doc-updated">Last updated: 9 September 2026</p>
+          <p class="legal-doc-intro">Welcome to BCAPrime &mdash; a free, community-driven study library for BCA students. By accessing or using the app you agree to these Terms. If you do not agree, please do not use the app.</p>
+          <h3 class="legal-doc-h3">1. What BCAPrime is</h3>
+          <p>BCAPrime lets students discover, read and download study material (notes and previous year question papers) shared by the community, and share their own material with others. We provide the platform; content comes from users like you.</p>
+          <h3 class="legal-doc-h3">2. Your account</h3>
+          <ul class="legal-doc-ul">
+            <li>You are responsible for the activity on your account and for keeping your credentials safe.</li>
+            <li>Do not impersonate others or provide false information.</li>
+            <li>We may suspend accounts that violate these Terms or abuse the platform.</li>
+          </ul>
+          <h3 class="legal-doc-h3">3. Uploading content</h3>
+          <ul class="legal-doc-ul">
+            <li>Only upload material <strong>you have the right to share</strong> &mdash; your own notes, documents you are permitted to distribute, or non-copyrighted material.</li>
+            <li>All uploads go through admin review and are only published after approval.</li>
+            <li>You keep ownership of what you upload, but grant BCAPrime a licence to host, display and distribute it on the platform.</li>
+          </ul>
+          <h3 class="legal-doc-h3">4. Acceptable use</h3>
+          <ul class="legal-doc-ul">
+            <li>Do not upload illegal, harmful, abusive, misleading or explicit content.</li>
+            <li>Do not upload malware or attempt to break, overload or reverse-engineer the app.</li>
+            <li>Do not scrape, spam or misuse the service or other users.</li>
+          </ul>
+          <h3 class="legal-doc-h3">5. Copyright (DMCA)</h3>
+          <p>If you believe content on BCAPrime infringes your copyright, contact <strong>openmailon@gmail.com</strong> with the details. Verified complaints are removed promptly.</p>
+          <h3 class="legal-doc-h3">6. Availability & Changes</h3>
+          <p>The service is provided &quot;as is&quot; &mdash; we do not guarantee uninterrupted availability. We may update features or these Terms from time to time.</p>
+        `;
+      }
+
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden', 'false');
+      body.scrollTop = 0;
     }
-    function openTermsOfService(){
-      window.open('terms.html','_blank','noopener,noreferrer');
+
+    function closeLegalModal() {
+      triggerAuthHaptic(8);
+      const modal = $('legalModal');
+      if (modal) {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    function openPrivacyPolicy(e){
+      openLegalModal('privacy', e);
+    }
+    function openTermsOfService(e){
+      openLegalModal('terms', e);
     }
     function openOpenSource(){
       window.open('https://github.com/Duwebs/BCAprime','_blank','noopener,noreferrer');
     }
+
+    window.openLegalModal = openLegalModal;
+    window.closeLegalModal = closeLegalModal;
 
     window.openSettingsSheet=openSettingsSheet;
     window.closeSettingsSheet=closeSettingsSheet;

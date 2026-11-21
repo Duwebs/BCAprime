@@ -3307,7 +3307,7 @@ html:not([data-theme="dark"]) .auth-gate .account-switch {
   font: 500 13.5px 'Roboto Condensed', sans-serif !important;
   letter-spacing: 0.01em;
   margin-top: auto !important;
-  margin-bottom: 0 !important;
+  margin-bottom: 2px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   cursor: pointer;
@@ -3331,6 +3331,53 @@ html:not([data-theme="dark"]) .auth-guest-pill {
 }
 html:not([data-theme="dark"]) .auth-guest-pill:hover {
   color: #09090b !important;
+}
+
+/* Auth Legal Disclaimer (Terms & Privacy Notice) */
+.auth-legal-notice {
+  font-family: 'Roboto Condensed', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.45 !important;
+  text-align: center !important;
+  max-width: 320px !important;
+  margin: 2px auto 0 !important;
+  padding: 0 6px !important;
+  box-sizing: border-box !important;
+  letter-spacing: normal !important;
+}
+[data-theme="dark"] .auth-legal-notice {
+  color: #71717a !important;
+}
+html:not([data-theme="dark"]) .auth-legal-notice {
+  color: #94a3b8 !important;
+}
+
+.auth-legal-link {
+  color: inherit !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px !important;
+  cursor: pointer !important;
+  transition: opacity 0.15s ease, color 0.15s ease !important;
+  font-weight: 500 !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  display: inline !important;
+}
+[data-theme="dark"] .auth-legal-link {
+  color: #a1a1aa !important;
+}
+[data-theme="dark"] .auth-legal-link:hover {
+  color: #ffffff !important;
+  opacity: 0.85 !important;
+}
+html:not([data-theme="dark"]) .auth-legal-link {
+  color: #64748b !important;
+}
+html:not([data-theme="dark"]) .auth-legal-link:hover {
+  color: #09090b !important;
+  opacity: 0.85 !important;
 }
 
 /* ============================================================
@@ -3539,6 +3586,10 @@ html:not([data-theme="dark"]) .auth-guest-pill:hover {
   }
   .auth-guest-pill {
     margin-top: 6px !important;
+    margin-bottom: 2px !important;
+  }
+  .auth-legal-notice {
+    margin-top: 4px !important;
   }
 }
 
@@ -9567,6 +9618,255 @@ body.light .add-sub-btn-submit:hover {
     opacity: 1;
   }
   .add-sub-sheet-handle {
+    display: flex;
+  }
+}
+
+/* ============================================================
+   Legal Modal / Bottom Sheet (Terms & Privacy)
+   Strictly layered above Auth Gate (z-index: 10015)
+   ============================================================ */
+.modal.legal-modal {
+  position: fixed;
+  inset: 0;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10015 !important;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.modal.legal-modal.open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.legal-dialog {
+  position: relative;
+  width: min(100%, 540px);
+  max-height: min(84dvh, 680px);
+  background: #0d0d0f;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 24px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: scale(0.96) translateY(10px);
+  opacity: 0;
+  transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal.legal-modal.open .legal-dialog {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+}
+
+[data-theme="light"] .legal-dialog,
+html:not([data-theme="dark"]) .legal-dialog {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.14);
+}
+
+.legal-sheet-handle-wrap {
+  display: none;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 0 2px;
+}
+.legal-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+html:not([data-theme="dark"]) .legal-sheet-handle {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.legal-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+html:not([data-theme="dark"]) .legal-dialog-head {
+  border-bottom-color: #e2e8f0;
+}
+
+.legal-dialog-head h2 {
+  font-family: 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-weight: 700 !important;
+  font-size: 22px !important;
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+[data-theme="dark"] .legal-dialog-head h2 {
+  color: #f3f4f6;
+}
+html:not([data-theme="dark"]) .legal-dialog-head h2 {
+  color: #111827;
+}
+
+.legal-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legal-ext-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.legal-ext-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+html:not([data-theme="dark"]) .legal-ext-btn {
+  color: #64748b;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+html:not([data-theme="dark"]) .legal-ext-btn:hover {
+  color: #09090b;
+}
+
+.legal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  line-height: 1;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.legal-close-btn:hover {
+  color: #ffffff;
+}
+html:not([data-theme="dark"]) .legal-close-btn {
+  color: #64748b;
+}
+html:not([data-theme="dark"]) .legal-close-btn:hover {
+  color: #09090b;
+}
+
+.legal-dialog-body {
+  padding: 18px 22px 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-family: 'Roboto Condensed', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.55;
+  box-sizing: border-box;
+}
+
+.legal-doc-updated {
+  font-size: 12px;
+  color: #71717a;
+  margin: 0 0 12px;
+}
+html:not([data-theme="dark"]) .legal-doc-updated {
+  color: #94a3b8;
+}
+
+.legal-doc-intro {
+  margin: 0 0 16px;
+  color: #e4e4e7;
+}
+html:not([data-theme="dark"]) .legal-doc-intro {
+  color: #334155;
+}
+
+.legal-doc-h3 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  margin: 18px 0 6px;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+html:not([data-theme="dark"]) .legal-doc-h3 {
+  color: #09090b;
+}
+
+.legal-doc-ul {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  color: #d4d4d8;
+}
+html:not([data-theme="dark"]) .legal-doc-ul {
+  color: #475569;
+}
+.legal-doc-ul li {
+  margin-bottom: 6px;
+}
+
+.legal-doc-highlight {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 14px 0;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+/* Mobile Bottom Sheet Presentation (< 768px) */
+@media (max-width: 767px) {
+  .modal.legal-modal {
+    align-items: flex-end !important;
+    padding: 0 !important;
+  }
+  .legal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88dvh !important;
+    border-radius: 28px 28px 0 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    transform: translateY(100%);
+    opacity: 1;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .modal.legal-modal.open .legal-dialog {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .legal-sheet-handle-wrap {
     display: flex;
   }
 }

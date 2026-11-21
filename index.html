@@ -209,7 +209,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=82">
+  <link rel="stylesheet" href="styles.css?v=83">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=7">
 </head>
@@ -303,6 +303,9 @@
           <button class="secondary guest-button auth-guest-pill bca-pressable" type="button" onclick="continueAsGuest()">
             <span>Continue as guest &rarr;</span>
           </button>
+          <p class="auth-legal-notice">
+            By continuing, you agree to BCAPrime's <a href="terms.html" class="auth-legal-link" target="_blank" rel="noopener noreferrer" onclick="openLegalModal('terms', event)">Terms of Service</a> and acknowledge our <a href="privacy.html" class="auth-legal-link" target="_blank" rel="noopener noreferrer" onclick="openLegalModal('privacy', event)">Privacy Policy</a>.
+          </p>
           <button class="secondary desktop-qr-trigger bca-pressable" id="desktopQrTrigger" type="button" onclick="setAuthMode('qr')" hidden>
             <i class="fa-solid fa-qrcode"></i>
             <span>Log in with QR code</span>
@@ -1391,6 +1394,23 @@
   <!-- In-app PDF reader (full-screen, zoom + offline) -->
   <div class="modal reader-modal" id="readerModal"><div class="reader-shell"><div class="reader-toolbar"><button class="reader-btn" onclick="closeReader()" aria-label="Close reader" title="Close"><i class="fa-solid fa-arrow-left"></i></button><div class="reader-title"><strong id="readerTitle">Reading</strong></div><div class="reader-zoom"><button class="reader-btn" onclick="readerZoomOut()" aria-label="Zoom out" title="Zoom out"><i class="fa-solid fa-minus"></i></button><span id="readerZoomVal">100%</span><button class="reader-btn" onclick="readerZoomIn()" aria-label="Zoom in" title="Zoom in"><i class="fa-solid fa-plus"></i></button></div><button class="reader-btn bca-pressable" id="readerDownload" onclick="downloadCurrentReaderFile()" aria-label="Download" title="Download note"><i class="fa-solid fa-download"></i></button></div><div class="reader-viewport secure-view" id="readerViewport" tabindex="0" role="region" aria-label="Document viewer"><div id="readerCanvasPane" class="reader-canvas-pane" tabindex="0" hidden></div><iframe id="readerFrame" class="reader-frame" title="PDF viewer" hidden></iframe><div id="readerDocx" class="reader-docx" tabindex="0" hidden></div></div></div></div>
 
+  <!-- Legal (Terms & Privacy) In-App Modal / Bottom Sheet -->
+  <div class="modal legal-modal" id="legalModal" role="dialog" aria-modal="true" aria-labelledby="legalModalTitle" onclick="if(event.target===this)closeLegalModal()">
+    <div class="dialog legal-dialog">
+      <div class="legal-sheet-handle-wrap" aria-hidden="true"><div class="legal-sheet-handle"></div></div>
+      <div class="dialog-head legal-dialog-head">
+        <h2 id="legalModalTitle"><i class="fa-solid fa-file-contract"></i> Terms of Service</h2>
+        <div class="legal-head-actions">
+          <a class="legal-ext-btn bca-pressable" id="legalModalExtLink" href="terms.html" target="_blank" rel="noopener noreferrer" title="Open full page in new tab" aria-label="Open full page in new tab">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+          <button type="button" class="close legal-close-btn bca-pressable" aria-label="Close legal view" onclick="closeLegalModal()">&times;</button>
+        </div>
+      </div>
+      <div class="legal-dialog-body" id="legalModalBody"></div>
+    </div>
+  </div>
+
 
   <div id="toastRoot" role="status" aria-live="polite"></div>
   <div class="tour" id="tour" hidden role="dialog" aria-modal="true" aria-label="Welcome tour"><button class="tour-skip" type="button" onclick="skipTour()">Skip</button><div class="tour-stage" id="tourStage"><div class="tour-icon-wrap"><i id="tourIcon" class="fa-solid fa-magnifying-glass"></i></div><div class="tour-dots" id="tourDots"></div><h2 id="tourTitle"></h2><p id="tourText"></p></div><div class="tour-actions"><button class="tour-back" id="tourBack" type="button" onclick="previousTourStep()" hidden aria-label="Previous"><i class="fa-solid fa-arrow-left"></i></button><button class="primary" id="tourNext" type="button" onclick="nextTourStep()">Next <i class="fa-solid fa-arrow-right"></i></button></div></div>
@@ -2014,7 +2034,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=80"></script>
+  <script src="app.js?v=81"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
 </body>
