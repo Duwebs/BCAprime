@@ -5407,7 +5407,7 @@ html[data-theme=dark] .cr-hero-pill {
   box-shadow: none;
 }
 .qa-card:active {
-  transform: translateY(0);
+  transform: scale(0.97);
   background: var(--surface);
 }
 .qa-card:focus-visible {
@@ -5460,25 +5460,19 @@ html[data-theme=dark] .cr-hero-pill {
   min-width: 0;
 }
 .qa-card-title {
-  font-family: 'Geist', sans-serif;
-  font-size: 14.5px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
   font-weight: 600;
   line-height: 1.18;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
   color: #ffffff;
   text-align: left;
 }
 
-/* Line break: only breaks onto 2 lines on tablet and mobile */
+/* Line break: hidden — Barlow Condensed + nowrap handles single-line fit */
 .qa-mobile-br {
-  display: block;
-}
-@media (min-width: 880px) {
-  .qa-mobile-br {
-    display: none;
-  }
-  .qa-card-title {
-    white-space: nowrap;
-  }
+  display: none;
 }
 
 /* "New" Badge */

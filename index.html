@@ -209,9 +209,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=84">
+  <link rel="stylesheet" href="styles.css?v=85">
   <link rel="stylesheet" href="ui/ui.css">
-  <link rel="stylesheet" href="mocktest.css?v=7">
+  <link rel="stylesheet" href="mocktest.css?v=8">
   <link rel="stylesheet" href="codelab.css?v=2">
 </head>
 <body>
@@ -555,7 +555,7 @@
             <div class="qa-featured-info">
               <div class="qa-featured-header-row">
                 <span class="qa-featured-title">Code Lab</span>
-                <span class="qa-new-badge qa-codelab-badge">New</span>
+                <span class="qa-new-badge qa-codelab-badge" id="qaCodelabNewBadge">New</span>
               </div>
               <p class="qa-featured-subtitle">Run C, C++, Java, Python, SQL &amp; Web live</p>
             </div>
@@ -574,8 +574,7 @@
             <i class="fa-solid fa-graduation-cap"></i>
           </span>
           <div class="qa-card-content">
-            <span class="qa-card-title">Mock<br class="qa-mobile-br"> tests</span>
-            <span class="qa-new-badge" id="qaMockNewBadge">New</span>
+            <span class="qa-card-title">Mock tests</span>
           </div>
         </button>
 
@@ -596,7 +595,7 @@
             <i class="fa-solid fa-user-plus"></i>
           </span>
           <div class="qa-card-content">
-            <span class="qa-card-title">Juniors<br class="qa-mobile-br"> request</span>
+            <span class="qa-card-title">Juniors request</span>
           </div>
         </button>
 
@@ -606,7 +605,7 @@
             <i class="fa-solid fa-circle-question"></i>
           </span>
           <div class="qa-card-content">
-            <span class="qa-card-title">Lost and<br class="qa-mobile-br"> found</span>
+            <span class="qa-card-title">Lost &amp; found</span>
           </div>
         </button>
       </div>
@@ -1987,7 +1986,6 @@
   <!-- ================= Mock Test Modal ================= -->
   <div class="mt-modal" id="mockTestModal" role="dialog" aria-modal="true" aria-labelledby="mtModalTitle" onclick="if(event.target===this)closeMockTestModal()">
     <div class="mt-dialog">
-      <div class="mt-sheet-handle"><span></span></div>
       <!-- Header -->
       <div class="mt-header">
         <div class="mt-header-left">
@@ -1998,7 +1996,6 @@
           </div>
         </div>
         <div class="mt-header-actions">
-          <button class="mt-icon-btn mt-fs-btn" id="mtFullscreenBtn" onclick="toggleMtFullscreen()" aria-label="Toggle Full-Screen" title="Full-Screen Mode"><i class="fa-solid fa-expand"></i></button>
           <button class="mt-close-btn" onclick="closeMockTestModal()" aria-label="Close mock test dialog">&times;</button>
         </div>
       </div>
@@ -2306,7 +2303,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=82"></script>
+  <script src="app.js?v=83"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>

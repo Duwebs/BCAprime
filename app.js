@@ -266,9 +266,18 @@ const colleges=[
     const state={theme:localStorage.getItem('bca-theme')||'dark',college:localStorage.getItem('bca-college')||'all',type:'all',query:'',profileSemester:initProfileSem,finderSemester:initFinderSem,sem:initFinderSem,subject:'all',saved:JSON.parse(localStorage.getItem('bca-saved')||'[]'),savedOnly:false,onboardingCollege:'',onboardingSem:'',hasSeniorNotification:true};
     const $=id=>document.getElementById(id);
     /* Quick Actions Config & State Controls */
-    window.QUICK_ACTIONS_CONFIG = {
-      showMockTestNewBadge: true
+    // ── Single-badge system: only the LATEST feature gets the "New" badge ──
+    // To promote a future feature, change LATEST_FEATURE_ID to its key.
+    const LATEST_FEATURE_ID = 'codelab';
+    const FEATURE_BADGE_IDS = {
+      codelab:   'qaCodelabNewBadge',
+      mocktests: 'qaMockNewBadge'
     };
+    Object.entries(FEATURE_BADGE_IDS).forEach(([id, badgeId]) => {
+      const el = document.getElementById(badgeId);
+      if (el) el.hidden = (id !== LATEST_FEATURE_ID);
+    });
+    window.QUICK_ACTIONS_CONFIG = { showMockTestNewBadge: false };
     function setSeniorNotificationDot(show){
       state.hasSeniorNotification = !!show;
       const dot = document.getElementById('qaSeniorRedDot');
@@ -278,7 +287,7 @@ const colleges=[
     function setMockTestNewBadge(show){
       window.QUICK_ACTIONS_CONFIG.showMockTestNewBadge = !!show;
       const badge = document.getElementById('qaMockNewBadge');
-      if (badge) badge.style.display = window.QUICK_ACTIONS_CONFIG.showMockTestNewBadge ? 'inline-flex' : 'none';
+      if (badge) badge.hidden = !show;
     }
     window.setMockTestNewBadge = setMockTestNewBadge;
     /* ---- Analytics tracking (fire-and-forget, UI kabhi block nahi karta) ---- */
