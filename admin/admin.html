@@ -27,7 +27,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="admin.css?v=18">
+  <link rel="stylesheet" href="admin.css?v=19">
 </head>
 <body>
 
@@ -247,20 +247,18 @@
         <button class="button danger" onclick="bulkDelete()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
       </div>
 
-      <!-- Uploads table (turns into mobile cards on phones) -->
-      <div class="table-wrap">
+      <!-- List subheader: Select all & live count -->
+      <div class="adm-list-header">
+        <label class="adm-select-all-label bca-pressable" title="Select all visible items">
+          <input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)">
+          <span>Select all</span>
+        </label>
+        <span class="adm-list-count" id="adminListCountDisplay">0 items</span>
+      </div>
+
+      <!-- Uploads queue (renders as sleek native cards) -->
+      <div class="table-wrap adm-mat-wrap">
         <table class="table adm-table">
-          <thead>
-            <tr>
-              <th class="col-check"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)"></th>
-              <th>Material</th>
-              <th>Type</th>
-              <th>College</th>
-              <th>Semester</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
           <tbody id="rows"></tbody>
         </table>
       </div>
@@ -269,49 +267,92 @@
     </section>
 
     <!-- Broadcast notifications -->
-    <section class="panel">
-      <div class="toolbar">
+    <section class="panel adm-broadcast-panel">
+      <div class="toolbar adm-broadcast-header">
         <div>
+          <span class="adm-broadcast-eyebrow"><i class="fa-solid fa-bullhorn"></i> PUSH BROADCAST CONSOLE</span>
           <h2>Send Broadcast Notification</h2>
-          <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Send instant push alerts to enrolled students' phones.</p>
+          <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Send instant push notifications directly to students' phone lock screens.</p>
         </div>
+        <button type="button" class="adm-collapse-btn bca-pressable" id="btnToggleBroadcast" onclick="toggleBroadcastPanel()" title="Collapse / Expand" aria-label="Toggle broadcast panel">
+          <i class="fa-solid fa-chevron-up" id="iconBroadcastChevron"></i>
+        </button>
       </div>
-      <form class="notify-form" id="notifyForm">
-        <input class="search notify-title" id="notifyTitle" placeholder="Title — e.g. New DBMS notes just dropped 📚" maxlength="80" required>
-        <textarea class="notify-body" id="notifyBody" rows="2" placeholder="Message shown on the user's lock screen…" maxlength="240"></textarea>
-        <div class="notify-targets">
-          <select class="select notify-college" id="notifyCollege">
-            <option value="">All colleges</option>
-            <option value="all">All Colleges (shared)</option>
-            <option value="avviare">Avviare Educational Hub</option>
-            <option value="glocal">Glocal University</option>
-            <option value="ccsu">CCSU Meerut</option>
-            <option value="du">Delhi University</option>
-            <option value="ipu">GGSIPU Delhi</option>
-            <option value="aktu">AKTU / UPTU</option>
-            <option value="ignou">IGNOU</option>
-            <option value="mdu">MDU Rohtak</option>
-            <option value="bhu">BHU</option>
-            <option value="pune">Pune University</option>
-            <option value="bangalore">Bangalore University</option>
-            <option value="other">Other University</option>
-          </select>
-          <select class="select notify-sem" id="notifySemester">
-            <option value="">All semesters</option>
-            <option value="1">Semester 1</option>
-            <option value="2">Semester 2</option>
-            <option value="3">Semester 3</option>
-            <option value="4">Semester 4</option>
-            <option value="5">Semester 5</option>
-            <option value="6">Semester 6</option>
-          </select>
-        </div>
-        <label class="notify-check">
-          <input type="checkbox" id="notifyOnApprove" checked>
-          <span>Auto-notify users whenever I approve a resource</span>
-        </label>
-        <button class="button primary" id="notifySend" type="submit"><i class="fa-solid fa-paper-plane"></i> Send notification</button>
-      </form>
+
+      <div id="admBroadcastBody" class="adm-broadcast-body">
+        <form class="notify-form" id="notifyForm">
+          <div class="adm-field-group">
+            <label class="adm-field-label">Notification Title</label>
+            <div class="adm-input-with-icon">
+              <i class="fa-solid fa-heading"></i>
+              <input class="search notify-title" id="notifyTitle" placeholder="e.g. New DBMS Notes uploaded 📚" maxlength="80" required oninput="updatePushPreview()">
+            </div>
+          </div>
+
+          <div class="adm-field-group">
+            <label class="adm-field-label">Lock Screen Message</label>
+            <textarea class="notify-body" id="notifyBody" rows="2" placeholder="Brief 1-2 sentence message to grab student attention..." maxlength="240" required oninput="updatePushPreview()"></textarea>
+          </div>
+
+          <div class="notify-targets">
+            <div class="adm-field-group">
+              <label class="adm-field-label">Target College</label>
+              <select class="select notify-college" id="notifyCollege" onchange="updatePushPreview()">
+                <option value="">All colleges (Everyone)</option>
+                <option value="all">All Colleges (shared)</option>
+                <option value="avviare">Avviare Educational Hub</option>
+                <option value="glocal">Glocal University</option>
+                <option value="ccsu">CCSU Meerut</option>
+                <option value="du">Delhi University</option>
+                <option value="ipu">GGSIPU Delhi</option>
+                <option value="aktu">AKTU / UPTU</option>
+                <option value="ignou">IGNOU</option>
+                <option value="mdu">MDU Rohtak</option>
+                <option value="bhu">BHU</option>
+                <option value="pune">Pune University</option>
+                <option value="bangalore">Bangalore University</option>
+                <option value="other">Other University</option>
+              </select>
+            </div>
+            <div class="adm-field-group">
+              <label class="adm-field-label">Target Semester</label>
+              <select class="select notify-sem" id="notifySemester" onchange="updatePushPreview()">
+                <option value="">All semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
+                <option value="4">Semester 4</option>
+                <option value="5">Semester 5</option>
+                <option value="6">Semester 6</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Live Phone Notification Preview -->
+          <div class="adm-push-preview-card">
+            <div class="adm-preview-head">
+              <div class="adm-preview-app-info">
+                <span class="adm-preview-dot"></span>
+                <span class="adm-preview-app-name">BCAPrime</span>
+                <span class="adm-preview-time">&bull; now</span>
+              </div>
+              <span class="adm-preview-badge" id="previewAudienceBadge">All Students</span>
+            </div>
+            <div class="adm-preview-title" id="previewTitle">Notification Title Preview</div>
+            <div class="adm-preview-msg" id="previewMsg">Your message will appear here on students' mobile lock screens...</div>
+          </div>
+
+          <label class="notify-check bca-pressable">
+            <input type="checkbox" id="notifyOnApprove" checked>
+            <span>Auto-notify enrolled students whenever a study resource is approved</span>
+          </label>
+
+          <button class="button primary bca-pressable" id="notifySend" type="submit">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Send Push Broadcast</span>
+          </button>
+        </form>
+      </div>
     </section>
 
     </section><!-- /tab-material -->
@@ -880,6 +921,6 @@
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
   <script type="module" src="../ui/index.js"></script>
-  <script src="admin.js?v=18"></script>
+  <script src="admin.js?v=19"></script>
 </body>
 </html>

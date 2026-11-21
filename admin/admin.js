@@ -116,6 +116,23 @@ function isRecentlyAdded(dateStr) {
   } catch (e) { return false; }
 }
 
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diffSec < 60) return 'just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay}d ago`;
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  } catch (e) { return ''; }
+}
+
 function setAuthMessage(message) {
   $('authMessage').textContent = message;
 }
@@ -319,6 +336,10 @@ function render() {
   $('collegeCount').textContent = new Set(uploads.map(item => item.college)).size;
   $('activeCount').textContent = uploads.filter(item => item.status === 'approved').length;
 
+  if ($('adminListCountDisplay')) {
+    $('adminListCountDisplay').textContent = `${list.length} item${list.length === 1 ? '' : 's'}`;
+  }
+
   if (typeof updateAdminKpis === 'function') updateAdminKpis();
 
   [...selectedIds].forEach(id => {
@@ -331,11 +352,13 @@ function render() {
     bulkEl.classList.remove('visible');
   }
   $('bulkCount').textContent = `${selectedIds.size} selected`;
-  $('checkAll').checked = list.length > 0 && list.every(item => selectedIds.has(String(item.id)));
+  if ($('checkAll')) {
+    $('checkAll').checked = list.length > 0 && list.every(item => selectedIds.has(String(item.id)));
+  }
 
   const tbody = $('rows');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">No study material found for this filter.</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="adm-empty-td"><div class="empty"><i class="fa-regular fa-folder-open" style="font-size:26px;display:block;margin-bottom:8px;opacity:0.6"></i>No study material found for this filter.</div></td></tr>';
     return;
   }
   tbody.innerHTML = list.map(item => {
@@ -346,47 +369,88 @@ function render() {
     const isNewPending = item.status === 'pending' && item.date && isRecentlyAdded(item.date);
     const rowClass = isNewPending ? 'new-pending' : '';
     const uploaderHandle = item.uploader ? `@${item.uploader.replace(/\s+/g, '_').toLowerCase()}` : '@student';
+    const relTime = formatRelativeTime(item.date);
+    const collegeDisplay = collegeNames[item.college] || item.college || 'All colleges';
 
     return `<tr class="${rowClass} adm-material-row" data-id="${id}">
-      <td class="col-check">
-        <label class="adm-card-check-wrap">
-          <input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)">
-        </label>
-      </td>
-      <td class="col-title">
-        <div class="adm-mat-title-wrap">
-          <b class="adm-mat-title">${escapeHtml(item.title)}</b>
-          <div class="adm-mat-meta-tags">
-            ${item.subject ? `<span class="adm-tag-subject"><i class="fa-solid fa-book"></i> ${escapeHtml(item.subject)}</span>` : ''}
-            <span class="adm-tag-sem"><i class="fa-solid fa-graduation-cap"></i> Sem ${item.sem}</span>
-            ${item.year ? `<span class="adm-tag-year">Year ${item.year}</span>` : ''}
+      <td class="adm-mat-td" colspan="7">
+        <div class="adm-mat-card ${item.status}">
+          <!-- Top Row: Checkbox + Badges + Time -->
+          <div class="adm-mat-card-head">
+            <label class="adm-mat-check-label bca-pressable" title="Select item">
+              <input type="checkbox" ${selectedIds.has(id) ? 'checked' : ''} onchange="toggleSelected('${id}',this.checked)">
+              <span class="adm-mat-check-custom"></span>
+            </label>
+            <div class="adm-mat-badges">
+              <span class="adm-pill-type ${typeClass}">
+                ${item.type === 'pyq' ? '<i class="fa-solid fa-file-signature"></i> PYQ' : '<i class="fa-solid fa-book-bookmark"></i> Notes'}
+              </span>
+              <span class="adm-pill-status badge ${badgeClass}">${item.status}</span>
+              <span class="adm-pill-sem"><i class="fa-solid fa-graduation-cap"></i> Sem ${item.sem}${item.year ? ` • Yr ${item.year}` : ''}</span>
+            </div>
+            ${relTime ? `<span class="adm-mat-time">${relTime}</span>` : ''}
           </div>
-          ${item.fileName ? `<small class="adm-mat-filename"><i class="fa-regular fa-file-lines"></i> ${escapeHtml(item.fileName)}</small>` : ''}
-          ${item.fileUrl ? `
-            <div class="adm-preview-wrap">
-              <a href="#" class="adm-preview-btn bca-pressable" onclick="event.preventDefault();openResourceFile('${escapeHtml(item.fileUrl)}')">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Preview PDF
-              </a>
-            </div>` : ''}
-        </div>
-      </td>
-      <td class="col-type"><span class="type-badge ${typeClass}">${typeLabel === 'PYQ' ? '📝 PYQ' : '📚 Notes'}</span></td>
-      <td class="col-college">
-        <div class="adm-mat-uploader">
-          <span class="adm-college-name">${collegeNames[item.college] || escapeHtml(item.college || 'All colleges')}</span>
-          <span class="adm-uploader-pill">
-            ${item.uploaderAvatar ? `<img src="${escapeHtml(item.uploaderAvatar)}" alt="" class="adm-uploader-avatar">` : '<i class="fa-regular fa-user"></i>'}
-            <span class="adm-uploader-handle">${escapeHtml(uploaderHandle)}</span>
-          </span>
-        </div>
-      </td>
-      <td class="col-sem">Semester ${item.sem}${item.year ? `<small>Year ${item.year}</small>` : ''}</td>
-      <td class="col-status"><span class="badge ${badgeClass}">${item.status}</span></td>
-      <td class="col-actions">
-        <div class="row-actions">
-          ${item.status !== 'approved' ? `<button class="button primary bca-pressable" onclick="updateStatus('${id}','approved')"><i class="fa-solid fa-check"></i> Approve</button>` : ''}
-          ${item.status !== 'rejected' ? `<button class="button danger bca-pressable" onclick="confirmRejectMaterial('${id}')"><i class="fa-solid fa-xmark"></i> Reject</button>` : ''}
-          ${item.status !== 'archived' ? `<button class="button bca-pressable" onclick="updateStatus('${id}','archived')"><i class="fa-solid fa-box-archive"></i> Archive</button>` : ''}
+
+          <!-- Title & Subject -->
+          <div class="adm-mat-body">
+            <h3 class="adm-mat-title">${escapeHtml(item.title)}</h3>
+            ${item.subject ? `
+              <div class="adm-mat-subject">
+                <i class="fa-solid fa-book"></i>
+                <span>${escapeHtml(item.subject)}</span>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Metadata Bar: College & Uploader -->
+          <div class="adm-mat-meta-bar">
+            <div class="adm-meta-item adm-meta-college" title="College: ${escapeHtml(collegeDisplay)}">
+              <i class="fa-solid fa-building-columns"></i>
+              <span>${escapeHtml(collegeDisplay)}</span>
+            </div>
+            <div class="adm-meta-item adm-meta-uploader" title="Uploaded by: ${escapeHtml(uploaderHandle)}">
+              ${item.uploaderAvatar ? `<img src="${escapeHtml(item.uploaderAvatar)}" alt="" class="adm-uploader-avatar">` : '<i class="fa-regular fa-user"></i>'}
+              <span class="adm-uploader-handle">${escapeHtml(uploaderHandle)}</span>
+            </div>
+          </div>
+
+          <!-- File Attachment & Compact Preview Button -->
+          ${(item.fileName || item.fileUrl) ? `
+            <div class="adm-mat-file-bar">
+              <div class="adm-file-info" title="${escapeHtml(item.fileName || 'Attachment')}">
+                <i class="fa-solid fa-file-pdf adm-pdf-icon"></i>
+                <span class="adm-file-name">${escapeHtml(item.fileName || 'PDF Document')}</span>
+              </div>
+              ${item.fileUrl ? `
+                <a href="#" class="adm-compact-preview-btn bca-pressable" onclick="event.preventDefault();openResourceFile('${escapeHtml(item.fileUrl)}')">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                  <span>Preview PDF</span>
+                </a>
+              ` : ''}
+            </div>
+          ` : ''}
+
+          <!-- Action Buttons Bar -->
+          <div class="adm-mat-actions">
+            ${item.status !== 'approved' ? `
+              <button type="button" class="button primary adm-action-btn adm-approve-btn bca-pressable" onclick="updateStatus('${id}','approved')">
+                <i class="fa-solid fa-check"></i>
+                <span>Approve</span>
+              </button>
+            ` : ''}
+            ${item.status !== 'rejected' ? `
+              <button type="button" class="button danger adm-action-btn adm-reject-btn bca-pressable" onclick="confirmRejectMaterial('${id}')">
+                <i class="fa-solid fa-xmark"></i>
+                <span>Reject</span>
+              </button>
+            ` : ''}
+            ${item.status !== 'archived' ? `
+              <button type="button" class="button adm-action-btn adm-archive-btn bca-pressable" onclick="updateStatus('${id}','archived')">
+                <i class="fa-solid fa-box-archive"></i>
+                <span>Archive</span>
+              </button>
+            ` : ''}
+          </div>
         </div>
       </td>
     </tr>`;
@@ -595,7 +659,7 @@ async function handleNotifyFormSubmit(event) {
   const body = $('notifyBody').value.trim();
   if (!title) return;
   button.disabled = true;
-  button.textContent = 'Sending…';
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Sending broadcast…</span>';
   // Optional targeting from the form — empty = broadcast to all.
   const target = {
     college: $('notifyCollege').value || null,
@@ -631,13 +695,57 @@ async function handleNotifyFormSubmit(event) {
   button.disabled = false;
   if (res && res.ok) {
     $('notifyForm').reset();
-    button.innerHTML = `✓ Sent! (delivered: ${res.sent}, failed: ${res.failed})`;
-    setTimeout(() => { button.innerHTML = '<i>&#128276;</i> Send to all users'; }, 6000);
+    updatePushPreview();
+    button.innerHTML = `<i class="fa-solid fa-circle-check"></i> <span>Sent! (Delivered: ${res.sent || 0})</span>`;
+    setTimeout(() => {
+      button.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Send Push Broadcast</span>';
+      updatePushPreview();
+    }, 4000);
   } else {
-    button.innerHTML = '<i>&#128276;</i> Send to all users';
+    button.innerHTML = '<i class="fa-solid fa-paper-plane"></i> <span>Send Push Broadcast</span>';
   }
 }
 $('notifyForm').addEventListener('submit', handleNotifyFormSubmit);
+
+function updatePushPreview() {
+  const title = ($('notifyTitle')?.value || '').trim();
+  const body = ($('notifyBody')?.value || '').trim();
+  const college = $('notifyCollege')?.value;
+  const sem = $('notifySemester')?.value;
+
+  const titleEl = $('previewTitle');
+  const msgEl = $('previewMsg');
+  const badgeEl = $('previewAudienceBadge');
+
+  if (titleEl) {
+    titleEl.textContent = title || 'Notification Title Preview';
+  }
+  if (msgEl) {
+    msgEl.textContent = body || "Your message will appear here on students' mobile lock screens...";
+  }
+  if (badgeEl) {
+    let audience = 'All Students';
+    if (college && college !== 'all' && sem) {
+      const cName = collegeNames[college] || college.toUpperCase();
+      audience = `${cName} • Sem ${sem}`;
+    } else if (college && college !== 'all') {
+      audience = collegeNames[college] || college.toUpperCase();
+    } else if (sem) {
+      audience = `Semester ${sem} Only`;
+    }
+    badgeEl.textContent = audience;
+  }
+}
+
+function toggleBroadcastPanel() {
+  const body = $('admBroadcastBody');
+  const icon = $('iconBroadcastChevron');
+  if (!body) return;
+  const isHidden = body.classList.toggle('adm-panel-collapsed');
+  if (icon) {
+    icon.className = isHidden ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+  }
+}
 
 /* ============================================================
    KPI Metrics & Dashboard Synchronizer
