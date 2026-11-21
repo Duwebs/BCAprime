@@ -460,6 +460,15 @@ INSERT INTO courses VALUES
     const startTime = performance.now();
 
     try {
+      // Smart Java filename resolution (matches `public class <ClassName>`, defaults to Main.java)
+      let javaFileName = 'Main.java';
+      if (lang === 'java') {
+        const javaClassMatch = code.match(/public\s+class\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
+        if (javaClassMatch && javaClassMatch[1]) {
+          javaFileName = `${javaClassMatch[1]}.java`;
+        }
+      }
+
       // 1. First attempt: Piston Execution API
       let executionResult = null;
 
@@ -467,7 +476,7 @@ INSERT INTO courses VALUES
         const pistonLangs = {
           c: { language: 'c', version: '10.2.0', file: 'main.c' },
           cpp: { language: 'c++', version: '10.2.0', file: 'main.cpp' },
-          java: { language: 'java', version: '15.0.2', file: 'Main.java' },
+          java: { language: 'java', version: '15.0.2', file: javaFileName },
           python: { language: 'python', version: '3.10.0', file: 'main.py' }
         };
 
@@ -506,19 +515,35 @@ INSERT INTO courses VALUES
           c: 'gcc-13.2.0-c',
           cpp: 'gcc-13.2.0',
           java: 'openjdk-jdk-21+35',
-          python: 'cpython-3.12.7'
+          python: 'cpython-3.8.20'
         };
 
         const compilerName = wandboxCompilers[lang] || wandboxCompilers.c;
 
+        const wandboxPayload = {
+          compiler: compilerName,
+          code: lang === 'java' ? '// BCA Java Runner' : code,
+          stdin: stdin
+        };
+
+        // For Java on Wandbox: Wandbox default file is prog.java, which causes javac to throw:
+        // "class Main is public, should be declared in a file named Main.java".
+        // Providing the Java file via `codes` and specifying it in `compiler-option-raw`
+        // instructs javac to compile `${javaFileName}` correctly.
+        if (lang === 'java') {
+          wandboxPayload.codes = [
+            {
+              file: javaFileName,
+              code: code
+            }
+          ];
+          wandboxPayload['compiler-option-raw'] = javaFileName;
+        }
+
         const wandboxRes = await fetch('https://wandbox.org/api/compile.json', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            compiler: compilerName,
-            code: code,
-            stdin: stdin
-          })
+          body: JSON.stringify(wandboxPayload)
         });
 
         if (wandboxRes.ok) {
