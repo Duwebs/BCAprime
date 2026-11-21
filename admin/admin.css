@@ -314,6 +314,22 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.adm-brand-img {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .adm-brand-img {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .adm-brand-mark {
@@ -333,6 +349,7 @@ body {
 .adm-brand-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .adm-brand-title {
@@ -341,6 +358,7 @@ body {
   font-size: 18px;
   line-height: 1.1;
   color: var(--ink);
+  white-space: nowrap;
 }
 
 .adm-brand-accent {
@@ -354,6 +372,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--good);
+  white-space: nowrap;
 }
 
 .adm-topbar-actions {
@@ -2409,58 +2428,82 @@ textarea.notify-body:focus,
 
   .adm-topbar {
     margin: 0 -12px 14px;
-    padding: 8px 10px;
-    min-height: 56px;
-    gap: 8px;
+    padding: 8px 8px;
+    min-height: 52px;
+    gap: 6px;
   }
 
   .adm-topbar-left {
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
-    flex-shrink: 1;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 
   .adm-back-btn {
-    min-width: 36px;
-    min-height: 36px;
-    width: 36px;
-    height: 36px;
+    min-width: 32px;
+    min-height: 32px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .adm-back-text {
     display: none !important;
   }
 
+  .adm-brand {
+    gap: 6px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .adm-brand-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    flex-shrink: 0;
+  }
+
   .adm-brand-mark {
-    width: 30px;
-    height: 30px;
-    font-size: 15px;
-    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+    border-radius: 7px;
+    flex-shrink: 0;
+  }
+
+  .adm-brand-info {
+    min-width: 0;
+    flex-direction: column;
   }
 
   .adm-brand-title {
-    font-size: 16px;
+    font-size: 14.5px;
+    white-space: nowrap;
+    line-height: 1.1;
   }
 
   .adm-console-badge {
     font-size: 8px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
   }
 
   .adm-topbar-actions {
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
   }
 
   .adm-icon-btn {
-    min-width: 36px;
-    min-height: 36px;
-    width: 36px;
-    height: 36px;
-    font-size: 13.5px;
-    border-radius: 8px;
+    min-width: 32px;
+    min-height: 32px;
+    width: 32px;
+    height: 32px;
+    font-size: 12.5px;
+    border-radius: 7px;
     padding: 0;
   }
 

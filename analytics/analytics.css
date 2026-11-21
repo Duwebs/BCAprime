@@ -417,8 +417,32 @@ h1, h2, h3, h4, .font-heading {
 .topbar-brand {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
+}
+
+.topbar-brand-img {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .topbar-brand-img {
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.pwa-install-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .topbar-brand-mark {
@@ -450,7 +474,7 @@ h1, h2, h3, h4, .font-heading {
   white-space: nowrap;
 }
 
-.brand-accent { color: var(--brand); }
+.brand-accent { color: var(--emerald); }
 
 .topbar-brand-eyebrow {
   font-family: var(--font-display);

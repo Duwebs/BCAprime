@@ -58,7 +58,7 @@ window.addEventListener('appinstalled', () => {
   deferredPwaPrompt = null;
   const banner = $('pwaInstallBanner');
   if (banner) banner.hidden = true;
-  showToast('BCAPrime Analytics installed successfully! 🎉', 'success');
+  showToast('BCAPrime Stats installed successfully! 🎉', 'success');
 });
 
 async function installAnalyticsPwa() {
@@ -168,14 +168,14 @@ $('authForm')?.addEventListener('submit', async (e) => {
 
   if (!analyticsSupabaseClient) {
     msg.textContent = 'Supabase client not configured.';
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Access Analytics</span>'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Access Stats</span>'; }
     return;
   }
 
   const { data, error } = await analyticsSupabaseClient.auth.signInWithPassword({ email, password });
   if (error) {
     msg.textContent = error.message;
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Access Analytics</span>'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Access Stats</span>'; }
     return;
   }
 
@@ -183,7 +183,7 @@ $('authForm')?.addEventListener('submit', async (e) => {
   if (role !== 'admin') {
     await analyticsSupabaseClient.auth.signOut();
     msg.textContent = 'Access restricted: Account lacks verified administrator role.';
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Access Analytics</span>'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock"></i> <span>Access Stats</span>'; }
     return;
   }
 

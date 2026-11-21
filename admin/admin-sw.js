@@ -4,7 +4,7 @@
    Handles push notifications (admin alerts: new uploads, new signups)
    and caches the app shell for offline use.
    ============================================================ */
-const CACHE_NAME = 'bcaprime-admin-v5';
+const CACHE_NAME = 'bcaprime-admin-v6';
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME));
@@ -35,8 +35,8 @@ self.addEventListener('push', event => {
   const title = payload.title || 'BCAPrime Admin';
   const options = {
     body: payload.body || '',
-    icon: '/assets/logo.png',
-    badge: '/assets/logo.png',
+    icon: '/public/icons/admin-icon-192.png',
+    badge: '/public/icons/admin-favicon-32.png',
     tag: payload.tag || 'admin-alert',
     renotify: true,
     requireInteraction: true,   /* admin alert stays until dismissed */

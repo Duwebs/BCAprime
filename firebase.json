@@ -19,6 +19,14 @@
     ],
     "rewrites": [
       {
+        "source": "/stats",
+        "destination": "/analytics/index.html"
+      },
+      {
+        "source": "/stats/**",
+        "destination": "/analytics/index.html"
+      },
+      {
         "source": "/analytics",
         "destination": "/analytics/index.html"
       },

@@ -56,6 +56,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/stats", "destination": "/analytics/index.html" },
+    { "source": "/stats/(.*)", "destination": "/analytics/index.html" },
     { "source": "/analytics", "destination": "/analytics/index.html" },
     { "source": "/analytics/(.*)", "destination": "/analytics/index.html" },
     { "source": "/resource/:id/og", "destination": "/api/og?id=:id" },

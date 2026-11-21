@@ -11,18 +11,18 @@
   </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>BCAPrime Analytics Suite</title>
-  <meta name="description" content="Executive student intelligence, live growth KPIs, and academic content telemetry for BCAPrime.">
+  <title>BCAPrime Stats</title>
+  <meta name="description" content="Executive student intelligence, live growth KPIs, and academic telemetry for BCAPrime.">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <meta name="theme-color" content="#0D0D0F">
+  <meta name="theme-color" content="#090D12">
 
   <!-- Standalone PWA Manifest & App Icons -->
   <link rel="manifest" href="analytics-manifest.json">
-  <link rel="icon" href="../assets/logo.png">
-  <link rel="apple-touch-icon" href="../assets/icon-192.png">
+  <link rel="icon" type="image/png" href="../public/icons/stats-favicon-32.png">
+  <link rel="apple-touch-icon" href="../public/icons/stats-icon-apple.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="BCA Analytics">
+  <meta name="apple-mobile-web-app-title" content="BCA Stats">
 
   <!-- Condensed Typography & Fonts (Barlow Condensed + Roboto Condensed + JetBrains Mono) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,7 +31,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
   <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="analytics.css?v=5">
+  <link rel="stylesheet" href="analytics.css?v=6">
 </head>
 <body>
 
@@ -40,12 +40,12 @@
     <div class="auth-card">
       <div class="auth-brand-badge">
         <span class="auth-brand-dot"></span>
-        <span class="eyebrow">BCAPRIME SUITE</span>
+        <span class="eyebrow">BCAPRIME STATS</span>
       </div>
       <div class="auth-logo">
-        <img src="../assets/logo.png" alt="BCAPrime" width="52" height="52">
+        <img src="../public/icons/stats-icon-192.png" alt="BCAPrime Stats" width="56" height="56" style="border-radius:14px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 6px 18px rgba(0,0,0,0.35);object-fit:contain">
       </div>
-      <h1>Analytics Console</h1>
+      <h1>Stats Console</h1>
       <p>Sign in with verified administrator credentials to view live student engagement telemetry.</p>
       <form class="auth-form" id="authForm">
         <label>Admin Email
@@ -56,7 +56,7 @@
         </label>
         <button class="btn btn-primary btn-full bca-pressable" type="submit" id="authSubmit">
           <i class="fa-solid fa-lock"></i>
-          <span>Access Analytics</span>
+          <span>Access Stats</span>
         </button>
       </form>
       <p class="auth-msg" id="authMsg" aria-live="polite"></p>
@@ -69,11 +69,9 @@
     <!-- PWA Install Banner (Dismissible & Native-Prompt Ready) -->
     <div class="pwa-install-banner" id="pwaInstallBanner" hidden>
       <div class="pwa-install-left">
-        <div class="pwa-install-icon">
-          <i class="fa-solid fa-chart-line"></i>
-        </div>
+        <img src="../public/icons/stats-icon-192.png" alt="Stats" class="pwa-install-img" width="32" height="32">
         <div class="pwa-install-text">
-          <strong class="pwa-install-title">Install Analytics App</strong>
+          <strong class="pwa-install-title">Install BCAPrime Stats</strong>
           <span class="pwa-install-sub" id="pwaInstallSub">Add to Home Screen for 1-tap executive telemetry</span>
         </div>
       </div>
@@ -96,9 +94,9 @@
           <span class="topbar-back-text">Admin</span>
         </a>
         <div class="topbar-brand">
-          <span class="topbar-brand-mark">B</span>
+          <img src="../public/icons/stats-icon-192.png" alt="Stats" class="topbar-brand-img" width="30" height="30">
           <div class="topbar-brand-meta">
-            <span class="topbar-brand-title">BCA<span class="brand-accent">Analytics</span></span>
+            <span class="topbar-brand-title">BCAPrime <span class="brand-accent">Stats</span></span>
             <span class="topbar-brand-eyebrow">EXECUTIVE SUITE</span>
           </div>
         </div>
@@ -462,6 +460,6 @@
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
   <script type="module" src="../ui/index.js"></script>
-  <script src="analytics.js?v=5"></script>
+  <script src="analytics.js?v=6"></script>
 </body>
 </html>

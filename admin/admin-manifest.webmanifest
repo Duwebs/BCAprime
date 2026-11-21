@@ -1,31 +1,25 @@
 {
   "name": "BCAPrime Admin",
   "short_name": "BCA Admin",
-  "description": "BCAPrime admin portal - review and moderate shared BCA study material.",
+  "description": "BCAPrime Admin Portal — Review and moderate shared BCA study resources and community content.",
   "start_url": "./admin.html",
-  "scope": "./admin/",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#05080b",
-  "theme_color": "#67c9dc",
+  "background_color": "#090D12",
+  "theme_color": "#090D12",
   "orientation": "any",
   "icons": [
     {
-      "src": "../assets/icon-192.png",
+      "src": "../public/icons/admin-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "../assets/icon-512.png",
+      "src": "../public/icons/admin-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "../assets/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ]
 }

@@ -1,22 +1,23 @@
 /* ============================================================
-   BCAPrime Analytics Suite — Service Worker (analytics-sw.js)
-   Native PWA offline shell caching + NetworkFirst for live analytics APIs
+   BCAPrime Stats Suite — Service Worker (analytics-sw.js)
+   Native PWA offline shell caching + NetworkFirst for live stats APIs
    ============================================================ */
-const CACHE_NAME = 'bcaprime-analytics-v3';
+const CACHE_NAME = 'bcaprime-stats-v5';
 const OFFLINE_URLS = [
   './',
   './index.html',
-  './analytics.css?v=4',
-  './analytics.js?v=4',
+  './analytics.css?v=6',
+  './analytics.js?v=6',
   './analytics-manifest.json',
   '../ui/ui.css',
   '../ui/config.js',
   '../ui/pressable.js',
   '../supabase-config.js',
   '../env.js',
-  '../assets/logo.png',
-  '../assets/icon-192.png',
-  '../assets/icon-512.png'
+  '../public/icons/stats-icon-192.png',
+  '../public/icons/stats-icon-512.png',
+  '../public/icons/stats-icon-apple.png',
+  '../public/icons/stats-favicon-32.png'
 ];
 
 self.addEventListener('install', event => {
