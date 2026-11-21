@@ -145,6 +145,22 @@ const colleges=[
   ['bangalore','Bangalore University'],
   ['other','Other University']
 ];
+
+/* Helper to dispatch admin activity telegram notifications (fire-and-forget) */
+function sendAdminTelegramAlert(type, payload) {
+  try {
+    fetch('/api/telegram-admin-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: type, payload: payload || {} })
+    }).catch(function(err) {
+      console.warn('[BCAPrime] Admin Telegram alert network error (silently ignored):', err);
+    });
+  } catch (e) {
+    console.warn('[BCAPrime] Admin Telegram alert dispatch error (silently ignored):', e);
+  }
+}
+window.sendAdminTelegramAlert = sendAdminTelegramAlert;
     JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]').forEach(college=>{if(Array.isArray(college)&&college.length===2&&!colleges.some(c=>c[0]===college[0]))colleges.push(college)});
     /* ---- Subject-wise finder ----
        Subjects ab sirf database se aate hain (admin-approved / public).
@@ -1326,8 +1342,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           user_agent:navigator.userAgent.slice(0,300)
         };
         const {error}=await supabaseClient.from('feedback').insert(row);
+        const ratingForAlert = feedbackRatingTag;
         feedbackRatingTag = null;
         if(error)throw error;
+        // Non-blocking Admin Telegram alert
+        try {
+          sendAdminTelegramAlert('feedback', {
+            kind: row.kind,
+            rating: ratingForAlert || null,
+            message: message,
+            user_name: row.user_name,
+            user_email: row.user_email
+          });
+        } catch (_e) {}
         closeModals();
         form.reset();
         if($('feedbackFileName'))$('feedbackFileName').textContent='Tap to attach screenshot';
@@ -3739,6 +3766,17 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           });
         }
       }catch(e){/* alert fail ho to upload fail na ho */}
+      // Fire-and-forget: BCAPrime Admin Telegram Bot alert
+      try {
+        sendAdminTelegramAlert('resource_upload', {
+          title: upload.title,
+          type: upload.type,
+          subject: upload.subject,
+          semester: upload.sem,
+          college: upload.college,
+          uploader: upload.uploader || 'Anonymous Student'
+        });
+      } catch (_e) {}
       return {...row,title:row.title,type:row.type,sem:row.semester,fileUrl:row.file_url,downloads:0,status:row.status,fileName:file.name,subject:row.subject,college:row.college,uploader:row.uploader_name||'',uploaderUid:row.uploader_uid||'',uploaderAvatar:contributorAvatarFor(row.uploader_uid||'','')};
     }
     function getUploaderEmail(){return accountSession&&accountSession.email?accountSession.email:''}
@@ -5236,6 +5274,17 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         closeSeniorRequest();
         if(window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.success('Request sent to your seniors 🔔');
         else toast('Request sent to your seniors 🔔');
+        // Non-blocking Admin Telegram alert (Ask Seniors / Junior Request)
+        try {
+          sendAdminTelegramAlert('senior_request', {
+            subject: subject,
+            semester: sem,
+            type: type,
+            message: message,
+            requester_name: getUserName(accountSession) || 'A student',
+            college: myCollegeKey()
+          });
+        } catch (_e) {}
         if(rid){try{fetch(NOTIFY_SENIORS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({request_id:rid})}).catch(()=>{})}catch(e){}}
         loadSeniorHelpDelayed();
       }catch(e){
@@ -5913,6 +5962,19 @@ async function submitLostFoundPost(event){
        Insert silent success hi kaafi hai (push admin approve par hoga). */
     const {error}=await supabaseClient.from(LOST_FOUND_TABLE).insert(row);
     if(error)throw error;
+    // Non-blocking Admin Telegram alert (Lost & Found)
+    try {
+      sendAdminTelegramAlert('lost_found', {
+        type: row.type,
+        category: lfItemName(row) || row.category,
+        custom_category: row.custom_category,
+        location: row.location,
+        description: row.description,
+        college: row.college,
+        poster_name: row.poster_name,
+        contact: row.contact
+      });
+    } catch (_e) {}
     closeLostFoundModal();
     toast('Post sent for review — approve hone par sabko alert jayega ✅');
     loadLostFound(true);

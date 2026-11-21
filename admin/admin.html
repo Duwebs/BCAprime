@@ -27,7 +27,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="admin.css?v=19">
+  <link rel="stylesheet" href="admin.css?v=20">
 </head>
 <body>
 
@@ -75,6 +75,9 @@
         </div>
       </div>
       <div class="adm-topbar-actions">
+        <button type="button" class="adm-icon-btn bca-pressable" id="admTelegramTestBtn" onclick="triggerTestAdminBotAlert()" title="Send Test Admin Alert (Telegram)" aria-label="Send Test Admin Alert">
+          <i class="fa-brands fa-telegram"></i>
+        </button>
         <button type="button" class="adm-icon-btn bca-pressable" id="admRefreshBtn" onclick="refreshAdminData()" title="Refresh Dashboard Data" aria-label="Refresh Dashboard">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
@@ -641,10 +644,13 @@
           <p>Real-time student signup velocity, counts, and latest account activations.</p>
         </div>
         <div class="user-stats-actions">
-          <button class="button" id="btnTestTelegramAlert" onclick="triggerTestTelegramAlert()" title="Send test ping to your configured Telegram Bot">
-            <i class="fa-brands fa-telegram"></i> Test Telegram Alert
+          <button class="button bca-pressable" id="btnTestAdminBotAlert" onclick="triggerTestAdminBotAlert()" title="Send Test Alert to BCAPrime Admin Telegram Bot">
+            <i class="fa-brands fa-telegram" style="color:var(--brand)"></i> Send Test Admin Alert
           </button>
-          <button class="button primary" id="btnRefreshUserStats" onclick="loadUserStats(true)">
+          <button class="button bca-pressable" id="btnTestTelegramAlert" onclick="triggerTestTelegramAlert()" title="Send test ping to New User Signup Telegram Bot">
+            <i class="fa-solid fa-user-plus"></i> Test Signup Bot
+          </button>
+          <button class="button primary bca-pressable" id="btnRefreshUserStats" onclick="loadUserStats(true)">
             <i class="fa-solid fa-arrows-rotate"></i> Refresh Stats
           </button>
         </div>
@@ -921,6 +927,6 @@
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
   <script type="module" src="../ui/index.js"></script>
-  <script src="admin.js?v=19"></script>
+  <script src="admin.js?v=20"></script>
 </body>
 </html>

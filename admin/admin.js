@@ -2831,3 +2831,42 @@ async function triggerTestTelegramAlert() {
     if (btn) btn.disabled = false;
   }
 }
+
+// Send test ping to dedicated BCAPrime Admin Telegram Bot (/api/telegram-admin-alert)
+async function triggerTestAdminBotAlert() {
+  const topBtn = $('admTelegramTestBtn');
+  const statsBtn = $('btnTestAdminBotAlert');
+  if (topBtn) topBtn.disabled = true;
+  if (statsBtn) statsBtn.disabled = true;
+
+  showAdminToast('Sending test alert to BCAPrime Admin Bot...', 'info');
+
+  try {
+    const res = await fetch('/api/telegram-admin-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'test',
+        payload: {
+          admin_name: (currentAdminUser && (currentAdminUser.email || currentAdminUser.displayName)) || 'Administrator',
+          timestamp: new Date().toISOString()
+        }
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (res.ok && data.success) {
+      showAdminToast('Test alert delivered to BCAPrime Admin Telegram Bot! 🔔', 'success');
+    } else {
+      const err = data.hint || data.error || `Status ${res.status}`;
+      showAdminToast('Admin Bot Alert failed: ' + err, 'error');
+    }
+  } catch (err) {
+    showAdminToast('Network error reaching alert API: ' + (err.message || 'Check connection'), 'error');
+  } finally {
+    if (topBtn) topBtn.disabled = false;
+    if (statsBtn) statsBtn.disabled = false;
+  }
+}
+window.triggerTestAdminBotAlert = triggerTestAdminBotAlert;
