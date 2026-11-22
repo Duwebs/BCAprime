@@ -708,13 +708,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(type==='sem'){
         renderPrimeSemSheet();
         const sheet=$('pfSemSheet');
-        if(sheet)sheet.classList.add('open');
+        if(sheet){
+          if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
+          sheet.classList.add('open');
+        }
       }else if(type==='sub'){
         renderPrimeSubSheet();
         const searchInput=$('pfSubSearchInput');
         if(searchInput)searchInput.value='';
         const sheet=$('pfSubSheet');
-        if(sheet)sheet.classList.add('open');
+        if(sheet){
+          if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
+          sheet.classList.add('open');
+        }
       }
     }
 
@@ -828,7 +834,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       triggerHaptic();
       renderProfileSemSheet();
       const sheet=$('profileSemSheet');
-      if(sheet)sheet.classList.add('open');
+      if(sheet){
+        if(sheet.parentElement!==document.body)document.body.appendChild(sheet);
+        sheet.classList.add('open');
+      }
     }
     function closeProfileSemSheet(){
       const sheet=$('profileSemSheet');

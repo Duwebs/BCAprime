@@ -1079,25 +1079,31 @@ p, label, small,
   align-items:flex-end;
   justify-content:center;
   padding:0;
+  background:transparent !important;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
 }
 .pf-sheet-modal.open{display:flex}
 .pf-sheet-backdrop{
   position:fixed;
   inset:0;
+  z-index:1;
   background:rgba(0,0,0,.5);
   backdrop-filter:blur(4px);
   -webkit-backdrop-filter:blur(4px);
   animation:pfBackdropIn .22s ease both;
+  pointer-events:auto;
 }
 @keyframes pfBackdropIn{from{opacity:0}to{opacity:1}}
 .pf-sheet{
   position:relative;
-  z-index:2;
+  z-index:10 !important;
+  isolation:isolate;
   width:100%;
   max-width:540px;
   max-height:85vh;
   border-radius:24px 24px 0 0;
-  background:var(--surface);
+  background:var(--surface) !important;
   border:1px solid var(--line);
   border-bottom:0;
   box-shadow:0 -12px 40px rgba(0,0,0,.3);
@@ -1105,7 +1111,23 @@ p, label, small,
   display:flex;
   flex-direction:column;
   overflow:hidden;
+  backdrop-filter:none !important;
+  -webkit-backdrop-filter:none !important;
   animation:pfSheetSlideUp .3s cubic-bezier(.2,.9,.3,1.08) both;
+}
+[data-theme="dark"] .pf-sheet,
+body.dark .pf-sheet {
+  background:#121215 !important;
+  border-top:1px solid rgba(255,255,255,0.1) !important;
+  border-left:1px solid rgba(255,255,255,0.06) !important;
+  border-right:1px solid rgba(255,255,255,0.06) !important;
+}
+[data-theme="light"] .pf-sheet,
+body:not([data-theme="dark"]):not(.dark) .pf-sheet {
+  background:#ffffff !important;
+  border-top:1px solid #e2e8f0 !important;
+  border-left:1px solid #e2e8f0 !important;
+  border-right:1px solid #e2e8f0 !important;
 }
 @keyframes pfSheetSlideUp{
   from{transform:translateY(100%)}
@@ -8713,7 +8735,6 @@ body.dark .bottom-tabs {
 .modal.open,
 .gw-modal,
 .pf-sheet-modal,
-.pf-sheet-backdrop,
 .sr-sheet,
 .sr-sheet-backdrop,
 #profileModal,
