@@ -257,12 +257,136 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
       if (badge) badge.hidden = !show;
     }
     window.setMockTestNewBadge = setMockTestNewBadge;
+    /* ---- Route and Session Verification (Strictly Student Routes; Exclude Admin & Stats) ---- */
+    function isStudentAppRoute() {
+      try {
+        const p = (window.location.pathname || '').toLowerCase();
+        if (p.includes('/admin') || p.includes('/analytics') || p.includes('/stats')) return false;
+        if (sessionStorage.getItem('bca-admin-session') || localStorage.getItem('bca-admin-token')) return false;
+        return true;
+      } catch (_e) {
+        return false;
+      }
+    }
+
+    /* ---- Realtime Student Presence on bca-live-students channel ---- */
+    let liveStudentPresenceChannel = null;
+    let currentStudentActivity = 'Home Library';
+    let livePresenceHeartbeatTimer = null;
+
+    function getStudentPresencePayload() {
+      let uid = (accountSession && accountSession.uid) || '';
+      let email = (accountSession && accountSession.email) || '';
+      let name = (accountSession && accountSession.displayName) || '';
+      let username = '';
+      let avatar = '';
+      let college = (typeof state !== 'undefined' && state.college) || 'all';
+      let sem = (typeof state !== 'undefined' && state.sem) || '1';
+
+      if (!uid) {
+        try {
+          if (typeof accountUid === 'function') uid = accountUid() || '';
+        } catch (_e) {}
+      }
+
+      if (uid && contributorCache && contributorCache.get(uid)) {
+        const cached = contributorCache.get(uid);
+        if (!name && cached.name) name = cached.name;
+        if (cached.username) username = cached.username;
+        if (cached.avatar) avatar = cached.avatar;
+      }
+
+      const colName = (typeof BCA_COLLEGES_MOD !== 'undefined' && BCA_COLLEGES_MOD.formatCollegeName)
+        ? BCA_COLLEGES_MOD.formatCollegeName(college, colleges)
+        : ((colleges && colleges.find(c => c[0] === college)) || [college, 'All Colleges'])[1];
+
+      return {
+        id: uid || visitorId,
+        uid: uid || null,
+        visitor_id: visitorId,
+        name: name || (uid ? 'Student' : 'Guest Student'),
+        username: username ? ('@' + username.replace(/^@/, '')) : '',
+        email: email || '',
+        avatar: avatar || '',
+        college: college,
+        college_name: colName,
+        sem: String(sem),
+        activity: currentStudentActivity,
+        page: location.pathname || '/',
+        online_at: new Date().toISOString(),
+        last_ping: new Date().toISOString()
+      };
+    }
+
+    function updateStudentPresenceActivity(activity) {
+      if (!isStudentAppRoute()) return;
+      if (activity) currentStudentActivity = activity;
+      if (liveStudentPresenceChannel && typeof liveStudentPresenceChannel.track === 'function') {
+        try {
+          liveStudentPresenceChannel.track(getStudentPresencePayload());
+        } catch (_e) {}
+      }
+    }
+    window.updateStudentPresenceActivity = updateStudentPresenceActivity;
+
+    function initStudentPresence() {
+      if (!isStudentAppRoute()) return;
+      if (typeof supabaseClient === 'undefined' || !supabaseClient) return;
+
+      try {
+        const presenceKey = (accountSession && accountSession.uid) || visitorId;
+        liveStudentPresenceChannel = supabaseClient.channel('bca-live-students', {
+          config: {
+            presence: { key: presenceKey }
+          }
+        });
+
+        liveStudentPresenceChannel.subscribe(async (status) => {
+          if (status === 'SUBSCRIBED') {
+            try {
+              await liveStudentPresenceChannel.track(getStudentPresencePayload());
+            } catch (_e) {}
+          }
+        });
+
+        if (livePresenceHeartbeatTimer) clearInterval(livePresenceHeartbeatTimer);
+        livePresenceHeartbeatTimer = setInterval(() => {
+          if (liveStudentPresenceChannel && document.visibilityState === 'visible') {
+            try {
+              liveStudentPresenceChannel.track(getStudentPresencePayload());
+            } catch (_e) {}
+          }
+        }, 30000);
+
+        window.addEventListener('beforeunload', () => {
+          if (liveStudentPresenceChannel) {
+            try { liveStudentPresenceChannel.untrack(); } catch (_e) {}
+          }
+        });
+      } catch (err) {
+        console.warn('[Presence] Student presence initialization error:', err);
+      }
+    }
+
     /* ---- Analytics tracking (fire-and-forget, UI kabhi block nahi karta) ---- */
     const visitorId=(()=>{try{let v=localStorage.getItem('bca-vid');if(!v){v='v-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);localStorage.setItem('bca-vid',v)}return v}catch(e){return 'anon'}})();
     const analyticsSessionId=(()=>{try{let s=sessionStorage.getItem('bca-sid');if(!s){s='s-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);sessionStorage.setItem('bca-sid',s)}return s}catch(e){return 'sess'}})();
     const sessionStartTs=Date.now();
     function parseDeviceInfo(){const ua=navigator.userAgent;const os=/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Mac OS/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Unknown';const tablet=/iPad|Tablet/i.test(ua);const mobile=/Mobi|Android|iPhone/i.test(ua);const browser=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/SamsungBrowser/.test(ua)?'Samsung Internet':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':/Firefox\//.test(ua)?'Firefox':'Other';return{device:tablet?'Tablet':mobile?'Mobile':'Desktop',os,browser}}
-    function trackEvent(type,data){data=data||{};try{if(typeof supabaseClient==='undefined'||!supabaseClient)return;const dev=parseDeviceInfo();let uid=accountSession&&accountSession.uid?accountSession.uid:'';let email=accountSession&&accountSession.email?accountSession.email:'';let name=accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||'');if(!uid){try{if(typeof accountUid==='function'){uid=accountUid()||'';}}catch(_e){}}if(!uid){try{const lsKeys=Object.keys(localStorage);const tokenKey=lsKeys.find(k=>k.includes('-auth-token')&&!k.includes('bca-admin')&&!k.includes('bca-analytics'));if(tokenKey){const tokenObj=JSON.parse(localStorage.getItem(tokenKey)||'{}');const sUser=tokenObj?.user||tokenObj?.currentSession?.user;if(sUser?.id){uid=sUser.id;if(!email)email=sUser.email||'';if(!name)name=sUser.user_metadata?.full_name||sUser.user_metadata?.name||'';}}}catch(_e){}}supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:uid,user_email:email,user_name:name,resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{})}catch(error){}}
+    function trackEvent(type,data){
+      if(!isStudentAppRoute()) return;
+      data=data||{};
+      try{
+        if(typeof supabaseClient==='undefined'||!supabaseClient)return;
+        const dev=parseDeviceInfo();
+        let uid=accountSession&&accountSession.uid?accountSession.uid:'';
+        let email=accountSession&&accountSession.email?accountSession.email:'';
+        let name=accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||'');
+        if(!uid){try{if(typeof accountUid==='function'){uid=accountUid()||'';}}catch(_e){}}
+        if(!uid){try{const lsKeys=Object.keys(localStorage);const tokenKey=lsKeys.find(k=>k.includes('-auth-token')&&!k.includes('bca-admin')&&!k.includes('bca-analytics'));if(tokenKey){const tokenObj=JSON.parse(localStorage.getItem(tokenKey)||'{}');const sUser=tokenObj?.user||tokenObj?.currentSession?.user;if(sUser?.id){uid=sUser.id;if(!email)email=sUser.email||'';if(!name)name=sUser.user_metadata?.full_name||sUser.user_metadata?.name||'';}}}catch(_e){}}
+        supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:uid,user_email:email,user_name:name,resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{});
+      }catch(error){}
+    }
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')try{trackEvent('session_heartbeat',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});
     async function loadCloudResources(){if(!supabaseClient){console.info('Supabase resources unavailable until schema is added.');return;}try{const cloud=(await fetchApprovedResourceRows()).map(mapCloudResourceRow);const keyOf=item=>`${String(item.title||'').trim().toLowerCase()}|${item.college||''}|${item.sem}`;const keys=new Set(resources.map(keyOf));resources=[...resources,...cloud.filter(item=>!keys.has(keyOf(item)))];try{const approvedKeys=new Set(cloud.filter(item=>item.status==='approved').map(keyOf));const remaining=JSON.parse(localStorage.getItem('bca-uploads')||'[]').filter(item=>!approvedKeys.has(keyOf(item)));localStorage.setItem('bca-uploads',JSON.stringify(remaining))}catch(error){}renderSubjectFilter();render();checkDirectResourceLanding();fetchRecentReadingProgress();}catch(error){console.error('Failed to load cloud resources:',error);toast('Failed to load resources. Please refresh the page.');}}
@@ -527,7 +651,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
             },350);
           }catch(e){}
         }
-        async function readResource(id, initialPage){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);try{trackEvent('view',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});trackEvent('note_read',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});}catch(_e){}if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);openReader(signed?{...resource,fileUrl:signed}:resource, initialPage)}
+        async function readResource(id, initialPage){const resource=resources.find(x=>rcId(x.title)===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Read is not available for this item');return}/* Guest reading unlimited */if(!consumeGuestPreview(resource))return;const signed=await fetchSignedUrl(resource,'preview');if(!signed&&isRemoteFile(src)){toast('Could not open this file right now.');return}bumpView(id);try{trackEvent('view',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});trackEvent('note_read',{title:resource.title,type:resource.type,subject:resource.subject,sem:resource.sem});}catch(_e){}if(typeof updateDynamicSeo==='function')updateDynamicSeo(`${resource.title} (${resource.subject||'BCA'}) | BCAPrime`);if(typeof updateStudentPresenceActivity==='function')updateStudentPresenceActivity('Reading: '+(resource.title||'Notes'));openReader(signed?{...resource,fileUrl:signed}:resource, initialPage)}
     /* ============================================================
        PrimeFinder Native Mobile UX Engine
        ============================================================ */
@@ -539,6 +663,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     let pfUpdateTimer=null;
     function triggerLiveFilterUpdate(){
+      if(typeof updateStudentPresenceActivity==='function')updateStudentPresenceActivity('PrimeFinder');
       showResourceSkeletons(6);
       clearTimeout(pfUpdateTimer);
       pfUpdateTimer=setTimeout(()=>{
@@ -4152,7 +4277,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try{if($('profileModal')&&$('profileModal').classList.contains('open'))renderAccount()}catch(e){}
     }
     async function initAccount(){return initAccountSupabase();}
-    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);if($('gateAccountForm'))$('gateAccountForm').addEventListener('submit',submitGateAccount);if($('gateAccountSwitch'))$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));if($('accessAuthForm'))$('accessAuthForm').addEventListener('submit',submitAccessAuth);if($('accessAuthSwitch'))$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();fetchRecentReadingProgress();if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){const gate=$('authGate');if(gate)gate.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));}});
+    document.addEventListener('click',e=>{if(e.target.classList.contains('modal'))closeModals(); if(!e.target.closest('.hero-search'))closeSuggestions(); if(!e.target.closest('.profile-pop')&&!e.target.closest('#topbarAvatarBtn'))hideProfileCard();});window.addEventListener('DOMContentLoaded',()=>{init();trackEvent('visit');bindAccountForm();startLibrarySync();setGateMode(gateMode);if($('gateAccountForm'))$('gateAccountForm').addEventListener('submit',submitGateAccount);if($('gateAccountSwitch'))$('gateAccountSwitch').addEventListener('click',()=>setGateMode(gateMode==='signup'?'login':'signup'));if($('accessAuthForm'))$('accessAuthForm').addEventListener('submit',submitAccessAuth);if($('accessAuthSwitch'))$('accessAuthSwitch').addEventListener('click',()=>setAccessAuthMode(accessAuthMode==='signup'?'login':'signup'));initAccount();bindOtpInputs();initOffline();initStudentPresence();fetchRecentReadingProgress();if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){const gate=$('authGate');if(gate)gate.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));}});
     /* ================= Offline / online UX (offline-first PWA) =================
        Big-tech pattern (Google/Netflix ki tarah):
        - Jab user offline ho -> top par dismissible notification banner (ek baar)
@@ -5010,6 +5135,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function closeReader(){
       const m=$('readerModal');
       if(m)m.classList.remove('open');
+      if(typeof updateStudentPresenceActivity==='function')updateStudentPresenceActivity('Home Library');
       clearTimeout(readerEngagementTimer);
       const timeSpent = Date.now() - (readerOpenedAt || 0);
       const wasEngaged = timeSpent >= 3500;
@@ -6298,6 +6424,7 @@ async function submitResourceReport(event){
    Quick Actions Routes & Juniors Request Modal Handlers
    ============================================================ */
 function openCodeLabRoute() {
+  if (typeof updateStudentPresenceActivity === 'function') updateStudentPresenceActivity('Code Lab');
   try {
     if (location.hash !== '#codelab') {
       history.pushState(null, '', '#codelab');
@@ -6310,6 +6437,7 @@ function openCodeLabRoute() {
 window.openCodeLabRoute = openCodeLabRoute;
 
 function openMockTestsRoute() {
+  if (typeof updateStudentPresenceActivity === 'function') updateStudentPresenceActivity('Mock Test');
   try {
     if (location.hash !== '#mocktests') {
       history.pushState(null, '', '#mocktests');
@@ -6322,6 +6450,7 @@ function openMockTestsRoute() {
 window.openMockTestsRoute = openMockTestsRoute;
 
 function openSeniorRequestRoute() {
+  if (typeof updateStudentPresenceActivity === 'function') updateStudentPresenceActivity('Ask Seniors');
   setSeniorNotificationDot(false);
   if (isGuestMode()) {
     requireAccount('Sign up or log in to ask your seniors for notes and PYQs.', 'senior-request');

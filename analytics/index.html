@@ -102,12 +102,12 @@
         </div>
       </div>
 
-      <!-- Live Heartbeat Pulse Indicator -->
-      <div class="live-indicator-pill" id="liveIndicator">
+      <!-- Live Heartbeat Pulse Indicator (Interactive) -->
+      <button type="button" class="live-indicator-pill bca-pressable" id="liveIndicator" onclick="openLiveStudentsModal()" title="View live active students" aria-label="View live active students">
         <span class="live-emerald-dot"></span>
         <span class="live-count tabular-nums" id="activeUserCount">0</span>
         <span class="live-label">LIVE</span>
-      </div>
+      </button>
 
       <div class="topbar-right">
         <!-- Theme Toggle -->
@@ -449,16 +449,6 @@
               <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, or college…" oninput="filterStatsStudents()" style="min-width:240px">
               <select class="stats-select" id="statsStudentCollegeFilter" onchange="filterStatsStudents()">
                 <option value="all">All Colleges</option>
-                <option value="avviare">Avviare Educational Hub</option>
-                <option value="glocal">Glocal University</option>
-                <option value="ccsu">CCSU Meerut</option>
-                <option value="du">Delhi University</option>
-                <option value="ipu">GGSIPU Delhi</option>
-                <option value="aktu">AKTU / UPTU</option>
-                <option value="ignou">IGNOU</option>
-                <option value="pune">Pune University</option>
-                <option value="bangalore">Bangalore University</option>
-                <option value="other">Other Colleges</option>
               </select>
               <span class="stats-count-badge tabular-nums" id="statsStudentCountBadge">0 Students</span>
             </div>
@@ -549,6 +539,34 @@
       <!-- Inspector Body Content -->
       <div class="inspector-body" id="studentInspectorBody">
         <!-- Injected dynamically by openStudentInspector() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Slide-Up Live Active Students Sheet Modal ================= -->
+  <div class="live-students-overlay" id="liveStudentsModal" hidden onclick="if(event.target===this)closeLiveStudentsModal()">
+    <div class="live-students-sheet">
+      <!-- Drag Handle -->
+      <div class="live-sheet-handle-wrap"><div class="live-sheet-handle"></div></div>
+
+      <!-- Live Sheet Sticky Header -->
+      <header class="live-sheet-header">
+        <div class="live-sheet-title-col">
+          <div class="live-sheet-eyebrow">
+            <span class="live-emerald-dot sm"></span>
+            <span>REALTIME TELEMETRY</span>
+          </div>
+          <h2 class="live-sheet-title">Students Live Right Now <span class="live-sheet-count-tag tabular-nums" id="liveModalCountBadge">0 Online</span></h2>
+          <p class="live-sheet-sub">Students active on BCAPrime right now &bull; Tap any card to inspect telemetry</p>
+        </div>
+        <button type="button" class="live-sheet-close-btn bca-pressable" onclick="closeLiveStudentsModal()" aria-label="Close live sheet">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </header>
+
+      <!-- Live Sheet Body / Student Feed -->
+      <div class="live-sheet-body" id="liveStudentsListContainer">
+        <!-- Rendered dynamically by renderLiveStudentsList() -->
       </div>
     </div>
   </div>

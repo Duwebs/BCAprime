@@ -15,22 +15,56 @@ const demoUploads = [
 // Unified College Single Source of Truth
 const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE) || {
   BCA_BASE_COLLEGES: [
-    ['all', 'All colleges'],
+    ['all', 'All Colleges'],
+    ['amity', 'Amity University'],
+    ['adbu', 'Assam Don Bosco University'],
+    ['avviare', 'Avviare Educational Hub'],
+    ['banasthali', 'Banasthali Vidyapith'],
+    ['bvp', 'Bharati Vidyapeeth'],
+    ['bitmesra', 'BIT Mesra'],
+    ['cu', 'Chandigarh University'],
+    ['chitkara', 'Chitkara University'],
+    ['christ', 'Christ University'],
+    ['davv', 'DAVV (Devi Ahilya Vishwavidyalaya)'],
+    ['gauhati', 'Gauhati University'],
+    ['glocal', 'Glocal University'],
+    ['goa', 'Goa University'],
+    ['geu', 'Graphic Era University'],
+    ['hpu', 'Himachal Pradesh University'],
+    ['kiit', 'KIIT University'],
+    ['kuk', 'Kurukshetra University'],
+    ['manipur', 'Manipur University'],
+    ['mizoram', 'Mizoram University'],
+    ['nagaland', 'Nagaland University'],
+    ['nirma', 'Nirma University'],
+    ['pu', 'Panjab University'],
+    ['patna', 'Patna University'],
+    ['pondi', 'Pondicherry University'],
+    ['rgu', 'Rajiv Gandhi University'],
+    ['smu', 'Sikkim Manipal University'],
+    ['srm', 'SRM Institute of Science and Technology'],
+    ['tripura', 'Tripura University'],
+    ['uok', 'University of Kashmir'],
+    ['kerala', 'University of Kerala'],
     ['ccsu', 'CCSU Meerut'],
-    ['ipu', 'GGSIPU Delhi'],
     ['du', 'Delhi University'],
+    ['ipu', 'GGSIPU Delhi'],
     ['aktu', 'AKTU / UPTU'],
     ['ignou', 'IGNOU'],
+    ['mdu', 'MDU Rohtak'],
+    ['bhu', 'BHU'],
     ['pune', 'Pune University'],
     ['bangalore', 'Bangalore University'],
     ['other', 'Other University']
   ],
   COLLEGE_NAMES_MAP: {},
   mergeColleges: function(b, c) { return b; },
-  formatCollegeName: function(id) { return id || 'All colleges'; }
+  formatCollegeName: function(id) { return id || 'All Colleges'; }
 };
 
-let dynamicCollegesList = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice();
+let dynamicCollegesList = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+  ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES.slice()
+  : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice();
 const collegeNames = new Proxy({}, {
   get: function(target, prop) {
     if (typeof prop === 'string') {
@@ -39,7 +73,7 @@ const collegeNames = new Proxy({}, {
       if (BCA_COLLEGES_MOD.COLLEGE_NAMES_MAP && BCA_COLLEGES_MOD.COLLEGE_NAMES_MAP[prop]) {
         return BCA_COLLEGES_MOD.COLLEGE_NAMES_MAP[prop];
       }
-      return prop === 'all' ? 'All colleges' : prop;
+      return prop === 'all' ? 'All Colleges' : prop;
     }
     return target[prop];
   }
@@ -58,8 +92,11 @@ async function loadApprovedCustomCollegesAdmin() {
     if (!error && Array.isArray(data)) {
       customCollegesQueue = data;
       const approved = data.filter(c => c.status === 'approved');
+      const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+        ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
+        : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
       if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.mergeColleges) {
-        dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(BCA_COLLEGES_MOD.BCA_BASE_COLLEGES, approved);
+        dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(baseColleges, approved);
       }
       populateAdminCollegeDropdowns();
       updateCollegeBadgeCount();
@@ -80,12 +117,24 @@ function updateCollegeBadgeCount() {
 }
 
 function populateAdminCollegeDropdowns() {
+  if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES) {
+    const baseColleges = window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES;
+    if (customCollegesQueue.length > 0 && window.BCA_COLLEGES_MODULE.mergeColleges) {
+      dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(
+        baseColleges,
+        customCollegesQueue.filter(c => c.status === 'approved')
+      );
+    } else if (dynamicCollegesList.length <= 10) {
+      dynamicCollegesList = baseColleges.slice();
+    }
+  }
+
   // 1. Target College in Push Broadcast
   const notifySelect = $('notifyCollege');
   if (notifySelect) {
     const currentVal = notifySelect.value;
     notifySelect.innerHTML = '<option value="">All colleges (Everyone)</option>' +
-      dynamicCollegesList.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+      dynamicCollegesList.filter(c => c[0] !== 'all').map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
     if (currentVal) notifySelect.value = currentVal;
   }
 
@@ -107,10 +156,19 @@ function populateAdminCollegeDropdowns() {
   const subjPick = $('subjectCollegePick');
   if (subjPick) {
     const currentVal = subjPick.value;
-    subjPick.innerHTML = dynamicCollegesList.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+    subjPick.innerHTML = dynamicCollegesList.filter(c => c[0] !== 'all').map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
     if (currentVal) subjPick.value = currentVal;
   }
 }
+
+// Initial synchronous population so dropdowns are never stale
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', populateAdminCollegeDropdowns);
+  } else {
+    populateAdminCollegeDropdowns();
+  }
+} catch(_e) {}
 
 async function renderCustomCollegesAdmin() {
   const host = $('collegeApprovalsQueue');
@@ -1284,24 +1342,20 @@ function switchTab(tab) {
 /* ============================================================
    Subject Manager (college + semester filters, card grid)
    ============================================================ */
-const subjectColleges = [
-  ['all','All Colleges'],['avviare','Avviare Educational Hub'],['glocal','Glocal University'],
-  ['ccsu','CCSU Meerut'],['du','Delhi University'],['ipu','GGSIPU Delhi'],['aktu','AKTU / UPTU'],
-  ['ignou','IGNOU'],['mdu','MDU Rohtak'],['bhu','BHU'],['pune','Pune University'],
-  ['bangalore','Bangalore University'],['other','Other University']
-];
-const subjectCollegesMap = Object.fromEntries(subjectColleges);
+const subjectCollegesMap = new Proxy({}, {
+  get: function(target, prop) {
+    if (typeof prop === 'string') return collegeNames[prop] || prop;
+    return target[prop];
+  }
+});
 let subjects = [];
 
 function populateSubjectFilters(){
-  const collegeSel = $('subjectCollege');
-  collegeSel.innerHTML = subjectColleges.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
-  const collegePick = $('subjectCollegePick');
-  collegePick.innerHTML = subjectColleges.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+  populateAdminCollegeDropdowns();
   const semSel = $('subjectSemester');
-  semSel.innerHTML = '<option value="all">All Semesters</option>' + [1,2,3,4,5,6,7,8].map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+  if (semSel) semSel.innerHTML = '<option value="all">All Semesters</option>' + [1,2,3,4,5,6,7,8].map(s => `<option value="${s}">Semester ${s}</option>`).join('');
   const semPick = $('subjectSem');
-  semPick.innerHTML = [1,2,3,4,5,6,7,8].map(s => `<option value="${s}">Semester ${s}</option>`).join('');
+  if (semPick) semPick.innerHTML = [1,2,3,4,5,6,7,8].map(s => `<option value="${s}">Semester ${s}</option>`).join('');
 }
 
 function findSubject(id){ return subjects.find(s => String(s.id) === String(id)) || null; }

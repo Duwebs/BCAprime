@@ -246,6 +246,7 @@ function showDashboard() {
   $('authGate').style.display = 'none';
   $('dashboard').hidden = false;
   initPressables();
+  initLivePresenceListener();
   refreshAll();
   startPolling();
 
@@ -549,22 +550,237 @@ function processEventsTelemetry(events) {
 }
 
 /* ============================================================
-   Active Live Users Telemetry
+   Active Live Users Telemetry & Realtime Presence
    ============================================================ */
+let livePresenceChannel = null;
+let liveStudentsList = [];
+
+function initLivePresenceListener() {
+  if (!analyticsSupabaseClient) return;
+  if (livePresenceChannel) return;
+  try {
+    livePresenceChannel = analyticsSupabaseClient.channel('bca-live-students');
+    livePresenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = livePresenceChannel.presenceState();
+        syncLiveStudentsFromPresence(state);
+      })
+      .on('presence', { event: 'join' }, () => {
+        const state = livePresenceChannel.presenceState();
+        syncLiveStudentsFromPresence(state);
+      })
+      .on('presence', { event: 'leave' }, () => {
+        const state = livePresenceChannel.presenceState();
+        syncLiveStudentsFromPresence(state);
+      })
+      .subscribe();
+  } catch (err) {
+    console.warn('[Stats] Live presence realtime listener error:', err);
+  }
+}
+
+function syncLiveStudentsFromPresence(state) {
+  const rawList = Object.values(state || {}).flat();
+  const studentMap = new Map();
+
+  for (const item of rawList) {
+    if (!item) continue;
+    const page = String(item.page || '').toLowerCase();
+    // Exclude admin or analytics routes
+    if (page.includes('/admin') || page.includes('/analytics') || page.includes('/stats')) continue;
+    const key = item.uid || item.visitor_id || item.id;
+    if (!key) continue;
+    studentMap.set(key, item);
+  }
+
+  liveStudentsList = Array.from(studentMap.values());
+  updateLiveIndicatorUI();
+
+  const modal = $('liveStudentsModal');
+  if (modal && !modal.hidden) {
+    renderLiveStudentsList();
+  }
+}
+
+function updateLiveIndicatorUI() {
+  const count = liveStudentsList.length;
+  const countEl = $('activeUserCount');
+  if (countEl) countEl.textContent = count;
+  const badgeEl = $('liveModalCountBadge');
+  if (badgeEl) badgeEl.textContent = `${count} Online`;
+}
+
 async function loadActiveUsersCount() {
   if (!analyticsSupabaseClient) return;
   try {
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // If Realtime is already reporting active students, preserve Realtime accuracy
+    if (livePresenceChannel && liveStudentsList.length > 0) {
+      updateLiveIndicatorUI();
+      return;
+    }
+
+    // Fallback: Query recent 3-minute student events from analytics_events
+    const threeMinAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
     const { data } = await analyticsSupabaseClient
       .from('analytics_events')
-      .select('visitor_id')
-      .gte('created_at', fiveMinAgo);
+      .select('visitor_id, user_id, user_name, user_email, resource_title, resource_type, subject, semester, page_path, created_at')
+      .gte('created_at', threeMinAgo)
+      .order('created_at', { ascending: false });
 
-    const activeSet = new Set((data || []).map(d => d.visitor_id).filter(Boolean));
-    const count = Math.max(1, activeSet.size); // Always shows live pulse
-    $('activeUserCount').textContent = count;
+    // Exclude admin paths and sessions
+    const validEvents = (data || []).filter(e => {
+      const p = String(e.page_path || '').toLowerCase();
+      return !p.includes('/admin') && !p.includes('/analytics') && !p.includes('/stats');
+    });
+
+    const studentMap = new Map();
+    validEvents.forEach(e => {
+      const key = e.user_id || e.visitor_id;
+      if (!key) return;
+      if (!studentMap.has(key)) {
+        let act = 'Home Library';
+        if (e.resource_title) act = `Reading: ${e.resource_title}`;
+        else if (e.subject) act = `Browsing ${e.subject}`;
+
+        studentMap.set(key, {
+          id: key,
+          uid: e.user_id || null,
+          visitor_id: e.visitor_id,
+          name: e.user_name || (e.user_id ? 'Student' : 'Guest Student'),
+          username: '',
+          email: e.user_email || '',
+          avatar: '',
+          college: 'all',
+          college_name: 'All Colleges',
+          sem: e.semester ? String(e.semester) : '1',
+          activity: act,
+          page: e.page_path || '/',
+          last_ping: e.created_at
+        });
+      }
+    });
+
+    if (liveStudentsList.length === 0) {
+      liveStudentsList = Array.from(studentMap.values());
+    }
+
+    updateLiveIndicatorUI();
   } catch (_e) {}
 }
+
+/* ---- Live Students Slide-Up Modal Handlers ---- */
+function formatLastPing(iso) {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return 'Just now';
+    const now = Date.now();
+    const diffSec = Math.floor((now - d.getTime()) / 1000);
+    const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' });
+    if (diffSec < 30) return `Active now (${timeStr} IST)`;
+    if (diffSec < 120) return `1m ago (${timeStr} IST)`;
+    const mins = Math.floor(diffSec / 60);
+    return `${mins}m ago (${timeStr} IST)`;
+  } catch (_e) {
+    return 'Active';
+  }
+}
+
+function openLiveStudentsModal() {
+  triggerHaptic();
+  const modal = $('liveStudentsModal');
+  if (!modal) return;
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  updateLiveIndicatorUI();
+  renderLiveStudentsList();
+}
+
+function closeLiveStudentsModal() {
+  triggerHaptic();
+  const modal = $('liveStudentsModal');
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function renderLiveStudentsList() {
+  const container = $('liveStudentsListContainer');
+  if (!container) return;
+
+  if (liveStudentsList.length === 0) {
+    container.innerHTML = `
+      <div class="live-empty-state">
+        <div class="live-empty-icon-wrap">
+          <i class="fa-solid fa-satellite-dish"></i>
+        </div>
+        <h3 class="live-empty-title">No Students Online Right Now</h3>
+        <p class="live-empty-desc">
+          The live pulse tracks active students on BCAPrime in real time when they open notes, take mock tests, or code in Code Lab.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = liveStudentsList.map(st => {
+    const cached = (statsStudentsCache || []).find(s => (st.uid && s.uid === st.uid) || (st.email && s.email === st.email));
+    const name = (cached && cached.name) || st.name || 'Student';
+    const username = (cached && cached.username) ? ('@' + cached.username.replace(/^@/, '')) : (st.username || '');
+    const avatar = (cached && (cached.avatar_url || cached.avatar)) || st.avatar || '';
+    const collegeCode = (cached && cached.college) || st.college || 'all';
+    const collegeName = formatStudentCollege(collegeCode);
+    const sem = (cached && cached.semester) || st.sem || '1';
+    const activity = st.activity || 'Home Library';
+    const lastPingStr = st.last_ping ? formatLastPing(st.last_ping) : 'Just now';
+    const studentUid = st.uid || (cached && cached.uid) || null;
+
+    return `
+      <div class="live-student-card bca-pressable" onclick="${studentUid ? `openStudentFromLive('${escapeHtml(studentUid)}')` : `toast('Guest student: No registered telemetry profile')`}">
+        <div class="live-avatar-wrap">
+          ${avatar
+            ? `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(name)}" class="live-avatar-img">`
+            : `<div class="live-avatar-initial">${escapeHtml(name.charAt(0).toUpperCase())}</div>`
+          }
+          <span class="live-status-dot-ring"></span>
+        </div>
+        <div class="live-student-info">
+          <div class="live-student-top">
+            <strong class="live-student-name">${escapeHtml(name)}</strong>
+            ${username ? `<span class="live-student-user">${escapeHtml(username)}</span>` : ''}
+            <span class="live-sem-pill">SEM ${escapeHtml(sem)}</span>
+          </div>
+          <div class="live-student-college">
+            <i class="fa-solid fa-building-columns"></i>
+            <span>${escapeHtml(collegeName)}</span>
+          </div>
+          <div class="live-student-activity">
+            <span class="live-activity-badge">
+              <i class="fa-solid fa-bolt"></i> ${escapeHtml(activity)}
+            </span>
+            <span class="live-ping-time tabular-nums">${escapeHtml(lastPingStr)}</span>
+          </div>
+        </div>
+        <div class="live-card-action">
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.BCA_UI && typeof window.BCA_UI.initPressable === 'function') {
+    container.querySelectorAll('.bca-pressable').forEach(el => window.BCA_UI.initPressable(el));
+  }
+}
+
+function openStudentFromLive(uid) {
+  closeLiveStudentsModal();
+  setTimeout(() => {
+    openStudentInspector(uid);
+  }, 120);
+}
+
+window.openLiveStudentsModal = openLiveStudentsModal;
+window.closeLiveStudentsModal = closeLiveStudentsModal;
+window.openStudentFromLive = openStudentFromLive;
 
 /* ============================================================
    Renderers: Module 1 (Pulse)
@@ -1019,16 +1235,46 @@ let currentStatsSemFilter = 'all';
 const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE) || null;
 let statsDynamicColleges = (BCA_COLLEGES_MOD && BCA_COLLEGES_MOD.BCA_BASE_COLLEGES) ? BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice() : [
   ['all', 'All Colleges'],
+  ['amity', 'Amity University'],
+  ['adbu', 'Assam Don Bosco University'],
   ['avviare', 'Avviare Educational Hub'],
+  ['banasthali', 'Banasthali Vidyapith'],
+  ['bvp', 'Bharati Vidyapeeth'],
+  ['bitmesra', 'BIT Mesra'],
+  ['cu', 'Chandigarh University'],
+  ['chitkara', 'Chitkara University'],
+  ['christ', 'Christ University'],
+  ['davv', 'DAVV (Devi Ahilya Vishwavidyalaya)'],
+  ['gauhati', 'Gauhati University'],
   ['glocal', 'Glocal University'],
+  ['goa', 'Goa University'],
+  ['geu', 'Graphic Era University'],
+  ['hpu', 'Himachal Pradesh University'],
+  ['kiit', 'KIIT University'],
+  ['kuk', 'Kurukshetra University'],
+  ['manipur', 'Manipur University'],
+  ['mizoram', 'Mizoram University'],
+  ['nagaland', 'Nagaland University'],
+  ['nirma', 'Nirma University'],
+  ['pu', 'Panjab University'],
+  ['patna', 'Patna University'],
+  ['pondi', 'Pondicherry University'],
+  ['rgu', 'Rajiv Gandhi University'],
+  ['smu', 'Sikkim Manipal University'],
+  ['srm', 'SRM Institute of Science and Technology'],
+  ['tripura', 'Tripura University'],
+  ['uok', 'University of Kashmir'],
+  ['kerala', 'University of Kerala'],
   ['ccsu', 'CCSU Meerut'],
   ['du', 'Delhi University'],
   ['ipu', 'GGSIPU Delhi'],
   ['aktu', 'AKTU / UPTU'],
   ['ignou', 'IGNOU'],
+  ['mdu', 'MDU Rohtak'],
+  ['bhu', 'BHU'],
   ['pune', 'Pune University'],
   ['bangalore', 'Bangalore University'],
-  ['other', 'Other Colleges']
+  ['other', 'Other University']
 ];
 
 async function loadApprovedCollegesForStats() {
@@ -1040,8 +1286,11 @@ async function loadApprovedCollegesForStats() {
       .eq('status', 'approved');
 
     if (!error && Array.isArray(data)) {
-      if (BCA_COLLEGES_MOD && BCA_COLLEGES_MOD.mergeColleges) {
-        statsDynamicColleges = BCA_COLLEGES_MOD.mergeColleges(BCA_COLLEGES_MOD.BCA_BASE_COLLEGES, data);
+      const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+        ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
+        : (BCA_COLLEGES_MOD ? BCA_COLLEGES_MOD.BCA_BASE_COLLEGES : statsDynamicColleges);
+      if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.mergeColleges) {
+        statsDynamicColleges = window.BCA_COLLEGES_MODULE.mergeColleges(baseColleges, data);
       }
       populateStatsCollegeFilter();
     }
@@ -1051,12 +1300,26 @@ async function loadApprovedCollegesForStats() {
 }
 
 function populateStatsCollegeFilter() {
+  if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES) {
+    if (statsDynamicColleges.length <= 11) {
+      statsDynamicColleges = window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES.slice();
+    }
+  }
   const sel = $('statsStudentCollegeFilter');
   if (!sel) return;
   const currentVal = sel.value;
   sel.innerHTML = statsDynamicColleges.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
   if (currentVal) sel.value = currentVal;
 }
+
+// Initial synchronous population
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', populateStatsCollegeFilter);
+  } else {
+    populateStatsCollegeFilter();
+  }
+} catch(_e) {}
 
 function formatStudentCollege(code) {
   if (!code) return 'Avviare Educational Hub';
