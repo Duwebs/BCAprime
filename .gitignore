@@ -2,6 +2,9 @@
 node_modules/
 
 # Local secrets — KABHI git par push mat karna
+.env
+.env.local
+.env.*.local
 vapid-keys-PRIVATE.txt
 newsecret.txt
 *.secret.txt
