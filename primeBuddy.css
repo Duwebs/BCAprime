@@ -73,39 +73,48 @@
   }
 }
 
-.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-dizzy):not(.is-dancing):not(.is-napping) .buddy-char-group {
+.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-dizzy):not(.is-dancing):not(.is-napping):not(.is-in-love):not(.is-doing-wheee) .buddy-char-group {
   animation: primeBuddyFloatB 3.2s ease-in-out infinite;
 }
 
-.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-dancing) .buddy-shadow-ellipse {
+.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-dancing):not(.is-doing-wheee) .buddy-shadow-ellipse {
   animation: primeBuddyShadowB 3.2s ease-in-out infinite;
   transform-origin: 32px 59px;
 }
 
-/* 2. Natural Eye Blinking */
-@keyframes primeBuddyBlinkB {
-  0%, 88%, 94%, 100% {
-    transform: scaleY(1);
-  }
-  91%, 97% {
-    transform: scaleY(0.08);
-  }
-}
-
+/* 2. Organic Eye Blinking & Lifelike Glances */
 .buddy-eye {
-  transform-origin: center;
-  animation: primeBuddyBlinkB 3.8s infinite;
+  transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Direction-Aware Eye Glance */
-.prime-buddy-wrap.edge-right .buddy-pupil {
+.buddy-eye-left {
+  transform-origin: 24px 28px;
+}
+
+.buddy-eye-right {
+  transform-origin: 38px 28px;
+}
+
+.prime-buddy-wrap.is-blinking .buddy-eye {
+  transform: scaleY(0.06) !important;
+}
+
+/* Direction-Aware Eye Glance & Curious Glances */
+.prime-buddy-wrap.edge-right .buddy-pupil,
+.prime-buddy-wrap.glance-left .buddy-pupil {
   transform: translateX(-1.8px);
-  transition: transform 0.3s ease;
+  transition: transform 0.22s ease;
 }
 
-.prime-buddy-wrap.edge-left .buddy-pupil {
+.prime-buddy-wrap.edge-left .buddy-pupil,
+.prime-buddy-wrap.glance-right .buddy-pupil {
   transform: translateX(1.8px);
-  transition: transform 0.3s ease;
+  transition: transform 0.22s ease;
+}
+
+.prime-buddy-wrap.glance-up .buddy-pupil {
+  transform: translateY(-2px);
+  transition: transform 0.22s ease;
 }
 
 /* 3. Autonomous Roaming: Cute Side-to-Side Waddle & Hand Swings */
@@ -326,6 +335,108 @@
 
 .prime-buddy-wrap.is-waking-up .prime-buddy-body {
   animation: primeBuddyWakeStretch 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 11. Heart-Eyes Love Reaction & Floating Pink Hearts */
+.prime-buddy-wrap.is-in-love .buddy-char-group {
+  animation: primeBuddyLoveHeartbeat 0.9s ease-in-out infinite !important;
+}
+
+@keyframes primeBuddyLoveHeartbeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.08, 0.94);
+  }
+  30% {
+    transform: scale(0.96, 1.04);
+  }
+  45% {
+    transform: scale(1.04, 0.97);
+  }
+}
+
+.buddy-floating-heart {
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: center;
+}
+
+.heart-p-1 { animation: buddyHeartRise1 1.8s ease-out infinite; }
+.heart-p-2 { animation: buddyHeartRise2 1.8s ease-out 0.35s infinite; }
+.heart-p-3 { animation: buddyHeartRise3 1.8s ease-out 0.7s infinite; }
+.heart-p-4 { animation: buddyHeartRise4 1.8s ease-out 1.05s infinite; }
+
+@keyframes buddyHeartRise1 {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(-10deg); }
+  20% { opacity: 1; transform: translate(-4px, -8px) scale(1) rotate(-6deg); }
+  75% { opacity: 0.9; transform: translate(-8px, -24px) scale(1.1) rotate(6deg); }
+  100% { opacity: 0; transform: translate(-12px, -36px) scale(0.7) rotate(12deg); }
+}
+
+@keyframes buddyHeartRise2 {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(8deg); }
+  20% { opacity: 1; transform: translate(5px, -9px) scale(1.1) rotate(12deg); }
+  75% { opacity: 0.9; transform: translate(9px, -26px) scale(1.15) rotate(-4deg); }
+  100% { opacity: 0; transform: translate(14px, -38px) scale(0.7) rotate(-10deg); }
+}
+
+@keyframes buddyHeartRise3 {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(-5deg); }
+  25% { opacity: 1; transform: translate(0px, -11px) scale(1) rotate(0deg); }
+  75% { opacity: 0.95; transform: translate(-2px, -28px) scale(1.2) rotate(8deg); }
+  100% { opacity: 0; transform: translate(-3px, -42px) scale(0.65) rotate(15deg); }
+}
+
+@keyframes buddyHeartRise4 {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(15deg); }
+  25% { opacity: 1; transform: translate(6px, -10px) scale(0.9) rotate(-8deg); }
+  75% { opacity: 0.85; transform: translate(11px, -25px) scale(1) rotate(4deg); }
+  100% { opacity: 0; transform: translate(16px, -36px) scale(0.6) rotate(10deg); }
+}
+
+/* 12. Rapid-Tap Combo Spin (720° Wheee Spin + Bursting Sparkles) */
+@keyframes primeBuddyWheeeSpin {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  20% {
+    transform: translateY(-20px) rotate(180deg) scale(1.12, 0.94);
+  }
+  50% {
+    transform: translateY(-28px) rotate(360deg) scale(0.94, 1.12);
+  }
+  75% {
+    transform: translateY(-12px) rotate(540deg) scale(1.06);
+  }
+  90% {
+    transform: translateY(2px) rotate(720deg) scale(1.14, 0.9);
+  }
+  100% {
+    transform: translateY(0) rotate(720deg) scale(1);
+  }
+}
+
+.prime-buddy-wrap.is-doing-wheee .prime-buddy-body {
+  animation: primeBuddyWheeeSpin 2.1s cubic-bezier(0.34, 1.45, 0.64, 1) both;
+}
+
+.buddy-sparkle-burst {
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: 32px 32px;
+}
+
+.prime-buddy-wrap.is-doing-wheee .buddy-sparkle-burst {
+  animation: buddySparklesAnim 2.1s ease-out both;
+}
+
+@keyframes buddySparklesAnim {
+  0% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  20% { opacity: 1; transform: scale(1.25) rotate(45deg); }
+  70% { opacity: 0.95; transform: scale(1.4) rotate(120deg); }
+  100% { opacity: 0; transform: scale(1.6) rotate(180deg); }
 }
 
 /* ============================================================

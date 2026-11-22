@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * BCAPrime — PrimeBuddy: Floating Autonomous Study Mascot
- * (v3.4 — Edge-to-Edge Fullscreen, Zero-Lag 1:1 Drag, Shake/Hard Fling Dizzy & Orbiting Crown)
+ * (v3.6 — Session-Only Hide, Smart Time-of-Day Greeting & Organic Lifelike Behavior)
  * ============================================================
  */
 
@@ -15,6 +15,8 @@
   const STORAGE_KEY_POS = 'bcaprime_primebuddy_pos';
   const STORAGE_KEY_INTRO_SEEN = 'bcaprime_primebuddy_intro_seen';
   const STORAGE_KEY_ROAM = 'bcaprime_primebuddy_roam_enabled';
+  const STORAGE_KEY_GREET_SLOT = 'bcaprime_primebuddy_last_greet_slot';
+  const SESSION_KEY_RETURN_IDX = 'bcaprime_primebuddy_last_return_idx';
 
   const MASCOT_SIZE = 66; // 66px footprint
   const IDLE_ROAM_DELAY = 6000; // 6 seconds idle before autonomous wandering
@@ -42,6 +44,24 @@
     'My brain is doing backflips! 😵💫'
   ];
 
+  const WHEEE_QUOTES = [
+    'Wheee! ✨',
+    'Yippee! 🚀',
+    'Wohooo! ⭐',
+    'Up we go! 🎈',
+    'Spin spin! 💫',
+    'Prime turbo speed! ⚡'
+  ];
+
+  const LOVE_QUOTES = [
+    'Love you too! 💕',
+    "Hehe, you're the best! 🥰",
+    'Keep shining! 💖',
+    'BCA Prime loves you! ❤️',
+    'Aww, sending good vibes! 🌸',
+    'You make study fun! ✨'
+  ];
+
   /* ------------------------------------------------------------
      DOM Element References & Internal State
      ------------------------------------------------------------ */
@@ -51,6 +71,9 @@
   let actionPillEl = null;
   let actionPillBackdropEl = null;
 
+  // In-memory session state for temporary hiding (never overwrites permanent localStorage setting)
+  let isTemporarilyHiddenForSession = false;
+
   let isDragging = false;
   let wasDragged = false;
   let isFlinging = false;
@@ -58,7 +81,7 @@
   let isNapping = false;
   let autoRoamEnabled = true;
 
-  let currentMood = 'normal'; // 'normal' | 'dragging' | 'dizzy' | 'napping'
+  let currentMood = 'normal'; // 'normal' | 'dragging' | 'dizzy' | 'napping' | 'love'
   let currentEdge = 'right';
 
   let currentX = 0;
@@ -77,6 +100,14 @@
   let roamStepTimer = null;
   let bubbleTimeout = null;
   let dizzyRecoverTimer = null;
+  let loveTimer = null;
+  let wheeeTimer = null;
+  let blinkTimer = null;
+  let waveTimer = null;
+
+  // Rapid-tap combo tracking (3+ taps within 900ms triggers Wheee Spin!)
+  let consecutiveTapsCount = 0;
+  let lastTapTimestamp = 0;
 
   // Shake detection state (at least 4 sharp reversals within 450ms)
   let shakeHistory = [];
@@ -85,8 +116,10 @@
   let lastShakeDirX = 0;
   let lastShakeDirY = 0;
 
-  // Non-repeating dizzy quote picker
+  // Non-repeating quote pickers
   let lastDizzyQuoteIndex = -1;
+  let lastWheeeQuoteIndex = -1;
+  let lastLoveQuoteIndex = -1;
 
   // Long-press detection (Hold ~400ms without dragging)
   let longPressTimer = null;
@@ -103,7 +136,7 @@
   }
 
   /* ------------------------------------------------------------
-     Helper: Viewport Boundaries (0px to Full Screen Height/Width)
+     Helper: Viewport Boundaries & Non-Repeating Quote Pickers
      ------------------------------------------------------------ */
   function getMaxX() {
     return Math.max(0, (window.innerWidth || document.documentElement.clientWidth || 360) - MASCOT_SIZE);
@@ -120,6 +153,201 @@
     } while (idx === lastDizzyQuoteIndex && DIZZY_QUOTES.length > 1);
     lastDizzyQuoteIndex = idx;
     return DIZZY_QUOTES[idx];
+  }
+
+  function getRandomWheeeQuote() {
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * WHEEE_QUOTES.length);
+    } while (idx === lastWheeeQuoteIndex && WHEEE_QUOTES.length > 1);
+    lastWheeeQuoteIndex = idx;
+    return WHEEE_QUOTES[idx];
+  }
+
+  function getRandomLoveQuote() {
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * LOVE_QUOTES.length);
+    } while (idx === lastLoveQuoteIndex && LOVE_QUOTES.length > 1);
+    lastLoveQuoteIndex = idx;
+    return LOVE_QUOTES[idx];
+  }
+
+  /* ------------------------------------------------------------
+     Dashboard Greeting Synchronization & Anti-Repeat Rule
+     ------------------------------------------------------------ */
+  function getStudentName() {
+    // 1. Try reading directly from hero greeting element populated by app.js
+    const heroGreetEl = document.getElementById('heroGreetName');
+    if (heroGreetEl && heroGreetEl.textContent) {
+      const text = heroGreetEl.textContent.trim();
+      const match = text.match(/Good\s+(?:Morning|Afternoon|Evening|Night),\s*([^!]+)!/i);
+      if (match && match[1]) {
+        const extracted = match[1].trim();
+        if (extracted && extracted.toLowerCase() !== 'there') {
+          return extracted.split(' ')[0];
+        }
+      }
+    }
+
+    // 2. Try window.accountSession or global accountSession
+    try {
+      const session = window.accountSession || (typeof accountSession !== 'undefined' ? accountSession : null);
+      if (session) {
+        if (session.displayName && session.displayName.trim()) {
+          return session.displayName.trim().split(' ')[0];
+        }
+        if (session.user_metadata && session.user_metadata.full_name) {
+          return session.user_metadata.full_name.trim().split(' ')[0];
+        }
+      }
+    } catch (_e) {}
+
+    // 3. Try localStorage 'bca-username'
+    try {
+      const stored = localStorage.getItem('bca-username');
+      if (stored && stored.trim()) {
+        return stored.trim().split(' ')[0];
+      }
+    } catch (_e) {}
+
+    // 4. Try parsing Supabase auth token in localStorage
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+          const item = JSON.parse(localStorage.getItem(key) || '{}');
+          const user = item.user || (item.session && item.session.user);
+          if (user) {
+            const rawName = (user.user_metadata && (user.user_metadata.full_name || user.user_metadata.name || user.user_metadata.username)) || user.displayName;
+            if (rawName && rawName.trim()) return rawName.trim().split(' ')[0];
+            if (user.email) {
+              const local = user.email.split('@')[0];
+              return local.charAt(0).toUpperCase() + local.slice(1);
+            }
+          }
+        }
+      }
+    } catch (_e) {}
+
+    return '';
+  }
+
+  function getCurrentTimeSlot() {
+    const hour = new Date().getHours();
+    if (hour >= 4 && hour < 12) {
+      return { slot: 'morning', prefix: 'Good Morning', emoji: '☀️' };
+    }
+    if (hour >= 12 && hour < 17) {
+      return { slot: 'afternoon', prefix: 'Good Afternoon', emoji: '☀️' };
+    }
+    if (hour >= 17 && hour < 21) {
+      return { slot: 'evening', prefix: 'Good Evening', emoji: '✨' };
+    }
+    return { slot: 'night', prefix: 'Good Night', emoji: '🌙' };
+  }
+
+  function triggerSmartGreeting() {
+    if (!isBuddyVisible()) return;
+
+    const timeInfo = getCurrentTimeSlot();
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const currentSlotKey = `${dateStr}_${timeInfo.slot}`;
+
+    const lastSlotKey = localStorage.getItem(STORAGE_KEY_GREET_SLOT);
+    const studentName = getStudentName();
+
+    // First open in that time-of-day period: Greet with time-of-day + name!
+    if (lastSlotKey !== currentSlotKey) {
+      localStorage.setItem(STORAGE_KEY_GREET_SLOT, currentSlotKey);
+
+      const greetText = studentName
+        ? `${timeInfo.prefix}, ${studentName}! ${timeInfo.emoji}`
+        : `${timeInfo.prefix}! ${timeInfo.emoji}`;
+
+      triggerFriendlyWave(2000);
+      showBubble(greetText, 3500);
+    } else {
+      // 2nd, 3rd, or subsequent opens within the SAME period: Warm return greetings
+      const returnGreetings = studentName ? [
+        `Welcome back, ${studentName}! 👋`,
+        `Good to see you again, ${studentName}! 🚀`,
+        `Back for another study session, ${studentName}? 📚`,
+        `Hey ${studentName}, ready when you are! ✨`
+      ] : [
+        'Welcome back! 👋',
+        'Good to see you again! 🚀',
+        'Back for another study session? 📚',
+        'Hey, ready when you are! ✨'
+      ];
+
+      let lastReturnIdx = -1;
+      try {
+        lastReturnIdx = parseInt(sessionStorage.getItem(SESSION_KEY_RETURN_IDX) || '-1', 10);
+      } catch (_e) {}
+
+      let nextIdx;
+      do {
+        nextIdx = Math.floor(Math.random() * returnGreetings.length);
+      } while (nextIdx === lastReturnIdx && returnGreetings.length > 1);
+
+      try {
+        sessionStorage.setItem(SESSION_KEY_RETURN_IDX, String(nextIdx));
+      } catch (_e) {}
+
+      const returnText = returnGreetings[nextIdx];
+      triggerFriendlyWave(1600);
+      showBubble(returnText, 3000);
+    }
+  }
+
+  /* ------------------------------------------------------------
+     Organic Lifelike Micro-Behaviors:
+     - Randomized natural blinking (2.2s to 6.5s) with cute double-blinks
+     - Hand wave reaction
+     ------------------------------------------------------------ */
+  function scheduleNextBlink() {
+    if (blinkTimer) clearTimeout(blinkTimer);
+    // Organic randomized interval between 2.2s and 6.5s
+    const nextDelay = 2200 + Math.random() * 4300;
+    blinkTimer = setTimeout(performOrganicBlink, nextDelay);
+  }
+
+  function performOrganicBlink() {
+    if (!mascotEl || isNapping || currentMood === 'dizzy' || isDragging || !isBuddyVisible()) {
+      scheduleNextBlink();
+      return;
+    }
+
+    mascotEl.classList.add('is-blinking');
+
+    setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('is-blinking');
+
+      // 28% chance of cute double-blink! (140ms apart)
+      if (Math.random() < 0.28) {
+        setTimeout(() => {
+          if (!mascotEl || isNapping || currentMood === 'dizzy' || isDragging) return;
+          mascotEl.classList.add('is-blinking');
+          setTimeout(() => {
+            if (mascotEl) mascotEl.classList.remove('is-blinking');
+            scheduleNextBlink();
+          }, 110);
+        }, 140);
+      } else {
+        scheduleNextBlink();
+      }
+    }, 120);
+  }
+
+  function triggerFriendlyWave(duration = 1600) {
+    if (!mascotEl) return;
+    if (waveTimer) clearTimeout(waveTimer);
+    mascotEl.classList.add('is-waving');
+    waveTimer = setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('is-waving');
+    }, duration);
   }
 
   /* ------------------------------------------------------------
@@ -239,14 +467,14 @@
     if (mood === 'dizzy') {
       // 360° Rapid Hypnosis Spiral Eyes
       eyesSvg = `
-        <g transform-origin="24 28">
+        <g class="buddy-eye-socket" transform-origin="24 28">
           <ellipse cx="24" cy="28" rx="5.6" ry="6.4" fill="#ffffff" stroke="#1e1b4b" stroke-width="1.3"/>
           <g class="buddy-dizzy-spiral-l" transform-origin="24 28">
             <path d="M24,28 A1.5,1.5 0 0,1 25.5,28 A2.8,2.8 0 0,1 22.5,29.5 A4,4 0 0,1 21,26.5 A5.2,5.2 0 0,1 26,24.5" fill="none" stroke="#1e1b4b" stroke-width="2" stroke-linecap="round"/>
             <circle cx="24" cy="28" r="1.6" fill="#f43f5e"/>
           </g>
         </g>
-        <g transform-origin="38 28">
+        <g class="buddy-eye-socket" transform-origin="38 28">
           <ellipse cx="38" cy="28" rx="5.6" ry="6.4" fill="#ffffff" stroke="#1e1b4b" stroke-width="1.3"/>
           <g class="buddy-dizzy-spiral-r" transform-origin="38 28">
             <path d="M38,28 A1.5,1.5 0 0,1 39.5,28 A2.8,2.8 0 0,1 36.5,29.5 A4,4 0 0,1 35,26.5 A5.2,5.2 0 0,1 40,24.5" fill="none" stroke="#1e1b4b" stroke-width="2" stroke-linecap="round"/>
@@ -255,6 +483,32 @@
         </g>
       `;
       mouthSvg = `<path d="M26,38 Q29,41 32,38 T38,38" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>`;
+    } else if (mood === 'love') {
+      // Heart Eyes Morph + Sweet Smile
+      eyesSvg = `
+        <!-- Left Heart Eye -->
+        <g class="buddy-eye-socket" transform-origin="24 28">
+          <ellipse cx="24" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
+          <path d="M 24,28.8 C 24,27.2 21.2,24.8 19.4,26.2 C 17.6,27.6 18.2,30.2 24,33.2 C 29.8,30.2 30.4,27.6 28.6,26.2 C 26.8,24.8 24,27.2 24,28.8 Z" fill="url(#buddyHeartEyeGrad)" stroke="#ffffff" stroke-width="0.6"/>
+          <circle cx="22.2" cy="27.4" r="0.75" fill="#ffffff"/>
+        </g>
+        <!-- Right Heart Eye -->
+        <g class="buddy-eye-socket" transform-origin="38 28">
+          <ellipse cx="38" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
+          <path d="M 38,28.8 C 38,27.2 35.2,24.8 33.4,26.2 C 31.6,27.6 32.2,30.2 38,33.2 C 43.8,30.2 44.4,27.6 42.6,26.2 C 40.8,24.8 38,27.2 38,28.8 Z" fill="url(#buddyHeartEyeGrad)" stroke="#ffffff" stroke-width="0.6"/>
+          <circle cx="36.2" cy="27.4" r="0.75" fill="#ffffff"/>
+        </g>
+      `;
+      mouthSvg = `<path d="M26,35.5 Q31,40 36,35.5" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round"/>`;
+      // Floating Pink Hearts Rising Above Crown
+      extraOverlays = `
+        <g class="buddy-floating-hearts" transform="translate(32, 10)">
+          <path class="buddy-floating-heart heart-p-1" d="M 0,-1 C 0,-2.5 -2.5,-3.2 -3.2,-1.8 C -3.8,-0.4 -2.5,1.2 0,2.8 C 2.5,1.2 3.8,-0.4 3.2,-1.8 C 2.5,-3.2 0,-2.5 0,-1 Z" fill="#f43f5e"/>
+          <path class="buddy-floating-heart heart-p-2" d="M 0,-1 C 0,-2.5 -2.5,-3.2 -3.2,-1.8 C -3.8,-0.4 -2.5,1.2 0,2.8 C 2.5,1.2 3.8,-0.4 3.2,-1.8 C 2.5,-3.2 0,-2.5 0,-1 Z" fill="#ec4899"/>
+          <path class="buddy-floating-heart heart-p-3" d="M 0,-1.2 C 0,-3 -3,-3.8 -3.8,-2.2 C -4.5,-0.5 -3,1.5 0,3.4 C 3,1.5 4.5,-0.5 3.8,-2.2 C 3,-3.8 0,-3 0,-1.2 Z" fill="#fb7185"/>
+          <path class="buddy-floating-heart heart-p-4" d="M 0,-0.8 C 0,-2 -2,-2.5 -2.5,-1.4 C -3,-0.3 -2,0.9 0,2.2 C 2,0.9 3,-0.3 2.5,-1.4 C 2,-2.5 0,-2 0,-0.8 Z" fill="#f43f5e"/>
+        </g>
+      `;
     } else if (mood === 'napping') {
       // Cute Closed Curved Sleeping Eyes (^ ^)
       eyesSvg = `
@@ -273,14 +527,14 @@
     } else if (mood === 'dragging') {
       // Playfully Lifted / Excited Eyes
       eyesSvg = `
-        <g class="buddy-eye" transform-origin="24 28">
+        <g class="buddy-eye buddy-eye-left" transform-origin="24 28">
           <ellipse cx="24" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
           <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="3.2" ry="3.4" fill="#0f172a"/>
           <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="2.2" ry="2" fill="#0284c7"/>
           <circle class="buddy-pupil" cx="${25.5 + eyeDx}" cy="26.5" r="1.5" fill="#ffffff"/>
           <circle class="buddy-pupil" cx="${23 + eyeDx}" cy="29.5" r="0.8" fill="#ffffff"/>
         </g>
-        <g class="buddy-eye" transform-origin="38 28">
+        <g class="buddy-eye buddy-eye-right" transform-origin="38 28">
           <ellipse cx="38" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
           <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="3.2" ry="3.4" fill="#0f172a"/>
           <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="2.2" ry="2" fill="#0284c7"/>
@@ -290,16 +544,16 @@
       `;
       mouthSvg = `<path d="M27.5,35.5 Q31,41 34.5,35.5 Z" fill="#ffffff" stroke="#ffffff" stroke-width="0.8"/>`;
     } else {
-      // Normal Happy Mascot Eyes (Direction-Aware)
+      // Normal Happy Mascot Eyes (Direction-Aware & Organic Blinking)
       eyesSvg = `
-        <g class="buddy-eye" transform-origin="24 28">
+        <g class="buddy-eye buddy-eye-left" transform-origin="24 28">
           <ellipse cx="24" cy="28" rx="4.8" ry="5.4" fill="#ffffff"/>
           <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="3" ry="3.2" fill="#0f172a"/>
           <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28.5" rx="2" ry="1.8" fill="#0284c7"/>
           <circle class="buddy-pupil" cx="${25.2 + eyeDx}" cy="26.8" r="1.3" fill="#ffffff"/>
           <circle class="buddy-pupil" cx="${23 + eyeDx}" cy="29.2" r="0.7" fill="#ffffff"/>
         </g>
-        <g class="buddy-eye" transform-origin="38 28">
+        <g class="buddy-eye buddy-eye-right" transform-origin="38 28">
           <ellipse cx="38" cy="28" rx="4.8" ry="5.4" fill="#ffffff"/>
           <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="3" ry="3.2" fill="#0f172a"/>
           <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28.5" rx="2" ry="1.8" fill="#0284c7"/>
@@ -348,6 +602,12 @@
             <stop offset="0%" stop-color="#fef08a" stop-opacity="0.45"/>
             <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
           </radialGradient>
+          <!-- Heart Eye Glowing Gradient -->
+          <linearGradient id="buddyHeartEyeGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fda4af"/>
+            <stop offset="35%" stop-color="#f43f5e"/>
+            <stop offset="100%" stop-color="#e11d48"/>
+          </linearGradient>
         </defs>
 
         <!-- Ambient Floor Drop Shadow -->
@@ -382,9 +642,9 @@
           <!-- Electric Cyan Bounce Rim Light -->
           <path d="M46,23 C48,27 46,31 43,33 C47,37 49,42 46,47" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" fill="none" opacity="0.7"/>
 
-          <!-- Cheek Blushes -->
-          <ellipse cx="19" cy="35" rx="3.2" ry="1.8" fill="#f43f5e" opacity="0.45"/>
-          <ellipse cx="43" cy="35" rx="3.2" ry="1.8" fill="#f43f5e" opacity="0.45"/>
+          <!-- Cheek Blushes (Rosier during Love mood) -->
+          <ellipse cx="19" cy="35" rx="${mood === 'love' ? '4' : '3.2'}" ry="${mood === 'love' ? '2.2' : '1.8'}" fill="#f43f5e" opacity="${mood === 'love' ? '0.7' : '0.45'}"/>
+          <ellipse cx="43" cy="35" rx="${mood === 'love' ? '4' : '3.2'}" ry="${mood === 'love' ? '2.2' : '1.8'}" fill="#f43f5e" opacity="${mood === 'love' ? '0.7' : '0.45'}"/>
 
           <!-- Expressive Eyes -->
           ${eyesSvg}
@@ -392,11 +652,21 @@
           <!-- Expressive Mouth -->
           ${mouthSvg}
 
-          <!-- Floating zZz sleeping particles -->
+          <!-- Floating Overlays (zZz particles or Floating Hearts) -->
           ${extraOverlays}
 
           <!-- Orbiting Dizzy Stars (in dizzy mood) -->
           ${crownSparkles}
+
+          <!-- Bursting Sparkles (for Wheee Spin) -->
+          <g class="buddy-sparkle-burst">
+            <polygon points="14,9 15.2,11.8 18,13 15.2,14.2 14,17 12.8,14.2 10,13 12.8,11.8" fill="#fbbf24"/>
+            <polygon points="50,9 51.2,11.8 54,13 51.2,14.2 50,17 48.8,14.2 46,13 48.8,11.8" fill="#38bdf8"/>
+            <polygon points="6,34 7.2,36.8 10,38 7.2,39.2 6,42 4.8,39.2 2,38 4.8,36.8" fill="#fef08a"/>
+            <polygon points="58,34 59.2,36.8 62,38 59.2,39.2 58,42 56.8,39.2 54,38 56.8,36.8" fill="#f43f5e"/>
+            <polygon points="20,50 21,52 23,53 21,54 20,56 19,54 17,53 19,52" fill="#38bdf8"/>
+            <polygon points="44,50 45,52 47,53 45,54 44,56 43,54 41,53 43,52" fill="#fbbf24"/>
+          </g>
 
           <!-- 3D Golden Orbiting Crown Stage -->
           <g id="buddyCrownSvgGroup" class="buddy-crown-svg-group">
@@ -417,6 +687,10 @@
   function isBuddyEnabled() {
     const val = localStorage.getItem(STORAGE_KEY_ENABLED);
     return val !== 'false';
+  }
+
+  function isBuddyVisible() {
+    return isBuddyEnabled() && !isTemporarilyHiddenForSession;
   }
 
   function triggerHaptic(ms = 10) {
@@ -462,6 +736,7 @@
     if (mascotEl) {
       mascotEl.classList.toggle('is-dizzy', mood === 'dizzy');
       mascotEl.classList.toggle('is-napping', mood === 'napping');
+      mascotEl.classList.toggle('is-in-love', mood === 'love');
     }
   }
 
@@ -476,6 +751,102 @@
       setMascotMood('normal');
       showBubble('All good now! ✨', 1800);
     }, duration);
+  }
+
+  /* ------------------------------------------------------------
+     Playful Tap Reactions:
+     1. Heart-Eyes Love Reaction (😍 + Floating Hearts)
+     2. Rapid-Tap Combo Spin (Wheee! ✨ + 720° Spin + Sparkles)
+     3. Happy Hop Bounce
+     ------------------------------------------------------------ */
+  function triggerLoveReaction(duration = 2000) {
+    if (currentMood === 'dizzy') return;
+    setMascotMood('love');
+    triggerHaptic(18);
+    if (navigator.vibrate) {
+      try { navigator.vibrate([15, 60, 20]); } catch (_e) {}
+    }
+
+    const quote = getRandomLoveQuote();
+    showBubble(quote, duration);
+
+    if (loveTimer) clearTimeout(loveTimer);
+    loveTimer = setTimeout(() => {
+      if (currentMood === 'love') setMascotMood('normal');
+    }, duration);
+    resetIdleTimer();
+  }
+
+  function triggerWheeeReaction(duration = 2200) {
+    if (currentMood === 'dizzy') return;
+    if (currentMood === 'love') setMascotMood('normal');
+
+    triggerHaptic(22);
+    if (navigator.vibrate) {
+      try { navigator.vibrate([15, 50, 20, 50, 30]); } catch (_e) {}
+    }
+
+    mascotEl.classList.remove('is-doing-wheee');
+    void mascotEl.offsetWidth; // Force reflow
+    mascotEl.classList.add('is-doing-wheee');
+
+    const quote = getRandomWheeeQuote();
+    showBubble(quote, duration);
+
+    if (wheeeTimer) clearTimeout(wheeeTimer);
+    wheeeTimer = setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('is-doing-wheee');
+    }, duration);
+    resetIdleTimer();
+  }
+
+  function triggerBounceReaction() {
+    triggerHaptic(12);
+
+    mascotEl.classList.remove('is-doing-bounce');
+    void mascotEl.offsetWidth; // Force reflow
+    mascotEl.classList.add('is-doing-bounce');
+    setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('is-doing-bounce');
+    }, 450);
+
+    const quote = BUDDY_QUOTES[Math.floor(Math.random() * BUDDY_QUOTES.length)];
+    showBubble(quote, 2200);
+    resetIdleTimer();
+  }
+
+  function handleMascotTap() {
+    closeActionPill();
+
+    // If currently napping, tap wakes him up!
+    if (isNapping) {
+      wakeUpMascot();
+      return;
+    }
+
+    const now = performance.now();
+    if (now - lastTapTimestamp < 900) {
+      consecutiveTapsCount++;
+    } else {
+      consecutiveTapsCount = 1;
+    }
+    lastTapTimestamp = now;
+
+    // 3 or more rapid taps within 900ms -> Wheee 720° spin!
+    if (consecutiveTapsCount >= 3) {
+      consecutiveTapsCount = 0;
+      triggerWheeeReaction();
+    } else if (consecutiveTapsCount === 2) {
+      // Double tap -> Heart-Eyes Love Reaction!
+      triggerLoveReaction();
+    } else {
+      // Single tap: alternate/random between Love and Bounce
+      if (Math.random() < 0.5) {
+        triggerLoveReaction();
+      } else {
+        triggerBounceReaction();
+      }
+    }
   }
 
   function savePosition(pos) {
@@ -525,6 +896,7 @@
     createIntroModalElement();
     updateMascotVisibility();
     startCrownLoop();
+    scheduleNextBlink();
   }
 
   /* Position restoration with full-screen boundary clamps (0px to 100vh) */
@@ -560,10 +932,6 @@
 
   /* ------------------------------------------------------------
      Tap & Long-Press Detection + Zero-Lag 1:1 Direct Drag Physics
-     - Tap (< 400ms, < 6px move): Cute bounce reaction + greeting (no menu)
-     - Long-Press (~400ms hold): Opens Floating Action Pill (Dance | Nap | Hide)
-     - Drag: Zero-lag 1:1 direct finger tracking across full screen
-     - Fling: Free 4-wall ricochet momentum, zero edge lock!
      ------------------------------------------------------------ */
   function initInteractionAndPhysics() {
     if (!mascotEl) return;
@@ -571,7 +939,7 @@
     mascotEl.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
 
-      // If mascot is napping, a tap wakes him up immediately!
+      // If mascot is napping, tap wakes him up immediately!
       if (isNapping) {
         wakeUpMascot();
         e.preventDefault();
@@ -742,44 +1110,18 @@
           startFlingPhysics(vx, vy);
         } else {
           // Normal drag drop: rest freely right where placed!
-          if (currentMood !== 'dizzy') setMascotMood('normal');
+          if (currentMood !== 'dizzy' && currentMood !== 'love') setMascotMood('normal');
           settleFreePosition();
         }
         return;
       }
 
-      // 2. Otherwise: Single Tap Action!
-      triggerSingleTapReaction();
+      // 2. Otherwise: Tap Action (Love, Wheee Spin or Bounce!)
+      handleMascotTap();
     };
 
     mascotEl.addEventListener('pointerup', onPointerRelease);
     mascotEl.addEventListener('pointercancel', onPointerRelease);
-  }
-
-  /* Single Tap: Cute happy bounce reaction + playful quote (no menu!) */
-  function triggerSingleTapReaction() {
-    closeActionPill();
-
-    // If currently napping, wake up!
-    if (isNapping) {
-      wakeUpMascot();
-      return;
-    }
-
-    triggerHaptic(12);
-
-    // Hop bounce animation
-    mascotEl.classList.remove('is-doing-bounce');
-    void mascotEl.offsetWidth; // Reflow
-    mascotEl.classList.add('is-doing-bounce');
-    setTimeout(() => {
-      if (mascotEl) mascotEl.classList.remove('is-doing-bounce');
-    }, 450);
-
-    // Cheerful speech bubble
-    const quote = BUDDY_QUOTES[Math.floor(Math.random() * BUDDY_QUOTES.length)];
-    showBubble(quote, 2200);
-    resetIdleTimer();
   }
 
   /* Settle freely at current coordinates without snapping to screen edge */
@@ -791,12 +1133,12 @@
     currentY = Math.round(Math.max(0, Math.min(currentY, maxY)));
     currentEdge = currentX < (window.innerWidth || 360) / 2 ? 'left' : 'right';
 
-    mascotEl.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+    mascotEl.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
     setTimeout(() => {
       if (mascotEl) mascotEl.style.transition = '';
-    }, 240);
+    }, 260);
 
     mascotEl.classList.toggle('edge-left', currentEdge === 'left');
     mascotEl.classList.toggle('edge-right', currentEdge === 'right');
@@ -892,7 +1234,7 @@
       if (currentSpeed < STOP_SPEED) {
         isFlinging = false;
         mascotEl.classList.remove('is-flinging');
-        if (currentMood !== 'dizzy') setMascotMood('normal');
+        if (currentMood !== 'dizzy' && currentMood !== 'love') setMascotMood('normal');
         // Rest freely at landing spot (no snap back to edge!)
         settleFreePosition();
         return;
@@ -1077,11 +1419,12 @@
     resetIdleTimer();
   }
 
-  /* 3. Hide Action */
+  /* 3. Hide Action (Temporary session-only hide — reappears on refresh/reopen) */
   function hideBuddyAction() {
     closeActionPill();
-    setPrimeBuddyEnabled(false, false);
-    showToast('PrimeBuddy hidden — turn ON anytime in Profile → Settings', 'info');
+    isTemporarilyHiddenForSession = true;
+    updateMascotVisibility();
+    showToast("PrimeBuddy hidden for now — he'll be back next time you open BCAPrime!", 'info');
   }
 
   /* ------------------------------------------------------------
@@ -1101,7 +1444,7 @@
     if (idleTimer) clearTimeout(idleTimer);
     if (isRoaming) stopRoaming();
 
-    if (!autoRoamEnabled || isDragging || isFlinging || isNapping || !isBuddyEnabled()) return;
+    if (!autoRoamEnabled || isDragging || isFlinging || isNapping || !isBuddyVisible()) return;
 
     idleTimer = setTimeout(() => {
       startAutonomousRoam();
@@ -1111,47 +1454,74 @@
   function stopRoaming() {
     isRoaming = false;
     if (roamStepTimer) clearTimeout(roamStepTimer);
-    if (mascotEl) mascotEl.classList.remove('is-roaming');
+    if (mascotEl) {
+      mascotEl.classList.remove('is-roaming');
+      mascotEl.classList.remove('glance-left', 'glance-right', 'glance-up');
+    }
   }
 
   function startAutonomousRoam() {
-    if (!autoRoamEnabled || isRoaming || isDragging || isFlinging || isNapping || !isBuddyEnabled()) return;
+    if (!autoRoamEnabled || isRoaming || isDragging || isFlinging || isNapping || !isBuddyVisible()) return;
     isRoaming = true;
     if (mascotEl) mascotEl.classList.add('is-roaming');
     triggerAutonomousRoamStep();
   }
 
   function triggerAutonomousRoamStep() {
-    if (!isRoaming || !autoRoamEnabled || isNapping) return;
+    if (!isRoaming || !autoRoamEnabled || isNapping || !isBuddyVisible()) return;
 
     const maxX = getMaxX();
     const maxY = getMaxY();
 
-    // Pick a smooth random 2D coordinate inside entire screen bounds
-    const targetX = Math.round(Math.random() * maxX);
-    const targetY = Math.round(Math.random() * maxY);
+    // 1. Organic Curious Pause & Glances (Look around before stepping)
+    const glanceDir = Math.random() < 0.5 ? 'left' : 'right';
+    mascotEl.classList.add(`glance-${glanceDir}`);
+    setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('glance-left', 'glance-right');
+    }, 1100);
+
+    // 2. Compute gentle curved trajectory (vary distance: short/medium strolls)
+    const maxStepX = Math.min(260, maxX * 0.45);
+    const maxStepY = Math.min(220, maxY * 0.4);
+    const deltaX = (Math.random() * 2 - 1) * maxStepX;
+    const deltaY = (Math.random() * 2 - 1) * maxStepY;
+
+    const targetX = Math.round(Math.max(0, Math.min(currentX + deltaX, maxX)));
+    const targetY = Math.round(Math.max(0, Math.min(currentY + deltaY, maxY)));
+
+    // Variable duration based on distance travelled (2.4s to 4.2s)
+    const dist = Math.hypot(targetX - currentX, targetY - currentY);
+    const durationSec = Math.max(2.4, Math.min(4.2, 1.8 + (dist / 180)));
 
     currentX = targetX;
     currentY = targetY;
     currentEdge = currentX < (window.innerWidth || 360) / 2 ? 'left' : 'right';
 
-    mascotEl.style.transition = 'transform 3.5s cubic-bezier(0.25, 1, 0.5, 1)';
+    mascotEl.style.transition = `transform ${durationSec.toFixed(2)}s cubic-bezier(0.25, 1, 0.5, 1)`;
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
     mascotEl.classList.toggle('edge-left', currentEdge === 'left');
     mascotEl.classList.toggle('edge-right', currentEdge === 'right');
     savePosition({ x: currentX, y: currentY, edge: currentEdge });
 
-    // 25% chance to show a cheerful quote while strolling
-    if (Math.random() < 0.25) {
-      const quote = BUDDY_QUOTES[Math.floor(Math.random() * BUDDY_QUOTES.length)];
-      showBubble(quote, 2500);
-    }
+    // 20% chance of a playful micro-reaction upon arrival
+    setTimeout(() => {
+      if (!isRoaming || !autoRoamEnabled || isNapping || isDragging || isFlinging) return;
+      const microRand = Math.random();
+      if (microRand < 0.15) {
+        triggerFriendlyWave(1500);
+      } else if (microRand < 0.3) {
+        const quote = BUDDY_QUOTES[Math.floor(Math.random() * BUDDY_QUOTES.length)];
+        showBubble(quote, 2500);
+      }
+    }, durationSec * 1000 + 100);
 
+    // Organic pause duration before next stroll (2s to 5s)
+    const pauseDuration = (durationSec * 1000) + 2000 + (Math.random() * 3000);
     roamStepTimer = setTimeout(() => {
       if (mascotEl) mascotEl.style.transition = '';
       if (isRoaming) triggerAutonomousRoamStep();
-    }, 4200 + Math.random() * 2500);
+    }, pauseDuration);
   }
 
   /* ------------------------------------------------------------
@@ -1178,15 +1548,22 @@
 
         <h2 class="buddy-intro-title" id="buddyIntroTitle">Meet PrimeBuddy</h2>
         <p class="buddy-intro-copy">
-          Your interactive campus study companion! Drag me freely anywhere across the entire screen, fling me across all 4 walls with ricochet momentum, or hold me for quick actions (Dance, Nap &amp; Hide).
+          Your interactive campus study companion! Tap me for heart-eyes &amp; sparkles, rapid-tap for a 720° spin, drag me anywhere edge-to-edge, or hold me for actions (Dance, Nap &amp; Hide).
         </p>
 
         <div class="buddy-intro-features">
           <div class="buddy-intro-feat-row">
+            <span class="buddy-feat-icon" style="color:#f43f5e"><i class="fa-solid fa-heart"></i></span>
+            <div class="buddy-feat-text">
+              <h4>Playful Tap Reactions</h4>
+              <p>Heart-eyes love mode, floating hearts, and rapid-tap 720° Wheee spin</p>
+            </div>
+          </div>
+          <div class="buddy-intro-feat-row">
             <span class="buddy-feat-icon"><i class="fa-solid fa-arrows-up-down-left-right"></i></span>
             <div class="buddy-feat-text">
               <h4>Free Roam &amp; 4-Wall Bounce</h4>
-              <p>Move anywhere edge-to-edge or throw with 4-wall elastic ricochet physics</p>
+              <p>Move anywhere edge-to-edge (0px–100vh) with elastic ricochet momentum</p>
             </div>
           </div>
           <div class="buddy-intro-feat-row">
@@ -1194,13 +1571,6 @@
             <div class="buddy-feat-text">
               <h4>3D Volumetric Rotating Crown</h4>
               <p>Continuous 360° rotating golden crown with sparkling jewel tips</p>
-            </div>
-          </div>
-          <div class="buddy-intro-feat-row">
-            <span class="buddy-feat-icon"><i class="fa-solid fa-hand-pointer"></i></span>
-            <div class="buddy-feat-text">
-              <h4>Hold for Action Pill</h4>
-              <p>Long-press for 💃 Dance, 😴 Nap (with zZz), or 👋 Hide</p>
             </div>
           </div>
         </div>
@@ -1247,7 +1617,7 @@
     localStorage.setItem(STORAGE_KEY_INTRO_SEEN, 'true');
     setPrimeBuddyEnabled(true, true);
     setTimeout(() => {
-      showBubble("Hey! I'm PrimeBuddy! Hold me for actions 🚀", 3500);
+      showBubble("Hey! I'm PrimeBuddy! Tap me for fun 🚀", 3500);
     }, 400);
   }
 
@@ -1260,10 +1630,13 @@
   }
 
   /* ------------------------------------------------------------
-     Settings Synchronization
+     Settings Synchronization (Permanent ON/OFF)
      ------------------------------------------------------------ */
   function setPrimeBuddyEnabled(enabled, showFeedback = true) {
     localStorage.setItem(STORAGE_KEY_ENABLED, enabled ? 'true' : 'false');
+    if (enabled) {
+      isTemporarilyHiddenForSession = false; // Reset temporary hide if user explicitly re-enables in settings
+    }
     syncSettingsCheckboxes(enabled);
     updateMascotVisibility();
 
@@ -1282,16 +1655,16 @@
   }
 
   function updateMascotVisibility() {
-    const enabled = isBuddyEnabled();
-    syncSettingsCheckboxes(enabled);
+    const visible = isBuddyVisible();
+    syncSettingsCheckboxes(isBuddyEnabled());
     if (mascotEl) {
-      mascotEl.classList.toggle('is-hidden', !enabled);
-      mascotEl.style.display = enabled ? 'block' : 'none';
+      mascotEl.classList.toggle('is-hidden', !visible);
+      mascotEl.style.display = visible ? 'block' : 'none';
     }
-    if (!enabled && actionPillEl) {
+    if (!visible && actionPillEl) {
       closeActionPill();
     }
-    if (enabled) {
+    if (visible) {
       resetIdleTimer();
     } else {
       stopRoaming();
@@ -1313,6 +1686,10 @@
   window.triggerPrimeBuddyDance = triggerDanceAction;
   window.triggerPrimeBuddyNap = toggleNapAction;
   window.wakeUpPrimeBuddy = wakeUpMascot;
+  window.triggerPrimeBuddyHide = hideBuddyAction;
+  window.triggerPrimeBuddyLove = triggerLoveReaction;
+  window.triggerPrimeBuddyWheee = triggerWheeeReaction;
+  window.triggerPrimeBuddyGreeting = triggerSmartGreeting;
 
   window.PrimeBuddy = {
     init,
@@ -1322,6 +1699,10 @@
     dance: triggerDanceAction,
     nap: startNap,
     wake: wakeUpMascot,
+    hide: hideBuddyAction,
+    love: triggerLoveReaction,
+    wheee: triggerWheeeReaction,
+    greet: triggerSmartGreeting,
     openPill: openActionPill,
     closePill: closeActionPill,
     triggerDizzy: triggerDizzyState
@@ -1342,6 +1723,11 @@
         setPrimeBuddyEnabled(true, false);
       }
     } catch (_e) {}
+
+    // Trigger Smart Time-of-Day Greeting once dashboard initializes
+    setTimeout(() => {
+      triggerSmartGreeting();
+    }, 700);
   }
 
   if (document.readyState === 'loading') {
