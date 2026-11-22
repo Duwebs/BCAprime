@@ -1,150 +1,101 @@
 // app.js - BCAPrime app logic (extracted from index.html).
 // Must load AFTER env.js and supabase-config.js (Supabase auth + data).
 console.info('[BCAPrime] app.js v79 loaded ✔');
-const ONBOARDING_COLLEGES = [
-  ['amity', 'Amity University'],
-  ['adbu', 'Assam Don Bosco University'],
-  ['avviare', 'Avviare Educational Hub'],
-  ['banasthali', 'Banasthali Vidyapith'],
-  ['bvp', 'Bharati Vidyapeeth'],
-  ['bitmesra', 'BIT Mesra'],
-  ['cu', 'Chandigarh University'],
-  ['chitkara', 'Chitkara University'],
-  ['christ', 'Christ University'],
-  ['davv', 'DAVV (Devi Ahilya Vishwavidyalaya)'],
-  ['gauhati', 'Gauhati University'],
-  ['glocal', 'Glocal University'],
-  ['goa', 'Goa University'],
-  ['geu', 'Graphic Era University'],
-  ['hpu', 'Himachal Pradesh University'],
-  ['kiit', 'KIIT University'],
-  ['kuk', 'Kurukshetra University'],
-  ['manipur', 'Manipur University'],
-  ['mizoram', 'Mizoram University'],
-  ['nagaland', 'Nagaland University'],
-  ['nirma', 'Nirma University'],
-  ['pu', 'Panjab University'],
-  ['patna', 'Patna University'],
-  ['pondi', 'Pondicherry University'],
-  ['rgu', 'Rajiv Gandhi University'],
-  ['smu', 'Sikkim Manipal University'],
-  ['srm', 'SRM Institute of Science and Technology'],
-  ['tripura', 'Tripura University'],
-  ['uok', 'University of Kashmir'],
-  ['kerala', 'University of Kerala']
-];
+// Unified College Constants & Helpers (backed by lib/colleges.js & src/constants/colleges.ts)
+const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE) || {
+  BCA_BASE_COLLEGES: [
+    ['all', 'All Colleges'],
+    ['amity', 'Amity University'],
+    ['adbu', 'Assam Don Bosco University'],
+    ['avviare', 'Avviare Educational Hub'],
+    ['banasthali', 'Banasthali Vidyapith'],
+    ['bvp', 'Bharati Vidyapeeth'],
+    ['bitmesra', 'BIT Mesra'],
+    ['cu', 'Chandigarh University'],
+    ['chitkara', 'Chitkara University'],
+    ['christ', 'Christ University'],
+    ['davv', 'DAVV (Devi Ahilya Vishwavidyalaya)'],
+    ['gauhati', 'Gauhati University'],
+    ['glocal', 'Glocal University'],
+    ['goa', 'Goa University'],
+    ['geu', 'Graphic Era University'],
+    ['hpu', 'Himachal Pradesh University'],
+    ['kiit', 'KIIT University'],
+    ['kuk', 'Kurukshetra University'],
+    ['manipur', 'Manipur University'],
+    ['mizoram', 'Mizoram University'],
+    ['nagaland', 'Nagaland University'],
+    ['nirma', 'Nirma University'],
+    ['pu', 'Panjab University'],
+    ['patna', 'Patna University'],
+    ['pondi', 'Pondicherry University'],
+    ['rgu', 'Rajiv Gandhi University'],
+    ['smu', 'Sikkim Manipal University'],
+    ['srm', 'SRM Institute of Science and Technology'],
+    ['tripura', 'Tripura University'],
+    ['uok', 'University of Kashmir'],
+    ['kerala', 'University of Kerala'],
+    ['ccsu', 'CCSU Meerut'],
+    ['du', 'Delhi University'],
+    ['ipu', 'GGSIPU Delhi'],
+    ['aktu', 'AKTU / UPTU'],
+    ['ignou', 'IGNOU'],
+    ['mdu', 'MDU Rohtak'],
+    ['bhu', 'BHU'],
+    ['pune', 'Pune University'],
+    ['bangalore', 'Bangalore University'],
+    ['other', 'Other University']
+  ],
+  mergeColleges: function(b, c) { return b; },
+  getCollegeBadgeData: function(id, name) { return { monogram: 'BC', color: '#2563eb' }; },
+  formatCollegeName: function(id) { return id || 'All Colleges'; }
+};
+
+const ONBOARDING_COLLEGES = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.filter(c => c[0] !== 'all' && c[0] !== 'other');
+let colleges = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice();
 
 function getCollegeBadgeData(id, name) {
-  const customMonograms = {
-    'amity': 'AU',
-    'adbu': 'AD',
-    'avviare': 'AE',
-    'banasthali': 'BV',
-    'bvp': 'BV',
-    'bitmesra': 'BM',
-    'cu': 'CU',
-    'chitkara': 'CU',
-    'christ': 'CU',
-    'davv': 'DA',
-    'gauhati': 'GU',
-    'glocal': 'GU',
-    'goa': 'GU',
-    'geu': 'GE',
-    'hpu': 'HP',
-    'kiit': 'KU',
-    'kuk': 'KU',
-    'manipur': 'MU',
-    'mizoram': 'MU',
-    'nagaland': 'NU',
-    'nirma': 'NU',
-    'pu': 'PU',
-    'patna': 'PU',
-    'pondi': 'PU',
-    'rgu': 'RG',
-    'smu': 'SM',
-    'srm': 'SR',
-    'tripura': 'TU',
-    'uok': 'UK',
-    'kerala': 'UK',
-    'ccsu': 'CC',
-    'du': 'DU',
-    'ipu': 'GG'
-  };
-
-  const badgeColors = {
-    'amity': '#2563eb',
-    'adbu': '#059669',
-    'avviare': '#2563eb',
-    'banasthali': '#db2777',
-    'bvp': '#7c3aed',
-    'bitmesra': '#d97706',
-    'cu': '#dc2626',
-    'chitkara': '#ea580c',
-    'christ': '#4f46e5',
-    'davv': '#0891b2',
-    'gauhati': '#16a34a',
-    'glocal': '#16a34a',
-    'goa': '#0284c7',
-    'geu': '#9333ea',
-    'hpu': '#e11d48',
-    'kiit': '#0d9488',
-    'kuk': '#6366f1',
-    'manipur': '#059669',
-    'mizoram': '#ca8a04',
-    'nagaland': '#2563eb',
-    'nirma': '#dc2626',
-    'pu': '#4338ca',
-    'patna': '#0891b2',
-    'pondi': '#0d9488',
-    'rgu': '#7c3aed',
-    'smu': '#0284c7',
-    'srm': '#ea580c',
-    'tripura': '#16a34a',
-    'uok': '#4f46e5',
-    'kerala': '#059669',
-    'ccsu': '#3b82f6',
-    'du': '#1e40af',
-    'ipu': '#dc2626'
-  };
-
-  let monogram = customMonograms[id];
-  if (!monogram && name) {
-    const clean = name.replace(/\([^)]*\)/g, '').trim().split(/\s+/).filter(w => !['of','and','the','in','for','&'].includes(w.toLowerCase()));
-    if (clean.length >= 2) {
-      monogram = (clean[0][0] + clean[1][0]).toUpperCase();
-    } else if (clean.length === 1 && clean[0].length >= 2) {
-      monogram = clean[0].slice(0, 2).toUpperCase();
-    } else {
-      monogram = (name.slice(0, 2) || 'BC').toUpperCase();
-    }
+  if (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.getCollegeBadgeData) {
+    return window.BCA_COLLEGES_MODULE.getCollegeBadgeData(id, name);
   }
-
-  let color = badgeColors[id];
-  if (!color) {
-    const colors = ['#2563eb', '#16a34a', '#7c3aed', '#dc2626', '#d97706', '#0284c7', '#4f46e5', '#0d9488', '#e11d48'];
-    let hash = 0;
-    const str = id || name || 'college';
-    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    color = colors[Math.abs(hash) % colors.length];
-  }
-
-  return { monogram: monogram || 'BC', color: color || '#2563eb' };
+  return { monogram: (name && name.slice(0, 2).toUpperCase()) || 'BC', color: '#2563eb' };
 }
 
-const colleges=[
-  ['all','All Colleges'],
-  ...ONBOARDING_COLLEGES,
-  ['ccsu','CCSU Meerut'],
-  ['du','Delhi University'],
-  ['ipu','GGSIPU Delhi'],
-  ['aktu','AKTU / UPTU'],
-  ['ignou','IGNOU'],
-  ['mdu','MDU Rohtak'],
-  ['bhu','BHU'],
-  ['pune','Pune University'],
-  ['bangalore','Bangalore University'],
-  ['other','Other University']
-];
+/* Dynamic college synchronization with Supabase custom_colleges */
+let approvedCustomColleges = [];
+async function loadCloudColleges() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.from('custom_colleges').select('id, name, status').eq('status', 'approved');
+    if (!error && Array.isArray(data)) {
+      approvedCustomColleges = data;
+      syncGlobalCollegesList();
+      renderColleges();
+      renderOnboardingColleges();
+      renderSubjectFilter();
+      render();
+    }
+  } catch (e) {
+    console.warn('[BCAPrime] loadCloudColleges error:', e);
+  }
+}
+
+function syncGlobalCollegesList() {
+  const localCustom = [];
+  try {
+    const raw = JSON.parse(localStorage.getItem('bca-custom-colleges') || '[]');
+    raw.forEach(c => {
+      if (Array.isArray(c) && c.length === 2) {
+        localCustom.push({ id: c[0], name: c[1] });
+      }
+    });
+  } catch (_e) {}
+
+  const combinedCustom = [...approvedCustomColleges, ...localCustom];
+  if (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.mergeColleges) {
+    colleges = window.BCA_COLLEGES_MODULE.mergeColleges(BCA_COLLEGES_MOD.BCA_BASE_COLLEGES, combinedCustom);
+  }
+}
 
 /* Helper to dispatch admin activity telegram notifications (fire-and-forget) */
 function sendAdminTelegramAlert(type, payload) {
@@ -451,6 +402,7 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
       initPrimeStickyBarObserver();
       bindCardViews();if(!resources.length)showSkeleton();
       loadCloudResources();
+      try{loadCloudColleges()}catch(e){}
       try{loadCloudSubjects()}catch(e){}
       setTimeout(()=>{try{loadSeniorRequests()}catch(e){}},600);
       setTimeout(()=>$('splash').classList.add('hidden'),1100);
@@ -2276,6 +2228,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       updateQrButtonVisibility();
       setTimeout(showOnboardingIfNeeded,180);
       setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900);
+      setTimeout(function(){if(typeof checkLostFoundPendingClaims==='function')checkLostFoundPendingClaims()},1400);
     }
     function continueAsGuest(){
       triggerAuthHaptic(12);
@@ -3507,7 +3460,57 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     async function logoutFromPop(){hideProfileCard();openLogoutConfirm()}
     function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].filter(c=>c[0]!=='all').sort((a,b)=>{if(a[0]==='avviare')return -1;if(b[0]==='avviare')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
     function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);if($('collegeLabel'))$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
-    function useCustomCollege(){const input=$('collegeCustom');const name=input.value.trim();if(!name){input.focus();return}const college=['custom-'+Date.now(),name];colleges.push(college);localStorage.setItem('bca-custom-colleges',JSON.stringify([...JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]'),college]));input.value='';selectCollege(college[0])}
+    async function submitCustomCollegeWorkflow(name) {
+      const cleanName = String(name || '').trim();
+      if (!cleanName) return null;
+      const slugId = 'custom-' + ((typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE) ? window.BCA_COLLEGES_MODULE.slugifyCollege(cleanName) : cleanName.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+      const college = [slugId, cleanName];
+
+      // 1. Immediately cache in local storage & memory so user is never blocked
+      try {
+        const existing = JSON.parse(localStorage.getItem('bca-custom-colleges') || '[]');
+        if (!existing.some(c => Array.isArray(c) && c[1].toLowerCase() === cleanName.toLowerCase())) {
+          existing.push(college);
+          localStorage.setItem('bca-custom-colleges', JSON.stringify(existing));
+        }
+      } catch (_e) {}
+
+      syncGlobalCollegesList();
+
+      // 2. Insert into Supabase custom_colleges table as 'pending'
+      if (supabaseClient) {
+        try {
+          const uploaderUid = accountUid() || '';
+          const uploaderName = (accountSession && (accountSession.displayName || accountSession.username)) || 'A student';
+          supabaseClient.from('custom_colleges').insert({
+            name: cleanName,
+            submitted_by: uploaderUid,
+            submitted_by_name: uploaderName,
+            status: 'pending'
+          }).then(() => {}, (err) => console.warn('[BCAPrime] custom_colleges insert note:', err));
+        } catch (_e) {}
+      }
+
+      // 3. Trigger instant Telegram notification to BCAPrime Admin Bot
+      try {
+        const username = (accountSession && (accountSession.username || accountSession.displayName)) || localStorage.getItem('bca-username') || 'Student';
+        sendAdminTelegramAlert('college_request', {
+          name: cleanName,
+          submitted_by_name: username
+        });
+      } catch (_e) {}
+
+      return college;
+    }
+
+    async function useCustomCollege(){
+      const input=$('collegeCustom');
+      const name=input?input.value.trim():'';
+      if(!name){if(input)input.focus();return}
+      const college=await submitCustomCollegeWorkflow(name);
+      if(input)input.value='';
+      if(college)selectCollege(college[0]);
+    }
     let uploadFiles=[]; /* client-side managed File list (enables reorder/delete) */
     function showFile(input){
       refreshUploadFiles(input&&input.files?input.files:null);
@@ -5478,19 +5481,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!container)return;
       const q=(query||'').trim().toLowerCase();
 
-      // Custom colleges stored in localStorage
-      const customList=[];
-      try{
-        const raw=JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]');
-        raw.forEach(c=>{
-          if(Array.isArray(c)&&c.length===2&&!ONBOARDING_COLLEGES.some(oc=>oc[0]===c[0])){
-            customList.push(c);
-          }
-        });
-      }catch(e){}
-
-      // Exact ordered list: custom colleges (if any), then the 30 specified colleges
-      const allList=[...customList,...ONBOARDING_COLLEGES];
+      // Combined dynamic list: colleges array (merged from base + approved + local custom, excluding 'all')
+      const allList = colleges.filter(c => c[0] !== 'all');
       const filtered=q?allList.filter(c=>{
         const id=c[0].toLowerCase();
         const name=c[1].toLowerCase();
@@ -5616,21 +5608,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       setTimeout(startTour,200);
     }
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem&&!state.profileSemester){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
-    function addOnboardingCollege(){
+    async function addOnboardingCollege(){
       const input=$('onboardingCustom');
       const name=input?input.value.trim():'';
       if(!name){if(input)input.focus();return}
-      const id='custom-'+Date.now();
-      const college=[id,name];
-      colleges.push(college);
-      try{
-        const existing=JSON.parse(localStorage.getItem('bca-custom-colleges')||'[]');
-        localStorage.setItem('bca-custom-colleges',JSON.stringify([...existing,college]));
-      }catch(e){}
+      const college=await submitCustomCollegeWorkflow(name);
       if(input)input.value='';
       toggleCustomCollegeDrawer(false);
       renderOnboardingColleges();
-      chooseOnboardingCollege(id);
+      if(college)chooseOnboardingCollege(college[0]);
     }
     const tourSteps=[
       {icon:'fa-magnifying-glass',title:'Search anything',text:'Find notes, question papers and study material for any subject with one quick search.'},
@@ -6036,6 +6022,159 @@ async function openLostFoundDetail(id){
   const m=$('lostFoundDetailModal');if(m)m.classList.add('open');
 }
 function closeLostFoundDetail(){closeModals()}
+/* ============================================================
+   LOST & FOUND STORAGE & LIFECYCLE HELPERS
+   ============================================================ */
+
+/**
+ * Dedicated helper to wipe images directly from Supabase Storage bucket 'lossfound'
+ * Accepts a full public URL, bucket path, or array of URLs/paths.
+ */
+async function wipeLostFoundImageFromStorage(imageUrls) {
+  if (!supabaseClient || !imageUrls) return;
+  const list = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+  const paths = [];
+
+  for (const item of list) {
+    if (!item || typeof item !== 'string') continue;
+    let path = item.trim();
+    // Match /lossfound/<path> from Supabase storage public URL
+    const match = path.match(/\/lossfound\/(.+)$/);
+    if (match) {
+      path = match[1].split('?')[0].split('#')[0];
+    } else if (path.startsWith('http')) {
+      const idx = path.indexOf('/lossfound/');
+      if (idx !== -1) path = path.slice(idx + '/lossfound/'.length).split('?')[0].split('#')[0];
+    }
+    if (path && !path.startsWith('http')) {
+      paths.push(decodeURIComponent(path));
+    }
+  }
+
+  if (!paths.length) return;
+  try {
+    const { data, error } = await supabaseClient.storage.from('lossfound').remove(paths);
+    if (error) console.warn('[BCAPrime] lossfound storage image remove note:', error.message);
+    else console.info('[BCAPrime] Wiped', paths.length, 'lossfound image(s) from storage.');
+  } catch (err) {
+    console.warn('[BCAPrime] wipeLostFoundImageFromStorage err:', err);
+  }
+}
+window.wipeLostFoundImageFromStorage = wipeLostFoundImageFromStorage;
+
+/**
+ * App-Open Check-in for Lost & Found posts pending confirmation:
+ * Whenever post creator opens the app while an item is in 'claimed_pending_confirm',
+ * prompt them with a clean mobile slide-up sheet.
+ */
+let lfActiveCheckinPost = null;
+async function checkLostFoundPendingClaims() {
+  if (!supabaseClient || !accountUid()) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from(LOST_FOUND_TABLE)
+      .select('*')
+      .eq('poster_uid', accountUid())
+      .eq('claim_status', 'claimed_pending_confirm')
+      .limit(1);
+
+    if (!error && data && data.length) {
+      promptLfClaimCheckin(data[0]);
+    }
+  } catch (err) {
+    console.warn('[BCAPrime] checkLostFoundPendingClaims error:', err);
+  }
+}
+
+function promptLfClaimCheckin(post) {
+  lfActiveCheckinPost = post;
+  const modal = $('lfClaimConfirmModal');
+  if (!modal) return;
+  const itemName = lfItemName(post);
+  const typeLabel = (post.type === 'found' ? 'Found' : 'Lost');
+  const msgEl = $('lfClaimConfirmMsg');
+  if (msgEl) {
+    msgEl.innerHTML = `Update on your <b>${typeLabel}</b> item: <b>${escHtml(itemName)}</b> &mdash; Did you receive / hand over the item?`;
+  }
+  const badgeEl = $('lfClaimConfirmBadge');
+  if (badgeEl) {
+    badgeEl.innerHTML = `<span class="lf-badge ${post.type === 'lost' ? 'lf-lost' : 'lf-found'}">${typeLabel.toUpperCase()}</span> <span class="lf-badge lf-claimed">Claim Pending Confirmation</span>`;
+  }
+
+  const gotItBtn = $('lfClaimGotItBtn');
+  if (gotItBtn) {
+    gotItBtn.onclick = () => handleLfClaimConfirmation(true);
+  }
+  const notYetBtn = $('lfClaimNotYetBtn');
+  if (notYetBtn) {
+    notYetBtn.onclick = () => handleLfClaimConfirmation(false);
+  }
+
+  if (modal.parentElement !== document.body) document.body.appendChild(modal);
+  modal.classList.add('open');
+  if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(15);
+}
+
+function closeLfClaimConfirm() {
+  const modal = $('lfClaimConfirmModal');
+  if (modal) modal.classList.remove('open');
+  lfActiveCheckinPost = null;
+}
+
+async function handleLfClaimConfirmation(confirmedReceived) {
+  if (!lfActiveCheckinPost || !supabaseClient) return;
+  const post = lfActiveCheckinPost;
+  const gotItBtn = $('lfClaimGotItBtn');
+  const notYetBtn = $('lfClaimNotYetBtn');
+  if (gotItBtn) gotItBtn.disabled = true;
+  if (notYetBtn) notYetBtn.disabled = true;
+
+  try {
+    if (confirmedReceived) {
+      // Option 1: "Yes, Got It! (Remove Post)"
+      // 1. Wipe image from Supabase Storage
+      if (post.image_url) {
+        await wipeLostFoundImageFromStorage(post.image_url);
+      }
+      // 2. Delete database post record completely (zero storage waste)
+      await supabaseClient.from(LOST_FOUND_TABLE).delete().eq('id', post.id);
+
+      closeLfClaimConfirm();
+      toast('Item marked resolved & removed. Storage cleaned up! ✅');
+      loadLostFound(true);
+    } else {
+      // Option 2: "Not Yet (Re-Notify College)"
+      // 1. Reset claim_status to 'active'
+      await supabaseClient.from(LOST_FOUND_TABLE).update({
+        claim_status: 'active',
+        status: 'active'
+      }).eq('id', post.id);
+
+      // 2. Re-notify all students in that specific college via campus push / alert
+      if (typeof LF_NOTIFY_URL !== 'undefined') {
+        try {
+          fetch(LF_NOTIFY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ post_id: post.id, college: post.college, mode: 're-notify', secret: LF_NOTIFY_SECRET })
+          }).catch(() => {});
+        } catch (_e) {}
+      }
+
+      closeLfClaimConfirm();
+      toast('Item reactivated! Re-alerted your college students 🔔');
+      loadLostFound(true);
+    }
+  } catch (err) {
+    console.error('[BCAPrime] handleLfClaimConfirmation error:', err);
+    toast('Could not update status right now.');
+  } finally {
+    if (gotItBtn) gotItBtn.disabled = false;
+    if (notYetBtn) notYetBtn.disabled = false;
+  }
+}
+window.closeLfClaimConfirm = closeLfClaimConfirm;
+
 async function claimLostFound(id,kind){
   if(!requireAccount('Log in to claim an item.','lostfound'))return;
   if(!supabaseClient)return;
@@ -6048,7 +6187,14 @@ async function claimLostFound(id,kind){
       else throw error;
       return;
     }
-    await supabaseClient.from(LOST_FOUND_TABLE).update({status:'claimed'}).eq('id',id).eq('status','active');
+    // Mark item claim_status = 'claimed_pending_confirm' with claimed_by and claimed_at
+    await supabaseClient.from(LOST_FOUND_TABLE).update({
+      status: 'claimed',
+      claim_status: 'claimed_pending_confirm',
+      claimed_by: accountUid(),
+      claimed_at: new Date().toISOString()
+    }).eq('id', id);
+
     lfClaimed.add(String(id));
     closeLostFoundDetail();
     toast('Claim sent! Contact info is now revealed to you.');
@@ -6062,7 +6208,16 @@ async function claimLostFound(id,kind){
 async function resolveLostFound(id){
   if(!accountSession)return;
   if(!supabaseClient)return;
-  try{await supabaseClient.from(LOST_FOUND_TABLE).update({status:'resolved',resolved_at:new Date().toISOString()}).eq('id',id).eq('poster_uid',accountUid());toast('Marked as resolved \u2705');closeLostFoundDetail();loadLostFound(true)}catch(e){toast('Could not resolve right now')}
+  try{
+    const p=lfCache.find(x=>String(x.id)===String(id));
+    if(p&&p.image_url){
+      await wipeLostFoundImageFromStorage(p.image_url);
+    }
+    await supabaseClient.from(LOST_FOUND_TABLE).delete().eq('id',id).eq('poster_uid',accountUid());
+    toast('Marked as resolved & post removed ✓');
+    closeLostFoundDetail();
+    loadLostFound(true);
+  }catch(e){toast('Could not resolve right now')}
 }
 function handleLostFoundHash(){try{const h=location.hash||'';const m=h.match(/^#lostfound-(\d+)$/);if(m)openLostFoundDetail(Number(m[1]))}catch(e){}}
 window.addEventListener('hashchange',handleLostFoundHash);

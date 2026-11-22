@@ -222,6 +222,40 @@ async function sendAdminTelegramAlert(type, payload = {}) {
       break;
     }
 
+    case 'college_request': {
+      const collegeName = escapeMarkdown(payload.name || payload.college_name || 'Unnamed College');
+      const user = escapeMarkdown(payload.submitted_by_name || payload.user_name || payload.username || 'Student');
+
+      msg = [
+        `🏫 *New College Request!*`,
+        ``,
+        `🏛️ *College Name:* ${collegeName}`,
+        `👤 *Requested by:* @${user.replace(/^@/, '')}`,
+        `⏰ *Time:* ${istTime}`,
+        ``,
+        `⏳ _Awaiting approval in BCAPrime Admin → College Approvals._`,
+      ].join('\n');
+      break;
+    }
+
+    case 'lost_found_escalation_30d': {
+      const itemCount = payload.count || 1;
+      const sampleTitle = escapeMarkdown(payload.sample_title || payload.item_name || 'Lost & Found Items');
+      const college = escapeMarkdown(payload.college || 'Various Colleges');
+
+      msg = [
+        `⚠️ *Lost & Found 30-Day Escalation!*`,
+        ``,
+        `📦 *Unresolved Items:* ${itemCount} post(s) older than 30 days`,
+        `🔍 *Sample Item:* ${sampleTitle}`,
+        `🏛️ *College:* ${college}`,
+        `⏰ *Time:* ${istTime}`,
+        ``,
+        `🚨 _Action needed: Please review in BCAPrime Admin → Community → Lost & Found Moderation to Wipe Image or Extend._`,
+      ].join('\n');
+      break;
+    }
+
     case 'test':
     default: {
       const adminName = escapeMarkdown(payload.admin_name || 'Admin');

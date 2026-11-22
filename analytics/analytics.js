@@ -330,7 +330,8 @@ async function refreshAll() {
   try {
     await Promise.allSettled([
       fetchSuiteTelemetry(),
-      loadActiveUsersCount()
+      loadActiveUsersCount(),
+      loadApprovedCollegesForStats()
     ]);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i>'; }
@@ -1014,24 +1015,57 @@ function formatRelativeTime(isoStr) {
 let statsStudentsCache = [];
 let currentStatsSemFilter = 'all';
 
-const collegeLabels = {
-  all: 'All Colleges',
-  avviare: 'Avviare Educational Hub',
-  glocal: 'Glocal University',
-  ccsu: 'CCSU Meerut',
-  du: 'Delhi University',
-  ipu: 'GGSIPU Delhi',
-  aktu: 'AKTU / UPTU',
-  ignou: 'IGNOU',
-  pune: 'Pune University',
-  bangalore: 'Bangalore University',
-  other: 'Other Colleges'
-};
+// Unified College Single Source of Truth
+const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE) || null;
+let statsDynamicColleges = (BCA_COLLEGES_MOD && BCA_COLLEGES_MOD.BCA_BASE_COLLEGES) ? BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice() : [
+  ['all', 'All Colleges'],
+  ['avviare', 'Avviare Educational Hub'],
+  ['glocal', 'Glocal University'],
+  ['ccsu', 'CCSU Meerut'],
+  ['du', 'Delhi University'],
+  ['ipu', 'GGSIPU Delhi'],
+  ['aktu', 'AKTU / UPTU'],
+  ['ignou', 'IGNOU'],
+  ['pune', 'Pune University'],
+  ['bangalore', 'Bangalore University'],
+  ['other', 'Other Colleges']
+];
+
+async function loadApprovedCollegesForStats() {
+  if (!analyticsSupabase) return;
+  try {
+    const { data, error } = await analyticsSupabase
+      .from('custom_colleges')
+      .select('id, name, status')
+      .eq('status', 'approved');
+
+    if (!error && Array.isArray(data)) {
+      if (BCA_COLLEGES_MOD && BCA_COLLEGES_MOD.mergeColleges) {
+        statsDynamicColleges = BCA_COLLEGES_MOD.mergeColleges(BCA_COLLEGES_MOD.BCA_BASE_COLLEGES, data);
+      }
+      populateStatsCollegeFilter();
+    }
+  } catch (err) {
+    console.warn('[Stats] loadApprovedCollegesForStats error:', err);
+  }
+}
+
+function populateStatsCollegeFilter() {
+  const sel = $('statsStudentCollegeFilter');
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = statsDynamicColleges.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+  if (currentVal) sel.value = currentVal;
+}
 
 function formatStudentCollege(code) {
   if (!code) return 'Avviare Educational Hub';
-  const c = String(code).toLowerCase();
-  return collegeLabels[c] || (c.startsWith('custom-') ? 'Custom College' : c.toUpperCase());
+  if (BCA_COLLEGES_MOD && BCA_COLLEGES_MOD.formatCollegeName) {
+    return BCA_COLLEGES_MOD.formatCollegeName(code, statsDynamicColleges);
+  }
+  const found = statsDynamicColleges.find(c => c[0].toLowerCase() === String(code).toLowerCase());
+  if (found) return found[1];
+  return String(code).replace(/^custom-/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
 function getAvatarColor(str) {
@@ -1055,6 +1089,13 @@ async function renderStudentsModule() {
   const countBadge = $('statsStudentCountBadge');
   const emptyWrap = $('statsStudentsEmptyState');
   if (emptyWrap) emptyWrap.hidden = true;
+
+  // Ensure colleges are loaded and filter options populated
+  if (!statsDynamicColleges || statsDynamicColleges.length <= 11) {
+    loadApprovedCollegesForStats();
+  } else {
+    populateStatsCollegeFilter();
+  }
 
   if (container) {
     container.innerHTML = [1, 2, 3, 4].map(i => `
@@ -1230,7 +1271,7 @@ function filterStatsStudents() {
       if (collegeFilter !== 'all') {
         const sCol = (s.college || '').toLowerCase();
         if (collegeFilter === 'other') {
-          const known = ['avviare', 'glocal', 'ccsu', 'du', 'ipu', 'aktu', 'ignou', 'pune', 'bangalore'];
+          const known = statsDynamicColleges.filter(c => c[0] !== 'all' && c[0] !== 'other').map(c => c[0].toLowerCase());
           if (known.includes(sCol)) return false;
         } else if (sCol !== collegeFilter) {
           return false;

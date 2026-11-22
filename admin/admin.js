@@ -12,17 +12,199 @@ const demoUploads = [
   { id: 'demo-3', title: 'C Programming Crash Notes', type: 'notes', sem: 1, year: 1, subject: 'Programming Principles & C', college: 'all', fileName: 'c-programming-notes.pdf', status: 'approved' }
 ];
 
-const collegeNames = {
-  all: 'All colleges',
-  ccsu: 'CCSU Meerut',
-  ipu: 'GGSIPU Delhi',
-  du: 'Delhi University',
-  aktu: 'AKTU / UPTU',
-  ignou: 'IGNOU',
-  pune: 'Pune University',
-  bangalore: 'Bangalore University',
-  other: 'Other University'
+// Unified College Single Source of Truth
+const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_MODULE) || {
+  BCA_BASE_COLLEGES: [
+    ['all', 'All colleges'],
+    ['ccsu', 'CCSU Meerut'],
+    ['ipu', 'GGSIPU Delhi'],
+    ['du', 'Delhi University'],
+    ['aktu', 'AKTU / UPTU'],
+    ['ignou', 'IGNOU'],
+    ['pune', 'Pune University'],
+    ['bangalore', 'Bangalore University'],
+    ['other', 'Other University']
+  ],
+  COLLEGE_NAMES_MAP: {},
+  mergeColleges: function(b, c) { return b; },
+  formatCollegeName: function(id) { return id || 'All colleges'; }
 };
+
+let dynamicCollegesList = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice();
+const collegeNames = new Proxy({}, {
+  get: function(target, prop) {
+    if (typeof prop === 'string') {
+      const found = dynamicCollegesList.find(c => c[0].toLowerCase() === prop.toLowerCase());
+      if (found) return found[1];
+      if (BCA_COLLEGES_MOD.COLLEGE_NAMES_MAP && BCA_COLLEGES_MOD.COLLEGE_NAMES_MAP[prop]) {
+        return BCA_COLLEGES_MOD.COLLEGE_NAMES_MAP[prop];
+      }
+      return prop === 'all' ? 'All colleges' : prop;
+    }
+    return target[prop];
+  }
+});
+
+let customCollegesQueue = [];
+
+async function loadApprovedCustomCollegesAdmin() {
+  if (!adminSupabaseClient) return;
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('custom_colleges')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      customCollegesQueue = data;
+      const approved = data.filter(c => c.status === 'approved');
+      if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.mergeColleges) {
+        dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(BCA_COLLEGES_MOD.BCA_BASE_COLLEGES, approved);
+      }
+      populateAdminCollegeDropdowns();
+      updateCollegeBadgeCount();
+      renderCustomCollegesAdmin();
+    }
+  } catch (err) {
+    console.warn('[Admin] loadApprovedCustomCollegesAdmin error:', err);
+  }
+}
+
+function updateCollegeBadgeCount() {
+  const pendingCount = customCollegesQueue.filter(c => c.status === 'pending').length;
+  const badge = $('tabCollegeBadge');
+  if (badge) {
+    badge.textContent = pendingCount;
+    badge.hidden = (pendingCount === 0);
+  }
+}
+
+function populateAdminCollegeDropdowns() {
+  // 1. Target College in Push Broadcast
+  const notifySelect = $('notifyCollege');
+  if (notifySelect) {
+    const currentVal = notifySelect.value;
+    notifySelect.innerHTML = '<option value="">All colleges (Everyone)</option>' +
+      dynamicCollegesList.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+    if (currentVal) notifySelect.value = currentVal;
+  }
+
+  // 2. Student Directory College Filter
+  const userSelect = $('userCollegeFilter');
+  if (userSelect) {
+    const currentVal = userSelect.value;
+    userSelect.innerHTML = dynamicCollegesList.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+    if (currentVal) userSelect.value = currentVal;
+  }
+
+  // 3. Subject Management College Filter & Modal Picker
+  const subjSelect = $('subjectCollege');
+  if (subjSelect) {
+    const currentVal = subjSelect.value;
+    subjSelect.innerHTML = dynamicCollegesList.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+    if (currentVal) subjSelect.value = currentVal;
+  }
+  const subjPick = $('subjectCollegePick');
+  if (subjPick) {
+    const currentVal = subjPick.value;
+    subjPick.innerHTML = dynamicCollegesList.map(c => `<option value="${c[0]}">${escapeHtml(c[1])}</option>`).join('');
+    if (currentVal) subjPick.value = currentVal;
+  }
+}
+
+async function renderCustomCollegesAdmin() {
+  const host = $('collegeApprovalsQueue');
+  if (!host) return;
+  if (!customCollegesQueue.length) {
+    host.innerHTML = '<p class="note">No custom college requests yet.</p>';
+    return;
+  }
+
+  host.innerHTML = customCollegesQueue.map(c => {
+    const time = c.created_at ? new Date(c.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '';
+    const stBadge = c.status === 'approved'
+      ? '<span class="adm-pill active" style="background:#059669;color:#fff;font-size:11px;">APPROVED</span>'
+      : (c.status === 'rejected'
+        ? '<span class="adm-pill" style="background:#dc2626;color:#fff;font-size:11px;">REJECTED</span>'
+        : '<span class="adm-pill" style="background:#f59e0b;color:#000;font-size:11px;font-weight:700;">PENDING REVIEW</span>');
+
+    let actions = '';
+    if (c.status === 'pending') {
+      actions = `
+        <div class="row-actions" style="margin-top:10px;display:flex;gap:8px;">
+          <button class="button primary bca-pressable" onclick="approveCustomCollege(${c.id}, '${escapeHtml(c.name)}')">
+            <i class="fa-solid fa-check"></i> Approve
+          </button>
+          <button class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})">
+            <i class="fa-solid fa-xmark"></i> Reject
+          </button>
+        </div>`;
+    } else if (c.status === 'approved') {
+      actions = `
+        <div class="row-actions" style="margin-top:10px;">
+          <button class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})">
+            <i class="fa-solid fa-trash"></i> Revoke / Archive
+          </button>
+        </div>`;
+    } else {
+      actions = `
+        <div class="row-actions" style="margin-top:10px;">
+          <button class="button bca-pressable" onclick="approveCustomCollege(${c.id}, '${escapeHtml(c.name)}')">
+            <i class="fa-solid fa-rotate-left"></i> Re-Approve
+          </button>
+        </div>`;
+    }
+
+    return `
+      <div class="lf-admin-item ${c.status}" style="padding:14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--surface2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <h3 style="margin:0;font-size:16px;font-family:var(--font-condensed-heading);">${escapeHtml(c.name)}</h3>
+          ${stBadge}
+        </div>
+        <div style="font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;">
+          <span><i class="fa-solid fa-user"></i> Requested by: <b>@${escapeHtml((c.submitted_by_name || 'student').replace(/^@/, ''))}</b></span>
+          <span><i class="fa-solid fa-clock"></i> ${time} IST</span>
+        </div>
+        ${actions}
+      </div>
+    `;
+  }).join('');
+}
+
+async function approveCustomCollege(id, name) {
+  if (!adminSupabaseClient) return;
+  try {
+    const { error } = await adminSupabaseClient
+      .from('custom_colleges')
+      .update({ status: 'approved', updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    showAdminToast(`Approved "${name}"! Synced to all app dropdowns ✓`, 'success');
+    await loadApprovedCustomCollegesAdmin();
+  } catch (err) {
+    showAdminToast('Could not approve college: ' + err.message, 'error');
+  }
+}
+
+async function rejectCustomCollege(id) {
+  if (!adminSupabaseClient) return;
+  try {
+    const { error } = await adminSupabaseClient
+      .from('custom_colleges')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) throw error;
+    showAdminToast('College request rejected/archived.', 'info');
+    await loadApprovedCustomCollegesAdmin();
+  } catch (err) {
+    showAdminToast('Could not reject college: ' + err.message, 'error');
+  }
+}
+window.loadCustomCollegesAdmin = loadApprovedCustomCollegesAdmin;
+window.approveCustomCollege = approveCustomCollege;
+window.rejectCustomCollege = rejectCustomCollege;
 
 let uploads = [];
 const selectedIds = new Set();
@@ -829,6 +1011,7 @@ async function refreshAdminData() {
       loadFeedback(),
       loadCommunityRequests(),
       loadLostFoundAdmin(),
+      loadApprovedCustomCollegesAdmin(),
       loadUserStats()
     ]);
     await updateAdminKpis();
@@ -1090,6 +1273,7 @@ function switchTab(tab) {
     const activeSub = document.querySelector('.adm-sub-tab.active')?.dataset.sub || 'lostfound';
     switchCommunitySub(activeSub);
   }
+  if (tab === 'colleges') loadApprovedCustomCollegesAdmin();
   if (tab === 'subjects') { if (!$('subjectCollege').options.length) populateSubjectFilters(); renderSubjects(); }
   if (tab === 'quizzes') loadAdminQuizzes();
   if (tab === 'users') loadUserStats();
@@ -1310,6 +1494,75 @@ async function confirmSafeDelete(){
 const LOST_FOUND_ADMIN_CATS={phone:'Phone',wallet:'Wallet',bottle:'Water Bottle',bag:'Bag / Backpack',keys:'Keys',laptop:'Laptop',books:'Books / Notes',idcard:'ID / Library Card',earphones:'Earphones / Headphones',spectacles:'Spectacles',watch:'Watch',stationery:'Stationery',other:'Other'};
 function lfAdmCatName(v){return LOST_FOUND_ADMIN_CATS[v]||v||'Other'}
 function lfAdmStatusBadge(st){return '<span class="lf-adm-status" data-st="'+st+'">'+String(st||'active').replace(/^./,c=>c.toUpperCase())+'</span>'}
+/**
+ * Storage Purge Helper: Extracts bucket path(s) and removes from Supabase Storage
+ */
+async function wipeLostFoundImageFromStorageAdmin(imageUrls) {
+  if (!adminSupabaseClient || !imageUrls) return;
+  const list = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+  const paths = [];
+
+  for (const item of list) {
+    if (!item || typeof item !== 'string') continue;
+    let path = item.trim();
+    const match = path.match(/\/lossfound\/(.+)$/);
+    if (match) {
+      path = match[1].split('?')[0].split('#')[0];
+    } else if (path.startsWith('http')) {
+      const idx = path.indexOf('/lossfound/');
+      if (idx !== -1) path = path.slice(idx + '/lossfound/'.length).split('?')[0].split('#')[0];
+    }
+    if (path && !path.startsWith('http')) {
+      paths.push(decodeURIComponent(path));
+    }
+  }
+
+  if (!paths.length) return;
+  try {
+    const { data, error } = await adminSupabaseClient.storage.from('lossfound').remove(paths);
+    if (error) console.warn('[Admin] storage image purge note:', error.message);
+    else showAdminToast(`Purged ${paths.length} storage image(s) ✓`, 'info');
+  } catch (err) {
+    console.warn('[Admin] wipe storage error:', err);
+  }
+}
+
+/**
+ * Purge Old Removed Images: Scans lost_found table for resolved/removed posts
+ * that still have image_url references, deletes images from bucket and clears image_url.
+ */
+async function purgeOldRemovedImages() {
+  if (!adminSupabaseClient) return;
+  if (!confirm('Scan and permanently wipe storage images for all removed and resolved Lost & Found posts?')) return;
+  showAdminToast('Scanning storage images to purge...', 'info');
+
+  try {
+    const { data, error } = await adminSupabaseClient
+      .from('lost_found')
+      .select('id, image_url')
+      .in('status', ['removed', 'resolved'])
+      .neq('image_url', '');
+
+    if (error) throw error;
+    if (!data || !data.length) {
+      showAdminToast('Zero old images found to purge. Storage is clean! ✅', 'success');
+      return;
+    }
+
+    const imagesToWipe = data.map(d => d.image_url).filter(Boolean);
+    await wipeLostFoundImageFromStorageAdmin(imagesToWipe);
+
+    const ids = data.map(d => d.id);
+    await adminSupabaseClient.from('lost_found').update({ image_url: '' }).in('id', ids);
+
+    showAdminToast(`Successfully purged images for ${data.length} post(s)! Storage freed ✅`, 'success');
+    loadLostFoundAdmin();
+  } catch (err) {
+    showAdminToast('Purge failed: ' + err.message, 'error');
+  }
+}
+window.purgeOldRemovedImages = purgeOldRemovedImages;
+
 async function loadLostFoundAdmin(){
   const host=$('lostfoundQueue');if(!host)return;
   if(!adminSupabaseClient){host.innerHTML='<p class="note">Supabase is not configured.</p>';return}
@@ -1317,6 +1570,13 @@ async function loadLostFoundAdmin(){
   if(error){host.innerHTML='<p class="note">Could not load posts. ('+escapeHtml(error.message)+')</p>';return}
   const rows=data||[];
   if(!rows.length){host.innerHTML='<p class="note">No Lost &amp; Found posts yet.</p>';return}
+
+  const nowMs = Date.now();
+  const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+  let unnotified30dCount = 0;
+  let sample30dTitle = '';
+  let sample30dCollege = '';
+
   host.innerHTML=rows.map(r=>{
     const label=r.type==='lost'?'LOST':'FOUND';
     const cls=r.type==='lost'?'lf-adm-lost':'lf-adm-found';
@@ -1327,19 +1587,48 @@ async function loadLostFoundAdmin(){
     const img=r.image_url
       ?'<a href="'+escapeHtml(r.image_url)+'" target="_blank" rel="noopener" title="Open full image"><img class="lf-adm-thumb" src="'+escapeHtml(r.image_url)+'" alt="Item photo"></a>'
       :'<span class="lf-adm-noimg"><i class="fa-solid fa-image"></i> No photo</span>';
+
+    // 30-Day Unresolved Escalation Detection
+    const createdMs = r.created_at ? new Date(r.created_at).getTime() : nowMs;
+    const is30DaysOld = (nowMs - createdMs >= THIRTY_DAYS_MS) && (r.status !== 'resolved' && r.status !== 'removed');
+
+    if (is30DaysOld && !r.admin_30d_notified) {
+      unnotified30dCount++;
+      if (!sample30dTitle) sample30dTitle = item;
+      if (!sample30dCollege) sample30dCollege = college;
+    }
+
+    const badge30d = is30DaysOld
+      ? '<span class="adm-pill" style="background:#f59e0b;color:#000;font-weight:700;font-size:11px;padding:3px 8px;margin-left:6px;"><i class="fa-solid fa-triangle-exclamation"></i> 30+ DAYS OLD</span>'
+      : '';
+
     let actions='';
-    if(r.status==='pending'){
+    if (is30DaysOld) {
+      // 30-day escalation one-tap admin controls
+      actions = `
+        <div class="row-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="button danger bca-pressable" onclick="removeAndWipeLostFoundPost(${r.id}, '${escapeHtml(r.image_url || '')}')">
+            <i class="fa-solid fa-trash-can"></i> Remove &amp; Wipe Image
+          </button>
+          <button class="button primary bca-pressable" onclick="extendLostFoundPost(${r.id})">
+            <i class="fa-solid fa-clock-rotate-left"></i> Keep Active (+30 Days)
+          </button>
+        </div>`;
+    } else if(r.status==='pending'){
       actions='<div class="row-actions">'
-        +'<button class="button primary" onclick="approveLostFoundPost('+r.id+')"><i class="fa-solid fa-check"></i> Approve</button>'
-        +'<button class="button danger" onclick="openSafeDelete(\'Reject this Lost &amp; Found post? (campus-post #'+r.id+')\',()=>removeLostFoundPost('+r.id+'))"><i class="fa-solid fa-xmark"></i> Reject</button>'
+        +'<button class="button primary bca-pressable" onclick="approveLostFoundPost('+r.id+')"><i class="fa-solid fa-check"></i> Approve</button>'
+        +'<button class="button danger bca-pressable" onclick="removeAndWipeLostFoundPost('+r.id+', \''+escapeHtml(r.image_url||'')+'\')"><i class="fa-solid fa-xmark"></i> Reject &amp; Wipe</button>'
         +'</div>';
     } else if(r.status==='removed'){
-      actions='<div class="note">Rejected / archived (removed from public feed).</div>';
+      actions=`<div class="note" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Rejected / archived (removed from public feed).</span>
+        ${r.image_url ? `<button class="button danger bca-pressable" style="padding:4px 8px;font-size:11px;" onclick="wipeLostFoundImageFromStorageAdmin('${escapeHtml(r.image_url)}')"><i class="fa-solid fa-broom"></i> Wipe Image</button>` : ''}
+      </div>`;
     } else {
-      actions='<div class="row-actions"><button class="button danger" onclick="openSafeDelete(\'Remove this Lost &amp; Found post from the public feed? (campus-post #'+r.id+')\',()=>removeLostFoundPost('+r.id+'))"><i class="fa-solid fa-trash"></i> Remove</button></div>';
+      actions='<div class="row-actions"><button class="button danger bca-pressable" onclick="removeAndWipeLostFoundPost('+r.id+', \''+escapeHtml(r.image_url||'')+'\')"><i class="fa-solid fa-trash"></i> Remove &amp; Wipe Image</button></div>';
     }
-    return '<div class="lf-admin-item '+r.status+'">'
-      +'<div class="lf-adm-head"><span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+'<small>'+time+'</small></div>'
+    return '<div class="lf-admin-item '+r.status+' '+(is30DaysOld?'escalated-30d':'')+'" style="'+(is30DaysOld?'border-left:4px solid #f59e0b;':'')+'">'
+      +'<div class="lf-adm-head"><span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+badge30d+'<small>'+time+'</small></div>'
       +'<div class="lf-adm-withimg">'+img
       +'<div class="lf-adm-info"><div class="lf-adm-body"><b>'+escapeHtml(item)+'</b> &mdash; '+escapeHtml(r.description||'')+'</div>'
       +'<div class="lf-adm-meta"><span>&#128205; '+escapeHtml(r.location||'')+'</span><span>&#127979; '+escapeHtml(college)+'</span>'
@@ -1348,7 +1637,84 @@ async function loadLostFoundAdmin(){
       +actions
       +'</div>';
   }).join('');
+
+  // Deduplicated single Telegram summary alert for 30+ day old items
+  if (unnotified30dCount > 0) {
+    trigger30dEscalationTelegramAlert(unnotified30dCount, sample30dTitle, sample30dCollege);
+  }
 }
+
+async function trigger30dEscalationTelegramAlert(count, sampleTitle, college) {
+  try {
+    fetch('/api/telegram-admin-alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'lost_found_escalation_30d',
+        payload: {
+          count: count,
+          sample_title: sampleTitle,
+          college: college
+        }
+      })
+    }).catch(() => {});
+
+    // Mark as notified in database so it does not spam
+    if (adminSupabaseClient) {
+      const nowMs = Date.now();
+      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+      const cutoff = new Date(nowMs - THIRTY_DAYS_MS).toISOString();
+      await adminSupabaseClient
+        .from('lost_found')
+        .update({ admin_30d_notified: true })
+        .lte('created_at', cutoff)
+        .eq('admin_30d_notified', false);
+    }
+  } catch (_e) {}
+}
+
+async function removeAndWipeLostFoundPost(id, imageUrl) {
+  if (!adminSupabaseClient) return;
+  if (!confirm(`Permanently remove Lost & Found post #${id} and wipe its storage image?`)) return;
+
+  try {
+    if (imageUrl) {
+      await wipeLostFoundImageFromStorageAdmin(imageUrl);
+    }
+    // Delete database post record immediately
+    const { error } = await adminSupabaseClient.from('lost_found').delete().eq('id', id);
+    if (error) {
+      // Fallback: update status to removed if delete RLS prevents hard delete
+      await adminSupabaseClient.from('lost_found').update({ status: 'removed', image_url: '' }).eq('id', id);
+    }
+    showAdminToast(`Removed post #${id} and wiped image from storage ✓`, 'success');
+    loadLostFoundAdmin();
+  } catch (err) {
+    showAdminToast('Could not remove post: ' + err.message, 'error');
+  }
+}
+window.removeAndWipeLostFoundPost = removeAndWipeLostFoundPost;
+
+async function extendLostFoundPost(id) {
+  if (!adminSupabaseClient) return;
+  try {
+    const { error } = await adminSupabaseClient
+      .from('lost_found')
+      .update({
+        created_at: new Date().toISOString(),
+        admin_30d_notified: false,
+        status: 'active'
+      })
+      .eq('id', id);
+
+    if (error) throw error;
+    showAdminToast(`Timer reset for post #${id} (+30 days active) ✓`, 'success');
+    loadLostFoundAdmin();
+  } catch (err) {
+    showAdminToast('Could not extend timer: ' + err.message, 'error');
+  }
+}
+window.extendLostFoundPost = extendLostFoundPost;
 async function approveLostFoundPost(id){
   if(!adminSupabaseClient)return;
   const {error}=await adminSupabaseClient.from('lost_found').update({status:'active'}).eq('id',id);
@@ -1374,7 +1740,13 @@ async function approveLostFoundPost(id){
 }
 async function removeLostFoundPost(id){
   if(!adminSupabaseClient)return;
-  await adminSupabaseClient.from('lost_found').update({status:'removed'}).eq('id',id);
+  try {
+    const { data } = await adminSupabaseClient.from('lost_found').select('image_url').eq('id', id).maybeSingle();
+    if (data && data.image_url) {
+      await wipeLostFoundImageFromStorageAdmin(data.image_url);
+    }
+  } catch (_e) {}
+  await adminSupabaseClient.from('lost_found').update({status:'removed', image_url:''}).eq('id',id);
   loadLostFoundAdmin();
 }
 /* ---- Boot ---- */

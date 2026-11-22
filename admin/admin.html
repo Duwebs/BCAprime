@@ -173,6 +173,11 @@
         <i class="fa-solid fa-users"></i>
         <span>Users &amp; Badges</span>
       </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="colleges" onclick="switchTab('colleges')">
+        <i class="fa-solid fa-building-columns"></i>
+        <span>College Approvals</span>
+        <span class="adm-tab-badge" id="tabCollegeBadge" hidden>0</span>
+      </button>
       <button type="button" class="tab adm-tab bca-pressable" data-tab="subjects" onclick="switchTab('subjects')">
         <i class="fa-solid fa-book"></i>
         <span>Subjects</span>
@@ -430,9 +435,14 @@
           <div class="toolbar">
             <div>
               <h2>Lost &amp; Found Moderation</h2>
-              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Approve or reject campus lost and found notices.</p>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Approve, reject, or wipe resolved/30-day items from storage.</p>
             </div>
-            <button class="button bca-pressable" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="button bca-pressable danger" onclick="purgeOldRemovedImages()" title="Scan and wipe storage images for all removed/resolved items">
+                <i class="fa-solid fa-broom"></i> Purge Old Removed Images
+              </button>
+              <button class="button bca-pressable" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+            </div>
           </div>
           <div id="lostfoundQueue" class="lf-admin-queue"><p class="note">Loading&hellip;</p></div>
         </section>
@@ -479,6 +489,21 @@
           <div id="pendingQueue" class="pending-queue"><p class="note">Loading&hellip;</p></div>
         </section>
       </div>
+    </section>
+
+    <!-- ============ TAB: College Approvals ============ -->
+    <section class="tab-panel" id="tab-colleges" hidden>
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Custom College Approvals</h2>
+            <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Review student-submitted custom college requests. Approved colleges immediately appear in all app dropdowns.</p>
+          </div>
+          <button class="button bca-pressable" onclick="loadCustomCollegesAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="collegeApprovalsQueue" class="college-approvals-queue"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Approving a college automatically syncs it across BCAPrime, Admin broadcast targeting, and Stats analytics. Rejection archives it.</div>
+      </section>
     </section>
 
     <!-- ============ TAB: Subjects ============ -->
@@ -992,6 +1017,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../env.js"></script>
   <script src="../supabase-config.js"></script>
+  <script src="../lib/colleges.js?v=1"></script>
   <script type="module" src="../ui/index.js"></script>
   <script src="admin.js?v=20"></script>
 </body>
