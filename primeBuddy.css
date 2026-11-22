@@ -1,5 +1,6 @@
 /* ============================================================
-   BCAPrime — PrimeBuddy: Floating AI Study Companion Styles
+   BCAPrime — PrimeBuddy: Floating Study Mascot Styles
+   (v3.2 — 60fps Free-Roam Physics, 3D Orbiting SVG Crown & Action Pill)
    ============================================================ */
 
 /* Mascot Floating Container - 60fps GPU Compositor Layer */
@@ -25,16 +26,6 @@
   cursor: grabbing;
   filter: drop-shadow(0 16px 36px rgba(37, 99, 235, 0.58));
   transition: none !important;
-}
-
-/* Magnetic Edge Snapping Physics (Spring Easing) */
-.prime-buddy-wrap.is-snapping {
-  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-
-/* Autonomous Slow Roaming ("Dheere-Dheere Screen Par Ghoomna") */
-.prime-buddy-wrap.is-roaming {
-  transition: transform 3.5s ease-in-out !important;
 }
 
 .prime-buddy-wrap.is-tucked {
@@ -63,7 +54,7 @@
 }
 
 /* ============================================================
-   Character Animations: Idle, Roaming, Dragging, Thinking
+   Character Animations: Idle, Roaming, Dragging, Dancing, Napping
    ============================================================ */
 
 /* 1. Idle Floating & Breathing Motion */
@@ -87,11 +78,11 @@
   }
 }
 
-.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-tucked):not(.is-dizzy) .buddy-char-group {
+.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-tucked):not(.is-dizzy):not(.is-dancing):not(.is-napping) .buddy-char-group {
   animation: primeBuddyFloatB 3.2s ease-in-out infinite;
 }
 
-.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-tucked) .buddy-shadow-ellipse {
+.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-tucked):not(.is-dancing) .buddy-shadow-ellipse {
   animation: primeBuddyShadowB 3.2s ease-in-out infinite;
   transform-origin: 32px 59px;
 }
@@ -111,7 +102,7 @@
   animation: primeBuddyBlinkB 3.8s infinite;
 }
 
-/* Direction-Aware Eye Glance (Looks toward center of screen) */
+/* Direction-Aware Eye Glance */
 .prime-buddy-wrap.edge-right .buddy-pupil {
   transform: translateX(-1.8px);
   transition: transform 0.3s ease;
@@ -128,25 +119,25 @@
     transform: rotate(-5deg) translateY(-1px);
   }
   50% {
-    transform: rotate(5deg) translateY(-4px);
+    transform: rotate(5deg) translateY(1px);
   }
 }
 
 @keyframes primeBuddyHandSwingL {
   0%, 100% {
-    transform: translateY(-3px) rotate(-14deg);
+    transform: translateY(0) rotate(0deg);
   }
   50% {
-    transform: translateY(3px) rotate(10deg);
+    transform: translateY(-4px) rotate(-15deg);
   }
 }
 
 @keyframes primeBuddyHandSwingR {
   0%, 100% {
-    transform: translateY(3px) rotate(10deg);
+    transform: translateY(-4px) rotate(15deg);
   }
   50% {
-    transform: translateY(-3px) rotate(-14deg);
+    transform: translateY(0) rotate(0deg);
   }
 }
 
@@ -166,33 +157,44 @@
 
 /* 4. Idle Floating Hands */
 @keyframes primeBuddyHandFloatL {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-2px) rotate(-4deg); }
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(-6deg);
+  }
 }
 
 @keyframes primeBuddyHandFloatR {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-2px) rotate(4deg); }
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-2.5px) rotate(6deg);
+  }
 }
 
-.prime-buddy-wrap:not(.is-dragging):not(.is-roaming) .buddy-hand-left {
+.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-dancing) .buddy-hand-left {
   animation: primeBuddyHandFloatL 3.2s ease-in-out infinite;
   transform-origin: 10px 38px;
 }
 
-.prime-buddy-wrap:not(.is-dragging):not(.is-roaming) .buddy-hand-right {
+.prime-buddy-wrap:not(.is-dragging):not(.is-roaming):not(.is-dancing) .buddy-hand-right {
   animation: primeBuddyHandFloatR 3.2s ease-in-out infinite;
   transform-origin: 54px 38px;
 }
 
 /* Friendly Hand Wave */
 @keyframes primeBuddyWaveHand {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-24deg); }
-  75% { transform: rotate(18deg); }
+  0%, 100% {
+    transform: translateY(-4px) rotate(22deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(-12deg);
+  }
 }
 
-.buddy-hand-right.is-waving {
+.prime-buddy-wrap.is-waving .buddy-hand-right {
   animation: primeBuddyWaveHand 0.4s ease-in-out 4 !important;
   transform-origin: 54px 38px;
 }
@@ -208,254 +210,161 @@
   transition: transform 0.15s ease;
 }
 
-/* 6. True 3D Volumetric Continuous Rotating Crown (360°)
-   - Circular 3D Base Ring / Rim with hollow depth
-   - 5 Distinct 3D Crown Points arranged radially (0°, 72°, 144°, 216°, 288°)
-   - Glowing jewel tips & dynamic specular highlights
-   ============================================================ */
-.buddy-crown-3d-stage {
-  position: absolute;
-  top: 1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 16px;
-  perspective: 400px;
-  perspective-origin: 50% 18%;
-  pointer-events: none;
-  z-index: 12;
-}
-
-.buddy-crown-3d-rotator {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  transform-style: preserve-3d;
-  animation: buddyCrownRotate3D 4.5s linear infinite;
-  transform-origin: 50% 65%;
-}
-
-@keyframes buddyCrownRotate3D {
-  0% {
-    transform: rotateX(16deg) rotateY(0deg);
-  }
-  100% {
-    transform: rotateX(16deg) rotateY(360deg);
-  }
-}
-
-/* Ambient Crown Glow Pool underneath */
-.buddy-crown-glow-pool {
-  position: absolute;
-  bottom: -2px;
-  left: calc(50% - 11px);
-  width: 22px;
-  height: 6px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse, rgba(251, 191, 36, 0.45) 0%, rgba(217, 119, 6, 0.15) 60%, transparent 100%);
-  filter: blur(1.2px);
-}
-
-/* Circular 3D Base Disc (Hollow Inner Wall & Floor) */
-.buddy-crown-base-disc {
-  position: absolute;
-  top: 4.5px;
-  left: calc(50% - 10px);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #451a03 15%, #78350f 50%, #b45309 85%, #92400e 100%);
-  border: 1px solid #d97706;
-  transform: rotateX(90deg) translateZ(0px);
-  transform-style: preserve-3d;
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
-}
-
-.buddy-crown-inner-rim {
-  position: absolute;
-  top: 4px;
-  left: calc(50% - 10px);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 1.5px solid #78350f;
-  transform: rotateX(90deg) translateZ(-1px);
-  pointer-events: none;
-}
-
-/* 5 Base Rim Segments (Front & Back Cylinder Ring) */
-.buddy-crown-rim-seg {
-  position: absolute;
-  bottom: 0px;
-  left: calc(50% - 6.5px);
-  width: 13px;
-  height: 3.5px;
-  transform: rotateY(var(--rim-rot)) translateZ(10px);
-  background: linear-gradient(180deg, #fef08a 0%, #fbbf24 45%, #b45309 100%);
-  border-top: 1px solid #fffbeb;
-  border-bottom: 1px solid #78350f;
-  border-radius: 1px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
-  backface-visibility: visible;
-  transform-style: preserve-3d;
-}
-
-/* 5 Distinct 3D Crown Points/Spikes */
-.buddy-crown-point {
-  position: absolute;
-  bottom: 2px;
-  left: calc(50% - 5px);
-  width: 10px;
-  height: 12px;
-  transform: rotateY(var(--spike-rot)) translateZ(10px);
-  transform-style: preserve-3d;
-  transform-origin: 50% 100%;
-  backface-visibility: visible;
-}
-
-.buddy-point-triangle {
-  width: 100%;
-  height: 100%;
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-  background: linear-gradient(140deg, #fef08a 0%, #fbbf24 45%, #d97706 100%);
-  filter: drop-shadow(0 0 1px rgba(180, 83, 9, 0.8));
-}
-
-/* Jewel Tips on Spikes */
-.buddy-point-jewel {
-  position: absolute;
-  top: -2.5px;
-  left: calc(50% - 2.5px);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  border: 0.5px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 0 0 4px currentColor, inset 0 1px 1px #ffffff;
-  transform: translateZ(1px);
-}
-
-.jewel-1 { background: #38bdf8; color: #38bdf8; } /* Sapphire Cyan */
-.jewel-2 { background: #f43f5e; color: #f43f5e; } /* Ruby Red */
-.jewel-3 { background: #10b981; color: #10b981; } /* Emerald Green */
-.jewel-4 { background: #c084fc; color: #c084fc; } /* Amethyst Purple */
-.jewel-5 { background: #fbbf24; color: #fbbf24; } /* Golden Topaz */
-
-/* Dizzy Fast Wobble on Crown */
-.prime-buddy-wrap.is-dizzy .buddy-crown-3d-rotator {
-  animation: buddyCrownDizzySpin 1.2s linear infinite;
-}
-
-@keyframes buddyCrownDizzySpin {
-  0% { transform: rotateX(24deg) rotateY(0deg) rotateZ(-10deg); }
-  50% { transform: rotateX(10deg) rotateY(180deg) rotateZ(10deg); }
-  100% { transform: rotateX(24deg) rotateY(360deg) rotateZ(-10deg); }
-}
-
-/* 360° Jump & Flip Reaction */
-.prime-buddy-wrap.is-doing-flip .prime-buddy-body {
-  animation: buddyDoFlip 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes buddyDoFlip {
-  0% {
-    transform: translateY(0) scale(1) rotate(0deg);
-  }
-  25% {
-    transform: translateY(4px) scale(1.15, 0.85) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-24px) scale(0.92, 1.08) rotate(-180deg);
-  }
-  75% {
-    transform: translateY(-10px) scale(1.02, 0.98) rotate(-360deg);
-  }
-  100% {
-    transform: translateY(0) scale(1) rotate(-360deg);
-  }
-}
-
-/* 7. Dizzy State: Rapid Spinning Eyes (CW & CCW), Orbiting Head Stars & Body Wobble */
+/* 6. Dizzy State: Rapid Spinning Eyes & Orbiting Head Stars */
 @keyframes primeBuddyDizzySpinCW {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes primeBuddyDizzySpinCCW {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(-360deg); }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
 }
 
 .buddy-dizzy-spiral-l {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: primeBuddyDizzySpinCW 0.42s linear infinite !important;
+  transform-origin: 24px 28px;
 }
 
 .buddy-dizzy-spiral-r {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: primeBuddyDizzySpinCCW 0.42s linear infinite !important;
+  transform-origin: 38px 28px;
 }
 
-/* Orbiting Stars around Crown */
 @keyframes primeBuddyRingSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
 }
 
 .buddy-orbiting-ring {
-  transform-box: fill-box;
-  transform-origin: center;
   animation: primeBuddyRingSpin 1.4s linear infinite !important;
+  transform-origin: 31px 8px;
 }
 
-/* Wobbly Body Tilt */
 @keyframes primeBuddyDizzyWobble {
-  0%, 100% {
-    transform: rotate(0deg) translateY(0);
-  }
-  25% {
-    transform: rotate(-9deg) translateY(-2px);
-  }
-  75% {
-    transform: rotate(9deg) translateY(2px);
-  }
+  0%, 100% { transform: rotate(-8deg) translateY(-2px); }
+  50% { transform: rotate(8deg) translateY(2px); }
 }
 
 .prime-buddy-wrap.is-dizzy .buddy-char-group {
   animation: primeBuddyDizzyWobble 0.55s ease-in-out infinite !important;
 }
 
-/* Speech Bubble Notification (Waving / Greeting / Dizzy) */
+/* 7. Single Tap Happy Bounce */
+@keyframes primeBuddyQuickBounce {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-16px) scale(0.92, 1.08); }
+  65% { transform: translateY(3px) scale(1.08, 0.94); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.prime-buddy-wrap.is-doing-bounce .prime-buddy-body {
+  animation: primeBuddyQuickBounce 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* 8. Rhythmic Dance & Spin Animation (3s duration) */
+@keyframes primeBuddyDance {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  15% {
+    transform: translateY(-14px) rotate(-14deg) scale(0.94, 1.06);
+  }
+  30% {
+    transform: translateY(2px) rotate(14deg) scale(1.08, 0.92);
+  }
+  45% {
+    transform: translateY(-16px) rotate(-10deg) scale(0.94, 1.06);
+  }
+  60% {
+    transform: translateY(2px) rotate(10deg) scale(1.06, 0.94);
+  }
+  75% {
+    transform: translateY(-22px) rotate(-360deg) scale(1.02);
+  }
+  90% {
+    transform: translateY(-4px) rotate(-360deg) scale(1.02, 0.98);
+  }
+  100% {
+    transform: translateY(0) rotate(-360deg) scale(1);
+  }
+}
+
+.prime-buddy-wrap.is-dancing .prime-buddy-body {
+  animation: primeBuddyDance 3s cubic-bezier(0.35, 1.3, 0.65, 1) both;
+}
+
+/* 9. Nap State: Gentle Breathing & Floating zZz Particles */
+.prime-buddy-wrap.is-napping .buddy-char-group {
+  animation: primeBuddyNapBreathe 4s ease-in-out infinite !important;
+}
+
+@keyframes primeBuddyNapBreathe {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02, 0.98); }
+}
+
+.zzz-letter {
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
+  font-weight: 700;
+  fill: #38bdf8;
+  opacity: 0;
+  pointer-events: none;
+}
+.zzz-1 { animation: buddyZzzAnim 2.4s ease-in-out infinite; }
+.zzz-2 { animation: buddyZzzAnim 2.4s ease-in-out infinite 0.7s; }
+.zzz-3 { animation: buddyZzzAnim 2.4s ease-in-out infinite 1.4s; }
+
+@keyframes buddyZzzAnim {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+  45% { opacity: 0.95; transform: translate(3px, -7px) scale(1.15); }
+  100% { opacity: 0; transform: translate(6px, -15px) scale(1.4); }
+}
+
+/* 10. Wake Up Stretch */
+@keyframes primeBuddyWakeStretch {
+  0% { transform: scale(0.95) rotate(-6deg); }
+  50% { transform: scale(1.18, 0.88) translateY(-10px) rotate(6deg); }
+  100% { transform: scale(1) translateY(0) rotate(0deg); }
+}
+
+.prime-buddy-wrap.is-waking-up .prime-buddy-body {
+  animation: primeBuddyWakeStretch 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ============================================================
+   Speech Bubble Notification
+   ============================================================ */
 .prime-buddy-bubble {
   position: absolute;
-  top: -46px;
+  top: -38px;
   left: 50%;
-  transform: translateX(-50%) scale(0.9);
-  background: rgba(18, 18, 21, 0.94);
+  transform: translateX(-50%) scale(0.85);
+  background: rgba(18, 18, 24, 0.94);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  padding: 6px 12px;
-  border-radius: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  padding: 5px 11px;
+  border-radius: 9999px;
   font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   white-space: nowrap;
   pointer-events: none;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   opacity: 0;
-  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.22s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
   z-index: 10;
 }
 
 [data-theme="light"] .prime-buddy-bubble,
 body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.96);
   color: #0f172a;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: rgba(37, 99, 235, 0.3);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
 
 .prime-buddy-bubble.visible {
@@ -463,85 +372,164 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble {
   transform: translateX(-50%) scale(1);
 }
 
-.prime-buddy-bubble:after {
-  content: '';
+/* Downward speech bubble pointer arrow */
+.prime-buddy-bubble::after {
+  content: "";
   position: absolute;
   bottom: -5px;
   left: 50%;
   transform: translateX(-50%);
+  border-width: 5px 5px 0;
+  border-style: solid;
+  border-color: rgba(18, 18, 24, 0.94) transparent transparent;
+  display: block;
   width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid rgba(18, 18, 21, 0.94);
 }
 
-[data-theme="light"] .prime-buddy-bubble:after,
-body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble:after {
-  border-top-color: rgba(255, 255, 255, 0.95);
-}
-
-/* Inverted speech bubble for top boundary placement */
-.prime-buddy-bubble.bubble-bottom {
-  top: auto;
-  bottom: -46px;
-}
-
-.prime-buddy-bubble.bubble-bottom:after {
-  bottom: auto;
-  top: -5px;
-  border-top: none;
-  border-bottom: 6px solid rgba(18, 18, 21, 0.94);
-}
-
-[data-theme="light"] .prime-buddy-bubble.bubble-bottom:after,
-body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble.bubble-bottom:after {
-  border-bottom-color: rgba(255, 255, 255, 0.95);
+[data-theme="light"] .prime-buddy-bubble::after,
+body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble::after {
+  border-color: rgba(255, 255, 255, 0.96) transparent transparent;
 }
 
 /* Edge-Tuck / Peek Indicator Button */
 .prime-buddy-tuck-btn {
   position: absolute;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--brand, #2563eb);
-  color: #ffffff;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 36px;
+  background: rgba(18, 18, 24, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 6px;
+  color: #38bdf8;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 10px;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   opacity: 0;
-  transform: scale(0.6);
-  transition: all 0.2s ease;
-  pointer-events: auto;
-  bottom: -4px;
-  right: -4px;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  z-index: 5;
 }
 
 .prime-buddy-wrap:hover .prime-buddy-tuck-btn,
 .prime-buddy-wrap.is-tucked .prime-buddy-tuck-btn {
   opacity: 1;
-  transform: scale(1);
+  pointer-events: auto;
 }
 
-.prime-buddy-wrap.is-tucked .prime-buddy-tuck-btn {
-  width: 28px;
-  height: 28px;
-  bottom: 12px;
-  right: auto;
-  left: -14px;
-  background: linear-gradient(135deg, #2563eb, #06b6d4);
-  box-shadow: 0 0 14px rgba(37, 99, 235, 0.6);
-  font-size: 12px;
+.prime-buddy-wrap.edge-right .prime-buddy-tuck-btn {
+  left: -12px;
+  border-radius: 8px 0 0 8px;
 }
 
-.prime-buddy-wrap.is-tucked.edge-left .prime-buddy-tuck-btn {
-  left: auto;
-  right: -14px;
+.prime-buddy-wrap.edge-left .prime-buddy-tuck-btn {
+  right: -12px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* ============================================================
+   Floating Action Pill (Long-Press ~400ms: Dance | Nap | Hide)
+   ============================================================ */
+.buddy-pill-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10034;
+  background: transparent;
+  display: none;
+}
+.buddy-pill-backdrop.open {
+  display: block;
+}
+
+.buddy-action-pill {
+  position: fixed;
+  z-index: 10035;
+  width: 216px;
+  height: 44px;
+  border-radius: 9999px;
+  background: rgba(18, 18, 24, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(37, 99, 235, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 6px;
+  opacity: 0;
+  transform: scale(0.85) translateY(6px);
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+[data-theme="light"] .buddy-action-pill,
+body:not(.dark):not([data-theme="dark"]) .buddy-action-pill {
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 0 16px rgba(37, 99, 235, 0.08);
+}
+
+.buddy-action-pill.open {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+  pointer-events: auto;
+}
+
+.buddy-pill-btn {
+  flex: 1 1 0;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: transparent;
+  border: 0;
+  border-radius: 9999px;
+  color: inherit;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  padding: 0 6px;
+  transition: background 0.15s ease, transform 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.buddy-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .buddy-pill-btn:hover,
+body:not(.dark):not([data-theme="dark"]) .buddy-pill-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.buddy-pill-btn:active {
+  transform: scale(0.92);
+}
+
+.pill-btn-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.buddy-pill-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .buddy-pill-sep,
+body:not(.dark):not([data-theme="dark"]) .buddy-pill-sep {
+  background: rgba(0, 0, 0, 0.08);
 }
 
 /* ============================================================
@@ -553,8 +541,8 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble.bubble-bottom:after
   z-index: 10040;
   display: none;
   place-items: center;
-  padding: 18px;
-  background: rgba(5, 14, 22, 0.72);
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   animation: buddyFadeIn 0.25s ease both;
@@ -575,9 +563,9 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble.bubble-bottom:after
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 26px;
-  padding: 24px 20px 20px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 40px rgba(37, 99, 235, 0.15);
+  padding: 28px 24px 22px;
   text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(37, 99, 235, 0.25);
   position: relative;
   overflow: hidden;
   animation: buddySlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -609,7 +597,8 @@ body:not(.dark):not([data-theme="dark"]) .buddy-intro-card {
   transform: translateX(-50%);
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.28) 0%, rgba(37, 99, 235, 0.12) 50%, transparent 70%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(37, 99, 235, 0.15) 50%, transparent 75%);
   filter: blur(28px);
   pointer-events: none;
   z-index: 0;
@@ -621,13 +610,15 @@ body:not(.dark):not([data-theme="dark"]) .buddy-intro-card {
   height: 80px;
   margin: 0 auto 12px;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.buddy-intro-avatar-svg {
+.buddy-intro-avatar-wrap .prime-buddy-svg {
   width: 76px;
   height: 76px;
   filter: drop-shadow(0 10px 24px rgba(37, 99, 235, 0.5));
-  animation: primeBuddyFloat 2.6s ease-in-out infinite;
 }
 
 .buddy-intro-badge {
@@ -636,11 +627,11 @@ body:not(.dark):not([data-theme="dark"]) .buddy-intro-card {
   gap: 6px;
   padding: 4px 12px;
   border-radius: 9999px;
-  background: rgba(37, 99, 235, 0.15);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: rgba(56, 189, 248, 0.14);
   color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
   font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -705,30 +696,30 @@ body:not(.dark):not([data-theme="dark"]) .buddy-intro-feat-row {
 .buddy-feat-icon {
   width: 34px;
   height: 34px;
-  min-width: 34px;
   border-radius: 10px;
+  background: rgba(37, 99, 235, 0.15);
+  color: #38bdf8;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 15px;
-  background: rgba(37, 99, 235, 0.12);
-  color: #38bdf8;
+  flex-shrink: 0;
 }
 
-.buddy-feat-text strong {
-  display: block;
-  font-size: 13.5px;
+.buddy-feat-text h4 {
+  margin: 0 0 2px;
   font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: inherit;
-  margin-bottom: 1px;
 }
 
 .buddy-feat-text p {
   margin: 0;
+  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
   font-size: 12px;
   color: #94a3b8;
-  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
+  line-height: 1.3;
 }
 
 [data-theme="light"] .buddy-feat-text p,
@@ -789,272 +780,3 @@ body:not(.dark):not([data-theme="dark"]) .buddy-feat-text p {
 body:not(.dark):not([data-theme="dark"]) .buddy-btn-later {
   color: #64748b;
 }
-
-/* ============================================================
-   Compact Interactive Tap Menu (Clean & Lightweight)
-   - Zero overlap on the mascot
-   - Roam ON/OFF toggle
-   - Fun Reaction / Spin trigger
-   - Hide Buddy shortcut & Close ✕ button
-   ============================================================ */
-.prime-buddy-menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 10034 !important;
-  background: transparent;
-  display: none;
-}
-.prime-buddy-menu-backdrop.open {
-  display: block;
-}
-
-.prime-buddy-menu {
-  position: fixed;
-  z-index: 10035 !important;
-  width: min(calc(100vw - 28px), 265px);
-  background: rgba(18, 18, 22, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #ffffff;
-  border: 1px solid rgba(56, 189, 248, 0.22);
-  border-radius: 20px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 24px rgba(37, 99, 235, 0.15);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  opacity: 0;
-  transform: scale(0.9) translateY(8px);
-  pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
-}
-
-[data-theme="light"] .prime-buddy-menu,
-body:not(.dark):not([data-theme="dark"]) .prime-buddy-menu {
-  background: rgba(255, 255, 255, 0.97);
-  color: #0f172a;
-  border: 1px solid rgba(37, 99, 235, 0.18);
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.12), 0 0 20px rgba(37, 99, 235, 0.08);
-}
-
-.prime-buddy-menu.open {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-  pointer-events: auto;
-}
-
-/* Menu Header */
-.buddy-menu-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 11px 14px 9px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.02);
-}
-
-[data-theme="light"] .buddy-menu-head,
-body:not(.dark):not([data-theme="dark"]) .buddy-menu-head {
-  border-bottom: 1px solid #f1f5f9;
-  background: #f8fafc;
-}
-
-.buddy-menu-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.buddy-menu-title {
-  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  margin: 0;
-}
-
-.buddy-menu-status-pill {
-  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 9999px;
-  background: rgba(34, 197, 94, 0.16);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-}
-
-.buddy-menu-close-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 0;
-  background: rgba(255, 255, 255, 0.06);
-  color: #94a3b8;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-[data-theme="light"] .buddy-menu-close-btn,
-body:not(.dark):not([data-theme="dark"]) .buddy-menu-close-btn {
-  background: #f1f5f9;
-  color: #64748b;
-}
-
-/* Menu Items List */
-.buddy-menu-body {
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.buddy-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  padding: 7px 10px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.03);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-[data-theme="light"] .buddy-menu-item,
-body:not(.dark):not([data-theme="dark"]) .buddy-menu-item {
-  background: #f8fafc;
-}
-
-.buddy-menu-item:hover,
-.buddy-menu-item:active {
-  background: rgba(56, 189, 248, 0.08);
-  border-color: rgba(56, 189, 248, 0.2);
-}
-
-.buddy-item-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-
-.buddy-item-icon-roam {
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-}
-
-.buddy-item-icon-spin {
-  background: rgba(251, 191, 36, 0.14);
-  color: #fbbf24;
-}
-
-.buddy-item-icon-hide {
-  background: rgba(148, 163, 184, 0.12);
-  color: #94a3b8;
-}
-
-.buddy-item-content {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.buddy-item-label {
-  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
-  font-size: 14.5px;
-  font-weight: 700;
-  line-height: 1.15;
-  color: inherit;
-}
-
-.buddy-item-sub {
-  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-[data-theme="light"] .buddy-item-sub,
-body:not(.dark):not([data-theme="dark"]) .buddy-item-sub {
-  color: #64748b;
-}
-
-.buddy-item-badge {
-  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 9999px;
-  letter-spacing: 0.02em;
-  flex-shrink: 0;
-  transition: all 0.2s ease;
-}
-
-.buddy-item-badge.badge-on {
-  background: rgba(34, 197, 94, 0.18);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.35);
-}
-
-.buddy-item-badge.badge-off {
-  background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-[data-theme="light"] .buddy-item-badge.badge-off,
-body:not(.dark):not([data-theme="dark"]) .buddy-item-badge.badge-off {
-  background: #e2e8f0;
-  color: #64748b;
-  border-color: #cbd5e1;
-}
-
-.buddy-item-action-icon {
-  font-size: 12px;
-  color: #64748b;
-  flex-shrink: 0;
-  padding-right: 2px;
-}
-
-.buddy-menu-footer {
-  padding: 6px 12px 9px;
-  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
-  font-size: 10.5px;
-  color: #64748b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.1);
-  text-align: center;
-}
-
-[data-theme="light"] .buddy-menu-footer,
-body:not(.dark):not([data-theme="dark"]) .buddy-menu-footer {
-  border-top: 1px solid #f1f5f9;
-  background: #f8fafc;
-  color: #94a3b8;
-}
-
