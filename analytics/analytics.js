@@ -242,11 +242,99 @@ async function signOut() {
   }
 })();
 
+// Canonical student deduplication helper matching BCAPrime Admin
+function deduplicateStudentProfiles(rawProfiles) {
+  if (!Array.isArray(rawProfiles)) return [];
+  const seenUids = new Set();
+  const seenEmails = new Set();
+  const seenUsernames = new Set();
+  const deduplicated = [];
+
+  for (const p of rawProfiles) {
+    if (!p) continue;
+    const uid = String(p.uid || p.id || '').trim();
+    const rawEmail = String(p.email || '').trim().toLowerCase();
+    const rawUsername = String(p.username || '').trim().toLowerCase().replace(/^@+/, '');
+
+    // Skip empty/corrupted records
+    if (!uid && !rawEmail && !rawUsername) continue;
+
+    // Check duplicates
+    if (uid && seenUids.has(uid)) continue;
+    if (rawEmail && seenEmails.has(rawEmail)) continue;
+    if (rawUsername && rawUsername !== 'student' && seenUsernames.has(rawUsername)) continue;
+
+    if (uid) seenUids.add(uid);
+    if (rawEmail) seenEmails.add(rawEmail);
+    if (rawUsername && rawUsername !== 'student') seenUsernames.add(rawUsername);
+
+    deduplicated.push({
+      ...p,
+      id: uid || p.id,
+      uid: uid || p.id,
+      name: (p.name || 'Student').trim(),
+      username: rawUsername || (rawEmail ? rawEmail.split('@')[0] : 'student'),
+      email: rawEmail || '',
+      college: p.college || 'avviare',
+      semester: Number(p.semester) || 1,
+      avatar_url: p.avatar_url || '',
+      is_admin: Boolean(p.is_admin || (rawEmail && rawEmail.includes('admin@bcaprime'))),
+      can_download: p.can_download !== false,
+      is_email_verified: Boolean(p.is_email_verified),
+      created_at: p.created_at || p.updated_at || new Date().toISOString(),
+      updated_at: p.updated_at || p.created_at || new Date().toISOString()
+    });
+  }
+  return deduplicated;
+}
+window.deduplicateStudentProfiles = deduplicateStudentProfiles;
+
+let statsLiveChannel = null;
+let statsDebounceTimer = null;
+function scheduleStatsRealtimeRefresh() {
+  clearTimeout(statsDebounceTimer);
+  statsDebounceTimer = setTimeout(() => {
+    fetchSuiteTelemetry().then(() => renderAllStatsWidgets());
+    if ($('tab-students') && !$('tab-students').hidden) {
+      renderStudentsModule();
+    }
+  }, 400);
+}
+
+function initStatsRealtimeSync() {
+  if (!analyticsSupabaseClient || statsLiveChannel) return;
+  try {
+    statsLiveChannel = analyticsSupabaseClient.channel('stats-realtime-full')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, () => {
+        scheduleStatsRealtimeRefresh();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, () => {
+        scheduleStatsRealtimeRefresh();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'senior_requests' }, () => {
+        scheduleStatsRealtimeRefresh();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lost_found' }, () => {
+        scheduleStatsRealtimeRefresh();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
+        scheduleStatsRealtimeRefresh();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_colleges' }, () => {
+        scheduleStatsRealtimeRefresh();
+      })
+      .subscribe();
+  } catch (err) {
+    console.warn('[Stats] Realtime sync error:', err);
+  }
+}
+
 function showDashboard() {
   $('authGate').style.display = 'none';
   $('dashboard').hidden = false;
   initPressables();
   initLivePresenceListener();
+  initStatsRealtimeSync();
   refreshAll();
   startPolling();
 
@@ -384,8 +472,8 @@ async function fetchSuiteTelemetry() {
   const { start, end } = getDateRange();
 
   try {
-    // 1. Fetch Students from public.profiles
-    const profilesPromise = analyticsSupabaseClient.from('profiles').select('id, created_at', { count: 'exact' });
+    // 1. Fetch Students from public.user_profiles
+    const profilesPromise = analyticsSupabaseClient.from('user_profiles').select('*').order('created_at', { ascending: false });
     
     // 2. Fetch Events from analytics_events
     let evQuery = analyticsSupabaseClient.from('analytics_events').select('*');
@@ -406,8 +494,12 @@ async function fetchSuiteTelemetry() {
       feedbackPromise
     ]);
 
-    // Process Students
-    const totalStudents = (profRes.status === 'fulfilled' && profRes.value.count) || 18;
+    // Process Students (deduplicated canonical profiles)
+    let totalStudents = 0;
+    if (profRes.status === 'fulfilled' && Array.isArray(profRes.value.data)) {
+      const deduplicated = deduplicateStudentProfiles(profRes.value.data);
+      totalStudents = deduplicated.length;
+    }
     telemetryCache.totalStudents = totalStudents;
 
     // Process Community
@@ -1386,6 +1478,8 @@ async function renderStudentsModule() {
 
     if (pErr) throw pErr;
 
+    const deduplicatedProfiles = deduplicateStudentProfiles(profiles || []);
+
     // 2. Fetch event summary to compute Reads, DLs, Searches per student
     let eventCountsMap = new Map();
     try {
@@ -1410,7 +1504,7 @@ async function renderStudentsModule() {
       }
     } catch (_evErr) {}
 
-    const students = (profiles || []).map(p => {
+    const students = deduplicatedProfiles.map(p => {
       const stats = eventCountsMap.get(p.uid) || eventCountsMap.get(p.email) || { reads: 0, dls: 0, searches: 0 };
       return {
         ...p,

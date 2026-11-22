@@ -390,6 +390,21 @@
           </button>
         </div>
 
+        <!-- Bulk actions for Feedback -->
+        <div class="bulk-actions" id="bulkFeedbackActions">
+          <span class="bulk-count" id="bulkFeedbackCount">0 selected</span>
+          <button class="button danger bca-pressable" onclick="bulkDeleteFeedback()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
+        </div>
+
+        <!-- List subheader: Select all & live count -->
+        <div class="adm-list-header">
+          <label class="adm-select-all-label bca-pressable" title="Select all visible feedback">
+            <input type="checkbox" id="checkAllFeedback" onchange="toggleCheckAllFeedback(this.checked)">
+            <span>Select All</span>
+          </label>
+          <span class="adm-list-count" id="feedbackCountDisplay">0 feedback</span>
+        </div>
+
         <div id="feedbackList" class="feedback-list">
           <p class="note">Loading feedback&hellip;</p>
         </div>
@@ -431,6 +446,22 @@
               <button class="button bca-pressable" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
             </div>
           </div>
+
+          <!-- Bulk actions for Lost & Found -->
+          <div class="bulk-actions" id="bulkLostFoundActions">
+            <span class="bulk-count" id="bulkLostFoundCount">0 selected</span>
+            <button class="button danger bca-pressable" onclick="bulkDeleteLostFound()"><i class="fa-solid fa-trash"></i> Delete Selected &amp; Wipe Storage</button>
+          </div>
+
+          <!-- List subheader: Select all & live count -->
+          <div class="adm-list-header">
+            <label class="adm-select-all-label bca-pressable" title="Select all lost & found items">
+              <input type="checkbox" id="checkAllLostFound" onchange="toggleCheckAllLostFound(this.checked)">
+              <span>Select All</span>
+            </label>
+            <span class="adm-list-count" id="lostfoundCountDisplay">0 items</span>
+          </div>
+
           <div id="lostfoundQueue" class="lf-admin-queue"><p class="note">Loading&hellip;</p></div>
         </section>
       </div>
@@ -459,6 +490,22 @@
             </div>
             <button class="button bca-pressable" onclick="loadCommunityRequests()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
           </div>
+
+          <!-- Bulk actions for Junior & Senior Requests -->
+          <div class="bulk-actions" id="bulkRequestsActions">
+            <span class="bulk-count" id="bulkRequestsCount">0 selected</span>
+            <button class="button danger bca-pressable" onclick="bulkDeleteCommunityRequests()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
+          </div>
+
+          <!-- List subheader: Select all & live count -->
+          <div class="adm-list-header">
+            <label class="adm-select-all-label bca-pressable" title="Select all requests">
+              <input type="checkbox" id="checkAllRequests" onchange="toggleCheckAllRequests(this.checked)">
+              <span>Select All</span>
+            </label>
+            <span class="adm-list-count" id="requestsCountDisplay">0 requests</span>
+          </div>
+
           <div id="communityRequestsQueue" class="community-queue"><p class="note">Loading&hellip;</p></div>
         </section>
       </div>
@@ -734,6 +781,21 @@
           <button type="button" class="adm-pill bca-pressable" data-sem="6" onclick="setStudentSemFilter('6')">
             <span>SEM 6</span>
           </button>
+        </div>
+
+        <!-- Bulk actions for Students -->
+        <div class="bulk-actions" id="bulkUsersActions">
+          <span class="bulk-count" id="bulkUsersCount">0 selected</span>
+          <button class="button danger bca-pressable" onclick="bulkDeleteUsers()"><i class="fa-solid fa-trash"></i> Delete Selected Students</button>
+        </div>
+
+        <!-- List subheader: Select all & count -->
+        <div class="adm-list-header">
+          <label class="adm-select-all-label bca-pressable" title="Select all eligible students">
+            <input type="checkbox" id="checkAllUsers" onchange="toggleCheckAllUsers(this.checked)">
+            <span>Select All Students</span>
+          </label>
+          <span class="adm-list-count" id="userSelectCountDisplay">0 eligible</span>
         </div>
 
         <!-- Mobile-Native Student Cards Grid -->

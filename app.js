@@ -4006,7 +4006,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       /* Contributor profiles ka realtime: har user_profiles change par us
          uid wale saare resource cards live update ho jaate hain. */
       startContributorRealtime();
-      try{const channel=supabaseClient.channel('resources-live').on('postgres_changes',{event:'*',schema:'public',table:'resources'},()=>loadCloudResources());channel.subscribe()}catch(error){}
+      try{
+        const channel=supabaseClient.channel('student-app-live')
+          .on('postgres_changes',{event:'*',schema:'public',table:'resources'},()=>loadCloudResources())
+          .on('postgres_changes',{event:'*',schema:'public',table:'senior_requests'},()=>{try{loadSeniorRequests()}catch(e){}})
+          .on('postgres_changes',{event:'*',schema:'public',table:'lost_found'},()=>{try{loadLostFound(true)}catch(e){}})
+          .on('postgres_changes',{event:'*',schema:'public',table:'custom_colleges'},()=>{try{loadApprovedColleges()}catch(e){}});
+        channel.subscribe();
+      }catch(error){}
       setInterval(()=>{if(document.visibilityState==='visible'){loadCloudResources();try{loadSeniorRequests()}catch(e){}}},30000);
     }
     /* ---- Upload progress helpers ---- */

@@ -499,24 +499,50 @@ async function load() {
   render();
   loadFeedback();
 }
-/* ---- Live sync (contributor profiles + resources) ----
-   User apna naam/DP badale ya naya resource aaye -> admin table turant
-   refresh (F5 ki zaroorat nahi). 600ms debounce se burst events ek hi
-   reload me collapse ho jaate hain. */
+/* ---- Real-Time Bi-Directional Sync Across Core Supabase Tables ---- */
 let adminLiveChannel = null;
 let adminReloadTimer = null;
 function scheduleAdminReload() {
   clearTimeout(adminReloadTimer);
-  adminReloadTimer = setTimeout(() => { load().catch(() => {}); }, 600);
+  adminReloadTimer = setTimeout(() => {
+    load().catch(() => {});
+    updateAdminKpis();
+  }, 400);
 }
+
 function startAdminLiveSync() {
   if (!adminSupabaseClient || adminLiveChannel) return;
   try {
-    adminLiveChannel = adminSupabaseClient.channel('admin-live')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, scheduleAdminReload)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, scheduleAdminReload)
+    adminLiveChannel = adminSupabaseClient.channel('admin-live-full')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'resources' }, () => {
+        scheduleAdminReload();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_profiles' }, () => {
+        loadUserStats().catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'senior_requests' }, () => {
+        loadCommunityRequests().catch(() => {});
+        updateAdminKpis();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lost_found' }, () => {
+        loadLostFoundAdmin().catch(() => {});
+        updateAdminKpis();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'feedback' }, () => {
+        loadFeedback().catch(() => {});
+        updateAdminKpis();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_colleges' }, () => {
+        loadApprovedCustomCollegesAdmin().catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'subjects' }, () => {
+        loadSubjects().catch(() => {});
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'quizzes' }, () => {
+        loadAdminQuizzes().catch(() => {});
+      })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'resource_reports' }, (payload) => {
-        loadReports();
+        loadReports().catch(() => {});
         if (payload.eventType === 'INSERT') {
           playAdminAlertSound();
           showReportAlertBanner(payload.new);
@@ -782,11 +808,39 @@ async function bulkUpdateStatus(status) {
   }
 }
 
+function extractStoragePathFromUrl(urlOrPath, bucketName = 'resources') {
+  if (!urlOrPath || typeof urlOrPath !== 'string') return null;
+  let clean = urlOrPath.trim();
+  const pattern = new RegExp(`/${bucketName}/(.+)$`);
+  const match = clean.match(pattern);
+  if (match) {
+    return match[1].split('?')[0].split('#')[0];
+  }
+  if (clean.startsWith('http')) {
+    const idx = clean.indexOf(`/${bucketName}/`);
+    if (idx !== -1) return clean.slice(idx + `/${bucketName}/`.length).split('?')[0].split('#')[0];
+  }
+  if (!clean.startsWith('http') && !clean.includes('://')) {
+    return clean.split('?')[0].split('#')[0];
+  }
+  return null;
+}
+
 async function bulkDelete() {
   if (!selectedIds.size) return;
-  openSafeDelete(`Delete ${selectedIds.size} selected item(s)? This cannot be undone.`, async () => {
-    const cloudIds = [...selectedIds].filter(id => !id.startsWith('demo-') && !id.startsWith('local-'));
+  openSafeDelete(`Delete ${selectedIds.size} selected item(s)? This will also permanently wipe their files from cloud storage.`, async () => {
+    const cloudItems = uploads.filter(item => selectedIds.has(String(item.id)) && !String(item.id).startsWith('demo-') && !String(item.id).startsWith('local-'));
+    const cloudIds = cloudItems.map(item => item.id);
     if (adminSupabaseClient && cloudIds.length) {
+      // Purge files from Supabase Storage
+      const filePaths = cloudItems.map(item => extractStoragePathFromUrl(item.fileUrl || item.fileName, 'resources')).filter(Boolean);
+      if (filePaths.length) {
+        try {
+          await adminSupabaseClient.storage.from('resources').remove(filePaths);
+        } catch (stErr) {
+          console.warn('[Admin] Storage file wipe error:', stErr);
+        }
+      }
       const { error } = await adminSupabaseClient.from('resources').delete().in('id', cloudIds);
       if (error) { alert('Delete failed: ' + error.message); return; }
     }
@@ -794,6 +848,8 @@ async function bulkDelete() {
     saveLocalMirror();
     selectedIds.clear();
     render();
+    updateAdminKpis();
+    showAdminToast('Selected resources deleted and files purged from storage ✓', 'success');
   });
 }
 
@@ -1120,6 +1176,61 @@ function setFeedbackFilter(filter) {
   renderFeedbackList();
 }
 
+/* ---- Feedback multi-select state & actions ---- */
+const selectedFeedbackIds = new Set();
+function toggleFeedbackSelect(id, checked) {
+  const numId = isNaN(id) ? id : Number(id);
+  if (checked) selectedFeedbackIds.add(numId);
+  else selectedFeedbackIds.delete(numId);
+  updateBulkFeedbackUI();
+}
+window.toggleFeedbackSelect = toggleFeedbackSelect;
+
+function toggleCheckAllFeedback(checked) {
+  const list = $('feedbackList');
+  if (!list) return;
+  const items = list.querySelectorAll('.feedback-item');
+  items.forEach(el => {
+    const id = el.dataset.id;
+    if (!id) return;
+    const numId = isNaN(id) ? id : Number(id);
+    const cb = el.querySelector('.adm-item-checkbox');
+    if (cb) cb.checked = checked;
+    if (checked) selectedFeedbackIds.add(numId);
+    else selectedFeedbackIds.delete(numId);
+  });
+  updateBulkFeedbackUI();
+}
+window.toggleCheckAllFeedback = toggleCheckAllFeedback;
+
+function updateBulkFeedbackUI() {
+  const bar = $('bulkFeedbackActions');
+  const cnt = $('bulkFeedbackCount');
+  const allCb = $('checkAllFeedback');
+  const disp = $('feedbackCountDisplay');
+  const totalVis = $('feedbackList') ? $('feedbackList').querySelectorAll('.feedback-item').length : 0;
+  if (bar) bar.classList.toggle('visible', selectedFeedbackIds.size > 0);
+  if (cnt) cnt.textContent = `${selectedFeedbackIds.size} selected`;
+  if (disp) disp.textContent = `${totalVis} feedback`;
+  if (allCb) allCb.checked = totalVis > 0 && selectedFeedbackIds.size >= totalVis;
+}
+window.updateBulkFeedbackUI = updateBulkFeedbackUI;
+
+async function bulkDeleteFeedback() {
+  if (!selectedFeedbackIds.size) return;
+  openSafeDelete(`Permanently delete ${selectedFeedbackIds.size} selected feedback item(s)? This cannot be undone.`, async () => {
+    if (!adminSupabaseClient) return;
+    const ids = [...selectedFeedbackIds];
+    const { error } = await adminSupabaseClient.from('feedback').delete().in('id', ids);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    selectedFeedbackIds.clear();
+    showAdminToast('Selected feedback items deleted ✓', 'success');
+    loadFeedback();
+    updateAdminKpis();
+  });
+}
+window.bulkDeleteFeedback = bulkDeleteFeedback;
+
 function renderFeedbackList() {
   const list = $('feedbackList');
   if (!list) return;
@@ -1146,6 +1257,7 @@ function renderFeedbackList() {
         <h3 style="margin:0 0 6px;font-size:16px">No feedback in this view</h3>
         <p style="color:var(--muted);font-size:13px;margin:0">No user feedback matching "${filter}" criteria.</p>
       </div>`;
+    updateBulkFeedbackUI();
     return;
   }
 
@@ -1158,6 +1270,7 @@ function renderFeedbackList() {
     const kindClass = { bug: 'k-bug', idea: 'k-idea', question: 'k-question' }[item.kind] || 'k-idea';
     const whoLine = [item.user_name, item.user_email].filter(Boolean).join(' · ');
     const isResolved = item.status === 'resolved';
+    const isChecked = selectedFeedbackIds.has(item.id) || selectedFeedbackIds.has(Number(item.id));
 
     let starBadgeHtml = '';
     if (starVal > 0) {
@@ -1171,6 +1284,7 @@ function renderFeedbackList() {
 
     return `<div class="feedback-item ${isResolved ? 'resolved' : 'open'}" data-id="${item.id}">
       <div class="fi-head">
+        <input type="checkbox" class="adm-item-checkbox" ${isChecked ? 'checked' : ''} onchange="event.stopPropagation(); toggleFeedbackSelect(${item.id}, this.checked)" title="Select feedback">
         ${starBadgeHtml}
         <span class="fi-kind ${kindClass}">${escapeHtml(item.kind || 'feedback')}</span>
         <span class="badge ${isResolved ? 'badge-resolved' : 'badge-open'}">${isResolved ? 'Resolved' : 'Open'}</span>
@@ -1190,6 +1304,7 @@ function renderFeedbackList() {
   }).join('');
 
   initAdminPressables();
+  updateBulkFeedbackUI();
 }
 
 async function resolveFeedback(id) {
@@ -1232,10 +1347,65 @@ function switchCommunitySub(sub) {
   if (sub === 'pending-subjects') loadPendingSubjects();
 }
 
+/* ---- Community requests multi-select state & actions ---- */
+const selectedRequestIds = new Set();
+function toggleRequestSelect(id, checked) {
+  const numId = isNaN(id) ? id : Number(id);
+  if (checked) selectedRequestIds.add(numId);
+  else selectedRequestIds.delete(numId);
+  updateBulkRequestsUI();
+}
+window.toggleRequestSelect = toggleRequestSelect;
+
+function toggleCheckAllRequests(checked) {
+  const list = $('communityRequestsQueue');
+  if (!list) return;
+  const items = list.querySelectorAll('.comm-card');
+  items.forEach(el => {
+    const id = el.dataset.id;
+    if (!id) return;
+    const numId = isNaN(id) ? id : Number(id);
+    const cb = el.querySelector('.adm-item-checkbox');
+    if (cb) cb.checked = checked;
+    if (checked) selectedRequestIds.add(numId);
+    else selectedRequestIds.delete(numId);
+  });
+  updateBulkRequestsUI();
+}
+window.toggleCheckAllRequests = toggleCheckAllRequests;
+
+function updateBulkRequestsUI() {
+  const bar = $('bulkRequestsActions');
+  const cnt = $('bulkRequestsCount');
+  const allCb = $('checkAllRequests');
+  const disp = $('requestsCountDisplay');
+  const totalVis = $('communityRequestsQueue') ? $('communityRequestsQueue').querySelectorAll('.comm-card').length : 0;
+  if (bar) bar.classList.toggle('visible', selectedRequestIds.size > 0);
+  if (cnt) cnt.textContent = `${selectedRequestIds.size} selected`;
+  if (disp) disp.textContent = `${totalVis} requests`;
+  if (allCb) allCb.checked = totalVis > 0 && selectedRequestIds.size >= totalVis;
+}
+window.updateBulkRequestsUI = updateBulkRequestsUI;
+
+async function bulkDeleteCommunityRequests() {
+  if (!selectedRequestIds.size) return;
+  openSafeDelete(`Permanently delete ${selectedRequestIds.size} selected community request(s)? This cannot be undone.`, async () => {
+    if (!adminSupabaseClient) return;
+    const ids = [...selectedRequestIds];
+    const { error } = await adminSupabaseClient.from('senior_requests').delete().in('id', ids);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    selectedRequestIds.clear();
+    showAdminToast('Selected community requests deleted ✓', 'success');
+    loadCommunityRequests();
+    updateAdminKpis();
+  });
+}
+window.bulkDeleteCommunityRequests = bulkDeleteCommunityRequests;
+
 async function loadCommunityRequests() {
   const host = $('communityRequestsQueue');
   if (!host) return;
-  if (!adminSupabaseClient) { host.innerHTML = '<p class="note">Supabase is not configured.</p>'; return; }
+  if (!adminSupabaseClient) { host.innerHTML = '<p class="note">Supabase is not configured.</p>'; updateBulkRequestsUI(); return; }
   host.innerHTML = '<p class="note">Loading junior/senior requests&hellip;</p>';
   try {
     const { data, error } = await adminSupabaseClient
@@ -1246,14 +1416,17 @@ async function loadCommunityRequests() {
     if (error) throw error;
     if (!data || !data.length) {
       host.innerHTML = '<p class="note">No junior or senior requests found in database.</p>';
+      updateBulkRequestsUI();
       return;
     }
     host.innerHTML = data.map(item => {
       const typeLabel = item.type === 'pyq' ? '📝 PYQ' : '📚 Notes';
       const semLabel = `Semester ${item.semester || '?'}`;
       const statusClass = item.status === 'done' ? 'badge-approved' : 'badge-pending';
-      return `<div class="comm-card ${item.status || ''}">
+      const isChecked = selectedRequestIds.has(item.id) || selectedRequestIds.has(Number(item.id));
+      return `<div class="comm-card ${item.status || ''}" data-id="${item.id}">
         <div class="comm-card-head">
+          <input type="checkbox" class="adm-item-checkbox" ${isChecked ? 'checked' : ''} onchange="event.stopPropagation(); toggleRequestSelect(${item.id}, this.checked)" title="Select request">
           <span class="comm-badge ${item.type === 'pyq' ? 'type-pyq' : 'type-notes'}">${typeLabel}</span>
           <span class="badge ${statusClass}">${escapeHtml(item.status || 'open')}</span>
           <span class="comm-time">${formatISTDate(item.created_at)}</span>
@@ -1275,8 +1448,10 @@ async function loadCommunityRequests() {
     }).join('');
 
     initAdminPressables();
+    updateBulkRequestsUI();
   } catch (e) {
     host.innerHTML = '<p class="note">Error loading requests: ' + escapeHtml(e.message) + '</p>';
+    updateBulkRequestsUI();
   }
 }
 
@@ -1617,13 +1792,80 @@ async function purgeOldRemovedImages() {
 }
 window.purgeOldRemovedImages = purgeOldRemovedImages;
 
+/* ---- Lost & Found multi-select state & actions ---- */
+const selectedLostFoundIds = new Set();
+function toggleLostFoundSelect(id, checked) {
+  const numId = isNaN(id) ? id : Number(id);
+  if (checked) selectedLostFoundIds.add(numId);
+  else selectedLostFoundIds.delete(numId);
+  updateBulkLostFoundUI();
+}
+window.toggleLostFoundSelect = toggleLostFoundSelect;
+
+function toggleCheckAllLostFound(checked) {
+  const list = $('lostfoundQueue');
+  if (!list) return;
+  const items = list.querySelectorAll('.lf-admin-item');
+  items.forEach(el => {
+    const id = el.dataset.id;
+    if (!id) return;
+    const numId = isNaN(id) ? id : Number(id);
+    const cb = el.querySelector('.adm-item-checkbox');
+    if (cb) cb.checked = checked;
+    if (checked) selectedLostFoundIds.add(numId);
+    else selectedLostFoundIds.delete(numId);
+  });
+  updateBulkLostFoundUI();
+}
+window.toggleCheckAllLostFound = toggleCheckAllLostFound;
+
+function updateBulkLostFoundUI() {
+  const bar = $('bulkLostFoundActions');
+  const cnt = $('bulkLostFoundCount');
+  const allCb = $('checkAllLostFound');
+  const disp = $('lostfoundCountDisplay');
+  const totalVis = $('lostfoundQueue') ? $('lostfoundQueue').querySelectorAll('.lf-admin-item').length : 0;
+  if (bar) bar.classList.toggle('visible', selectedLostFoundIds.size > 0);
+  if (cnt) cnt.textContent = `${selectedLostFoundIds.size} selected`;
+  if (disp) disp.textContent = `${totalVis} items`;
+  if (allCb) allCb.checked = totalVis > 0 && selectedLostFoundIds.size >= totalVis;
+}
+window.updateBulkLostFoundUI = updateBulkLostFoundUI;
+
+async function bulkDeleteLostFound() {
+  if (!selectedLostFoundIds.size) return;
+  openSafeDelete(`Permanently delete ${selectedLostFoundIds.size} selected Lost & Found post(s) and wipe images from cloud storage?`, async () => {
+    if (!adminSupabaseClient) return;
+    const ids = [...selectedLostFoundIds];
+    try {
+      const { data: lfItems } = await adminSupabaseClient.from('lost_found').select('id, image_url').in('id', ids);
+      if (lfItems && lfItems.length) {
+        const fileUrls = lfItems.map(item => item.image_url).filter(Boolean);
+        if (fileUrls.length) {
+          await wipeLostFoundImageFromStorageAdmin(fileUrls);
+        }
+      }
+    } catch (_imgErr) {
+      console.warn('[Admin] bulkDeleteLostFound image wipe note:', _imgErr);
+    }
+
+    const { error } = await adminSupabaseClient.from('lost_found').delete().in('id', ids);
+    if (error) { alert('Delete failed: ' + error.message); return; }
+    selectedLostFoundIds.clear();
+    showAdminToast('Selected Lost & Found posts deleted and storage wiped ✓', 'success');
+    loadLostFoundAdmin();
+    updateAdminKpis();
+  });
+}
+window.bulkDeleteLostFound = bulkDeleteLostFound;
+
 async function loadLostFoundAdmin(){
   const host=$('lostfoundQueue');if(!host)return;
-  if(!adminSupabaseClient){host.innerHTML='<p class="note">Supabase is not configured.</p>';return}
+  if(!adminSupabaseClient){host.innerHTML='<p class="note">Supabase is not configured.</p>';updateBulkLostFoundUI();return}
   const {data,error}=await adminSupabaseClient.from('lost_found').select('*').order('created_at',{ascending:false}).limit(100);
-  if(error){host.innerHTML='<p class="note">Could not load posts. ('+escapeHtml(error.message)+')</p>';return}
+  if(error){host.innerHTML='<p class="note">Could not load posts. ('+escapeHtml(error.message)+')</p>';updateBulkLostFoundUI();return}
   const rows=data||[];
-  if(!rows.length){host.innerHTML='<p class="note">No Lost &amp; Found posts yet.</p>';return}
+  if(!rows.length){host.innerHTML='<p class="note">No Lost &amp; Found posts yet.</p>';updateBulkLostFoundUI();return}
 
   const nowMs = Date.now();
   const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -1638,6 +1880,7 @@ async function loadLostFoundAdmin(){
     const college=(collegeNames&&collegeNames[r.college])||r.college||'all';
     const who=(r.poster_name||'').replace(/[<>&"']/g,'');
     const time=r.created_at?new Date(r.created_at).toLocaleString():'';
+    const isChecked = selectedLostFoundIds.has(r.id) || selectedLostFoundIds.has(Number(r.id));
     const img=r.image_url
       ?'<a href="'+escapeHtml(r.image_url)+'" target="_blank" rel="noopener" title="Open full image"><img class="lf-adm-thumb" src="'+escapeHtml(r.image_url)+'" alt="Item photo"></a>'
       :'<span class="lf-adm-noimg"><i class="fa-solid fa-image"></i> No photo</span>';
@@ -1681,8 +1924,10 @@ async function loadLostFoundAdmin(){
     } else {
       actions='<div class="row-actions"><button class="button danger bca-pressable" onclick="removeAndWipeLostFoundPost('+r.id+', \''+escapeHtml(r.image_url||'')+'\')"><i class="fa-solid fa-trash"></i> Remove &amp; Wipe Image</button></div>';
     }
-    return '<div class="lf-admin-item '+r.status+' '+(is30DaysOld?'escalated-30d':'')+'" style="'+(is30DaysOld?'border-left:4px solid #f59e0b;':'')+'">'
-      +'<div class="lf-adm-head"><span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+badge30d+'<small>'+time+'</small></div>'
+    return '<div class="lf-admin-item '+r.status+' '+(is30DaysOld?'escalated-30d':'')+'" data-id="'+r.id+'" style="'+(is30DaysOld?'border-left:4px solid #f59e0b;':'')+'">'
+      +'<div class="lf-adm-head">'
+      +'<input type="checkbox" class="adm-item-checkbox" '+(isChecked?'checked':'')+' onchange="event.stopPropagation(); toggleLostFoundSelect('+r.id+', this.checked)" title="Select item">'
+      +'<span class="lf-adm-badge '+cls+'">'+label+'</span>'+lfAdmStatusBadge(r.status)+badge30d+'<small>'+time+'</small></div>'
       +'<div class="lf-adm-withimg">'+img
       +'<div class="lf-adm-info"><div class="lf-adm-body"><b>'+escapeHtml(item)+'</b> &mdash; '+escapeHtml(r.description||'')+'</div>'
       +'<div class="lf-adm-meta"><span>&#128205; '+escapeHtml(r.location||'')+'</span><span>&#127979; '+escapeHtml(college)+'</span>'
@@ -1691,6 +1936,9 @@ async function loadLostFoundAdmin(){
       +actions
       +'</div>';
   }).join('');
+
+  initAdminPressables();
+  updateBulkLostFoundUI();
 
   // Deduplicated single Telegram summary alert for 30+ day old items
   if (unnotified30dCount > 0) {
@@ -2959,6 +3207,166 @@ function setStudentSemFilter(sem) {
   filterRecentUsers();
 }
 
+// Deduplicate raw student profiles by uid, email, and username
+function deduplicateStudentProfiles(rawProfiles) {
+  if (!Array.isArray(rawProfiles)) return [];
+  const seenUids = new Set();
+  const seenEmails = new Set();
+  const seenUsernames = new Set();
+  const deduplicated = [];
+
+  for (const p of rawProfiles) {
+    if (!p) continue;
+    const uid = String(p.uid || p.id || '').trim();
+    const rawEmail = String(p.email || '').trim().toLowerCase();
+    const rawUsername = String(p.username || '').trim().toLowerCase().replace(/^@+/, '');
+
+    // Skip empty/corrupted records
+    if (!uid && !rawEmail && !rawUsername) continue;
+
+    // Check duplicates
+    if (uid && seenUids.has(uid)) continue;
+    if (rawEmail && seenEmails.has(rawEmail)) continue;
+    if (rawUsername && rawUsername !== 'student' && seenUsernames.has(rawUsername)) continue;
+
+    if (uid) seenUids.add(uid);
+    if (rawEmail) seenEmails.add(rawEmail);
+    if (rawUsername && rawUsername !== 'student') seenUsernames.add(rawUsername);
+
+    deduplicated.push({
+      ...p,
+      id: uid || p.id,
+      uid: uid || p.id,
+      name: (p.name || 'Student').trim(),
+      username: rawUsername || (rawEmail ? rawEmail.split('@')[0] : 'student'),
+      email: rawEmail || '',
+      college: p.college || 'avviare',
+      semester: Number(p.semester) || 1,
+      avatar_url: p.avatar_url || '',
+      is_admin: Boolean(p.is_admin || (rawEmail && rawEmail.includes('admin@bcaprime'))),
+      can_download: p.can_download !== false,
+      is_email_verified: Boolean(p.is_email_verified),
+      created_at: p.created_at || p.updated_at || new Date().toISOString(),
+      updated_at: p.updated_at || p.created_at || new Date().toISOString()
+    });
+  }
+  return deduplicated;
+}
+window.deduplicateStudentProfiles = deduplicateStudentProfiles;
+
+/* ---- Student multi-select & bulk delete actions ---- */
+const selectedUserUids = new Set();
+
+function isUserProtectedAdmin(user) {
+  if (!user) return false;
+  if (user.is_admin) return true;
+  const email = (user.email || '').toLowerCase().trim();
+  if (email === 'admin@bcaprime.com' || email.includes('admin@bcaprime')) return true;
+  if (window.currentAdminEmail && email === window.currentAdminEmail.toLowerCase()) return true;
+  const curUid = window.currentAdminUid || '';
+  if (curUid && (user.uid === curUid || user.id === curUid)) return true;
+  return false;
+}
+
+function toggleUserSelect(uid, checked) {
+  if (!uid) return;
+  if (checked) selectedUserUids.add(uid);
+  else selectedUserUids.delete(uid);
+  updateBulkUsersUI();
+}
+window.toggleUserSelect = toggleUserSelect;
+
+function toggleCheckAllUsers(checked) {
+  const list = $('studentCardsList');
+  if (!list) return;
+  const items = list.querySelectorAll('.student-admin-card');
+  items.forEach(el => {
+    const uid = el.dataset.uid;
+    if (!uid) return;
+    const isProtected = el.dataset.protected === 'true';
+    if (isProtected) return; // Never select protected admin accounts
+    const cb = el.querySelector('.adm-item-checkbox');
+    if (cb) cb.checked = checked;
+    if (checked) selectedUserUids.add(uid);
+    else selectedUserUids.delete(uid);
+  });
+  updateBulkUsersUI();
+}
+window.toggleCheckAllUsers = toggleCheckAllUsers;
+
+function updateBulkUsersUI() {
+  const bar = $('bulkUsersActions');
+  const cnt = $('bulkUsersCount');
+  const allCb = $('checkAllUsers');
+  const disp = $('userSelectCountDisplay');
+  const cards = $('studentCardsList') ? $('studentCardsList').querySelectorAll('.student-admin-card:not([data-protected="true"])') : [];
+  const eligibleCount = cards.length;
+  if (bar) bar.classList.toggle('visible', selectedUserUids.size > 0);
+  if (cnt) cnt.textContent = `${selectedUserUids.size} selected`;
+  if (disp) disp.textContent = `${eligibleCount} eligible`;
+  if (allCb) allCb.checked = eligibleCount > 0 && selectedUserUids.size >= eligibleCount;
+}
+window.updateBulkUsersUI = updateBulkUsersUI;
+
+async function bulkDeleteUsers() {
+  if (!selectedUserUids.size) return;
+  const uids = [...selectedUserUids];
+  openSafeDelete(`Permanently delete ${uids.length} selected student(s)? This will cascade delete their community requests, lost & found posts, feedback, and reading progress.`, async () => {
+    if (!adminSupabaseClient) return;
+    try {
+      // 1. Fetch any lost & found images created by these users to wipe from storage
+      try {
+        const { data: lfRows } = await adminSupabaseClient.from('lost_found').select('id, image_url').in('user_id', uids);
+        if (lfRows && lfRows.length) {
+          const imgUrls = lfRows.map(item => item.image_url).filter(Boolean);
+          if (imgUrls.length) await wipeLostFoundImageFromStorageAdmin(imgUrls);
+          await adminSupabaseClient.from('lost_found').delete().in('user_id', uids);
+        }
+      } catch (_lfE) {
+        console.warn('[Admin] cascade LF purge note:', _lfE);
+      }
+
+      // 2. Cascade delete senior_requests
+      try {
+        await adminSupabaseClient.from('senior_requests').delete().in('user_id', uids);
+      } catch (_srE) {}
+
+      // 3. Cascade delete feedback
+      try {
+        await adminSupabaseClient.from('feedback').delete().in('user_id', uids);
+      } catch (_fbE) {}
+
+      // 4. Cascade delete reading progress
+      try {
+        await adminSupabaseClient.from('user_reading_progress').delete().in('user_id', uids);
+      } catch (_urpE) {}
+
+      // 5. Cascade delete analytics events
+      try {
+        await adminSupabaseClient.from('analytics_events').delete().in('user_id', uids);
+      } catch (_aeE) {}
+
+      // 6. Delete from user_profiles
+      const { error: profErr } = await adminSupabaseClient.from('user_profiles').delete().in('uid', uids);
+      if (profErr) throw profErr;
+
+      // 7. Delete from public.profiles if exists
+      try {
+        await adminSupabaseClient.from('profiles').delete().in('id', uids);
+      } catch (_prE) {}
+
+      selectedUserUids.clear();
+      showAdminToast(`Successfully deleted ${uids.length} student(s) and cascaded all data ✓`, 'success');
+      await loadUserStats(true);
+      updateAdminKpis();
+    } catch (err) {
+      console.error('[Admin] Bulk delete students error:', err);
+      alert('Bulk delete failed: ' + err.message);
+    }
+  });
+}
+window.bulkDeleteUsers = bulkDeleteUsers;
+
 // Fetch user metrics and all registered student profiles
 async function loadUserStats(showToastFeedback = false) {
   const cardsContainer = $('studentCardsList');
@@ -2994,67 +3402,35 @@ async function loadUserStats(showToastFeedback = false) {
         .order('created_at', { ascending: false });
 
       if (!profErr && Array.isArray(profData) && profData.length > 0) {
-        profiles = profData.map(p => ({
-          id: p.uid,
-          uid: p.uid,
-          name: p.name || 'Student',
-          username: p.username || '',
-          email: p.email || '',
-          college: p.college || 'avviare',
-          semester: p.semester || 1,
-          avatar_url: p.avatar_url || '',
-          is_admin: Boolean(p.is_admin),
-          can_download: p.can_download !== false,
-          is_email_verified: Boolean(p.is_email_verified),
-          created_at: p.created_at || p.updated_at || new Date().toISOString(),
-          updated_at: p.updated_at || p.created_at || new Date().toISOString()
-        }));
-      }
-
-      // Also invoke RPC get_admin_user_stats for signup counts
-      try {
-        const { data: rpcData, error: rpcErr } = await adminSupabaseClient.rpc('get_admin_user_stats', { p_limit: 100 });
-        if (!rpcErr && rpcData) {
-          stats = rpcData;
-        }
-      } catch (_rpcE) {}
-    }
-
-    // Compute stats from profiles if RPC was unavailable
-    if (profiles.length > 0) {
-      const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const todayStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
-      const weekStart = new Date(todayStart);
-      weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-      const monthStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), 1);
-      const lastMonthStart = new Date(nowIST.getFullYear(), nowIST.getMonth() - 1, 1);
-      const lastMonthEnd = new Date(nowIST.getFullYear(), nowIST.getMonth(), 0, 23, 59, 59, 999);
-
-      let tCount = 0, wCount = 0, mCount = 0, lmCount = 0;
-      profiles.forEach(r => {
-        const rDate = new Date(new Date(r.created_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-        if (rDate >= todayStart) tCount++;
-        if (rDate >= weekStart) wCount++;
-        if (rDate >= monthStart) mCount++;
-        if (rDate >= lastMonthStart && rDate <= lastMonthEnd) lmCount++;
-      });
-
-      if (!stats) {
-        stats = {
-          total_users: profiles.length,
-          users_today: tCount,
-          users_this_week: wCount,
-          users_this_month: mCount,
-          users_last_month: lmCount
-        };
-      } else {
-        stats.total_users = Math.max(Number(stats.total_users || 0), profiles.length);
+        profiles = deduplicateStudentProfiles(profData);
       }
     }
 
-    if (!stats) {
-      stats = { total_users: 0, users_today: 0, users_this_week: 0, users_this_month: 0, users_last_month: 0 };
-    }
+    // Compute stats from deduplicated profiles
+    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const todayStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    const monthStart = new Date(nowIST.getFullYear(), nowIST.getMonth(), 1);
+    const lastMonthStart = new Date(nowIST.getFullYear(), nowIST.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(nowIST.getFullYear(), nowIST.getMonth(), 0, 23, 59, 59, 999);
+
+    let tCount = 0, wCount = 0, mCount = 0, lmCount = 0;
+    profiles.forEach(r => {
+      const rDate = new Date(new Date(r.created_at).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      if (rDate >= todayStart) tCount++;
+      if (rDate >= weekStart) wCount++;
+      if (rDate >= monthStart) mCount++;
+      if (rDate >= lastMonthStart && rDate <= lastMonthEnd) lmCount++;
+    });
+
+    stats = {
+      total_users: profiles.length,
+      users_today: tCount,
+      users_this_week: wCount,
+      users_this_month: mCount,
+      users_last_month: lmCount
+    };
 
     // Populate stat counters
     if ($('statTotalUsers')) $('statTotalUsers').textContent = Number(stats.total_users || 0).toLocaleString();
@@ -3124,6 +3500,7 @@ function renderRecentUsers(usersToRender) {
       `;
       initAdminPressables();
     }
+    updateBulkUsersUI();
     return;
   }
 
@@ -3139,19 +3516,28 @@ function renderRecentUsers(usersToRender) {
       const avatarColor = getUserAvatarColor(u.name || u.email);
       const dateIST = formatISTDate(u.created_at);
       const relTime = getRelativeTime(u.created_at);
+      const isProtected = isUserProtectedAdmin(u);
+      const isChecked = selectedUserUids.has(u.uid);
 
       const avatarHtml = u.avatar_url
         ? `<div class="student-card-avatar"><img src="${escapeHtml(u.avatar_url)}" alt="${displayName}" onerror="this.parentElement.innerHTML='${firstLetter}'"></div>`
         : `<div class="student-card-avatar" style="background:${avatarColor}">${firstLetter}</div>`;
 
       return `
-        <div class="student-admin-card bca-pressable" role="button" tabindex="0" onclick="openStudentAdminProfile('${escapeHtml(u.uid || u.id)}')">
-          ${avatarHtml}
+        <div class="student-admin-card bca-pressable" data-uid="${escapeHtml(u.uid || u.id)}" data-protected="${isProtected}" role="button" tabindex="0" onclick="openStudentAdminProfile('${escapeHtml(u.uid || u.id)}')">
+          <div style="display:flex;align-items:center;gap:10px;" onclick="event.stopPropagation()">
+            ${isProtected 
+              ? `<span class="adm-item-protected-icon" title="Protected Admin Account"><i class="fa-solid fa-shield-halved"></i></span>`
+              : `<input type="checkbox" class="adm-item-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleUserSelect('${escapeHtml(u.uid || u.id)}', this.checked)" title="Select student">`
+            }
+            ${avatarHtml}
+          </div>
           <div class="student-card-main">
             <div class="student-card-top">
               <span class="student-name-text">${displayName}</span>
               <span class="student-username-tag">@${username}</span>
               <span class="adm-sem-tag">${semBadge}</span>
+              ${isProtected ? `<span class="badge" style="background:rgba(37,99,235,0.15);color:var(--brand);font-size:10px;padding:2px 6px;">ADMIN</span>` : ''}
             </div>
             <div class="student-card-college">
               <i class="fa-solid fa-building-columns"></i>
@@ -3179,10 +3565,18 @@ function renderRecentUsers(usersToRender) {
       const avatarColor = getUserAvatarColor(u.name || u.email);
       const dateIST = formatISTDate(u.created_at);
       const relTime = getRelativeTime(u.created_at);
+      const isProtected = isUserProtectedAdmin(u);
+      const isChecked = selectedUserUids.has(u.uid);
 
       return `
         <tr onclick="openStudentAdminProfile('${escapeHtml(u.uid || u.id)}')" style="cursor:pointer">
-          <td style="color:var(--muted);font-weight:600;font-size:12px;width:48px">${idx + 1}</td>
+          <td style="width:36px;text-align:center;" onclick="event.stopPropagation()">
+            ${isProtected
+              ? `<span class="adm-item-protected-icon" title="Protected Admin Account"><i class="fa-solid fa-shield-halved"></i></span>`
+              : `<input type="checkbox" class="adm-item-checkbox" ${isChecked ? 'checked' : ''} onchange="toggleUserSelect('${escapeHtml(u.uid || u.id)}', this.checked)" title="Select student">`
+            }
+          </td>
+          <td style="color:var(--muted);font-weight:600;font-size:12px;width:36px">${idx + 1}</td>
           <td>
             <div class="user-cell">
               <div class="user-avatar-circle" style="background:${avatarColor}">${firstLetter}</div>
@@ -3199,6 +3593,9 @@ function renderRecentUsers(usersToRender) {
             <div class="user-time-cell">
               <span class="user-time-main">
                 <i class="fa-regular fa-clock"></i> ${dateIST}
+              </span>
+              ${relTime ? `<span class="user-time-rel">${relTime}</span>` : ''}
+            </div>
               </span>
               ${relTime ? `<span class="user-time-rel">${relTime}</span>` : ''}
             </div>
