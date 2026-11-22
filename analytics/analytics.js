@@ -486,21 +486,99 @@ async function fetchSuiteTelemetry() {
     const lfPromise = analyticsSupabaseClient.from('lost_found').select('id', { count: 'exact', head: true });
     const feedbackPromise = analyticsSupabaseClient.from('feedback').select('id, rating, message, user_name, created_at').order('created_at', { ascending: false }).limit(20);
 
-    const [profRes, evRes, srRes, lfRes, fbRes] = await Promise.allSettled([
+    // 4. Fetch Live Resources & Requests for Curriculum Demand
+    const resourcesPromise = analyticsSupabaseClient.from('resources').select('id, title, downloads, views, semester, subject, type').order('downloads', { ascending: false }).limit(25);
+    const srItemsPromise = analyticsSupabaseClient.from('senior_requests').select('id, subject, semester, type').order('created_at', { ascending: false }).limit(40);
+
+    const [profRes, evRes, srRes, lfRes, fbRes, resRes, srItemsRes] = await Promise.allSettled([
       profilesPromise,
       eventsPromise,
       seniorPromise,
       lfPromise,
-      feedbackPromise
+      feedbackPromise,
+      resourcesPromise,
+      srItemsPromise
     ]);
+
+    // Ensure approved custom colleges are merged
+    try {
+      await loadApprovedCollegesForStats();
+    } catch (_colErr) {}
 
     // Process Students (deduplicated canonical profiles)
     let totalStudents = 0;
+    let deduplicatedStudents = [];
     if (profRes.status === 'fulfilled' && Array.isArray(profRes.value.data)) {
-      const deduplicated = deduplicateStudentProfiles(profRes.value.data);
-      totalStudents = deduplicated.length;
+      deduplicatedStudents = deduplicateStudentProfiles(profRes.value.data);
+      totalStudents = deduplicatedStudents.length;
     }
     telemetryCache.totalStudents = totalStudents;
+    telemetryCache.deduplicatedStudents = deduplicatedStudents;
+
+    // 1. Group active students STRICTLY by semester (Sem 1 to Sem 6)
+    const semDist = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
+    deduplicatedStudents.forEach(st => {
+      const semStr = String(st.semester || '1').trim();
+      const semNum = parseInt(semStr, 10);
+      if (semNum >= 1 && semNum <= 6) {
+        semDist[String(semNum)]++;
+      } else {
+        semDist['1']++;
+      }
+    });
+    telemetryCache.semDistribution = semDist;
+
+    // 2. Aggregate actual student counts per college strictly from real student profiles
+    const collegeMap = {};
+    deduplicatedStudents.forEach(st => {
+      const code = (st.college || 'avviare').trim();
+      const name = formatStudentCollege(code);
+      collegeMap[name] = (collegeMap[name] || 0) + 1;
+    });
+
+    telemetryCache.topColleges = Object.entries(collegeMap)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, count]) => {
+        const sharePct = totalStudents > 0 ? Math.round((count / totalStudents) * 100) : 0;
+        return {
+          name,
+          count,
+          sharePct
+        };
+      });
+
+    // 3. Subject Demand / Curriculum Popularity
+    const subjectDemandMap = {};
+    if (resRes.status === 'fulfilled' && Array.isArray(resRes.value.data)) {
+      resRes.value.data.forEach(r => {
+        if (r.subject) {
+          const s = r.subject.trim();
+          const weight = (r.downloads || 0) * 2 + (r.views || 0);
+          subjectDemandMap[s] = (subjectDemandMap[s] || 0) + Math.max(1, weight);
+        }
+      });
+
+      telemetryCache.topResources = resRes.value.data
+        .filter(r => r.title)
+        .map(r => ({
+          title: r.title,
+          reads: r.views || 0,
+          downloads: r.downloads || 0,
+          rate: r.views ? Math.round(((r.downloads || 0) / r.views) * 100) : (r.downloads ? 100 : 0)
+        }))
+        .slice(0, 6);
+    } else {
+      telemetryCache.topResources = [];
+    }
+
+    if (srItemsRes.status === 'fulfilled' && Array.isArray(srItemsRes.value.data)) {
+      srItemsRes.value.data.forEach(sr => {
+        if (sr.subject) {
+          const s = sr.subject.trim();
+          subjectDemandMap[s] = (subjectDemandMap[s] || 0) + 3;
+        }
+      });
+    }
 
     // Process Community
     const srCount = (srRes.status === 'fulfilled' && srRes.value.count) || 0;
@@ -510,7 +588,7 @@ async function fetchSuiteTelemetry() {
     // Process Events
     const events = (evRes.status === 'fulfilled' && evRes.value.data) || [];
     telemetryCache.recentEvents = events;
-    processEventsTelemetry(events);
+    processEventsTelemetry(events, subjectDemandMap);
 
     // Process Feedback & Rating Pulse
     if (fbRes.status === 'fulfilled' && fbRes.value.data) {
@@ -536,7 +614,7 @@ async function fetchSuiteTelemetry() {
   }
 }
 
-function processEventsTelemetry(events) {
+function processEventsTelemetry(events, initialSubjectMap = {}) {
   let views = 0;
   let downloads = 0;
   let codeRuns = 0;
@@ -548,9 +626,7 @@ function processEventsTelemetry(events) {
 
   const dayMap = {};
   const featureMap = { Library: 0, 'Code Lab': 0, 'Mock Tests': 0, Community: 0 };
-  const semMap = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
-  const collegeMap = {};
-  const subjectMap = {};
+  const subjectMap = { ...initialSubjectMap };
   const zeroMap = {};
   const resourceMap = {};
   const activeVisitorsToday = new Set();
@@ -600,17 +676,12 @@ function processEventsTelemetry(events) {
       durationCount++;
     }
 
-    // Semester
-    if (ev.semester && semMap[String(ev.semester)] !== undefined) {
-      semMap[String(ev.semester)]++;
-    }
-
     // Subject
     if (ev.subject) {
       subjectMap[ev.subject] = (subjectMap[ev.subject] || 0) + 1;
     }
 
-    // Resource Leaderboard
+    // Resource Leaderboard fallback if not populated by resources table
     if (ev.resource_title && (type === 'view' || type === 'download')) {
       if (!resourceMap[ev.resource_title]) {
         resourceMap[ev.resource_title] = { reads: 0, downloads: 0, type: ev.resource_type || 'notes' };
@@ -628,17 +699,19 @@ function processEventsTelemetry(events) {
   telemetryCache.mockTests = mockTests;
   telemetryCache.searches = searches;
   telemetryCache.guests = guests;
-  telemetryCache.activeToday = activeVisitorsToday.size || Math.max(1, Math.round(events.length * 0.15));
-  telemetryCache.avgDuration = durationCount ? Math.round(totalDuration / durationCount) : 48;
+  telemetryCache.activeToday = activeVisitorsToday.size || (Array.isArray(liveStudentsList) ? liveStudentsList.length : 0);
+  telemetryCache.avgDuration = durationCount ? Math.round(totalDuration / durationCount) : 0;
   telemetryCache.dailyTrend = Object.entries(dayMap).map(([date, d]) => ({ date, ...d })).slice(-14);
   telemetryCache.featureUsage = featureMap;
-  telemetryCache.semDistribution = semMap;
+  // NOTE: telemetryCache.semDistribution and topColleges are computed strictly from real deduplicated student profiles above!
   telemetryCache.topSubjects = Object.entries(subjectMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
   telemetryCache.zeroResults = Object.entries(zeroMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  telemetryCache.topResources = Object.entries(resourceMap)
-    .map(([title, r]) => ({ title, ...r, rate: r.reads ? Math.round((r.downloads / r.reads) * 100) : 0 }))
-    .sort((a, b) => (b.reads + b.downloads) - (a.reads + a.downloads))
-    .slice(0, 8);
+  if (!telemetryCache.topResources.length && Object.keys(resourceMap).length) {
+    telemetryCache.topResources = Object.entries(resourceMap)
+      .map(([title, r]) => ({ title, ...r, rate: r.reads ? Math.round((r.downloads / r.reads) * 100) : 0 }))
+      .sort((a, b) => (b.reads + b.downloads) - (a.reads + a.downloads))
+      .slice(0, 8);
+  }
 }
 
 /* ============================================================
@@ -954,20 +1027,23 @@ function renderTrendChart() {
   if (!canvas) return;
   if (charts.trend) charts.trend.destroy();
 
-  const trendData = telemetryCache.dailyTrend.length ? telemetryCache.dailyTrend : [
-    { date: 'Mon', reads: 14, downloads: 6, signups: 2 },
-    { date: 'Tue', reads: 22, downloads: 11, signups: 3 },
-    { date: 'Wed', reads: 28, downloads: 14, signups: 5 },
-    { date: 'Thu', reads: 35, downloads: 19, signups: 4 },
-    { date: 'Fri', reads: 42, downloads: 24, signups: 6 },
-    { date: 'Sat', reads: 50, downloads: 31, signups: 8 },
-    { date: 'Sun', reads: 64, downloads: 38, signups: 10 }
-  ];
+  const trendData = telemetryCache.dailyTrend && telemetryCache.dailyTrend.length ? telemetryCache.dailyTrend : (() => {
+    // Live calendar 7 days with 0 counts fallback (no fake numbers)
+    const days = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      const str = d.toISOString().slice(5, 10);
+      days.push({ date: str, reads: 0, downloads: 0, signups: 0 });
+    }
+    return days;
+  })();
 
   const labels = trendData.map(d => (d.date.length > 5 ? d.date.slice(5) : d.date));
-  const reads = trendData.map(d => d.reads);
-  const dls = trendData.map(d => d.downloads);
-  const signups = trendData.map(d => d.signups);
+  const reads = trendData.map(d => d.reads || 0);
+  const dls = trendData.map(d => d.downloads || 0);
+  const signups = trendData.map(d => d.signups || 0);
 
   const ctx = canvas.getContext('2d');
   charts.trend = new Chart(ctx, {
@@ -1029,13 +1105,13 @@ function renderFeatureUsageChart() {
   if (!canvas) return;
   if (charts.feature) charts.feature.destroy();
 
-  const fu = telemetryCache.featureUsage;
+  const fu = telemetryCache.featureUsage || {};
   const labels = ['Library', 'Code Lab', 'Mock Tests', 'Community'];
   const values = [
-    Math.max(1, fu.Library || 45),
-    Math.max(1, fu['Code Lab'] || 20),
-    Math.max(1, fu['Mock Tests'] || 15),
-    Math.max(1, fu.Community || 10)
+    fu.Library || 0,
+    fu['Code Lab'] || 0,
+    fu['Mock Tests'] || 0,
+    fu.Community || 0
   ];
   const total = values.reduce((a, b) => a + b, 0);
 
@@ -1047,8 +1123,8 @@ function renderFeatureUsageChart() {
     data: {
       labels,
       datasets: [{
-        data: values,
-        backgroundColor: colors,
+        data: total > 0 ? values : [1, 1, 1, 1],
+        backgroundColor: total > 0 ? colors : ['#27272a', '#27272a', '#27272a', '#27272a'],
         borderWidth: 0,
         hoverOffset: 4
       }]
@@ -1067,7 +1143,7 @@ function renderFeatureUsageChart() {
   const legendEl = $('featureBreakdownLegend');
   if (legendEl) {
     legendEl.innerHTML = labels.map((lbl, i) => {
-      const pct = Math.round((values[i] / total) * 100);
+      const pct = total > 0 ? Math.round((values[i] / total) * 100) : 0;
       return `
         <div class="feature-bar-item">
           <div class="feature-bar-label">
@@ -1085,14 +1161,45 @@ function renderFeatureUsageChart() {
 
 function renderDeviceDemographics() {
   const container = $('deviceChips');
-  if (container) {
-    container.innerHTML = `
-      <div class="device-chip"><i class="fa-solid fa-mobile-screen" style="color:var(--brand)"></i> Mobile: <strong>82%</strong></div>
-      <div class="device-chip"><i class="fa-solid fa-laptop" style="color:var(--emerald)"></i> Desktop: <strong>16%</strong></div>
-      <div class="device-chip"><i class="fa-solid fa-tablet-screen-button" style="color:var(--amber)"></i> Tablet: <strong>2%</strong></div>
-      <div class="device-chip"><i class="fa-brands fa-chrome" style="color:#f87171"></i> Chrome Android: <strong>76%</strong></div>
-    `;
+  if (!container) return;
+
+  const events = telemetryCache.recentEvents || [];
+  let mob = 0, desk = 0, tab = 0, chromeAnd = 0, total = 0;
+
+  events.forEach(e => {
+    const ua = (e.user_agent || '').toLowerCase();
+    if (ua) {
+      total++;
+      if (/tablet|ipad/i.test(ua)) tab++;
+      else if (/mobile|android|iphone/i.test(ua)) mob++;
+      else desk++;
+
+      if (/chrome/i.test(ua) && /android/i.test(ua)) chromeAnd++;
+    }
+  });
+
+  if (!total) {
+    // Current client device dynamic detection
+    const ua = (navigator.userAgent || '').toLowerCase();
+    const isTab = /tablet|ipad/i.test(ua);
+    const isMob = /mobile|android|iphone/i.test(ua) && !isTab;
+    mob = isMob ? 100 : 0;
+    desk = (!isMob && !isTab) ? 100 : 0;
+    tab = isTab ? 100 : 0;
+    chromeAnd = (/chrome/i.test(ua) && /android/i.test(ua)) ? 100 : 0;
+  } else {
+    mob = Math.round((mob / total) * 100);
+    desk = Math.round((desk / total) * 100);
+    tab = Math.round((tab / total) * 100);
+    chromeAnd = Math.round((chromeAnd / total) * 100);
   }
+
+  container.innerHTML = `
+    <div class="device-chip"><i class="fa-solid fa-mobile-screen" style="color:var(--brand)"></i> Mobile: <strong>${mob}%</strong></div>
+    <div class="device-chip"><i class="fa-solid fa-laptop" style="color:var(--emerald)"></i> Desktop: <strong>${desk}%</strong></div>
+    <div class="device-chip"><i class="fa-solid fa-tablet-screen-button" style="color:var(--amber)"></i> Tablet: <strong>${tab}%</strong></div>
+    <div class="device-chip"><i class="fa-brands fa-chrome" style="color:#f87171"></i> Chrome Android: <strong>${chromeAnd}%</strong></div>
+  `;
 }
 
 /* ============================================================
@@ -1109,20 +1216,20 @@ function renderAcademicModule() {
 function renderSemesterDistribution() {
   const container = $('semDistList');
   if (!container) return;
-  const sMap = telemetryCache.semDistribution;
+  const sMap = telemetryCache.semDistribution || { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
   const sems = ['1', '2', '3', '4', '5', '6'];
-  const max = Math.max(...sems.map(s => sMap[s] || 1));
+  const max = Math.max(...sems.map(s => sMap[s] || 0), 1);
 
   container.innerHTML = sems.map(s => {
-    const count = sMap[s] || (s === '2' ? 14 : (s === '3' ? 18 : 6));
-    const pct = Math.min(100, Math.round((count / (max * 1.2)) * 100));
+    const count = sMap[s] || 0;
+    const pct = max > 0 && count > 0 ? Math.min(100, Math.round((count / max) * 100)) : 0;
     return `
       <div class="rank-row">
         <span class="rank-badge">Sem ${s}</span>
         <div class="sub-progress" style="flex:1;margin:0 8px">
           <div class="sub-fill" style="width:${pct}%"></div>
         </div>
-        <span class="rank-metric tabular-nums">${count} students</span>
+        <span class="rank-metric tabular-nums">${count} ${count === 1 ? 'student' : 'students'}</span>
       </div>
     `;
   }).join('');
@@ -1131,19 +1238,23 @@ function renderSemesterDistribution() {
 function renderTopColleges() {
   const container = $('collegeLeaderboard');
   if (!container) return;
-  const colleges = [
-    { name: 'Avviare Educational Hub', count: '48% share' },
-    { name: 'Delhi University', count: '22% share' },
-    { name: 'GGSIPU Delhi', count: '16% share' },
-    { name: 'CCSU Meerut', count: '9% share' },
-    { name: 'Other Campuses', count: '5% share' }
-  ];
+  const colleges = telemetryCache.topColleges || [];
+
+  if (!colleges.length) {
+    container.innerHTML = `
+      <div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">
+        <i class="fa-solid fa-building-columns" style="font-size:22px;margin-bottom:8px;display:block;opacity:0.5"></i>
+        No registered student colleges yet.
+      </div>
+    `;
+    return;
+  }
 
   container.innerHTML = colleges.map((c, i) => `
     <div class="rank-row">
       <span class="rank-badge">#${i + 1}</span>
-      <span class="rank-title">${c.name}</span>
-      <span class="rank-metric">${c.count}</span>
+      <span class="rank-title">${escapeHtml(c.name)}</span>
+      <span class="rank-metric tabular-nums">${c.count} ${c.count === 1 ? 'student' : 'students'} (${c.sharePct}%)</span>
     </div>
   `).join('');
 }
@@ -1151,22 +1262,26 @@ function renderTopColleges() {
 function renderTopSubjects() {
   const container = $('topSubjectsList');
   if (!container) return;
-  const subs = telemetryCache.topSubjects.length ? telemetryCache.topSubjects : [
-    ['Data Structures using C', 42],
-    ['Database Management Systems', 36],
-    ['Discrete Mathematics', 29],
-    ['Computer Networks', 24],
-    ['Java Programming', 19]
-  ];
+  const subs = telemetryCache.topSubjects || [];
 
-  const max = subs[0][1] || 1;
+  if (!subs.length) {
+    container.innerHTML = `
+      <div style="padding:22px;text-align:center;color:var(--muted);font-size:13px">
+        <i class="fa-solid fa-book-open" style="font-size:22px;margin-bottom:8px;display:block;opacity:0.5"></i>
+        No study or search activity recorded yet.
+      </div>
+    `;
+    return;
+  }
+
+  const max = subs[0] && subs[0][1] ? subs[0][1] : 1;
 
   container.innerHTML = subs.map(([name, count]) => {
     const pct = Math.min(100, Math.round((count / max) * 100));
     return `
       <div class="sub-item">
         <div class="sub-item-meta">
-          <span class="sub-item-name">${name}</span>
+          <span class="sub-item-name">${escapeHtml(name)}</span>
           <span class="tabular-nums" style="color:var(--brand);font-weight:600">${count} requests</span>
         </div>
         <div class="sub-progress">
@@ -1182,19 +1297,23 @@ function renderContentGaps() {
   const container = $('zeroResultPills');
   if (!container) return;
 
-  const gaps = telemetryCache.zeroResults.length ? telemetryCache.zeroResults : [
-    ['python artificial intelligence pyq', 5],
-    ['cloud computing end term 2024', 4],
-    ['software engineering unit 4 notes', 3],
-    ['web technologies lab manual', 3],
-    ['computer architecture bca sem 2', 2]
-  ];
+  const gaps = telemetryCache.zeroResults || [];
 
   if (badge) badge.textContent = `${gaps.length} Gaps`;
 
+  if (!gaps.length) {
+    container.innerHTML = `
+      <div style="padding:14px 4px;text-align:center;color:var(--muted);font-size:13px;width:100%">
+        <i class="fa-solid fa-circle-check" style="color:var(--emerald);margin-right:6px"></i>
+        All student searches matched study resources. Zero content gaps!
+      </div>
+    `;
+    return;
+  }
+
   container.innerHTML = gaps.map(([q, hits]) => `
-    <span class="gap-pill bca-pressable" onclick="copyGapSearch('${q}')" title="Click to copy query">
-      <span>${q}</span>
+    <span class="gap-pill bca-pressable" onclick="copyGapSearch('${escapeHtml(q)}')" title="Click to copy query">
+      <span>${escapeHtml(q)}</span>
       <span class="gap-pill-count">${hits}x</span>
     </span>
   `).join('');
@@ -1212,16 +1331,23 @@ function renderTopResourcesTable() {
   const tbody = $('topResourcesBody');
   if (!tbody) return;
 
-  const list = telemetryCache.topResources.length ? telemetryCache.topResources : [
-    { title: 'Discrete Mathematics External PYQ 2024', reads: 48, downloads: 36, rate: 75 },
-    { title: 'DSA Complete Unit 1 to 5 Hand-Written Notes', reads: 42, downloads: 31, rate: 73 },
-    { title: 'Database Management Systems Question Bank', reads: 35, downloads: 22, rate: 62 },
-    { title: 'Computer Networks Solved Papers', reads: 29, downloads: 16, rate: 55 }
-  ];
+  const list = telemetryCache.topResources || [];
+
+  if (!list.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="text-align:center;padding:24px;color:var(--muted);font-size:13px">
+          <i class="fa-solid fa-file-circle-question" style="font-size:20px;margin-bottom:6px;display:block;opacity:0.5"></i>
+          No study resource downloads or reads recorded yet.
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
   tbody.innerHTML = list.map(item => `
     <tr>
-      <td><strong style="color:var(--ink)">${item.title}</strong></td>
+      <td><strong style="color:var(--ink)">${escapeHtml(item.title)}</strong></td>
       <td class="tabular-nums">${item.reads}</td>
       <td class="tabular-nums">${item.downloads}</td>
       <td><span class="pulse-delta delta-up tabular-nums">${item.rate}%</span></td>
