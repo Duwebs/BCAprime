@@ -1,7 +1,7 @@
 /**
  * ============================================================
  * BCAPrime — PrimeBuddy: Floating Autonomous Study Mascot
- * (v3.3 — 60fps Free-Roam 4-Wall Physics, Orbiting 3D SVG Crown & Long-Press Pill)
+ * (v3.4 — Edge-to-Edge Fullscreen, Zero-Lag 1:1 Drag, Shake/Hard Fling Dizzy & Orbiting Crown)
  * ============================================================
  */
 
@@ -17,9 +17,6 @@
   const STORAGE_KEY_ROAM = 'bcaprime_primebuddy_roam_enabled';
 
   const MASCOT_SIZE = 66; // 66px footprint
-  const SAFE_MARGIN_X = 10;
-  const SAFE_MARGIN_TOP = 65; // Safe area below BCAPrime header
-  const SAFE_MARGIN_BOTTOM = 88; // Safe area above bottom nav bar
   const IDLE_ROAM_DELAY = 6000; // 6 seconds idle before autonomous wandering
 
   const BUDDY_QUOTES = [
@@ -35,12 +32,21 @@
     'PrimeBuddy is always with you! ✨'
   ];
 
+  const DIZZY_QUOTES = [
+    'Whoa, the whole room is spinning! 💫',
+    "Hold on, I'm seeing double! 😵💫",
+    'Too fast! My crown is orbiting! 👑🌀',
+    'Everything is swirling around me! 😵',
+    'Arre bhai, duniya ghoom gayi! 💫',
+    'Whoa, turbo spin mode! Give me a sec... 🌀',
+    'My brain is doing backflips! 😵💫'
+  ];
+
   /* ------------------------------------------------------------
      DOM Element References & Internal State
      ------------------------------------------------------------ */
   let mascotEl = null;
   let speechBubbleEl = null;
-  let tuckBtnEl = null;
   let introModalEl = null;
   let actionPillEl = null;
   let actionPillBackdropEl = null;
@@ -49,7 +55,6 @@
   let wasDragged = false;
   let isFlinging = false;
   let isRoaming = false;
-  let isTucked = false;
   let isNapping = false;
   let autoRoamEnabled = true;
 
@@ -72,8 +77,16 @@
   let roamStepTimer = null;
   let bubbleTimeout = null;
   let dizzyRecoverTimer = null;
-  let consecutiveFunTaps = 0;
-  let funTapTimeout = null;
+
+  // Shake detection state (at least 4 sharp reversals within 450ms)
+  let shakeHistory = [];
+  let lastShakeX = 0;
+  let lastShakeY = 0;
+  let lastShakeDirX = 0;
+  let lastShakeDirY = 0;
+
+  // Non-repeating dizzy quote picker
+  let lastDizzyQuoteIndex = -1;
 
   // Long-press detection (Hold ~400ms without dragging)
   let longPressTimer = null;
@@ -87,6 +100,26 @@
   const savedRoam = localStorage.getItem(STORAGE_KEY_ROAM);
   if (savedRoam !== null) {
     autoRoamEnabled = savedRoam === 'true';
+  }
+
+  /* ------------------------------------------------------------
+     Helper: Viewport Boundaries (0px to Full Screen Height/Width)
+     ------------------------------------------------------------ */
+  function getMaxX() {
+    return Math.max(0, (window.innerWidth || document.documentElement.clientWidth || 360) - MASCOT_SIZE);
+  }
+
+  function getMaxY() {
+    return Math.max(0, (window.innerHeight || document.documentElement.clientHeight || 640) - MASCOT_SIZE);
+  }
+
+  function getRandomDizzyQuote() {
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * DIZZY_QUOTES.length);
+    } while (idx === lastDizzyQuoteIndex && DIZZY_QUOTES.length > 1);
+    lastDizzyQuoteIndex = idx;
+    return DIZZY_QUOTES[idx];
   }
 
   /* ------------------------------------------------------------
@@ -400,9 +433,17 @@
     }
   }
 
+  /* Edge-Clamped Speech Bubble */
   function showBubble(text, duration = 2500) {
-    if (!speechBubbleEl) return;
+    if (!speechBubbleEl || !mascotEl) return;
     speechBubbleEl.textContent = text;
+
+    // Dynamically clamp speech bubble within viewport edges
+    const screenW = window.innerWidth || 360;
+    mascotEl.classList.toggle('bubble-below', currentY < 48);
+    mascotEl.classList.toggle('bubble-align-left', currentX < 24);
+    mascotEl.classList.toggle('bubble-align-right', currentX > screenW - MASCOT_SIZE - 24);
+
     speechBubbleEl.classList.add('visible');
 
     if (bubbleTimeout) clearTimeout(bubbleTimeout);
@@ -424,9 +465,10 @@
     }
   }
 
-  function triggerDizzyState(duration = 2800) {
+  function triggerDizzyState(duration = 3000) {
     setMascotMood('dizzy');
-    showBubble('Woah... dizzy... 😵‍💫', duration);
+    const quote = getRandomDizzyQuote();
+    showBubble(quote, duration);
     triggerHaptic(25);
 
     if (dizzyRecoverTimer) clearTimeout(dizzyRecoverTimer);
@@ -454,7 +496,7 @@
     mascotEl.style.position = 'fixed';
     mascotEl.style.top = '0px';
     mascotEl.style.left = '0px';
-    mascotEl.style.zIndex = '10030';
+    mascotEl.style.zIndex = '10050'; // Floats above top header and bottom nav
     mascotEl.style.width = '66px';
     mascotEl.style.height = '66px';
     mascotEl.style.touchAction = 'none';
@@ -474,17 +516,6 @@
     bodyEl.innerHTML = renderMascotBody('normal', 'right');
     mascotEl.appendChild(bodyEl);
 
-    // Edge Tuck Button / Tab
-    tuckBtnEl = document.createElement('div');
-    tuckBtnEl.className = 'prime-buddy-tuck-btn';
-    tuckBtnEl.title = 'Tuck / Untuck PrimeBuddy';
-    tuckBtnEl.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
-    tuckBtnEl.onclick = (e) => {
-      e.stopPropagation();
-      toggleTuckState();
-    };
-    mascotEl.appendChild(tuckBtnEl);
-
     document.body.appendChild(mascotEl);
 
     restoreMascotPosition();
@@ -496,50 +527,49 @@
     startCrownLoop();
   }
 
-  /* Position restoration with boundary clamps */
+  /* Position restoration with full-screen boundary clamps (0px to 100vh) */
   function restoreMascotPosition() {
-    const screenW = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0, 360);
-    const screenH = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0, 640);
+    const maxX = getMaxX();
+    const maxY = getMaxY();
 
-    let x = screenW - MASCOT_SIZE - SAFE_MARGIN_X;
-    let y = screenH - MASCOT_SIZE - SAFE_MARGIN_BOTTOM - 60;
-    let edge = 'right';
+    let x = maxX - 12;
+    let y = Math.max(0, maxY - 120);
 
     const saved = localStorage.getItem(STORAGE_KEY_POS);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed.x === 'number' && typeof parsed.y === 'number') {
-          x = Math.max(SAFE_MARGIN_X, Math.min(parsed.x, screenW - MASCOT_SIZE - SAFE_MARGIN_X));
-          y = Math.max(SAFE_MARGIN_TOP, Math.min(parsed.y, screenH - MASCOT_SIZE - SAFE_MARGIN_BOTTOM));
+          x = Math.max(0, Math.min(parsed.x, maxX));
+          y = Math.max(0, Math.min(parsed.y, maxY));
         } else if (parsed && typeof parsed.y === 'number') {
-          y = Math.max(SAFE_MARGIN_TOP, Math.min(parsed.y, screenH - MASCOT_SIZE - SAFE_MARGIN_BOTTOM));
-          x = parsed.edge === 'left' ? SAFE_MARGIN_X : (screenW - MASCOT_SIZE - SAFE_MARGIN_X);
+          y = Math.max(0, Math.min(parsed.y, maxY));
+          x = parsed.edge === 'left' ? 10 : (maxX - 10);
         }
       } catch (_e) {}
     }
 
     currentX = Math.round(x);
     currentY = Math.round(y);
-    currentEdge = currentX < screenW / 2 ? 'left' : 'right';
+    currentEdge = currentX < (window.innerWidth || 360) / 2 ? 'left' : 'right';
 
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-    mascotEl.classList.remove('edge-left', 'edge-right');
-    mascotEl.classList.add(`edge-${currentEdge}`);
-    updateTuckBtnIcon();
+    mascotEl.classList.toggle('edge-left', currentEdge === 'left');
+    mascotEl.classList.toggle('edge-right', currentEdge === 'right');
   }
 
   /* ------------------------------------------------------------
-     Tap & Long-Press Detection + 60fps Free Drag Physics
+     Tap & Long-Press Detection + Zero-Lag 1:1 Direct Drag Physics
      - Tap (< 400ms, < 6px move): Cute bounce reaction + greeting (no menu)
      - Long-Press (~400ms hold): Opens Floating Action Pill (Dance | Nap | Hide)
-     - Drag & Fling: Free 4-wall ricochet momentum, zero edge lock!
+     - Drag: Zero-lag 1:1 direct finger tracking across full screen
+     - Fling: Free 4-wall ricochet momentum, zero edge lock!
      ------------------------------------------------------------ */
   function initInteractionAndPhysics() {
     if (!mascotEl) return;
 
     mascotEl.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0 || e.target.closest('.prime-buddy-tuck-btn')) return;
+      if (e.button !== 0) return;
 
       // If mascot is napping, a tap wakes him up immediately!
       if (isNapping) {
@@ -556,6 +586,9 @@
       }
       stopRoaming();
 
+      // Clear any remaining CSS transitions for 1:1 instant direct touch tracking
+      mascotEl.style.transition = 'none';
+
       isDragging = true;
       wasDragged = false;
       isLongPressTriggered = false;
@@ -566,6 +599,13 @@
       elemStartY = currentY;
 
       pointerHistory = [{ x: e.clientX, y: e.clientY, time: performance.now() }];
+
+      // Reset shake reversal tracking
+      shakeHistory = [];
+      lastShakeX = e.clientX;
+      lastShakeY = e.clientY;
+      lastShakeDirX = 0;
+      lastShakeDirY = 0;
 
       // Set long-press timer (~400ms hold opens Action Pill)
       if (longPressTimer) clearTimeout(longPressTimer);
@@ -590,8 +630,8 @@
       const dx = e.clientX - dragStartX;
       const dy = e.clientY - dragStartY;
 
-      // Detect deliberate drag movement
-      if (Math.hypot(dx, dy) > 7) {
+      // Detect deliberate drag movement (> 5px)
+      if (Math.hypot(dx, dy) > 5) {
         wasDragged = true;
         if (longPressTimer) {
           clearTimeout(longPressTimer);
@@ -599,34 +639,64 @@
         }
       }
 
-      // If long-press pill already opened, do not move the character
+      // If long-press pill opened, lock position
       if (isLongPressTriggered) return;
-
       if (!wasDragged) return;
 
       mascotEl.classList.add('is-dragging');
-      if (currentMood !== 'dizzy') setMascotMood('dragging');
+      if (currentMood !== 'dizzy' && currentMood !== 'dragging') {
+        setMascotMood('dragging');
+      }
 
-      currentX = elemStartX + dx;
-      currentY = elemStartY + dy;
+      const maxX = getMaxX();
+      const maxY = getMaxY();
 
-      // Rolling velocity tracking for fling release
+      // True edge-to-edge full-screen bounds (0px to 100vh)
+      currentX = Math.round(Math.max(0, Math.min(elemStartX + dx, maxX)));
+      currentY = Math.round(Math.max(0, Math.min(elemStartY + dy, maxY)));
+
+      // ZERO-LAG 1:1 DIRECT DOM UPDATE (no scale/tilt shift, perfectly glued to finger)
+      mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+      // Directional eye glance via CSS class toggle (zero SVG innerHTML re-renders!)
+      const isLeft = currentX < (window.innerWidth || 360) / 2;
+      mascotEl.classList.toggle('edge-left', isLeft);
+      mascotEl.classList.toggle('edge-right', !isLeft);
+      currentEdge = isLeft ? 'left' : 'right';
+
       const now = performance.now();
       pointerHistory.push({ x: e.clientX, y: e.clientY, time: now });
       while (pointerHistory.length > 5 && now - pointerHistory[0].time > 100) {
         pointerHistory.shift();
       }
 
-      // Reactive tilt and squish following finger movement
-      const tiltAngle = Math.max(-18, Math.min(18, dx * 0.25));
-      mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) scale(1.08) rotate(${tiltAngle}deg)`;
+      // SHAKE DETECTION: At least 4 sharp direction reversals within 450ms
+      const moveDx = e.clientX - lastShakeX;
+      const moveDy = e.clientY - lastShakeY;
 
-      // Directional eye glance toward screen center
-      const centerGlance = currentX < window.innerWidth / 2 ? 'right' : 'left';
-      if (centerGlance !== currentEdge) {
-        currentEdge = centerGlance;
-        const bodyEl = mascotEl.querySelector('.prime-buddy-body');
-        if (bodyEl) bodyEl.innerHTML = renderMascotBody('dragging', currentEdge);
+      if (Math.abs(moveDx) > 8) {
+        const dirX = Math.sign(moveDx);
+        if (lastShakeDirX !== 0 && dirX !== lastShakeDirX) {
+          shakeHistory.push(now);
+        }
+        lastShakeDirX = dirX;
+        lastShakeX = e.clientX;
+      }
+
+      if (Math.abs(moveDy) > 8) {
+        const dirY = Math.sign(moveDy);
+        if (lastShakeDirY !== 0 && dirY !== lastShakeDirY) {
+          shakeHistory.push(now);
+        }
+        lastShakeDirY = dirY;
+        lastShakeY = e.clientY;
+      }
+
+      // Filter reversals older than 450ms
+      shakeHistory = shakeHistory.filter(t => now - t <= 450);
+      if (shakeHistory.length >= 4 && currentMood !== 'dizzy') {
+        shakeHistory = [];
+        triggerDizzyState(3200);
       }
     });
 
@@ -640,7 +710,7 @@
       isDragging = false;
       mascotEl.classList.remove('is-dragging');
 
-      // If user was holding for long press, pill is open, so don't fling/bounce
+      // If user was holding for long press, pill is already open
       if (isLongPressTriggered) {
         isLongPressTriggered = false;
         return;
@@ -671,7 +741,7 @@
         if (speed > 280 && totalDist > 12) {
           startFlingPhysics(vx, vy);
         } else {
-          // Normal drag drop: clamp inside safe bounds and rest freely!
+          // Normal drag drop: rest freely right where placed!
           if (currentMood !== 'dizzy') setMascotMood('normal');
           settleFreePosition();
         }
@@ -688,12 +758,6 @@
 
   /* Single Tap: Cute happy bounce reaction + playful quote (no menu!) */
   function triggerSingleTapReaction() {
-    if (isTucked) {
-      toggleTuckState();
-      return;
-    }
-
-    // Close action pill if open
     closeActionPill();
 
     // If currently napping, wake up!
@@ -720,17 +784,12 @@
 
   /* Settle freely at current coordinates without snapping to screen edge */
   function settleFreePosition() {
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
+    const maxX = getMaxX();
+    const maxY = getMaxY();
 
-    const minX = SAFE_MARGIN_X;
-    const maxX = screenW - MASCOT_SIZE - SAFE_MARGIN_X;
-    const minY = SAFE_MARGIN_TOP;
-    const maxY = screenH - MASCOT_SIZE - SAFE_MARGIN_BOTTOM;
-
-    currentX = Math.round(Math.max(minX, Math.min(currentX, maxX)));
-    currentY = Math.round(Math.max(minY, Math.min(currentY, maxY)));
-    currentEdge = currentX < screenW / 2 ? 'left' : 'right';
+    currentX = Math.round(Math.max(0, Math.min(currentX, maxX)));
+    currentY = Math.round(Math.max(0, Math.min(currentY, maxY)));
+    currentEdge = currentX < (window.innerWidth || 360) / 2 ? 'left' : 'right';
 
     mascotEl.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
@@ -739,9 +798,8 @@
       if (mascotEl) mascotEl.style.transition = '';
     }, 240);
 
-    mascotEl.classList.remove('edge-left', 'edge-right');
-    mascotEl.classList.add(`edge-${currentEdge}`);
-    updateTuckBtnIcon();
+    mascotEl.classList.toggle('edge-left', currentEdge === 'left');
+    mascotEl.classList.toggle('edge-right', currentEdge === 'right');
 
     const bodyEl = mascotEl.querySelector('.prime-buddy-body');
     if (bodyEl) bodyEl.innerHTML = renderMascotBody(currentMood, currentEdge);
@@ -751,7 +809,7 @@
   }
 
   /* ------------------------------------------------------------
-     4-Wall Ricochet Kinetic Physics Loop (Elastic & Buttery Smooth)
+     4-Wall Ricochet Kinetic Physics Loop (True Edge-to-Edge 0px to 100vh)
      ------------------------------------------------------------ */
   function startFlingPhysics(initialVx, initialVy) {
     if (isFlinging) cancelAnimationFrame(flingRafId);
@@ -761,13 +819,9 @@
     flingVelX = Math.max(-2800, Math.min(2800, initialVx));
     flingVelY = Math.max(-2800, Math.min(2800, initialVy));
 
-    const speed = Math.hypot(flingVelX, flingVelY);
-    // Hard throw triggers dizzy spinning eyes
-    if (speed > 1650) {
-      triggerDizzyState(2800);
-    } else {
-      setMascotMood('dragging');
-    }
+    const initialSpeed = Math.hypot(flingVelX, flingVelY);
+    // Extreme high-velocity throw candidate for wall slam dizziness
+    let isHardFling = initialSpeed > 2600;
 
     const FRICTION = 0.985; // Low air friction for extended free ricochet
     const RESTITUTION = 0.82; // Lively 4-wall bounce elasticity
@@ -786,23 +840,19 @@
       flingVelX *= Math.pow(FRICTION, dt * 60);
       flingVelY *= Math.pow(FRICTION, dt * 60);
 
-      const screenW = window.innerWidth;
-      const screenH = window.innerHeight;
-      const minX = SAFE_MARGIN_X;
-      const maxX = screenW - MASCOT_SIZE - SAFE_MARGIN_X;
-      const minY = SAFE_MARGIN_TOP;
-      const maxY = screenH - MASCOT_SIZE - SAFE_MARGIN_BOTTOM;
+      const maxX = getMaxX();
+      const maxY = getMaxY();
 
       let hitWall = false;
 
-      // Left Wall Collision
-      if (currentX <= minX) {
-        currentX = minX;
+      // Left Wall Collision (0px)
+      if (currentX <= 0) {
+        currentX = 0;
         flingVelX = -flingVelX * RESTITUTION;
         hitWall = true;
         currentEdge = 'left';
       }
-      // Right Wall Collision
+      // Right Wall Collision (100vw - size)
       else if (currentX >= maxX) {
         currentX = maxX;
         flingVelX = -flingVelX * RESTITUTION;
@@ -810,13 +860,13 @@
         currentEdge = 'right';
       }
 
-      // Top Wall Collision (Below BCAPrime header)
-      if (currentY <= minY) {
-        currentY = minY;
+      // Top Wall Collision (0px - very top edge of screen)
+      if (currentY <= 0) {
+        currentY = 0;
         flingVelY = -flingVelY * RESTITUTION;
         hitWall = true;
       }
-      // Bottom Wall Collision (Above bottom nav bar)
+      // Bottom Wall Collision (100vh - size - very bottom edge of screen)
       else if (currentY >= maxY) {
         currentY = maxY;
         flingVelY = -flingVelY * RESTITUTION;
@@ -825,6 +875,12 @@
 
       if (hitWall) {
         triggerHaptic(10);
+        // Only trigger dizzy if thrown at extreme speed AND slamming into wall
+        if (isHardFling && Math.hypot(flingVelX, flingVelY) > 1700 && currentMood !== 'dizzy') {
+          triggerDizzyState(3000);
+          isHardFling = false;
+        }
+
         // Squash and stretch impact reaction
         mascotEl.style.transform = `translate3d(${Math.round(currentX)}px, ${Math.round(currentY)}px, 0) scale(1.14, 0.86)`;
       } else {
@@ -916,19 +972,21 @@
   function positionActionPill() {
     if (!actionPillEl || !mascotEl) return;
 
-    const screenW = window.innerWidth;
+    const screenW = window.innerWidth || 360;
+    const screenH = window.innerHeight || 640;
     const pillW = 216;
     const pillH = 44;
 
     // Horizontally center aligned with mascot
     let left = currentX + (MASCOT_SIZE / 2) - (pillW / 2);
-    left = Math.max(10, Math.min(left, screenW - pillW - 10));
+    left = Math.max(8, Math.min(left, screenW - pillW - 8));
 
-    // Prefer placing ABOVE mascot; if too close to top header, place BELOW
-    let top = currentY - pillH - 10;
-    if (top < SAFE_MARGIN_TOP) {
-      top = currentY + MASCOT_SIZE + 10;
+    // Prefer placing ABOVE mascot; if too close to top edge, place BELOW
+    let top = currentY - pillH - 8;
+    if (top < 8) {
+      top = currentY + MASCOT_SIZE + 8;
     }
+    top = Math.max(8, Math.min(top, screenH - pillH - 8));
 
     actionPillEl.style.left = `${Math.round(left)}px`;
     actionPillEl.style.top = `${Math.round(top)}px`;
@@ -1043,7 +1101,7 @@
     if (idleTimer) clearTimeout(idleTimer);
     if (isRoaming) stopRoaming();
 
-    if (!autoRoamEnabled || isTucked || isDragging || isFlinging || isNapping || !isBuddyEnabled()) return;
+    if (!autoRoamEnabled || isDragging || isFlinging || isNapping || !isBuddyEnabled()) return;
 
     idleTimer = setTimeout(() => {
       startAutonomousRoam();
@@ -1057,35 +1115,31 @@
   }
 
   function startAutonomousRoam() {
-    if (!autoRoamEnabled || isRoaming || isTucked || isDragging || isFlinging || isNapping || !isBuddyEnabled()) return;
+    if (!autoRoamEnabled || isRoaming || isDragging || isFlinging || isNapping || !isBuddyEnabled()) return;
     isRoaming = true;
     if (mascotEl) mascotEl.classList.add('is-roaming');
     triggerAutonomousRoamStep();
   }
 
   function triggerAutonomousRoamStep() {
-    if (!isRoaming || !autoRoamEnabled || isTucked || isNapping) return;
+    if (!isRoaming || !autoRoamEnabled || isNapping) return;
 
-    const screenW = window.innerWidth;
-    const screenH = window.innerHeight;
-    const minX = SAFE_MARGIN_X;
-    const maxX = screenW - MASCOT_SIZE - SAFE_MARGIN_X;
-    const minY = SAFE_MARGIN_TOP;
-    const maxY = screenH - MASCOT_SIZE - SAFE_MARGIN_BOTTOM;
+    const maxX = getMaxX();
+    const maxY = getMaxY();
 
-    // Pick a smooth random 2D coordinate inside safe boundaries
-    const targetX = Math.round(minX + Math.random() * (maxX - minX));
-    const targetY = Math.round(minY + Math.random() * (maxY - minY));
+    // Pick a smooth random 2D coordinate inside entire screen bounds
+    const targetX = Math.round(Math.random() * maxX);
+    const targetY = Math.round(Math.random() * maxY);
 
     currentX = targetX;
     currentY = targetY;
-    currentEdge = currentX < screenW / 2 ? 'left' : 'right';
+    currentEdge = currentX < (window.innerWidth || 360) / 2 ? 'left' : 'right';
 
     mascotEl.style.transition = 'transform 3.5s cubic-bezier(0.25, 1, 0.5, 1)';
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
-    mascotEl.classList.remove('edge-left', 'edge-right');
-    mascotEl.classList.add(`edge-${currentEdge}`);
+    mascotEl.classList.toggle('edge-left', currentEdge === 'left');
+    mascotEl.classList.toggle('edge-right', currentEdge === 'right');
     savePosition({ x: currentX, y: currentY, edge: currentEdge });
 
     // 25% chance to show a cheerful quote while strolling
@@ -1098,38 +1152,6 @@
       if (mascotEl) mascotEl.style.transition = '';
       if (isRoaming) triggerAutonomousRoamStep();
     }, 4200 + Math.random() * 2500);
-  }
-
-  /* ------------------------------------------------------------
-     Edge-Tuck Mode
-     ------------------------------------------------------------ */
-  function updateTuckBtnIcon() {
-    if (!tuckBtnEl) return;
-    if (currentEdge === 'right') {
-      tuckBtnEl.innerHTML = isTucked
-        ? '<i class="fa-solid fa-chevron-left"></i>'
-        : '<i class="fa-solid fa-chevron-right"></i>';
-    } else {
-      tuckBtnEl.innerHTML = isTucked
-        ? '<i class="fa-solid fa-chevron-right"></i>'
-        : '<i class="fa-solid fa-chevron-left"></i>';
-    }
-  }
-
-  function toggleTuckState() {
-    isTucked = !isTucked;
-    triggerHaptic(10);
-    mascotEl.classList.toggle('is-tucked', isTucked);
-    updateTuckBtnIcon();
-
-    if (isTucked) {
-      stopRoaming();
-      closeActionPill();
-      showBubble('Tucked away! Tap tab to peek 👋', 1800);
-    } else {
-      showBubble('Ready to study! ✨', 1800);
-      resetIdleTimer();
-    }
   }
 
   /* ------------------------------------------------------------
@@ -1156,7 +1178,7 @@
 
         <h2 class="buddy-intro-title" id="buddyIntroTitle">Meet PrimeBuddy</h2>
         <p class="buddy-intro-copy">
-          Your interactive campus study companion! Drag me freely anywhere on screen, fling me across all 4 walls with ricochet momentum, or hold me for quick actions (Dance, Nap &amp; Hide).
+          Your interactive campus study companion! Drag me freely anywhere across the entire screen, fling me across all 4 walls with ricochet momentum, or hold me for quick actions (Dance, Nap &amp; Hide).
         </p>
 
         <div class="buddy-intro-features">
@@ -1164,7 +1186,7 @@
             <span class="buddy-feat-icon"><i class="fa-solid fa-arrows-up-down-left-right"></i></span>
             <div class="buddy-feat-text">
               <h4>Free Roam &amp; 4-Wall Bounce</h4>
-              <p>Place anywhere on screen or throw with 4-wall elastic ricochet physics</p>
+              <p>Move anywhere edge-to-edge or throw with 4-wall elastic ricochet physics</p>
             </div>
           </div>
           <div class="buddy-intro-feat-row">
