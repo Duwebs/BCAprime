@@ -62,6 +62,13 @@
     'You make study fun! ✨'
   ];
 
+  const DRAG_QUOTES = [
+    'Where are we going? 👀',
+    'Wohooo! 🚀',
+    'Wheee, flying! ✨',
+    'Taking the scenic route! 🧭'
+  ];
+
   /* ------------------------------------------------------------
      DOM Element References & Internal State
      ------------------------------------------------------------ */
@@ -120,6 +127,25 @@
   let lastDizzyQuoteIndex = -1;
   let lastWheeeQuoteIndex = -1;
   let lastLoveQuoteIndex = -1;
+  let lastDragQuoteIndex = -1;
+
+  // Directional Drag Velocity & Inverse Air-Drag State
+  let lastDragPointerX = 0;
+  let lastDragPointerY = 0;
+  let dragSmoothVx = 0;
+  let dragSmoothVy = 0;
+  let accumulatedDragDist = 0;
+  let dragStartTime = 0;
+  let hasTriggeredDragQuoteThisGesture = false;
+
+  // Continuous Uninterrupted Wheee Spin State (rAF Driven)
+  let isWheeeSpinning = false;
+  let isWheeeDecelerating = false;
+  let wheeeAngle = 0;
+  let wheeeAngularVelocity = 0;
+  let wheeeRafId = null;
+  let wheeeDecelCooldownTimer = null;
+  let lastWheeeFrameTime = 0;
 
   // Long-press detection (Hold ~400ms without dragging)
   let longPressTimer = null;
@@ -171,6 +197,15 @@
     } while (idx === lastLoveQuoteIndex && LOVE_QUOTES.length > 1);
     lastLoveQuoteIndex = idx;
     return LOVE_QUOTES[idx];
+  }
+
+  function getRandomDragQuote() {
+    let idx;
+    do {
+      idx = Math.floor(Math.random() * DRAG_QUOTES.length);
+    } while (idx === lastDragQuoteIndex && DRAG_QUOTES.length > 1);
+    lastDragQuoteIndex = idx;
+    return DRAG_QUOTES[idx];
   }
 
   /* ------------------------------------------------------------
@@ -525,24 +560,30 @@
         </g>
       `;
     } else if (mood === 'dragging') {
-      // Playfully Lifted / Excited Eyes
+      // Playfully Lifted / Excited Eyes & Surprised "o" Mouth
       eyesSvg = `
         <g class="buddy-eye buddy-eye-left" transform-origin="24 28">
-          <ellipse cx="24" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
-          <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="3.2" ry="3.4" fill="#0f172a"/>
-          <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="2.2" ry="2" fill="#0284c7"/>
-          <circle class="buddy-pupil" cx="${25.5 + eyeDx}" cy="26.5" r="1.5" fill="#ffffff"/>
-          <circle class="buddy-pupil" cx="${23 + eyeDx}" cy="29.5" r="0.8" fill="#ffffff"/>
+          <ellipse cx="24" cy="28" rx="5.4" ry="6" fill="#ffffff"/>
+          <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="3.4" ry="3.6" fill="#0f172a"/>
+          <ellipse class="buddy-pupil" cx="${24 + eyeDx}" cy="28" rx="2.3" ry="2.2" fill="#0284c7"/>
+          <circle class="buddy-pupil" cx="${25.6 + eyeDx}" cy="26.3" r="1.6" fill="#ffffff"/>
+          <circle class="buddy-pupil" cx="${23 + eyeDx}" cy="29.7" r="0.8" fill="#ffffff"/>
         </g>
         <g class="buddy-eye buddy-eye-right" transform-origin="38 28">
-          <ellipse cx="38" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
-          <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="3.2" ry="3.4" fill="#0f172a"/>
-          <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="2.2" ry="2" fill="#0284c7"/>
-          <circle class="buddy-pupil" cx="${39.5 + eyeDx}" cy="26.5" r="1.5" fill="#ffffff"/>
-          <circle class="buddy-pupil" cx="${37 + eyeDx}" cy="29.5" r="0.8" fill="#ffffff"/>
+          <ellipse cx="38" cy="28" rx="5.4" ry="6" fill="#ffffff"/>
+          <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="3.4" ry="3.6" fill="#0f172a"/>
+          <ellipse class="buddy-pupil" cx="${38 + eyeDx}" cy="28" rx="2.3" ry="2.2" fill="#0284c7"/>
+          <circle class="buddy-pupil" cx="${39.6 + eyeDx}" cy="26.3" r="1.6" fill="#ffffff"/>
+          <circle class="buddy-pupil" cx="${37 + eyeDx}" cy="29.7" r="0.8" fill="#ffffff"/>
         </g>
       `;
-      mouthSvg = `<path d="M27.5,35.5 Q31,41 34.5,35.5 Z" fill="#ffffff" stroke="#ffffff" stroke-width="0.8"/>`;
+      // Cute Surprised / Excited "o" mouth (matching reference screenshot)
+      mouthSvg = `
+        <g class="buddy-drag-mouth">
+          <ellipse cx="31" cy="37.2" rx="3.2" ry="4" fill="#0f172a" stroke="#ffffff" stroke-width="1.3"/>
+          <ellipse cx="31" cy="39.2" rx="1.8" ry="1.2" fill="#f43f5e"/>
+        </g>
+      `;
     } else {
       // Normal Happy Mascot Eyes (Direction-Aware & Organic Blinking)
       eyesSvg = `
@@ -629,6 +670,18 @@
             </g>
           </g>
 
+          <!-- Subtle Cute Stubby Feet / Legs Under "B" Body -->
+          <g class="buddy-feet">
+            <g class="buddy-foot buddy-foot-left">
+              <ellipse cx="23.5" cy="52.8" rx="3.4" ry="2.2" fill="url(#buddyHandGrad)"/>
+              <path d="M21.5,51.8 C22.8,51.2 24.8,51.4 25.5,52.4" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+            </g>
+            <g class="buddy-foot buddy-foot-right">
+              <ellipse cx="37.5" cy="52.8" rx="3.4" ry="2.2" fill="url(#buddyHandGrad)"/>
+              <path d="M35.5,51.8 C36.8,51.2 38.8,51.4 39.5,52.4" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+            </g>
+          </g>
+
           <!-- Main "Crowned B" Mascot Body Shape -->
           <path class="buddy-body-path" d="M18,17 C16,17 14,20 14,26 L14,44 C14,50 16,53 20,53 C26,53 38,54 44,50 C49,46 51,41 49,36 C47,33 43,32 39,32 C43,32 47,30 48,25 C50,20 46,16 40,16 C34,16 22,17 18,17 Z" fill="url(#buddyBodyGrad)"/>
           
@@ -710,6 +763,8 @@
   /* Edge-Clamped Speech Bubble */
   function showBubble(text, duration = 2500) {
     if (!speechBubbleEl || !mascotEl) return;
+    // Strictly lock speech bubble to "Wheee! ✨" without interruption while spinning
+    if (isWheeeSpinning && text !== 'Wheee! ✨') return;
     speechBubbleEl.textContent = text;
 
     // Dynamically clamp speech bubble within viewport edges
@@ -777,28 +832,143 @@
     resetIdleTimer();
   }
 
-  function triggerWheeeReaction(duration = 2200) {
+  /* ------------------------------------------------------------
+     Continuous Uninterrupted Wheee Spin (rAF Angular Velocity)
+     - 3+ rapid taps starts continuous spin
+     - Each additional tap smoothly adds spin momentum without resetting angle
+     - Strictly locks speech bubble to "Wheee! ✨" without text flickering
+     - Decelerates smoothly to upright after 700ms without taps
+     ------------------------------------------------------------ */
+  function triggerContinuousWheeeSpin() {
     if (currentMood === 'dizzy') return;
     if (currentMood === 'love') setMascotMood('normal');
 
-    triggerHaptic(22);
+    isWheeeSpinning = true;
+    isWheeeDecelerating = false;
+    wheeeAngularVelocity = 1260; // Initial ~3.5 rotations/sec
+
+    if (mascotEl) mascotEl.classList.add('is-doing-wheee');
+
+    // Strictly lock pill text to "Wheee! ✨"
+    lockWheeeBubble();
+
+    triggerHaptic(25);
     if (navigator.vibrate) {
-      try { navigator.vibrate([15, 50, 20, 50, 30]); } catch (_e) {}
+      try { navigator.vibrate([15, 40, 20]); } catch (_e) {}
     }
 
-    mascotEl.classList.remove('is-doing-wheee');
-    void mascotEl.offsetWidth; // Force reflow
-    mascotEl.classList.add('is-doing-wheee');
+    resetWheeeDecelCooldown();
 
-    const quote = getRandomWheeeQuote();
-    showBubble(quote, duration);
-
-    if (wheeeTimer) clearTimeout(wheeeTimer);
-    wheeeTimer = setTimeout(() => {
-      if (mascotEl) mascotEl.classList.remove('is-doing-wheee');
-    }, duration);
+    if (!wheeeRafId) {
+      lastWheeeFrameTime = performance.now();
+      wheeeRafId = requestAnimationFrame(stepContinuousWheeeSpin);
+    }
     resetIdleTimer();
   }
+
+  function boostContinuousWheeeSpin() {
+    // Add extra spin momentum smoothly without resetting or interrupting rotation
+    wheeeAngularVelocity = Math.min(2520, wheeeAngularVelocity + 540);
+    isWheeeDecelerating = false;
+
+    triggerHaptic(18);
+    lockWheeeBubble();
+    resetWheeeDecelCooldown();
+    resetIdleTimer();
+  }
+
+  function resetWheeeDecelCooldown() {
+    if (wheeeDecelCooldownTimer) clearTimeout(wheeeDecelCooldownTimer);
+    // User must stop tapping for 700ms before deceleration starts
+    wheeeDecelCooldownTimer = setTimeout(() => {
+      isWheeeDecelerating = true;
+    }, 700);
+  }
+
+  function lockWheeeBubble() {
+    if (!speechBubbleEl || !mascotEl) return;
+    speechBubbleEl.textContent = 'Wheee! ✨';
+
+    const screenW = window.innerWidth || 360;
+    mascotEl.classList.toggle('bubble-below', currentY < 48);
+    mascotEl.classList.toggle('bubble-align-left', currentX < 24);
+    mascotEl.classList.toggle('bubble-align-right', currentX > screenW - MASCOT_SIZE - 24);
+
+    speechBubbleEl.classList.add('visible');
+    if (bubbleTimeout) clearTimeout(bubbleTimeout);
+  }
+
+  function stepContinuousWheeeSpin(now) {
+    if (!isWheeeSpinning) {
+      wheeeRafId = null;
+      return;
+    }
+
+    const dt = Math.min(0.064, (now - lastWheeeFrameTime) / 1000);
+    lastWheeeFrameTime = now;
+
+    const bodyEl = mascotEl ? mascotEl.querySelector('.prime-buddy-body') : null;
+
+    if (isWheeeDecelerating) {
+      // Smooth deceleration friction
+      wheeeAngularVelocity *= Math.pow(0.92, dt * 60);
+
+      if (wheeeAngularVelocity < 140) {
+        // Find nearest upright orientation (multiple of 360deg)
+        const targetAngle = Math.ceil(wheeeAngle / 360) * 360;
+        const remainingAngle = targetAngle - wheeeAngle;
+
+        if (remainingAngle <= 2.5 || wheeeAngularVelocity < 20) {
+          // Completed spin: cleanly restore upright orientation
+          stopContinuousWheeeSpin();
+          return;
+        }
+
+        // Smooth ease toward upright target
+        wheeeAngle += Math.max(1.2, remainingAngle * 0.16);
+      } else {
+        wheeeAngle += wheeeAngularVelocity * dt;
+      }
+    } else {
+      // Active continuous spin
+      wheeeAngle += wheeeAngularVelocity * dt;
+    }
+
+    if (bodyEl) {
+      const hop = isWheeeDecelerating ? 0 : (Math.sin((wheeeAngle * Math.PI) / 180) * 4 - 6);
+      bodyEl.style.transform = `translate3d(0, ${hop.toFixed(1)}px, 0) rotate(${(wheeeAngle % 360000).toFixed(1)}deg)`;
+    }
+
+    wheeeRafId = requestAnimationFrame(stepContinuousWheeeSpin);
+  }
+
+  function stopContinuousWheeeSpin() {
+    isWheeeSpinning = false;
+    isWheeeDecelerating = false;
+    wheeeAngle = 0;
+    wheeeAngularVelocity = 0;
+
+    if (wheeeRafId) {
+      cancelAnimationFrame(wheeeRafId);
+      wheeeRafId = null;
+    }
+    if (wheeeDecelCooldownTimer) {
+      clearTimeout(wheeeDecelCooldownTimer);
+      wheeeDecelCooldownTimer = null;
+    }
+
+    const bodyEl = mascotEl ? mascotEl.querySelector('.prime-buddy-body') : null;
+    if (bodyEl) bodyEl.style.transform = '';
+    if (mascotEl) mascotEl.classList.remove('is-doing-wheee');
+
+    if (bubbleTimeout) clearTimeout(bubbleTimeout);
+    bubbleTimeout = setTimeout(() => {
+      if (speechBubbleEl) speechBubbleEl.classList.remove('visible');
+    }, 600);
+    resetIdleTimer();
+  }
+
+  const triggerWheeeReaction = triggerContinuousWheeeSpin;
 
   function triggerBounceReaction() {
     triggerHaptic(12);
@@ -824,6 +994,12 @@
       return;
     }
 
+    // If mascot is actively doing continuous spin, tap smoothly adds spin momentum!
+    if (isWheeeSpinning) {
+      boostContinuousWheeeSpin();
+      return;
+    }
+
     const now = performance.now();
     if (now - lastTapTimestamp < 900) {
       consecutiveTapsCount++;
@@ -832,10 +1008,10 @@
     }
     lastTapTimestamp = now;
 
-    // 3 or more rapid taps within 900ms -> Wheee 720° spin!
+    // 3 or more rapid taps within 900ms -> Continuous Wheee Spin!
     if (consecutiveTapsCount >= 3) {
       consecutiveTapsCount = 0;
-      triggerWheeeReaction();
+      triggerContinuousWheeeSpin();
     } else if (consecutiveTapsCount === 2) {
       // Double tap -> Heart-Eyes Love Reaction!
       triggerLoveReaction();
@@ -966,6 +1142,14 @@
       elemStartX = currentX;
       elemStartY = currentY;
 
+      lastDragPointerX = e.clientX;
+      lastDragPointerY = e.clientY;
+      dragSmoothVx = 0;
+      dragSmoothVy = 0;
+      accumulatedDragDist = 0;
+      dragStartTime = performance.now();
+      hasTriggeredDragQuoteThisGesture = false;
+
       pointerHistory = [{ x: e.clientX, y: e.clientY, time: performance.now() }];
 
       // Reset shake reversal tracking
@@ -979,6 +1163,9 @@
       if (longPressTimer) clearTimeout(longPressTimer);
       longPressTimer = setTimeout(() => {
         if (isDragging && !wasDragged) {
+          if (isWheeeSpinning) {
+            stopContinuousWheeeSpin();
+          }
           isLongPressTriggered = true;
           triggerHaptic(25);
           openActionPill();
@@ -1001,6 +1188,9 @@
       // Detect deliberate drag movement (> 5px)
       if (Math.hypot(dx, dy) > 5) {
         wasDragged = true;
+        if (isWheeeSpinning) {
+          stopContinuousWheeeSpin();
+        }
         if (longPressTimer) {
           clearTimeout(longPressTimer);
           longPressTimer = null;
@@ -1036,6 +1226,51 @@
       pointerHistory.push({ x: e.clientX, y: e.clientY, time: now });
       while (pointerHistory.length > 5 && now - pointerHistory[0].time > 100) {
         pointerHistory.shift();
+      }
+
+      // Compute delta from last pointer event for dynamic directional drag physics
+      const stepDx = e.clientX - lastDragPointerX;
+      const stepDy = e.clientY - lastDragPointerY;
+      lastDragPointerX = e.clientX;
+      lastDragPointerY = e.clientY;
+
+      // Low-pass filtered velocity for buttery-smooth inverse inertia
+      dragSmoothVx = dragSmoothVx * 0.62 + stepDx * 0.38;
+      dragSmoothVy = dragSmoothVy * 0.62 + stepDy * 0.38;
+
+      // Directional Inverse Air-Drag & Lag
+      // Dragging downward (vy > 0): hands trail upward (-y lag), eyes look down
+      // Dragging upward (vy < 0): hands trail downward (+y lag), eyes look up
+      // Dragging left/right (vx): body leans into movement (+-10deg tilt), hands & crown trail behind
+      const bodyTilt = Math.max(-10, Math.min(10, dragSmoothVx * 1.2));
+      const handLagX = Math.max(-5, Math.min(5, -dragSmoothVx * 0.45));
+      const handLagY = Math.max(-6, Math.min(6, -dragSmoothVy * 0.5));
+      const crownLagX = Math.max(-3, Math.min(3, -dragSmoothVx * 0.25));
+      const crownLagY = Math.max(-3.5, Math.min(3.5, -dragSmoothVy * 0.3));
+      const feetLagX = Math.max(-2.5, Math.min(2.5, -dragSmoothVx * 0.2));
+      const feetLagY = Math.max(-3.5, Math.min(3.5, -dragSmoothVy * 0.35));
+      const pupilX = Math.max(-2.5, Math.min(2.5, dragSmoothVx * 0.3));
+      const pupilY = Math.max(-2.5, Math.min(2.5, dragSmoothVy * 0.35));
+
+      mascotEl.style.setProperty('--drag-body-tilt', `${bodyTilt.toFixed(1)}deg`);
+      mascotEl.style.setProperty('--drag-hand-x', `${handLagX.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-hand-y', `${handLagY.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-crown-x', `${crownLagX.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-crown-y', `${crownLagY.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-feet-x', `${feetLagX.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-feet-y', `${feetLagY.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-pupil-x', `${pupilX.toFixed(1)}px`);
+      mascotEl.style.setProperty('--drag-pupil-y', `${pupilY.toFixed(1)}px`);
+
+      // Playful Drag Speech Bubble (Once per sustained medium-speed drag gesture)
+      accumulatedDragDist += Math.hypot(stepDx, stepDy);
+      const dragElapsed = now - dragStartTime;
+      if (!hasTriggeredDragQuoteThisGesture && accumulatedDragDist > 70 && dragElapsed > 200) {
+        const currentSpeed = Math.hypot(dragSmoothVx, dragSmoothVy) * 60; // px/sec
+        if (currentSpeed > 30 && currentMood !== 'dizzy') {
+          hasTriggeredDragQuoteThisGesture = true;
+          showBubble(getRandomDragQuote(), 2500);
+        }
       }
 
       // SHAKE DETECTION: At least 4 sharp direction reversals within 450ms
@@ -1086,6 +1321,19 @@
 
       // 1. If user dragged or flung the mascot
       if (wasDragged) {
+        // Clean up directional drag custom properties
+        mascotEl.style.removeProperty('--drag-body-tilt');
+        mascotEl.style.removeProperty('--drag-hand-x');
+        mascotEl.style.removeProperty('--drag-hand-y');
+        mascotEl.style.removeProperty('--drag-crown-x');
+        mascotEl.style.removeProperty('--drag-crown-y');
+        mascotEl.style.removeProperty('--drag-feet-x');
+        mascotEl.style.removeProperty('--drag-feet-y');
+        mascotEl.style.removeProperty('--drag-pupil-x');
+        mascotEl.style.removeProperty('--drag-pupil-y');
+        hasTriggeredDragQuoteThisGesture = false;
+        accumulatedDragDist = 0;
+
         const now = performance.now();
         pointerHistory.push({ x: e.clientX, y: e.clientY, time: now });
 
