@@ -693,7 +693,7 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .suite-module-view.active {
-  display: flex;
+  display: flex !important;
   flex-direction: column;
   gap: 12px;
   animation: fadeIn 0.2s ease;

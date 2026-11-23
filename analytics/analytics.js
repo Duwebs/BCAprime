@@ -371,9 +371,17 @@ function switchSuiteTab(tab) {
   activeModuleTab = tab;
 
   // Update views
-  document.querySelectorAll('.suite-module-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.suite-module-view').forEach(v => {
+    v.classList.remove('active');
+    v.removeAttribute('hidden');
+    v.hidden = false;
+  });
   const activeView = $('module-' + tab);
-  if (activeView) activeView.classList.add('active');
+  if (activeView) {
+    activeView.removeAttribute('hidden');
+    activeView.hidden = false;
+    activeView.classList.add('active');
+  }
 
   // Update top segmented buttons
   document.querySelectorAll('.seg-tab').forEach(b => {
@@ -2253,6 +2261,22 @@ async function renderPrimeBuddyModule() {
   const countBadge = $('statsBuddyCountBadge');
   if (emptyWrap) emptyWrap.hidden = true;
 
+  // Show shimmer placeholders if container is empty
+  if (listContainer && (!statsBuddyStudentsCache || statsBuddyStudentsCache.length === 0)) {
+    listContainer.innerHTML = [1, 2, 3, 4].map(i => `
+      <div class="stats-student-card" style="pointer-events:none">
+        <div class="stats-student-head">
+          <div class="shimmer-box" style="width:44px;height:44px;border-radius:50%;flex-shrink:0"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:5px">
+            <div class="shimmer-box" style="width:${100 + i * 20}px;height:16px"></div>
+            <div class="shimmer-box" style="width:${140 + i * 15}px;height:12px"></div>
+          </div>
+        </div>
+        <div class="shimmer-box" style="width:100%;height:22px;border-radius:6px;margin-top:6px"></div>
+      </div>
+    `).join('');
+  }
+
   try {
     if (!analyticsSupabaseClient) throw new Error('Supabase client not connected');
 
@@ -2267,22 +2291,20 @@ async function renderPrimeBuddyModule() {
       telemetryCache.deduplicatedStudents = deduplicatedProfiles;
     }
 
-    // 2. Fetch or reuse buddy telemetry rows
-    let buddyRows = telemetryCache.buddyTelemetry;
-    if (!buddyRows || !Array.isArray(buddyRows)) {
-      try {
-        const { data: bData, error: bErr } = await analyticsSupabaseClient
-          .from('primebuddy_telemetry')
-          .select('*');
-        if (!bErr && Array.isArray(bData)) {
-          buddyRows = bData;
-          telemetryCache.buddyTelemetry = buddyRows;
-        } else {
-          buddyRows = [];
-        }
-      } catch (_e) {
-        buddyRows = [];
+    // 2. Always fetch fresh buddy telemetry from Supabase
+    let buddyRows = [];
+    try {
+      const { data: bData, error: bErr } = await analyticsSupabaseClient
+        .from('primebuddy_telemetry')
+        .select('*');
+      if (!bErr && Array.isArray(bData)) {
+        buddyRows = bData;
+        telemetryCache.buddyTelemetry = buddyRows;
+      } else if (Array.isArray(telemetryCache.buddyTelemetry)) {
+        buddyRows = telemetryCache.buddyTelemetry;
       }
+    } catch (_e) {
+      buddyRows = telemetryCache.buddyTelemetry || [];
     }
 
     // Build lookup map by user_id
