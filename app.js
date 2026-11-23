@@ -3465,21 +3465,20 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(camBadge){ camBadge.hidden=false; camBadge.style.display='flex'; }
         if(edBtn){ edBtn.hidden=false; edBtn.style.display=''; edBtn.onclick=openEditProfileModal; }
         if(avWrap){ avWrap.onclick=openEditProfileModal; avWrap.style.cursor='pointer'; }
-        const canUsePasskey = isPasskeySupportedOnDevice();
         const passRow = $('profilePasskeysRow');
         const passDiv = $('profilePasskeysDivider');
         const passGroup = $('settingsPasskeysGroup');
         if(passRow) {
-          passRow.hidden = !canUsePasskey;
-          passRow.style.setProperty('display', canUsePasskey ? 'flex' : 'none', 'important');
+          passRow.hidden = false;
+          passRow.style.setProperty('display', 'flex');
         }
         if(passDiv) {
-          passDiv.hidden = !canUsePasskey;
-          passDiv.style.setProperty('display', canUsePasskey ? 'block' : 'none', 'important');
+          passDiv.hidden = false;
+          passDiv.style.setProperty('display', 'block');
         }
         if(passGroup) {
-          passGroup.hidden = !canUsePasskey;
-          passGroup.style.setProperty('display', canUsePasskey ? 'block' : 'none', 'important');
+          passGroup.hidden = false;
+          passGroup.style.setProperty('display', 'block');
         }
       }else{
         if(footLabel) footLabel.textContent='Browsing as';
@@ -3494,15 +3493,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const passGroup = $('settingsPasskeysGroup');
         if(passRow) {
           passRow.hidden = true;
-          passRow.style.setProperty('display', 'none', 'important');
+          passRow.style.setProperty('display', 'none');
         }
         if(passDiv) {
           passDiv.hidden = true;
-          passDiv.style.setProperty('display', 'none', 'important');
+          passDiv.style.setProperty('display', 'none');
         }
         if(passGroup) {
           passGroup.hidden = true;
-          passGroup.style.setProperty('display', 'none', 'important');
+          passGroup.style.setProperty('display', 'none');
         }
       }
     }
@@ -3604,13 +3603,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
 
     function openPasskeysSheet(){
-      if(!isPasskeySupportedOnDevice()){
-        toast('Passkeys are supported on mobile and tablet devices only.', 'info');
-        return;
-      }
       closeModals();
       const m = $('passkeysModal');
-      if(m) m.classList.add('open');
+      if(m) {
+        m.classList.add('open');
+        m.style.zIndex = '10005';
+      }
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
       loadUserPasskeys();
     }
@@ -3647,11 +3645,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(isGuest || !accountSession || !accountSession.uid){
         closeModals();
         openSignUpPage('Sign in or create an account to register a biometric passkey.');
+        toast('Sign in first to register a passkey.', 'info');
         return;
       }
 
-      if(!isPasskeySupportedOnDevice()){
-        toast('Passkeys are supported on mobile and tablet devices only.', 'error');
+      if(!supabaseClient){
+        toast('Authentication client is not initialized.', 'error');
+        return;
+      }
+
+      if(typeof window === 'undefined' || !window.PublicKeyCredential){
+        if(typeof window !== 'undefined' && !window.isSecureContext){
+          toast('WebAuthn requires HTTPS or localhost. Please open via a secure connection.', 'error');
+        } else {
+          toast('Biometric passkeys / WebAuthn is not supported on this browser.', 'error');
+        }
         return;
       }
 
@@ -3687,7 +3695,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           } catch(_e){}
         }
 
-        toast(`Passkey added for ${friendlyName} ✅`, 'success');
+        toast('Passkey added! You can now sign in with fingerprint/screen lock.', 'success');
         try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
         await loadUserPasskeys();
       } catch(err) {
@@ -3709,7 +3717,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
 
     async function loadUserPasskeys(){
-      if(!isPasskeySupportedOnDevice()) return;
       const listEl = $('passkeysList');
       const countPill = $('passkeysCountPill');
       const badge = $('settingsPasskeyBadge');
@@ -3747,12 +3754,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       try {
         if(supabaseClient && supabaseClient.auth.passkey && typeof supabaseClient.auth.passkey.list === 'function'){
           const res = await supabaseClient.auth.passkey.list();
-          if(res && Array.isArray(res.data)){
+          if(res && res.error){
+            console.warn('[BCAPrime] passkey.list error:', res.error);
+            if(!/no credentials/i.test(res.error.message || '')){
+              toast(res.error.message || 'Could not load saved passkeys.', 'error');
+            }
+          } else if(res && Array.isArray(res.data)){
             passkeys = res.data;
           }
         }
       } catch(err){
         console.warn('[BCAPrime] Could not fetch passkeys:', err);
+        toast(err.message || 'Could not load saved passkeys.', 'error');
       }
 
       // Cache locally for fast offline/online render

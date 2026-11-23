@@ -209,7 +209,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=85">
+  <link rel="stylesheet" href="styles.css?v=86">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=8">
   <link rel="stylesheet" href="codelab.css?v=2">
@@ -1092,7 +1092,7 @@
 
       <!-- Support & Preferences Group Card -->
       <div class="profile-group-card">
-        <div class="profile-group-row bca-pressable" id="profilePasskeysRow" onclick="openPasskeysSheet()" role="button" tabindex="0" hidden style="display: none !important;">
+        <div class="profile-group-row bca-pressable" id="profilePasskeysRow" onclick="openPasskeysSheet()" role="button" tabindex="0" style="cursor:pointer">
           <div class="profile-row-plain-icon" style="color:var(--brand, #38bdf8)">
             <i class="fa-solid fa-fingerprint"></i>
           </div>
@@ -1101,7 +1101,7 @@
           </div>
           <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
         </div>
-        <div class="profile-group-divider" id="profilePasskeysDivider" hidden style="display: none !important;"></div>
+        <div class="profile-group-divider" id="profilePasskeysDivider"></div>
         <div class="profile-group-row" style="cursor:default">
           <div class="profile-row-plain-icon" style="color:#38bdf8">
             <i class="fa-solid fa-crown"></i>
@@ -1203,9 +1203,9 @@
         </div>
       </div>
 
-      <!-- Card Group: Passkeys & Biometrics (Mobile/Tablet Only) -->
-      <div class="profile-group-card settings-group-card" id="settingsPasskeysGroup" hidden style="display: none !important;">
-        <div class="profile-group-row bca-pressable" onclick="openPasskeysSheet()" role="button" tabindex="0">
+      <!-- Card Group: Passkeys & Biometrics -->
+      <div class="profile-group-card settings-group-card" id="settingsPasskeysGroup">
+        <div class="profile-group-row bca-pressable" onclick="openPasskeysSheet()" role="button" tabindex="0" style="cursor:pointer">
           <div class="profile-row-plain-icon" style="color:var(--brand, #38bdf8)">
             <i class="fa-solid fa-fingerprint"></i>
           </div>
@@ -2446,7 +2446,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=83"></script>
+  <script src="app.js?v=84"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>

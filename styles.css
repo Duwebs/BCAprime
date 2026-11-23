@@ -6773,6 +6773,7 @@ body.light .profile-session-card,
 #myUploadsModal.open,
 #settingsModal.open,
 #notifySettingsModal.open,
+#passkeysModal.open,
 #aboutModal.open,
 #ratingModal.open {
   opacity: 1;
@@ -6781,6 +6782,7 @@ body.light .profile-session-card,
 }
 .my-uploads-dialog,
 .settings-dialog,
+.passkeys-dialog,
 .about-dialog,
 .rating-dialog {
   width: min(100%, 440px);
@@ -6799,14 +6801,17 @@ body.light .profile-session-card,
 }
 [data-theme="light"] .my-uploads-dialog,
 [data-theme="light"] .settings-dialog,
+[data-theme="light"] .passkeys-dialog,
 [data-theme="light"] .about-dialog,
 [data-theme="light"] .rating-dialog,
 html[data-theme="light"] .my-uploads-dialog,
 html[data-theme="light"] .settings-dialog,
+html[data-theme="light"] .passkeys-dialog,
 html[data-theme="light"] .about-dialog,
 html[data-theme="light"] .rating-dialog,
 body.light .my-uploads-dialog,
 body.light .settings-dialog,
+body.light .passkeys-dialog,
 body.light .about-dialog,
 body.light .rating-dialog {
   background: #ffffff !important;
@@ -6816,6 +6821,8 @@ body.light .rating-dialog {
 #myUploadsModal.open .my-uploads-dialog,
 #settingsModal.open .settings-dialog,
 #notifySettingsModal.open .settings-dialog,
+#passkeysModal.open .settings-dialog,
+#passkeysModal.open .passkeys-dialog,
 #aboutModal.open .about-dialog,
 #ratingModal.open .rating-dialog {
   transform: scale(1) translateY(0);
@@ -7191,6 +7198,7 @@ body.light .rating-dialog {
 @media(max-width: 600px) {
   #settingsModal,
   #notifySettingsModal,
+  #passkeysModal,
   #aboutModal,
   #ratingModal {
     padding: 0 !important;
@@ -7198,6 +7206,8 @@ body.light .rating-dialog {
   }
   #settingsModal .settings-dialog,
   #notifySettingsModal .settings-dialog,
+  #passkeysModal .settings-dialog,
+  #passkeysModal .passkeys-dialog,
   #aboutModal .about-dialog,
   #ratingModal .rating-dialog {
     width: 100% !important;
@@ -7211,6 +7221,8 @@ body.light .rating-dialog {
   }
   #settingsModal.open .settings-dialog,
   #notifySettingsModal.open .settings-dialog,
+  #passkeysModal.open .settings-dialog,
+  #passkeysModal.open .passkeys-dialog,
   #aboutModal.open .about-dialog,
   #ratingModal.open .rating-dialog {
     transform: translateY(0) !important;
@@ -10001,14 +10013,10 @@ html:not([data-theme="dark"]) .legal-doc-ul {
   display: none !important;
 }
 
-/* Strictly hide all passkey features on desktop (>=1024px) */
+/* Strictly hide passkey login button on desktop (>=1024px) */
 @media (min-width: 1024px) {
   .passkey-gate-btn,
-  #gatePasskeyBtn,
-  #settingsPasskeysGroup,
-  #profilePasskeysRow,
-  #profilePasskeysDivider,
-  #passkeysModal {
+  #gatePasskeyBtn {
     display: none !important;
   }
 }
