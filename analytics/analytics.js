@@ -69,7 +69,7 @@ window.addEventListener('appinstalled', () => {
   deferredPwaPrompt = null;
   const banner = $('pwaInstallBanner');
   if (banner) banner.hidden = true;
-  showToast('BCAPrime Stats installed successfully! 🎉', 'success');
+  showToast('BCAPrime Stats installed successfully', 'success');
 });
 
 async function installAnalyticsPwa() {
@@ -475,7 +475,7 @@ let telemetryCache = {
   searches: 0,
   avgDuration: 0,
   guests: 0,
-  ratingAvg: 4.9,
+  ratingAvg: '4.9 / 5.0',
   dailyTrend: [],
   featureUsage: {},
   semDistribution: {},
@@ -632,7 +632,7 @@ async function fetchSuiteTelemetry() {
       });
       if (ratings.length) {
         const avg = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1);
-        telemetryCache.ratingAvg = avg + '★';
+        telemetryCache.ratingAvg = `${avg} / 5.0`;
       }
     }
 
@@ -1134,7 +1134,7 @@ function renderLiveStudentsList() {
           <div class="live-student-top">
             <strong class="live-student-name">${escapeHtml(name)}</strong>
             ${username ? `<span class="live-student-user">${escapeHtml(username)}</span>` : ''}
-            <span class="live-sem-pill">SEM ${escapeHtml(sem)}</span>
+            <span class="live-sem-pill">Sem ${escapeHtml(sem)}</span>
           </div>
           <div class="live-student-college">
             <i class="fa-solid fa-building-columns"></i>
@@ -1197,12 +1197,6 @@ function renderPulseModule() {
   $('kpiAvgDuration').textContent = fmtDuration(telemetryCache.avgDuration);
   $('kpiGuestCount').textContent = fmtNumber(telemetryCache.guests);
   $('kpiRatingAvg').textContent = telemetryCache.ratingAvg;
-
-  // Mini Sparklines
-  renderSparkline('sparklineStudents', [4, 6, 8, 9, 12, 14, 18], '#38bdf8');
-  renderSparkline('sparklineResources', [12, 18, 25, 29, 36, 42, 58], '#00B67A');
-  renderSparkline('sparklineLabs', [2, 5, 4, 8, 11, 14, 19], '#f59e0b');
-  renderSparkline('sparklineCommunity', [1, 3, 2, 4, 6, 5, 8], '#a855f7');
 
   // Traffic & Acquisition Sources Card
   renderTrafficSourcesBreakdown();
@@ -1997,7 +1991,7 @@ function renderStatsStudents(list) {
               <div class="stats-student-title-row">
                 <span class="stats-student-name">${name}</span>
                 <span class="stats-student-username">@${username}</span>
-                <span class="stats-student-sem-badge">SEM ${sem}</span>
+                <span class="stats-student-sem-badge">Sem ${sem}</span>
               </div>
               <div class="stats-student-meta">
                 <i class="fa-solid fa-building-columns" style="font-size:11px;opacity:0.7;margin-right:4px"></i>
@@ -2006,15 +2000,15 @@ function renderStatsStudents(list) {
             </div>
           </div>
           <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0">
-            <span class="stats-badge-device" title="Smartphone Model"><i class="fa-solid fa-mobile-screen"></i> ${escapeHtml(devModel)}</span>
-            <span class="stats-badge-source" title="Acquisition Source"><i class="fa-solid fa-arrow-trend-up"></i> ${escapeHtml(trafficSource)}</span>
-            <span class="buddy-status-pill ${buddyOn ? 'on' : 'off'}"><i class="fa-solid fa-crown"></i> ${buddyOn ? 'Buddy ON' : 'Buddy OFF'}</span>
-            ${favBadge ? `<span class="buddy-fav-badge" title="Favorite Buddy Action">${favBadge}</span>` : ''}
+            <span class="stats-badge-device" title="Smartphone model"><i class="fa-solid fa-mobile-screen"></i> ${escapeHtml(devModel)}</span>
+            <span class="stats-badge-source" title="Acquisition source"><i class="fa-solid fa-arrow-trend-up"></i> ${escapeHtml(trafficSource)}</span>
+            <span class="buddy-status-pill ${buddyOn ? 'on' : 'off'}"><i class="fa-solid fa-crown"></i> ${buddyOn ? 'Buddy on' : 'Buddy off'}</span>
+            ${favBadge ? `<span class="buddy-fav-badge" title="Favorite action">${favBadge}</span>` : ''}
           </div>
           <div class="stats-student-pills-row">
-            <span class="telemetry-pill pill-reads"><i class="fa-solid fa-book-open"></i> ${student.reads || 0} Reads</span>
-            <span class="telemetry-pill pill-dls"><i class="fa-solid fa-cloud-arrow-down"></i> ${student.dls || 0} DLs</span>
-            <span class="telemetry-pill pill-searches"><i class="fa-solid fa-magnifying-glass"></i> ${student.searches || 0} Searches</span>
+            <span class="telemetry-pill pill-reads"><i class="fa-solid fa-book-open"></i> ${student.reads || 0} reads</span>
+            <span class="telemetry-pill pill-dls"><i class="fa-solid fa-cloud-arrow-down"></i> ${student.dls || 0} downloads</span>
+            <span class="telemetry-pill pill-searches"><i class="fa-solid fa-magnifying-glass"></i> ${student.searches || 0} searches</span>
           </div>
         </div>
       `;
@@ -2210,7 +2204,7 @@ async function openStudentInspector(studentId) {
           <div class="inspector-hero-name">
             <span>${displayName}</span>
             <span class="stats-student-username">@${username}</span>
-            <span class="stats-student-sem-badge">SEM ${sem}</span>
+            <span class="stats-student-sem-badge">Sem ${sem}</span>
           </div>
           <div class="inspector-hero-meta">
             <span><i class="fa-solid fa-building-columns"></i> ${college}</span>
@@ -2225,7 +2219,7 @@ async function openStudentInspector(studentId) {
         <!-- Reads / Opens -->
         <div class="inspector-pulse-card">
           <div class="inspector-pulse-card-head">
-            <span class="inspector-pulse-label">TOTAL READS</span>
+            <span class="inspector-pulse-label">Total reads</span>
             <i class="fa-solid fa-book-open inspector-pulse-icon" style="color:#00B67A"></i>
           </div>
           <span class="inspector-pulse-val tabular-nums">${reads.length + readingProgress.length}</span>
@@ -2235,7 +2229,7 @@ async function openStudentInspector(studentId) {
         <!-- Downloads Succeeded -->
         <div class="inspector-pulse-card">
           <div class="inspector-pulse-card-head">
-            <span class="inspector-pulse-label">DL SUCCESS</span>
+            <span class="inspector-pulse-label">Downloads</span>
             <i class="fa-solid fa-cloud-arrow-down inspector-pulse-icon" style="color:#0284c7"></i>
           </div>
           <span class="inspector-pulse-val text-emerald tabular-nums">${dlSuccess.length}</span>
@@ -2245,7 +2239,7 @@ async function openStudentInspector(studentId) {
         <!-- Downloads Failed -->
         <div class="inspector-pulse-card">
           <div class="inspector-pulse-card-head">
-            <span class="inspector-pulse-label">DL FAILED</span>
+            <span class="inspector-pulse-label">Failed downloads</span>
             <i class="fa-solid fa-triangle-exclamation inspector-pulse-icon" style="color:#F43F5E"></i>
           </div>
           <span class="inspector-pulse-val ${dlFailed.length > 0 ? 'text-rose' : ''} tabular-nums">${dlFailed.length}</span>
@@ -2255,7 +2249,7 @@ async function openStudentInspector(studentId) {
         <!-- Total Searches -->
         <div class="inspector-pulse-card">
           <div class="inspector-pulse-card-head">
-            <span class="inspector-pulse-label">SEARCHES</span>
+            <span class="inspector-pulse-label">Searches</span>
             <i class="fa-solid fa-magnifying-glass inspector-pulse-icon" style="color:#a855f7"></i>
           </div>
           <span class="inspector-pulse-val tabular-nums">${searches.length}</span>
@@ -2268,7 +2262,7 @@ async function openStudentInspector(studentId) {
         <div class="inspector-section-head">
           <h3 class="inspector-section-title">
             <i class="fa-solid fa-mobile-screen" style="color:var(--brand)"></i>
-            <span>Hardware &amp; Smartphone Specs</span>
+            <span>Hardware &amp; specs</span>
           </h3>
           <span class="suite-badge-pill" style="font-size:11px;background:rgba(0,182,122,0.12);color:#00B67A;border-color:rgba(0,182,122,0.3)">
             <i class="fa-solid ${studentIsPwa ? 'fa-download' : 'fa-globe'}"></i> ${studentIsPwa ? 'Installed PWA' : 'Mobile Web'}
@@ -2276,19 +2270,19 @@ async function openStudentInspector(studentId) {
         </div>
         <div class="inspector-hardware-grid">
           <div class="inspector-hardware-box">
-            <span class="inspector-hardware-label">PHONE MODEL</span>
+            <span class="inspector-hardware-label">Phone model</span>
             <span class="inspector-hardware-val">${escapeHtml(studentModel)}</span>
           </div>
           <div class="inspector-hardware-box">
-            <span class="inspector-hardware-label">OPERATING SYSTEM</span>
+            <span class="inspector-hardware-label">Operating system</span>
             <span class="inspector-hardware-val">${escapeHtml(studentOs)}</span>
           </div>
           <div class="inspector-hardware-box">
-            <span class="inspector-hardware-label">WEB BROWSER</span>
+            <span class="inspector-hardware-label">Web browser</span>
             <span class="inspector-hardware-val">${escapeHtml(studentBrowser)}</span>
           </div>
           <div class="inspector-hardware-box">
-            <span class="inspector-hardware-label">SCREEN SIZE</span>
+            <span class="inspector-hardware-label">Screen size</span>
             <span class="inspector-hardware-val">${escapeHtml(studentScreen)}</span>
           </div>
         </div>
@@ -2299,7 +2293,7 @@ async function openStudentInspector(studentId) {
         <div class="inspector-section-head">
           <h3 class="inspector-section-title">
             <i class="fa-solid fa-arrow-trend-up" style="color:#00B67A"></i>
-            <span>Traffic &amp; Acquisition Channel</span>
+            <span>Traffic &amp; acquisition channel</span>
           </h3>
           <span class="stats-badge-source">${escapeHtml(studentTraffic)}</span>
         </div>
@@ -2313,46 +2307,47 @@ async function openStudentInspector(studentId) {
         <div class="inspector-section-head">
           <h3 class="inspector-section-title">
             <i class="fa-solid fa-crown" style="color:#fbbf24"></i>
-            <span>PrimeBuddy Study Companion</span>
+            <span>PrimeBuddy study companion</span>
           </h3>
-          <span class="buddy-status-pill ${isBuddyOn ? 'on' : 'off'}"><i class="fa-solid fa-crown"></i> ${isBuddyOn ? 'Buddy ON' : 'Buddy OFF'}</span>
+          <span class="buddy-status-pill ${isBuddyOn ? 'on' : 'off'}"><i class="fa-solid fa-crown"></i> ${isBuddyOn ? 'Buddy on' : 'Buddy off'}</span>
         </div>
         <div class="inspector-pulse-grid" style="margin-top:10px">
           <div class="inspector-pulse-card">
-            <div class="inspector-pulse-card-head"><span class="inspector-pulse-label">INTERACTIONS</span><i class="fa-solid fa-hand-pointer" style="color:#fbbf24"></i></div>
+            <div class="inspector-pulse-card-head"><span class="inspector-pulse-label">Interactions</span><i class="fa-solid fa-hand-pointer" style="color:#fbbf24"></i></div>
             <span class="inspector-pulse-val tabular-nums">${buddyInteractions}</span>
             <span class="inspector-pulse-sub">Total taps &amp; moves</span>
           </div>
           <div class="inspector-pulse-card">
-            <div class="inspector-pulse-card-head"><span class="inspector-pulse-label">ACTIVE TIME</span><i class="fa-regular fa-clock" style="color:#38bdf8"></i></div>
+            <div class="inspector-pulse-card-head"><span class="inspector-pulse-label">Active time</span><i class="fa-regular fa-clock" style="color:#38bdf8"></i></div>
             <span class="inspector-pulse-val tabular-nums">${fmtDuration(buddyActiveSec)}</span>
             <span class="inspector-pulse-sub">Active engagement</span>
           </div>
           <div class="inspector-pulse-card">
-            <div class="inspector-pulse-card-head"><span class="inspector-pulse-label">FOCUS SESSIONS</span><i class="fa-solid fa-hourglass-half" style="color:#00B67A"></i></div>
+            <div class="inspector-pulse-card-head"><span class="inspector-pulse-label">Focus sessions</span><i class="fa-solid fa-hourglass-half" style="color:#00B67A"></i></div>
             <span class="inspector-pulse-val tabular-nums">${buddyFocusSessions}</span>
-            <span class="inspector-pulse-sub">25m Pomodoros completed</span>
+            <span class="inspector-pulse-sub">25m sessions completed</span>
           </div>
         </div>
         <div style="margin-top:12px">
-          <h4 style="font-size:12px;font-family:var(--font-display);letter-spacing:0.04em;color:var(--muted);margin:0 0 8px;text-transform:uppercase">Companion Feature Breakdown</h4>
+          <h4 style="font-size:12px;font-family:var(--font-body);color:var(--muted);margin:0 0 8px;font-weight:500">Companion feature breakdown</h4>
           <div class="traffic-source-list">
             ${[
-              { key: 'focus', name: 'Focus 25m Timer', icon: '⏱️', count: bCounts.focus || 0, fillCls: 'fill-focus' },
-              { key: 'spin_wheee', name: 'Wheee Spin', icon: '🌀', count: bCounts.spin_wheee || 0, fillCls: 'fill-spin_wheee' },
-              { key: 'dance', name: 'Dance Party', icon: '💃', count: bCounts.dance || 0, fillCls: 'fill-dance' },
-              { key: 'love_tap', name: 'Love Tap', icon: '❤️', count: bCounts.love_tap || 0, fillCls: 'fill-love_tap' },
-              { key: 'fling', name: 'Wall Bounce & Toss', icon: '🚀', count: bCounts.fling || 0, fillCls: 'fill-fling' },
-              { key: 'nap', name: 'Nap / Sleep', icon: '😴', count: bCounts.nap || 0, fillCls: 'fill-nap' },
-              { key: 'hide', name: 'Auto-Peek & Hide', icon: '👋', count: bCounts.hide || 0, fillCls: 'fill-hide' }
-            ].map(f => {
+              { key: 'focus', name: 'Focus (25m)', icon: '<i class="fa-solid fa-stopwatch"></i>', count: bCounts.focus || 0 },
+              { key: 'spin_wheee', name: 'Spin inertia', icon: '<i class="fa-solid fa-rotate-right"></i>', count: bCounts.spin_wheee || 0 },
+              { key: 'dance', name: 'Dance mode', icon: '<i class="fa-solid fa-music"></i>', count: bCounts.dance || 0 },
+              { key: 'love_tap', name: 'Tap reaction', icon: '<i class="fa-solid fa-heart"></i>', count: bCounts.love_tap || 0 },
+              { key: 'fling', name: 'Wall bounce', icon: '<i class="fa-solid fa-cube"></i>', count: bCounts.fling || 0 },
+              { key: 'nap', name: 'Sleep mode', icon: '<i class="fa-solid fa-moon"></i>', count: bCounts.nap || 0 },
+              { key: 'hide', name: 'Edge peek', icon: '<i class="fa-solid fa-eye-slash"></i>', count: bCounts.hide || 0 }
+            ].sort((a, b) => b.count - a.count).map((f, idx) => {
               const sum = buddyInteractions || 1;
               const pct = Math.round((f.count / sum) * 100);
+              const isLead = idx === 0 && f.count > 0;
               return `
                 <div class="buddy-feature-bar-row">
                   <div class="buddy-feature-bar-meta">
                     <div class="buddy-feature-name-group">
-                      <span>${f.icon}</span>
+                      <span style="font-size:13px;width:16px;text-align:center">${f.icon}</span>
                       <span>${f.name}</span>
                     </div>
                     <div class="buddy-feature-counts-group">
@@ -2361,7 +2356,7 @@ async function openStudentInspector(studentId) {
                     </div>
                   </div>
                   <div class="buddy-feature-bar-track">
-                    <div class="buddy-feature-bar-fill ${f.fillCls}" style="width:${f.count > 0 ? Math.max(pct, 5) : 0}%"></div>
+                    <div class="buddy-feature-bar-fill ${isLead ? 'lead-fill' : ''}" style="width:${f.count > 0 ? Math.max(pct, 5) : 0}%"></div>
                   </div>
                 </div>
               `;
@@ -2499,9 +2494,9 @@ function renderReadingSection(readingProgress, reads) {
         <div class="inspector-item-main">
           <span class="inspector-item-title">${escapeHtml(r.resource_title || 'Notes / Material')}</span>
           <div class="inspector-item-meta">
-            <span class="inspector-tag" style="background:rgba(255,255,255,0.08);color:var(--ink-dim)">READ OPEN</span>
+            <span class="inspector-tag" style="background:rgba(255,255,255,0.08);color:var(--ink-dim)">Read</span>
             ${r.subject ? `<span>${escapeHtml(r.subject)}</span>` : ''}
-            ${r.semester ? `<span>&bull; SEM ${r.semester}</span>` : ''}
+            ${r.semester ? `<span>&bull; Sem ${r.semester}</span>` : ''}
           </div>
         </div>
         <span class="inspector-item-time">${formatRelativeTime(r.created_at)}</span>
@@ -2533,10 +2528,10 @@ function renderDownloadSection(dlSuccess, dlFailed) {
         <span class="inspector-item-title">${escapeHtml(d.resource_title || 'File Download')}</span>
         <div class="inspector-item-meta">
           <span class="inspector-tag ${d.isSuccess ? 'tag-success' : 'tag-failed'}">
-            ${d.isSuccess ? '<i class="fa-solid fa-check"></i> SUCCESS' : '<i class="fa-solid fa-triangle-exclamation"></i> FAILED'}
+            ${d.isSuccess ? '<i class="fa-solid fa-check"></i> Success' : '<i class="fa-solid fa-triangle-exclamation"></i> Failed'}
           </span>
           ${d.subject ? `<span>${escapeHtml(d.subject)}</span>` : ''}
-          ${d.semester ? `<span>&bull; SEM ${d.semester}</span>` : ''}
+          ${d.semester ? `<span>&bull; Sem ${d.semester}</span>` : ''}
         </div>
       </div>
       <span class="inspector-item-time">${formatRelativeTime(d.created_at)}</span>
@@ -2565,7 +2560,7 @@ function renderSearchSection(searches) {
           <span class="inspector-item-title">&ldquo;${escapeHtml(q)}&rdquo;</span>
           <div class="inspector-item-meta">
             <span class="inspector-tag ${isFound ? 'tag-found' : 'tag-zero'}">
-              ${isFound ? `<i class="fa-solid fa-check"></i> FOUND (${count})` : '<i class="fa-solid fa-circle-xmark"></i> NO RESULTS (0)'}
+              ${isFound ? `<i class="fa-solid fa-check"></i> Found (${count})` : '<i class="fa-solid fa-circle-xmark"></i> No results (0)'}
             </span>
           </div>
         </div>
@@ -2579,37 +2574,37 @@ function renderOtherActivitySection(codeRuns, mockTests, requests, lostFound, fe
   const allOther = [
     ...codeRuns.map(c => ({
       title: `Code Lab: Executed ${c.resource_title || 'Program'}`,
-      badge: c.results === 1 ? 'PASS (0)' : 'FAILED',
+      badge: c.results === 1 ? 'Passed' : 'Failed',
       badgeCls: c.results === 1 ? 'tag-success' : 'tag-failed',
       time: c.created_at
     })),
     ...mockTests.map(m => ({
       title: `Mock Test: ${m.resource_title || 'Quiz'}`,
-      badge: `${m.results || 0}% Score`,
+      badge: `${m.results || 0}% score`,
       badgeCls: Number(m.results || 0) >= 60 ? 'tag-success' : 'tag-zero',
       time: m.created_at
     })),
     ...requests.map(r => ({
       title: `Junior Request: ${r.subject || r.message || 'Help request'}`,
-      badge: String(r.status || 'open').toUpperCase(),
+      badge: (r.status === 'done' ? 'Done' : 'Open'),
       badgeCls: r.status === 'done' ? 'tag-success' : 'tag-zero',
       time: r.created_at
     })),
     ...lostFound.map(lf => ({
       title: `Lost & Found: ${lf.title || 'Item reported'}`,
-      badge: String(lf.status || 'active').toUpperCase(),
+      badge: (lf.status === 'resolved' ? 'Resolved' : 'Active'),
       badgeCls: 'tag-found',
       time: lf.created_at
     })),
     ...feedbacks.map(f => ({
       title: `Feedback: ${(f.message || '').slice(0, 50)}`,
-      badge: `${f.rating ? f.rating + '★' : 'Feedback'}`,
+      badge: `${f.rating ? f.rating + ' / 5' : 'Feedback'}`,
       badgeCls: 'tag-found',
       time: f.created_at
     })),
     ...uploads.map(u => ({
       title: `Uploaded Note: ${u.title || 'Material'}`,
-      badge: String(u.status || 'pending').toUpperCase(),
+      badge: (u.status === 'approved' ? 'Approved' : 'Pending'),
       badgeCls: u.status === 'approved' ? 'tag-success' : 'tag-zero',
       time: u.created_at
     }))
@@ -2645,13 +2640,13 @@ let currentStatsBuddyStatusFilter = 'all';
 let buddySearchDebounce = null;
 
 const BUDDY_FEATURE_META = {
-  focus: { id: 'focus', name: 'Focus Timer', icon: '⏱️', fillCls: 'fill-focus' },
-  spin_wheee: { id: 'spin_wheee', name: 'Wheee Spin', icon: '🌀', fillCls: 'fill-spin_wheee' },
-  dance: { id: 'dance', name: 'Dance Party', icon: '💃', fillCls: 'fill-dance' },
-  love_tap: { id: 'love_tap', name: 'Love Tap', icon: '😍', fillCls: 'fill-love_tap' },
-  fling: { id: 'fling', name: 'Fling Physics', icon: '🚀', fillCls: 'fill-fling' },
-  nap: { id: 'nap', name: 'Nap / Sleep', icon: '😴', fillCls: 'fill-nap' },
-  hide: { id: 'hide', name: 'Temp Hide', icon: '👋', fillCls: 'fill-hide' }
+  focus: { id: 'focus', name: 'Focus (25m)', icon: '<i class="fa-solid fa-stopwatch"></i>' },
+  spin_wheee: { id: 'spin_wheee', name: 'Spin inertia', icon: '<i class="fa-solid fa-rotate-right"></i>' },
+  dance: { id: 'dance', name: 'Dance mode', icon: '<i class="fa-solid fa-music"></i>' },
+  love_tap: { id: 'love_tap', name: 'Tap reaction', icon: '<i class="fa-solid fa-heart"></i>' },
+  fling: { id: 'fling', name: 'Wall bounce', icon: '<i class="fa-solid fa-cube"></i>' },
+  nap: { id: 'nap', name: 'Sleep mode', icon: '<i class="fa-solid fa-moon"></i>' },
+  hide: { id: 'hide', name: 'Edge peek', icon: '<i class="fa-solid fa-eye-slash"></i>' }
 };
 
 async function renderPrimeBuddyModule() {
@@ -2764,7 +2759,7 @@ async function renderPrimeBuddyModule() {
       }
 
       const favMeta = maxFeatKey && BUDDY_FEATURE_META[maxFeatKey];
-      const favBadge = favMeta ? `${favMeta.icon} ${favMeta.name}` : '✨ New';
+      const favBadge = favMeta ? `${favMeta.icon} ${favMeta.name}` : 'New';
 
       return {
         ...p,
@@ -2811,7 +2806,7 @@ async function renderPrimeBuddyModule() {
           }
         }
         const favMeta = maxFeatKey && BUDDY_FEATURE_META[maxFeatKey];
-        const favBadge = favMeta ? `${favMeta.icon} ${favMeta.name}` : '✨ New';
+        const favBadge = favMeta ? `${favMeta.icon} ${favMeta.name}` : 'New';
 
         combinedStudents.push({
           uid: uidStr,
@@ -2866,7 +2861,7 @@ async function renderPrimeBuddyModule() {
     if ($('buddyKpiTopFeature')) {
       if (topFeatCount > 0 && BUDDY_FEATURE_META[topFeatKey]) {
         const topMeta = BUDDY_FEATURE_META[topFeatKey];
-        $('buddyKpiTopFeature').textContent = `${topMeta.icon} ${topMeta.name}`;
+        $('buddyKpiTopFeature').innerHTML = `${topMeta.icon} ${escapeHtml(topMeta.name)}`;
       } else {
         $('buddyKpiTopFeature').textContent = 'None yet';
       }
@@ -2926,11 +2921,11 @@ function renderBuddyFeatureBreakdown(featureTotals, totalFeatureSum) {
   // Sort by count descending
   featureItems.sort((a, b) => b.count - a.count);
 
-  container.innerHTML = featureItems.map(item => `
+  container.innerHTML = featureItems.map((item, idx) => `
     <div class="buddy-feature-bar-row">
       <div class="buddy-feature-bar-meta">
         <div class="buddy-feature-name-group">
-          <span>${item.icon}</span>
+          <span style="font-size:13px;width:16px;text-align:center">${item.icon}</span>
           <span>${escapeHtml(item.name)}</span>
         </div>
         <div class="buddy-feature-counts-group">
@@ -2939,7 +2934,7 @@ function renderBuddyFeatureBreakdown(featureTotals, totalFeatureSum) {
         </div>
       </div>
       <div class="buddy-feature-bar-track">
-        <div class="buddy-feature-bar-fill ${item.fillCls}" style="width:${item.count > 0 ? Math.max(item.pct, 4) : 0}%"></div>
+        <div class="buddy-feature-bar-fill ${idx === 0 && item.count > 0 ? 'lead-fill' : ''}" style="width:${item.count > 0 ? Math.max(item.pct, 4) : 0}%"></div>
       </div>
     </div>
   `).join('');
@@ -3046,7 +3041,7 @@ function renderStatsBuddyStudents(list) {
               <div class="stats-student-title-row">
                 <span class="stats-student-name">${name}</span>
                 <span class="stats-student-username">@${username}</span>
-                <span class="stats-student-sem-badge">SEM ${sem}</span>
+                <span class="stats-student-sem-badge">Sem ${sem}</span>
                 ${statusHtml}
               </div>
               <div class="stats-student-meta">
@@ -3056,7 +3051,7 @@ function renderStatsBuddyStudents(list) {
             </div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px">
-            <span class="buddy-fav-badge"><i class="fa-solid fa-heart" style="font-size:10px"></i> ${escapeHtml(student.favorite_feature || '✨ New')}</span>
+            <span class="buddy-fav-badge"><i class="fa-solid fa-heart" style="font-size:10px"></i> ${escapeHtml(student.favorite_feature || 'New')}</span>
             <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">
               <i class="fa-solid fa-clock-rotate-left"></i> ${lastInteractedStr}
             </span>

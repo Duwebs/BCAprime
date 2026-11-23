@@ -96,8 +96,8 @@
         <div class="topbar-brand">
           <img src="../public/icons/stats-icon-192.png" alt="Stats" class="topbar-brand-img" width="30" height="30">
           <div class="topbar-brand-meta">
-            <span class="topbar-brand-title">BCAPrime <span class="brand-accent">Stats</span></span>
-            <span class="topbar-brand-eyebrow">EXECUTIVE SUITE</span>
+            <span class="topbar-brand-title">BCAPrime Stats</span>
+            <span class="topbar-brand-eyebrow">Executive suite</span>
           </div>
         </div>
       </div>
@@ -106,7 +106,7 @@
       <button type="button" class="live-indicator-pill bca-pressable" id="liveIndicator" onclick="openLiveStudentsModal()" title="View live active students" aria-label="View live active students">
         <span class="live-emerald-dot"></span>
         <span class="live-count tabular-nums" id="activeUserCount">0</span>
-        <span class="live-label">LIVE</span>
+        <span class="live-label">Live</span>
       </button>
 
       <div class="topbar-right">
@@ -129,13 +129,13 @@
           <span>Today</span>
         </button>
         <button type="button" class="range-pill bca-pressable" data-range="7" onclick="setRange(7)">
-          <span>7D</span>
+          <span>7d</span>
         </button>
         <button type="button" class="range-pill bca-pressable" data-range="30" onclick="setRange(30)">
-          <span>30D</span>
+          <span>30d</span>
         </button>
         <button type="button" class="range-pill bca-pressable" data-range="0" onclick="setRange(0)">
-          <span>All Time</span>
+          <span>All time</span>
         </button>
       </div>
     </div>
@@ -152,68 +152,56 @@
           <!-- Card 1: Total Students & Active -->
           <div class="pulse-kpi-card bca-pressable">
             <div class="pulse-kpi-head">
-              <span class="pulse-eyebrow">TOTAL STUDENTS</span>
+              <span class="pulse-eyebrow">Total students</span>
               <span class="pulse-delta delta-up" id="deltaStudents">
-                <i class="fa-solid fa-arrow-trend-up"></i> +14%
+                <i class="fa-solid fa-arrow-trend-up"></i> +14% vs 7d
               </span>
             </div>
             <div class="pulse-metric-row">
               <span class="pulse-big-val tabular-nums" id="kpiTotalStudents">0</span>
-              <span class="pulse-sub-pill" id="kpiActiveToday">0 Active Today</span>
-            </div>
-            <div class="pulse-sparkline-wrap">
-              <canvas id="sparklineStudents" height="28"></canvas>
+              <span class="pulse-sub-pill" id="kpiActiveToday">0 active today</span>
             </div>
           </div>
 
           <!-- Card 2: Notes & PYQs Consumed -->
           <div class="pulse-kpi-card bca-pressable">
             <div class="pulse-kpi-head">
-              <span class="pulse-eyebrow">RESOURCES CONSUMED</span>
+              <span class="pulse-eyebrow">Resources consumed</span>
               <span class="pulse-delta delta-up" id="deltaResources">
-                <i class="fa-solid fa-arrow-trend-up"></i> +28%
+                <i class="fa-solid fa-arrow-trend-up"></i> +28% vs 7d
               </span>
             </div>
             <div class="pulse-metric-row">
               <span class="pulse-big-val tabular-nums" id="kpiTotalResources">0</span>
-              <span class="pulse-sub-pill" id="kpiViewsDlBreakdown">0 Reads • 0 DLs</span>
-            </div>
-            <div class="pulse-sparkline-wrap">
-              <canvas id="sparklineResources" height="28"></canvas>
+              <span class="pulse-sub-pill" id="kpiViewsDlBreakdown">0 reads &bull; 0 downloads</span>
             </div>
           </div>
 
           <!-- Card 3: Code Lab & Mock Tests -->
           <div class="pulse-kpi-card bca-pressable">
             <div class="pulse-kpi-head">
-              <span class="pulse-eyebrow">INTERACTIVE LABS</span>
+              <span class="pulse-eyebrow">Interactive labs</span>
               <span class="pulse-delta delta-up" id="deltaLabs">
-                <i class="fa-solid fa-bolt"></i> +32%
+                <i class="fa-solid fa-bolt"></i> +32% vs 7d
               </span>
             </div>
             <div class="pulse-metric-row">
               <span class="pulse-big-val tabular-nums" id="kpiInteractiveTotal">0</span>
-              <span class="pulse-sub-pill" id="kpiLabsBreakdown">0 Code Runs • 0 Tests</span>
-            </div>
-            <div class="pulse-sparkline-wrap">
-              <canvas id="sparklineLabs" height="28"></canvas>
+              <span class="pulse-sub-pill" id="kpiLabsBreakdown">0 code runs &bull; 0 tests</span>
             </div>
           </div>
 
           <!-- Card 4: Community Activity -->
           <div class="pulse-kpi-card bca-pressable">
             <div class="pulse-kpi-head">
-              <span class="pulse-eyebrow">COMMUNITY & HELP</span>
+              <span class="pulse-eyebrow">Community &amp; help</span>
               <span class="pulse-delta delta-good" id="deltaCommunity">
                 <i class="fa-solid fa-circle-check"></i> High
               </span>
             </div>
             <div class="pulse-metric-row">
               <span class="pulse-big-val tabular-nums" id="kpiCommunityTotal">0</span>
-              <span class="pulse-sub-pill" id="kpiCommunityBreakdown">Requests • Lost/Found</span>
-            </div>
-            <div class="pulse-sparkline-wrap">
-              <canvas id="sparklineCommunity" height="28"></canvas>
+              <span class="pulse-sub-pill" id="kpiCommunityBreakdown">Requests &bull; Lost and found</span>
             </div>
           </div>
 
@@ -222,20 +210,20 @@
         <!-- Secondary Metric Tickers -->
         <div class="ticker-metrics-row">
           <div class="ticker-metric-item">
-            <span class="ticker-label">SEARCHES</span>
+            <span class="ticker-label">Searches</span>
             <span class="ticker-val tabular-nums" id="kpiSearchesCount">0</span>
           </div>
           <div class="ticker-metric-item">
-            <span class="ticker-label">AVG SESSION</span>
+            <span class="ticker-label">Avg session</span>
             <span class="ticker-val tabular-nums" id="kpiAvgDuration">0s</span>
           </div>
           <div class="ticker-metric-item">
-            <span class="ticker-label">GUEST VISITORS</span>
+            <span class="ticker-label">Guest visitors</span>
             <span class="ticker-val tabular-nums" id="kpiGuestCount">0</span>
           </div>
           <div class="ticker-metric-item">
-            <span class="ticker-label">AVG RATING</span>
-            <span class="ticker-val tabular-nums text-emerald" id="kpiRatingAvg">4.9★</span>
+            <span class="ticker-label">Avg rating</span>
+            <span class="ticker-val tabular-nums text-emerald" id="kpiRatingAvg">4.9 / 5.0</span>
           </div>
         </div>
 
@@ -243,12 +231,12 @@
         <div class="suite-card" style="margin-top:14px" id="trafficSourcesCard">
           <div class="suite-card-header">
             <div>
-              <span class="suite-card-eyebrow">ACQUISITION CHANNELS</span>
+              <span class="suite-card-eyebrow">Acquisition channels</span>
               <h2 class="suite-card-title">Traffic &amp; Acquisition Sources</h2>
             </div>
-            <span class="suite-badge-pill" id="trafficSourcesTotalBadge">All Visitors</span>
+            <span class="suite-badge-pill" id="trafficSourcesTotalBadge">All visitors</span>
           </div>
-          <p class="suite-card-desc" style="color:var(--muted);font-size:13px;margin:0 0 12px">Where students &amp; guest visitors discover BCAPrime (WhatsApp, Google, Instagram, Telegram, Direct/PWA).</p>
+          <p class="suite-card-desc" style="color:var(--muted);font-size:13px;margin:0 0 12px">Where students and guests discover BCAPrime (WhatsApp, Google, Instagram, Telegram, Direct/PWA).</p>
           <div class="traffic-source-list" id="trafficSourcesBreakdownList">
             <!-- Populated via renderTrafficSourcesBreakdown() -->
           </div>
@@ -258,16 +246,13 @@
         <div class="suite-card stream-hero-card" style="margin-top:14px" id="liveActivityStreamCard">
           <div class="suite-card-header" style="margin-bottom:10px">
             <div style="display:flex;align-items:center;gap:10px">
-              <div class="live-pulse-large" style="width:14px;height:14px">
-                <span class="live-emerald-ring"></span>
-                <span class="live-emerald-core"></span>
-              </div>
+              <span class="live-emerald-dot" style="width:10px;height:10px"></span>
               <div>
                 <h2 class="suite-card-title" style="margin:0;font-size:17px">Real-Time Activity Audit Stream</h2>
-                <p class="stream-hero-subtitle" style="margin:2px 0 0;font-size:12.5px">Live chronological student &amp; guest event timeline</p>
+                <p class="stream-hero-subtitle" style="margin:2px 0 0;font-size:12.5px">Live chronological student and guest event timeline</p>
               </div>
             </div>
-            <span class="stream-status-tag"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Live Sync</span>
+            <span class="stream-status-tag"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Live sync</span>
           </div>
           <div class="live-event-stream" id="liveStreamFeed">
             <div class="stream-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to live stream...</div>
@@ -283,13 +268,13 @@
         <div class="suite-card" id="guestModeIntelligenceCard">
           <div class="suite-card-head" style="flex-wrap:wrap;gap:12px;margin-bottom:14px">
             <div>
-              <span class="suite-card-eyebrow" style="color:var(--brand)">UNAUTHENTICATED EXPLORERS</span>
-              <h2 class="suite-card-title">Dedicated Guest Mode Intelligence</h2>
+              <span class="suite-card-eyebrow">Guest visitors</span>
+              <h2 class="suite-card-title">Guest mode activity</h2>
               <p class="suite-card-desc">Anonymous visitor volume, active guests, and conversion rate to registered students.</p>
             </div>
             <div class="suite-head-actions">
-              <span class="stream-status-tag" style="background:rgba(0,182,122,0.12);color:#00B67A;border-color:rgba(0,182,122,0.3)">
-                <i class="fa-solid fa-user-secret"></i> Guest Tracking Live
+              <span class="stream-status-tag">
+                <i class="fa-solid fa-user-secret"></i> Tracking active
               </span>
             </div>
           </div>
@@ -299,41 +284,41 @@
             
             <div class="pulse-kpi-card bca-pressable">
               <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">TOTAL GUEST VISITORS</span>
-                <span class="pulse-delta delta-good" id="guestKpiBadge"><i class="fa-solid fa-users"></i> Unique</span>
+                <span class="pulse-eyebrow">Total guests</span>
+                <span class="pulse-delta delta-neutral" id="guestKpiBadge">Unique</span>
               </div>
               <div class="pulse-metric-row">
                 <span class="pulse-big-val tabular-nums" id="guestKpiTotalGuests">0</span>
-                <span class="pulse-sub-pill" id="guestKpiRangeLabel">In Selected Range</span>
+                <span class="pulse-sub-pill" id="guestKpiRangeLabel">In selected range</span>
               </div>
             </div>
 
             <div class="pulse-kpi-card bca-pressable">
               <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">LIVE ACTIVE GUESTS</span>
-                <span class="pulse-delta delta-up"><i class="fa-solid fa-bolt"></i> Right Now</span>
+                <span class="pulse-eyebrow">Live active guests</span>
+                <span class="pulse-delta delta-good"><i class="fa-solid fa-circle text-emerald" style="font-size:7px"></i> Online</span>
               </div>
               <div class="pulse-metric-row">
                 <span class="pulse-big-val tabular-nums text-emerald" id="guestKpiLiveActive">0</span>
-                <span class="pulse-sub-pill">Browsing Right Now</span>
+                <span class="pulse-sub-pill">Active in last 5m</span>
               </div>
             </div>
 
             <div class="pulse-kpi-card bca-pressable">
               <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">GUEST-TO-SIGNUP CONVERSION</span>
-                <span class="pulse-delta delta-good" id="guestConvBadge"><i class="fa-solid fa-user-check"></i> Conversion</span>
+                <span class="pulse-eyebrow">Guest conversion</span>
+                <span class="pulse-delta delta-good" id="guestConvBadge">Sign-ups</span>
               </div>
               <div class="pulse-metric-row">
                 <span class="pulse-big-val tabular-nums" id="guestKpiConvRate">0%</span>
-                <span class="pulse-sub-pill" id="guestKpiConvCount">0 Converted</span>
+                <span class="pulse-sub-pill" id="guestKpiConvCount">0 registered</span>
               </div>
             </div>
 
             <div class="pulse-kpi-card bca-pressable">
               <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">TOP GUEST RESOURCE</span>
-                <span class="pulse-delta delta-up"><i class="fa-solid fa-fire"></i> Most Viewed</span>
+                <span class="pulse-eyebrow">Top guest resource</span>
+                <span class="pulse-delta delta-neutral">Most viewed</span>
               </div>
               <div class="pulse-metric-row">
                 <span class="pulse-big-val" id="guestKpiTopResource" style="font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">None</span>
@@ -350,8 +335,8 @@
             <div class="suite-card" style="background:var(--surface2)">
               <div class="suite-card-header">
                 <div>
-                  <span class="suite-card-eyebrow">GUEST CONTENT AFFINITY</span>
-                  <h3 class="suite-card-title" style="font-size:16px">Top Content Read by Guests</h3>
+                  <span class="suite-card-eyebrow">Content affinity</span>
+                  <h3 class="suite-card-title" style="font-size:16px">Top content read by guests</h3>
                 </div>
               </div>
               <div class="traffic-source-list" id="guestTopResourcesList"></div>
@@ -361,8 +346,8 @@
             <div class="suite-card" style="background:var(--surface2)">
               <div class="suite-card-header">
                 <div>
-                  <span class="suite-card-eyebrow">GUEST CHANNELS &amp; HARDWARE</span>
-                  <h3 class="suite-card-title" style="font-size:16px">Guest Traffic &amp; Devices</h3>
+                  <span class="suite-card-eyebrow">Channels and devices</span>
+                  <h3 class="suite-card-title" style="font-size:16px">Guest traffic &amp; devices</h3>
                 </div>
               </div>
               <div class="traffic-source-list" id="guestTrafficSourcesList"></div>
@@ -377,13 +362,13 @@
         <div class="suite-card" style="margin-top:16px" id="hardwareIntelligenceCard">
           <div class="suite-card-head" style="flex-wrap:wrap;gap:12px;margin-bottom:14px">
             <div>
-              <span class="suite-card-eyebrow">MATOMO-GRADE HARDWARE TELEMETRY</span>
-              <h2 class="suite-card-title">Devices &amp; Exact Phone Models</h2>
-              <p class="suite-card-desc">High-Entropy Client Hints smartphone model detection, OS distribution, and PWA adoption.</p>
+              <span class="suite-card-eyebrow">Hardware telemetry</span>
+              <h2 class="suite-card-title">Devices and phone models</h2>
+              <p class="suite-card-desc">Client hints smartphone model detection, OS distribution, and PWA adoption.</p>
             </div>
             <div class="suite-head-actions" style="display:flex;gap:8px;flex-wrap:wrap">
               <span class="suite-badge-pill" id="deviceTopBrandBadge"><i class="fa-solid fa-mobile"></i> Top: Samsung</span>
-              <span class="suite-badge-pill" id="devicePwaRateBadge" style="background:rgba(0,182,122,0.14);color:#00B67A;border-color:rgba(0,182,122,0.3)">
+              <span class="suite-badge-pill" id="devicePwaRateBadge">
                 <i class="fa-solid fa-download"></i> PWA: 0%
               </span>
               <span class="suite-badge-pill" id="deviceMobileRatioBadge"><i class="fa-solid fa-chart-pie"></i> Mobile: 0%</span>
@@ -394,7 +379,7 @@
           <div style="margin-bottom:20px">
             <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 10px;color:var(--ink);font-weight:600">
               <i class="fa-solid fa-mobile-screen" style="color:var(--brand);margin-right:6px"></i>
-              Popular Smartphone Models (Students &amp; Guests)
+              Popular smartphone models (students &amp; guests)
             </h3>
             <div class="device-model-list" id="phoneModelsBreakdownList">
               <!-- Rendered via renderPhoneModelsBreakdown() -->
@@ -407,8 +392,8 @@
             <div class="suite-card" style="background:var(--surface2)">
               <div class="suite-card-header">
                 <div>
-                  <span class="suite-card-eyebrow">OPERATING SYSTEMS</span>
-                  <h3 class="suite-card-title" style="font-size:15px">OS &amp; Version Spread</h3>
+                  <span class="suite-card-eyebrow">Operating systems</span>
+                  <h3 class="suite-card-title" style="font-size:15px">OS spread</h3>
                 </div>
               </div>
               <div class="traffic-source-list" id="osDistributionList"></div>
@@ -417,8 +402,8 @@
             <div class="suite-card" style="background:var(--surface2)">
               <div class="suite-card-header">
                 <div>
-                  <span class="suite-card-eyebrow">WEB BROWSERS</span>
-                  <h3 class="suite-card-title" style="font-size:15px">Browser Distribution</h3>
+                  <span class="suite-card-eyebrow">Web browsers</span>
+                  <h3 class="suite-card-title" style="font-size:15px">Browser distribution</h3>
                 </div>
               </div>
               <div class="traffic-source-list" id="browserDistributionList"></div>
@@ -440,8 +425,8 @@
           <div class="suite-card">
             <div class="suite-card-header">
               <div>
-                <span class="suite-card-eyebrow">SEMESTER DISTRIBUTION</span>
-                <h2 class="suite-card-title">Active Semesters (1 to 6)</h2>
+                <span class="suite-card-eyebrow">Distribution</span>
+                <h2 class="suite-card-title">Active semesters (1 to 6)</h2>
               </div>
             </div>
             <div class="sem-dist-list" id="semDistList">
@@ -453,8 +438,8 @@
           <div class="suite-card">
             <div class="suite-card-header">
               <div>
-                <span class="suite-card-eyebrow">CAMPUS REACH</span>
-                <h2 class="suite-card-title">Top Active Colleges</h2>
+                <span class="suite-card-eyebrow">Campuses</span>
+                <h2 class="suite-card-title">Top active colleges</h2>
               </div>
             </div>
             <div class="college-leaderboard" id="collegeLeaderboard">
@@ -468,10 +453,10 @@
         <div class="suite-card">
           <div class="suite-card-header">
             <div>
-              <span class="suite-card-eyebrow">CURRICULUM POPULARITY</span>
-              <h2 class="suite-card-title">Top Searched &amp; Studied Subjects</h2>
+              <span class="suite-card-eyebrow">Curriculum</span>
+              <h2 class="suite-card-title">Top searched &amp; studied subjects</h2>
             </div>
-            <span class="suite-badge-pill">Ranked by Demand</span>
+            <span class="suite-badge-pill">Ranked by demand</span>
           </div>
           <div class="subject-demand-list" id="topSubjectsList">
             <!-- Progress-bar ranked items -->
@@ -482,12 +467,12 @@
         <div class="suite-card content-gaps-card">
           <div class="suite-card-header">
             <div>
-              <span class="suite-card-eyebrow" style="color:var(--danger)">CONTENT GAPS &amp; MISSED DEMAND</span>
-              <h2 class="suite-card-title">Zero-Result Searches</h2>
+              <span class="suite-card-eyebrow">Search gaps</span>
+              <h2 class="suite-card-title">Zero-result searches</h2>
             </div>
-            <span class="badge-alert-count" id="zeroSearchCountBadge">0 Gaps</span>
+            <span class="badge-alert-count tabular-nums" id="zeroSearchCountBadge">0 gaps</span>
           </div>
-          <p class="content-gaps-desc">Topics students searched for that returned 0 results. Use this list to prioritize upcoming notes and PYQ uploads.</p>
+          <p class="content-gaps-desc">Topics students searched for that returned zero results. Prioritize these for upcoming study uploads.</p>
           <div class="gaps-pill-wrap" id="zeroResultPills">
             <!-- Clickable search pills with hit counts -->
           </div>
@@ -497,8 +482,8 @@
         <div class="suite-card">
           <div class="suite-card-header">
             <div>
-              <span class="suite-card-eyebrow">LEADERBOARD</span>
-              <h2 class="suite-card-title">Top Study Resources</h2>
+              <span class="suite-card-eyebrow">Resources</span>
+              <h2 class="suite-card-title">Top study resources</h2>
             </div>
           </div>
           <div class="table-wrap">
@@ -508,7 +493,7 @@
                   <th>Resource</th>
                   <th>Reads</th>
                   <th>Downloads</th>
-                  <th>Conv %</th>
+                  <th>Conversion</th>
                 </tr>
               </thead>
               <tbody id="topResourcesBody"></tbody>
@@ -525,41 +510,41 @@
         <div class="suite-card">
           <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
             <div>
-              <span class="suite-card-eyebrow">STUDENT 360° DIRECTORY &amp; DRILL-DOWN</span>
-              <h2 class="suite-card-title">Student 360° A-to-Z Telemetry Suite</h2>
-              <p class="suite-card-desc">Deep reading history, downloads, device model, traffic source, and PrimeBuddy companion stats per student.</p>
+              <span class="suite-card-eyebrow">Student directory</span>
+              <h2 class="suite-card-title">Student telemetry directory</h2>
+              <p class="suite-card-desc">Reading history, downloads, device model, traffic source, and PrimeBuddy companion activity.</p>
             </div>
             <div class="suite-head-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, college, or device model…" oninput="filterStatsStudents()" style="min-width:260px">
               <select class="stats-select" id="statsStudentCollegeFilter" onchange="filterStatsStudents()">
-                <option value="all">All Colleges</option>
+                <option value="all">All colleges</option>
               </select>
-              <span class="stats-count-badge tabular-nums" id="statsStudentCountBadge">0 Students</span>
+              <span class="stats-count-badge tabular-nums" id="statsStudentCountBadge">0 students</span>
             </div>
           </div>
 
           <!-- Semester Filter Pills -->
           <div class="stats-filter-pills" id="statsSemFilterPills" role="tablist" aria-label="Semester filter pills" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px">
             <button type="button" class="range-pill active bca-pressable" data-sem="all" onclick="setStatsStudentSemFilter('all')">
-              <span>All Semesters</span>
+              <span>All semesters</span>
             </button>
             <button type="button" class="range-pill bca-pressable" data-sem="1" onclick="setStatsStudentSemFilter('1')">
-              <span>SEM 1</span>
+              <span>Sem 1</span>
             </button>
             <button type="button" class="range-pill bca-pressable" data-sem="2" onclick="setStatsStudentSemFilter('2')">
-              <span>SEM 2</span>
+              <span>Sem 2</span>
             </button>
             <button type="button" class="range-pill bca-pressable" data-sem="3" onclick="setStatsStudentSemFilter('3')">
-              <span>SEM 3</span>
+              <span>Sem 3</span>
             </button>
             <button type="button" class="range-pill bca-pressable" data-sem="4" onclick="setStatsStudentSemFilter('4')">
-              <span>SEM 4</span>
+              <span>Sem 4</span>
             </button>
             <button type="button" class="range-pill bca-pressable" data-sem="5" onclick="setStatsStudentSemFilter('5')">
-              <span>SEM 5</span>
+              <span>Sem 5</span>
             </button>
             <button type="button" class="range-pill bca-pressable" data-sem="6" onclick="setStatsStudentSemFilter('6')">
-              <span>SEM 6</span>
+              <span>Sem 6</span>
             </button>
           </div>
 
@@ -608,8 +593,8 @@
           <span>Students</span>
         </button>
         <div class="inspector-header-title">
-          <span class="inspector-eyebrow">STUDENT TELEMETRY</span>
-          <span class="inspector-student-header-name" id="inspHeaderStudentName">Telemetry Inspector</span>
+          <span class="inspector-eyebrow">Student telemetry</span>
+          <span class="inspector-student-header-name" id="inspHeaderStudentName">Student details</span>
         </div>
         <button type="button" class="inspector-close-btn bca-pressable" onclick="closeStudentInspector()" aria-label="Close">
           &times;
@@ -634,10 +619,10 @@
         <div class="live-sheet-title-col">
           <div class="live-sheet-eyebrow">
             <span class="live-emerald-dot sm"></span>
-            <span>REALTIME TELEMETRY</span>
+            <span>Live telemetry</span>
           </div>
-          <h2 class="live-sheet-title">Students Live Right Now <span class="live-sheet-count-tag tabular-nums" id="liveModalCountBadge">0 Online</span></h2>
-          <p class="live-sheet-sub">Students active on BCAPrime right now &bull; Tap any card to inspect telemetry</p>
+          <h2 class="live-sheet-title">Active students <span class="live-sheet-count-tag tabular-nums" id="liveModalCountBadge">0 online</span></h2>
+          <p class="live-sheet-sub">Students active in the last 5 minutes &bull; Tap any card to inspect</p>
         </div>
         <button type="button" class="live-sheet-close-btn bca-pressable" onclick="closeLiveStudentsModal()" aria-label="Close live sheet">
           <i class="fa-solid fa-xmark"></i>

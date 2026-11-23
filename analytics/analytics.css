@@ -165,12 +165,12 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .eyebrow {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--brand);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
 }
 
 .auth-logo {
@@ -198,11 +198,11 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .auth-form label {
-  font-family: var(--font-display);
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--muted);
   display: flex;
   flex-direction: column;
@@ -235,11 +235,11 @@ h1, h2, h3, h4, .font-heading {
   justify-content: center;
   gap: 8px;
   border-radius: var(--radius-sm);
-  font-family: var(--font-display);
-  font-size: 13.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
   border: none;
   cursor: pointer;
   text-decoration: none;
@@ -397,10 +397,10 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .topbar-back-text {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
   display: none;
 }
 
@@ -601,11 +601,11 @@ h1, h2, h3, h4, .font-heading {
   background: var(--surface2);
   border: 1px solid var(--line);
   color: var(--muted);
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   display: grid;
   place-items: center;
   cursor: pointer;
@@ -645,11 +645,11 @@ h1, h2, h3, h4, .font-heading {
   background: transparent;
   border: none;
   color: var(--muted);
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -751,11 +751,11 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .pulse-eyebrow {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -857,11 +857,11 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .ticker-label {
-  font-family: var(--font-display);
-  font-size: 9.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -901,12 +901,12 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .suite-card-eyebrow {
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--brand);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
   display: block;
 }
 
@@ -917,13 +917,13 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .suite-badge-pill {
-  font-family: var(--font-display);
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface2);
   color: var(--muted);
   border: 1px solid var(--line);
@@ -1195,11 +1195,11 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .data-table th {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--muted);
   background: var(--surface2);
 }
@@ -1370,11 +1370,11 @@ h1, h2, h3, h4, .font-heading {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   cursor: pointer;
   transition: color var(--anim-duration) var(--anim-curve);
 }
@@ -1420,15 +1420,15 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .stats-count-badge {
-  font-family: var(--font-display);
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 5px 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 4px 10px;
   background: var(--surface2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -1670,12 +1670,12 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .inspector-eyebrow {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--brand);
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 11.5px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--muted);
 }
 
 .inspector-student-header-name {
@@ -1803,11 +1803,11 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .inspector-pulse-label {
-  font-family: var(--font-display);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--muted);
 }
 
@@ -1923,10 +1923,10 @@ h1, h2, h3, h4, .font-heading {
 .inspector-tag {
   font-family: var(--font-mono);
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 500;
   padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
+  border-radius: var(--radius-xs);
+  text-transform: none;
   white-space: nowrap;
 }
 
@@ -2056,12 +2056,12 @@ h1, h2, h3, h4, .font-heading {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: normal;
   color: var(--emerald);
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .live-emerald-dot.sm {
@@ -2388,9 +2388,9 @@ h1, h2, h3, h4, .font-heading {
 
 .buddy-feature-bar-track {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.06);
-  border-radius: var(--radius-full);
+  border-radius: 4px;
   overflow: hidden;
   position: relative;
 }
@@ -2401,31 +2401,18 @@ h1, h2, h3, h4, .font-heading {
 
 .buddy-feature-bar-fill {
   height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.6s var(--anim-curve);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.22);
+  transition: width 0.4s var(--anim-curve);
 }
 
-/* Feature specific gradient fills */
-.fill-focus {
-  background: linear-gradient(90deg, #0284c7, #38bdf8);
+[data-theme="light"] .buddy-feature-bar-fill {
+  background: rgba(15, 23, 42, 0.18);
 }
-.fill-spin_wheee {
-  background: linear-gradient(90deg, #d97706, #fbbf24);
-}
-.fill-dance {
-  background: linear-gradient(90deg, #db2777, #f472b6);
-}
-.fill-love_tap {
-  background: linear-gradient(90deg, #e11d48, #fb7185);
-}
-.fill-fling {
-  background: linear-gradient(90deg, #059669, #34d399);
-}
-.fill-nap {
-  background: linear-gradient(90deg, #7c3aed, #a78bfa);
-}
-.fill-hide {
-  background: linear-gradient(90deg, #475569, #94a3b8);
+
+.buddy-feature-bar-row.is-lead .buddy-feature-bar-fill,
+.buddy-feature-bar-fill.lead-fill {
+  background: var(--brand);
 }
 
 /* Student PrimeBuddy Status & Metrics */
@@ -2433,13 +2420,13 @@ h1, h2, h3, h4, .font-heading {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 3px 9px;
-  border-radius: var(--radius-full);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
   font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: 500;
+  letter-spacing: normal;
+  text-transform: none;
   flex-shrink: 0;
 }
 
@@ -2506,10 +2493,10 @@ h1, h2, h3, h4, .font-heading {
   background: rgba(56, 189, 248, 0.12);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.25);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-xs);
   font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
   max-width: 170px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2524,10 +2511,10 @@ h1, h2, h3, h4, .font-heading {
   background: rgba(0, 182, 122, 0.12);
   color: #00B67A;
   border: 1px solid rgba(0, 182, 122, 0.25);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-xs);
   font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .traffic-source-list {
@@ -2692,12 +2679,12 @@ h1, h2, h3, h4, .font-heading {
 }
 
 .inspector-hardware-label {
-  font-family: var(--font-display);
-  font-size: 10px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .inspector-hardware-val {
