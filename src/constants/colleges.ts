@@ -198,11 +198,22 @@ export function formatCollegeName(codeOrId: string, customList: [string, string]
   if (!codeOrId) return 'All Colleges';
   const c = String(codeOrId).toLowerCase().trim();
   if (c === 'all') return 'All Colleges';
-  if (c === 'other') return 'Other Colleges';
+  if (c === 'other') return 'Other University';
   if (COLLEGE_NAMES_MAP[c]) return COLLEGE_NAMES_MAP[c];
-  const foundInCustom = customList.find(item => item[0].toLowerCase() === c);
+  const cleanCode = c.replace(/^custom-/, '');
+  if (COLLEGE_NAMES_MAP[cleanCode]) return COLLEGE_NAMES_MAP[cleanCode];
+  const foundInCustom = customList.find(item => {
+    const id = item[0].toLowerCase();
+    return id === c || id === cleanCode;
+  });
   if (foundInCustom) return foundInCustom[1];
-  return codeOrId.replace(/^custom-/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  // Filter out raw timestamp or numeric IDs (e.g. 1793989321691)
+  if (/^\d{8,}$/.test(cleanCode) || /^custom-\d+$/.test(c) || /^\d+$/.test(cleanCode)) {
+    return 'Other Affiliated College';
+  }
+  const formatted = cleanCode.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  if (/^\d+$/.test(formatted.trim())) return 'Other Affiliated College';
+  return formatted || 'Other University';
 }
 
 /**

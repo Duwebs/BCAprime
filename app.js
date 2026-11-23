@@ -372,7 +372,240 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
     const visitorId=(()=>{try{let v=localStorage.getItem('bca-vid');if(!v){v='v-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);localStorage.setItem('bca-vid',v)}return v}catch(e){return 'anon'}})();
     const analyticsSessionId=(()=>{try{let s=sessionStorage.getItem('bca-sid');if(!s){s='s-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);sessionStorage.setItem('bca-sid',s)}return s}catch(e){return 'sess'}})();
     const sessionStartTs=Date.now();
-    function parseDeviceInfo(){const ua=navigator.userAgent;const os=/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Mac OS/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Unknown';const tablet=/iPad|Tablet/i.test(ua);const mobile=/Mobi|Android|iPhone/i.test(ua);const browser=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/SamsungBrowser/.test(ua)?'Samsung Internet':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':/Firefox\//.test(ua)?'Firefox':'Other';return{device:tablet?'Tablet':mobile?'Mobile':'Desktop',os,browser}}
+    function detectTrafficSource() {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const utm = (urlParams.get('utm_source') || urlParams.get('source') || urlParams.get('ref') || '').toLowerCase();
+        if (utm) {
+          if (utm.includes('whatsapp') || utm === 'wa') return 'WhatsApp';
+          if (utm.includes('google')) return 'Google';
+          if (utm.includes('instagram') || utm === 'ig') return 'Instagram';
+          if (utm.includes('telegram') || utm === 'tg') return 'Telegram';
+          if (utm.includes('youtube') || utm === 'yt') return 'YouTube';
+          if (utm.includes('linkedin')) return 'LinkedIn';
+          if (utm.includes('pwa') || utm.includes('homescreen')) return 'Direct/PWA';
+        }
+        const ref = (document.referrer || '').toLowerCase();
+        if (ref) {
+          if (ref.includes('whatsapp') || ref.includes('api.whatsapp.com')) return 'WhatsApp';
+          if (ref.includes('google.co') || ref.includes('google.com')) return 'Google';
+          if (ref.includes('instagram.com') || ref.includes('l.instagram.com')) return 'Instagram';
+          if (ref.includes('telegram.org') || ref.includes('t.me')) return 'Telegram';
+          if (ref.includes('youtube.com') || ref.includes('youtu.be')) return 'YouTube';
+          if (ref.includes('linkedin.com')) return 'LinkedIn';
+          if (ref.includes('twitter.com') || ref.includes('t.co') || ref.includes('x.com')) return 'X (Twitter)';
+          if (ref.includes('facebook.com') || ref.includes('fb.com')) return 'Facebook';
+        }
+        const isPwa = window.matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
+        if (isPwa) return 'Direct/PWA';
+        return 'Direct';
+      } catch (_e) {
+        return 'Direct';
+      }
+    }
+
+    function formatExactPhoneModel(rawModel, ua) {
+      if (!rawModel && !ua) return { brand: 'Generic', model: 'Generic Device' };
+      const m = String(rawModel || '').trim();
+      const u = String(ua || '').toLowerCase();
+
+      // Samsung Galaxy models
+      if (/^SM-[A-Z0-9]+/i.test(m) || /samsung/i.test(m) || /samsung/i.test(u)) {
+        const code = m.toUpperCase();
+        let name = 'Galaxy';
+        if (/SM-A047/i.test(code)) name = 'Galaxy A04s';
+        else if (/SM-A146/i.test(code)) name = 'Galaxy A14 5G';
+        else if (/SM-A156/i.test(code)) name = 'Galaxy A15 5G';
+        else if (/SM-A346/i.test(code)) name = 'Galaxy A34 5G';
+        else if (/SM-A546/i.test(code)) name = 'Galaxy A54 5G';
+        else if (/SM-M146/i.test(code)) name = 'Galaxy M14 5G';
+        else if (/SM-M346/i.test(code)) name = 'Galaxy M34 5G';
+        else if (/SM-S911/i.test(code)) name = 'Galaxy S23';
+        else if (/SM-S918/i.test(code)) name = 'Galaxy S23 Ultra';
+        else if (/SM-S928/i.test(code)) name = 'Galaxy S24 Ultra';
+        else if (/SM-F/i.test(code)) name = 'Galaxy Fold/Flip';
+        else if (/SM-A/i.test(code)) name = 'Galaxy A-Series';
+        else if (/SM-M/i.test(code)) name = 'Galaxy M-Series';
+        else if (/SM-S/i.test(code)) name = 'Galaxy S-Series';
+        return { brand: 'Samsung', model: code ? `Samsung ${code} (${name})` : `Samsung ${name}` };
+      }
+
+      // Xiaomi / Redmi / Poco
+      if (/redmi/i.test(m) || /redmi/i.test(u) || /220111|23021|23076/i.test(m)) {
+        return { brand: 'Xiaomi', model: m ? `Xiaomi ${m}` : 'Xiaomi Redmi' };
+      }
+      if (/poco/i.test(m) || /poco/i.test(u)) {
+        return { brand: 'Poco', model: m ? `Poco ${m}` : 'Poco Phone' };
+      }
+      if (/xiaomi/i.test(m) || /mi\s+/i.test(m)) {
+        return { brand: 'Xiaomi', model: m ? `Xiaomi ${m}` : 'Xiaomi Phone' };
+      }
+
+      // Realme
+      if (/RMX\d+/i.test(m) || /realme/i.test(m) || /realme/i.test(u)) {
+        return { brand: 'Realme', model: m.toUpperCase().includes('REALME') ? m : `Realme ${m}` };
+      }
+
+      // OnePlus
+      if (/oneplus|cph\d+|kb200|be202/i.test(m) || /oneplus/i.test(u)) {
+        return { brand: 'OnePlus', model: m ? `OnePlus ${m}` : 'OnePlus Phone' };
+      }
+
+      // Vivo / iQOO
+      if (/vivo|v2\d{3}|iqoo/i.test(m) || /vivo/i.test(u)) {
+        const isIqoo = /iqoo/i.test(m) || /iqoo/i.test(u);
+        return { brand: isIqoo ? 'iQOO' : 'Vivo', model: m ? `${isIqoo ? 'iQOO' : 'Vivo'} ${m}` : 'Vivo Phone' };
+      }
+
+      // Oppo
+      if (/oppo|cph/i.test(m) || /oppo/i.test(u)) {
+        return { brand: 'Oppo', model: m ? `Oppo ${m}` : 'Oppo Phone' };
+      }
+
+      // Google Pixel
+      if (/pixel/i.test(m) || /pixel/i.test(u)) {
+        return { brand: 'Google', model: m ? `Google ${m}` : 'Google Pixel' };
+      }
+
+      // Motorola
+      if (/moto/i.test(m) || /motorola/i.test(u)) {
+        return { brand: 'Motorola', model: m ? `Motorola ${m}` : 'Motorola Moto' };
+      }
+
+      // Apple
+      if (/iphone/i.test(m) || /iphone/i.test(u)) {
+        return { brand: 'Apple', model: 'Apple iPhone' };
+      }
+      if (/ipad/i.test(m) || /ipad/i.test(u)) {
+        return { brand: 'Apple', model: 'Apple iPad' };
+      }
+      if (/macintosh|mac os/i.test(u)) {
+        return { brand: 'Apple', model: 'Apple Mac' };
+      }
+      if (/windows/i.test(u)) {
+        return { brand: 'PC', model: 'Windows PC / Laptop' };
+      }
+
+      return { brand: m ? m.split(' ')[0] : 'Generic', model: m || 'Android Device' };
+    }
+
+    let currentDeviceMetadata = null;
+    async function initDeviceMetadata() {
+      if (!isStudentAppRoute()) return;
+      const ua = navigator.userAgent || '';
+      const isPwa = window.matchMedia('(display-mode: standalone)').matches || Boolean(navigator.standalone);
+      const screenSize = `${window.screen?.width || window.innerWidth}x${window.screen?.height || window.innerHeight}`;
+
+      let deviceType = /iPad|Tablet/i.test(ua) ? 'Tablet' : /Mobi|Android|iPhone/i.test(ua) ? 'Mobile' : 'Desktop';
+      let os = /Android/i.test(ua) ? 'Android' : /iPhone|iPad|iPod/i.test(ua) ? 'iOS' : /Windows/i.test(ua) ? 'Windows' : /Mac OS/i.test(ua) ? 'macOS' : /Linux/i.test(ua) ? 'Linux' : 'Unknown';
+      let browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : /Firefox\//.test(ua) ? 'Firefox' : 'Other';
+      let rawModel = '';
+
+      // High-Entropy Client Hints API (Chrome / Edge / Opera on Android)
+      if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+        try {
+          const hints = await navigator.userAgentData.getHighEntropyValues(['model', 'platform', 'platformVersion']);
+          if (hints.model) rawModel = hints.model;
+          if (hints.platform && /android/i.test(hints.platform)) {
+            const v = hints.platformVersion ? parseInt(hints.platformVersion, 10) : 0;
+            if (v) os = `Android ${v}`;
+          }
+        } catch (_e) {}
+      }
+
+      if (!rawModel && /Android/i.test(ua)) {
+        const m = ua.match(/Android[^;]+;\s*([^;)]+)\s*(?:Build|[;)])/i);
+        if (m && m[1]) rawModel = m[1].trim();
+      }
+
+      const formatted = formatExactPhoneModel(rawModel, ua);
+      const traffic = detectTrafficSource();
+
+      currentDeviceMetadata = {
+        deviceType,
+        device: deviceType,
+        os,
+        browser,
+        brand: formatted.brand,
+        model: formatted.model,
+        isPwa,
+        screenSize,
+        trafficSource: traffic,
+        referrer: document.referrer || ''
+      };
+      window.__bcaDeviceMetadata = currentDeviceMetadata;
+
+      // Sync to student profile if authenticated
+      syncDeviceToStudentProfile();
+
+      // Log/update guest session if guest
+      syncGuestSession();
+    }
+
+    async function syncDeviceToStudentProfile() {
+      if (!isStudentAppRoute() || !supabaseClient || !currentDeviceMetadata) return;
+      const uid = (accountSession && accountSession.uid) || (typeof accountUid === 'function' ? accountUid() : '');
+      if (!uid) return;
+      try {
+        await supabaseClient.from('user_profiles').update({
+          device_brand: currentDeviceMetadata.brand,
+          device_model: currentDeviceMetadata.model,
+          os: currentDeviceMetadata.os,
+          browser: currentDeviceMetadata.browser,
+          is_pwa: currentDeviceMetadata.isPwa,
+          traffic_source: currentDeviceMetadata.trafficSource,
+          screen_size: currentDeviceMetadata.screenSize,
+          last_active_at: new Date().toISOString()
+        }).eq('uid', uid);
+      } catch (_e) {}
+    }
+
+    async function syncGuestSession() {
+      if (!isStudentAppRoute() || !supabaseClient || !currentDeviceMetadata) return;
+      const uid = (accountSession && accountSession.uid) || (typeof accountUid === 'function' ? accountUid() : '');
+      if (uid) return; // Don't log as guest if signed in
+      try {
+        await supabaseClient.from('guest_sessions').upsert({
+          visitor_id: visitorId,
+          session_id: analyticsSessionId,
+          device_type: currentDeviceMetadata.deviceType,
+          brand: currentDeviceMetadata.brand,
+          model: currentDeviceMetadata.model,
+          os: currentDeviceMetadata.os,
+          browser: currentDeviceMetadata.browser,
+          is_pwa: currentDeviceMetadata.isPwa,
+          screen_size: currentDeviceMetadata.screenSize,
+          traffic_source: currentDeviceMetadata.trafficSource,
+          referrer: currentDeviceMetadata.referrer,
+          last_active_at: new Date().toISOString()
+        }, { onConflict: 'visitor_id' });
+      } catch (_e) {}
+    }
+
+    async function markGuestConverted(uid) {
+      if (!isStudentAppRoute() || !supabaseClient || !uid || !visitorId) return;
+      try {
+        await supabaseClient.from('guest_sessions').update({
+          converted_to_user_id: uid,
+          converted_at: new Date().toISOString()
+        }).eq('visitor_id', visitorId);
+      } catch (_e) {}
+    }
+    window.__bcaMarkGuestConverted = markGuestConverted;
+
+    function parseDeviceInfo(){
+      if (currentDeviceMetadata) return currentDeviceMetadata;
+      const ua=navigator.userAgent;
+      const os=/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)?'iOS':/Windows/i.test(ua)?'Windows':/Mac OS/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'Unknown';
+      const tablet=/iPad|Tablet/i.test(ua);
+      const mobile=/Mobi|Android|iPhone/i.test(ua);
+      const browser=/Edg\//.test(ua)?'Edge':/OPR\//.test(ua)?'Opera':/SamsungBrowser/.test(ua)?'Samsung Internet':/Chrome\//.test(ua)?'Chrome':/Safari\//.test(ua)?'Safari':/Firefox\//.test(ua)?'Firefox':'Other';
+      return{device:tablet?'Tablet':mobile?'Mobile':'Desktop',deviceType:tablet?'Tablet':mobile?'Mobile':'Desktop',os,browser,brand:'Generic',model:'Generic Device',isPwa:false,trafficSource:'Direct',screenSize:''};
+    }
+
+    // Initialize rich device and guest telemetry
+    setTimeout(initDeviceMetadata, 150);
+
     function trackEvent(type,data){
       if(!isStudentAppRoute()) return;
       data=data||{};
@@ -384,7 +617,29 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
         let name=accountSession&&accountSession.displayName?accountSession.displayName:(data.uploader||'');
         if(!uid){try{if(typeof accountUid==='function'){uid=accountUid()||'';}}catch(_e){}}
         if(!uid){try{const lsKeys=Object.keys(localStorage);const tokenKey=lsKeys.find(k=>k.includes('-auth-token')&&!k.includes('bca-admin')&&!k.includes('bca-analytics'));if(tokenKey){const tokenObj=JSON.parse(localStorage.getItem(tokenKey)||'{}');const sUser=tokenObj?.user||tokenObj?.currentSession?.user;if(sUser?.id){uid=sUser.id;if(!email)email=sUser.email||'';if(!name)name=sUser.user_metadata?.full_name||sUser.user_metadata?.name||'';}}}catch(_e){}}
-        supabaseClient.from('analytics_events').insert({event_type:type,visitor_id:visitorId,session_id:analyticsSessionId,user_id:uid,user_email:email,user_name:name,resource_title:data.title||'',resource_type:data.type||'',subject:data.subject||'',semester:data.sem?Number(data.sem):null,duration_seconds:data.seconds!=null?Math.round(data.seconds):null,results_count:data.results!=null&&data.results!==''?Number(data.results):null,device:dev.device,os:dev.os,browser:dev.browser,page_path:location.pathname}).then(()=>{},()=>{});
+        supabaseClient.from('analytics_events').insert({
+          event_type:type,
+          visitor_id:visitorId,
+          session_id:analyticsSessionId,
+          user_id:uid,
+          user_email:email,
+          user_name:name,
+          resource_title:data.title||'',
+          resource_type:data.type||'',
+          subject:data.subject||'',
+          semester:data.sem?Number(data.sem):null,
+          duration_seconds:data.seconds!=null?Math.round(data.seconds):null,
+          results_count:data.results!=null&&data.results!==''?Number(data.results):null,
+          device:dev.device,
+          os:dev.os,
+          browser:dev.browser,
+          brand:dev.brand,
+          model:dev.model,
+          is_pwa:Boolean(dev.isPwa),
+          traffic_source:dev.trafficSource,
+          screen_size:dev.screenSize,
+          page_path:location.pathname
+        }).then(()=>{},()=>{});
       }catch(error){}
     }
     window.addEventListener('pagehide',()=>{try{trackEvent('session_end',{seconds:(Date.now()-sessionStartTs)/1000})}catch(error){}});

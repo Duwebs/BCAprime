@@ -138,34 +138,6 @@
           <span>All Time</span>
         </button>
       </div>
-
-      <!-- Quick Section Segmented Tab Bar -->
-      <div class="section-segmented-bar" role="tablist" aria-label="Dashboard views">
-        <button type="button" class="seg-tab active bca-pressable" data-tab="pulse" onclick="switchSuiteTab('pulse')">
-          <i class="fa-solid fa-heart-pulse"></i>
-          <span>Pulse</span>
-        </button>
-        <button type="button" class="seg-tab bca-pressable" data-tab="engagement" onclick="switchSuiteTab('engagement')">
-          <i class="fa-solid fa-chart-line"></i>
-          <span>Engagement</span>
-        </button>
-        <button type="button" class="seg-tab bca-pressable" data-tab="academic" onclick="switchSuiteTab('academic')">
-          <i class="fa-solid fa-graduation-cap"></i>
-          <span>Academic Intel</span>
-        </button>
-        <button type="button" class="seg-tab bca-pressable" data-tab="primebuddy" onclick="switchSuiteTab('primebuddy')">
-          <i class="fa-solid fa-crown" style="color:#fbbf24"></i>
-          <span>PrimeBuddy</span>
-        </button>
-        <button type="button" class="seg-tab bca-pressable" data-tab="livefeed" onclick="switchSuiteTab('livefeed')">
-          <i class="fa-solid fa-stream"></i>
-          <span>Stream</span>
-        </button>
-        <button type="button" class="seg-tab bca-pressable" data-tab="students" onclick="switchSuiteTab('students')">
-          <i class="fa-solid fa-user-graduate"></i>
-          <span>Students</span>
-        </button>
-      </div>
     </div>
 
     <!-- Main Content Container -->
@@ -267,59 +239,194 @@
           </div>
         </div>
 
+        <!-- Traffic & Acquisition Sources Card -->
+        <div class="suite-card" style="margin-top:14px" id="trafficSourcesCard">
+          <div class="suite-card-header">
+            <div>
+              <span class="suite-card-eyebrow">ACQUISITION CHANNELS</span>
+              <h2 class="suite-card-title">Traffic &amp; Acquisition Sources</h2>
+            </div>
+            <span class="suite-badge-pill" id="trafficSourcesTotalBadge">All Visitors</span>
+          </div>
+          <p class="suite-card-desc" style="color:var(--muted);font-size:13px;margin:0 0 12px">Where students &amp; guest visitors discover BCAPrime (WhatsApp, Google, Instagram, Telegram, Direct/PWA).</p>
+          <div class="traffic-source-list" id="trafficSourcesBreakdownList">
+            <!-- Populated via renderTrafficSourcesBreakdown() -->
+          </div>
+        </div>
+
+        <!-- Real-Time Live Activity Stream Card -->
+        <div class="suite-card stream-hero-card" style="margin-top:14px" id="liveActivityStreamCard">
+          <div class="suite-card-header" style="margin-bottom:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="live-pulse-large" style="width:14px;height:14px">
+                <span class="live-emerald-ring"></span>
+                <span class="live-emerald-core"></span>
+              </div>
+              <div>
+                <h2 class="suite-card-title" style="margin:0;font-size:17px">Real-Time Activity Audit Stream</h2>
+                <p class="stream-hero-subtitle" style="margin:2px 0 0;font-size:12.5px">Live chronological student &amp; guest event timeline</p>
+              </div>
+            </div>
+            <span class="stream-status-tag"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Live Sync</span>
+          </div>
+          <div class="live-event-stream" id="liveStreamFeed">
+            <div class="stream-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to live stream...</div>
+          </div>
+        </div>
+
       </section>
 
-      <!-- ================= MODULE 2: ENGAGEMENT CHARTS ================= -->
-      <section class="suite-module-view" id="module-engagement">
-        
-        <!-- Activity & Signups Chart -->
-        <div class="suite-card">
-          <div class="suite-card-header">
-            <div>
-              <span class="suite-card-eyebrow">USER ACTIVITY &amp; READS</span>
-              <h2 class="suite-card-title">Engagement Velocity</h2>
-            </div>
-            <div class="chart-legend-dots">
-              <span class="legend-dot-item"><span class="dot dot-blue"></span>Reads</span>
-              <span class="legend-dot-item"><span class="dot dot-emerald"></span>Downloads</span>
-              <span class="legend-dot-item"><span class="dot dot-amber"></span>Signups</span>
-            </div>
-          </div>
-          <div class="chart-canvas-box">
-            <canvas id="trendChart"></canvas>
-          </div>
-        </div>
+      <!-- ================= MODULE 2: AUDIENCE & GUEST MODE INTELLIGENCE ================= -->
+      <section class="suite-module-view" id="module-audience">
 
-        <!-- Feature Usage Breakdown (Library vs Code Lab vs Mock Tests vs Community) -->
-        <div class="suite-card">
-          <div class="suite-card-header">
+        <!-- Dedicated Guest Mode Intelligence Card -->
+        <div class="suite-card" id="guestModeIntelligenceCard">
+          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px;margin-bottom:14px">
             <div>
-              <span class="suite-card-eyebrow">ECOSYSTEM TELEMETRY</span>
-              <h2 class="suite-card-title">Feature Usage Breakdown</h2>
+              <span class="suite-card-eyebrow" style="color:var(--brand)">UNAUTHENTICATED EXPLORERS</span>
+              <h2 class="suite-card-title">Dedicated Guest Mode Intelligence</h2>
+              <p class="suite-card-desc">Anonymous visitor volume, active guests, and conversion rate to registered students.</p>
             </div>
-            <span class="suite-badge-pill" id="featureUsageTotalBadge">100% Student Mix</span>
+            <div class="suite-head-actions">
+              <span class="stream-status-tag" style="background:rgba(0,182,122,0.12);color:#00B67A;border-color:rgba(0,182,122,0.3)">
+                <i class="fa-solid fa-user-secret"></i> Guest Tracking Live
+              </span>
+            </div>
           </div>
-          <div class="chart-canvas-box" style="height: 240px;">
-            <canvas id="featureUsageChart"></canvas>
-          </div>
-          <div class="feature-breakdown-legend" id="featureBreakdownLegend">
-            <!-- Populated dynamically with percentage bars -->
-          </div>
-        </div>
 
-        <!-- Devices & Browsers Split -->
-        <div class="suite-card">
-          <div class="suite-card-header">
+          <!-- 4 KPI Guest Grid -->
+          <div class="pulse-hero-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));margin-bottom:16px">
+            
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">TOTAL GUEST VISITORS</span>
+                <span class="pulse-delta delta-good" id="guestKpiBadge"><i class="fa-solid fa-users"></i> Unique</span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val tabular-nums" id="guestKpiTotalGuests">0</span>
+                <span class="pulse-sub-pill" id="guestKpiRangeLabel">In Selected Range</span>
+              </div>
+            </div>
+
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">LIVE ACTIVE GUESTS</span>
+                <span class="pulse-delta delta-up"><i class="fa-solid fa-bolt"></i> Right Now</span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val tabular-nums text-emerald" id="guestKpiLiveActive">0</span>
+                <span class="pulse-sub-pill">Browsing Right Now</span>
+              </div>
+            </div>
+
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">GUEST-TO-SIGNUP CONVERSION</span>
+                <span class="pulse-delta delta-good" id="guestConvBadge"><i class="fa-solid fa-user-check"></i> Conversion</span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val tabular-nums" id="guestKpiConvRate">0%</span>
+                <span class="pulse-sub-pill" id="guestKpiConvCount">0 Converted</span>
+              </div>
+            </div>
+
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">TOP GUEST RESOURCE</span>
+                <span class="pulse-delta delta-up"><i class="fa-solid fa-fire"></i> Most Viewed</span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val" id="guestKpiTopResource" style="font-size:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">None</span>
+                <span class="pulse-sub-pill" id="guestKpiTopResourceViews">0 views</span>
+              </div>
+            </div>
+
+          </div><!-- /pulse-hero-grid -->
+
+          <!-- Guest Deep Insights Split -->
+          <div class="academic-grid-2" style="margin-top:14px">
+            
+            <!-- Top Resources Read by Guests -->
+            <div class="suite-card" style="background:var(--surface2)">
+              <div class="suite-card-header">
+                <div>
+                  <span class="suite-card-eyebrow">GUEST CONTENT AFFINITY</span>
+                  <h3 class="suite-card-title" style="font-size:16px">Top Content Read by Guests</h3>
+                </div>
+              </div>
+              <div class="traffic-source-list" id="guestTopResourcesList"></div>
+            </div>
+
+            <!-- Guest Traffic Channels & Devices -->
+            <div class="suite-card" style="background:var(--surface2)">
+              <div class="suite-card-header">
+                <div>
+                  <span class="suite-card-eyebrow">GUEST CHANNELS &amp; HARDWARE</span>
+                  <h3 class="suite-card-title" style="font-size:16px">Guest Traffic &amp; Devices</h3>
+                </div>
+              </div>
+              <div class="traffic-source-list" id="guestTrafficSourcesList"></div>
+              <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)" id="guestDeviceTypesList"></div>
+            </div>
+
+          </div>
+
+        </div><!-- /guestModeIntelligenceCard -->
+
+        <!-- Devices & Phone Models Hardware Intelligence Card -->
+        <div class="suite-card" style="margin-top:16px" id="hardwareIntelligenceCard">
+          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px;margin-bottom:14px">
             <div>
-              <span class="suite-card-eyebrow">HARDWARE &amp; BROWSERS</span>
-              <h2 class="suite-card-title">Student Device Demographics</h2>
+              <span class="suite-card-eyebrow">MATOMO-GRADE HARDWARE TELEMETRY</span>
+              <h2 class="suite-card-title">Devices &amp; Exact Phone Models</h2>
+              <p class="suite-card-desc">High-Entropy Client Hints smartphone model detection, OS distribution, and PWA adoption.</p>
+            </div>
+            <div class="suite-head-actions" style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="suite-badge-pill" id="deviceTopBrandBadge"><i class="fa-solid fa-mobile"></i> Top: Samsung</span>
+              <span class="suite-badge-pill" id="devicePwaRateBadge" style="background:rgba(0,182,122,0.14);color:#00B67A;border-color:rgba(0,182,122,0.3)">
+                <i class="fa-solid fa-download"></i> PWA: 0%
+              </span>
+              <span class="suite-badge-pill" id="deviceMobileRatioBadge"><i class="fa-solid fa-chart-pie"></i> Mobile: 0%</span>
             </div>
           </div>
-          <div class="device-chips-row" id="deviceChips"></div>
-          <div class="chart-canvas-box" style="height: 180px;">
-            <canvas id="deviceChart"></canvas>
+
+          <!-- Popular Smartphone Models List -->
+          <div style="margin-bottom:20px">
+            <h3 style="font-family:var(--font-display);font-size:15px;margin:0 0 10px;color:var(--ink);font-weight:600">
+              <i class="fa-solid fa-mobile-screen" style="color:var(--brand);margin-right:6px"></i>
+              Popular Smartphone Models (Students &amp; Guests)
+            </h3>
+            <div class="device-model-list" id="phoneModelsBreakdownList">
+              <!-- Rendered via renderPhoneModelsBreakdown() -->
+            </div>
           </div>
-        </div>
+
+          <!-- Operating Systems & Browsers Distribution Split -->
+          <div class="academic-grid-2" style="margin-top:14px">
+            
+            <div class="suite-card" style="background:var(--surface2)">
+              <div class="suite-card-header">
+                <div>
+                  <span class="suite-card-eyebrow">OPERATING SYSTEMS</span>
+                  <h3 class="suite-card-title" style="font-size:15px">OS &amp; Version Spread</h3>
+                </div>
+              </div>
+              <div class="traffic-source-list" id="osDistributionList"></div>
+            </div>
+
+            <div class="suite-card" style="background:var(--surface2)">
+              <div class="suite-card-header">
+                <div>
+                  <span class="suite-card-eyebrow">WEB BROWSERS</span>
+                  <h3 class="suite-card-title" style="font-size:15px">Browser Distribution</h3>
+                </div>
+              </div>
+              <div class="traffic-source-list" id="browserDistributionList"></div>
+            </div>
+
+          </div>
+
+        </div><!-- /hardwareIntelligenceCard -->
 
       </section>
 
@@ -411,163 +518,19 @@
 
       </section>
 
-      <!-- ================= MODULE 4: LIVE STUDENT STREAM & FEEDBACK ================= -->
-      <section class="suite-module-view" id="module-livefeed">
-        
-        <!-- Live Stream Hero -->
-        <div class="suite-card stream-hero-card">
-          <div class="stream-hero-left">
-            <div class="live-pulse-large">
-              <span class="live-emerald-ring"></span>
-              <span class="live-emerald-core"></span>
-            </div>
-            <div>
-              <h2 class="stream-hero-title">Live Activity Stream</h2>
-              <p class="stream-hero-subtitle">Real-time chronological events from active student sessions</p>
-            </div>
-          </div>
-          <div class="stream-hero-right">
-            <span class="stream-status-tag"><i class="fa-solid fa-arrows-rotate fa-spin"></i> Polling 15s</span>
-          </div>
-        </div>
-
-        <!-- Stream Feed List -->
-        <div class="live-event-stream" id="liveStreamFeed">
-          <div class="stream-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Connecting to live feed...</div>
-        </div>
-
-      </section>
-
-      <!-- ================= MODULE: PRIMEBUDDY TELEMETRY ================= -->
-      <section class="suite-module-view" id="module-primebuddy">
-
-        <!-- PrimeBuddy Overview Hero Card -->
-        <div class="suite-card">
-          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
-            <div>
-              <span class="suite-card-eyebrow">STUDENT COMPANION &amp; ADOPTION</span>
-              <h2 class="suite-card-title">PrimeBuddy Telemetry &amp; Engagement</h2>
-              <p class="suite-card-desc">Student adoption rate, feature popularity breakdown, active focus duration, and student directory.</p>
-            </div>
-            <div class="suite-head-actions">
-              <span class="stream-status-tag" id="buddyRealtimeTag"><i class="fa-solid fa-crown" style="color:#fbbf24"></i> Companion Live</span>
-            </div>
-          </div>
-
-          <!-- 3 KPI Summary Cards Grid -->
-          <div class="pulse-hero-grid" style="grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));margin-bottom:16px">
-            
-            <!-- Card 1: Adoption Rate -->
-            <div class="pulse-kpi-card bca-pressable">
-              <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">ADOPTION RATE</span>
-                <span class="pulse-delta delta-good" id="buddyKpiAdoptionBadge">
-                  <i class="fa-solid fa-crown"></i> <span id="buddyKpiAdoptionPct">0%</span>
-                </span>
-              </div>
-              <div class="pulse-metric-row">
-                <span class="pulse-big-val tabular-nums" id="buddyKpiAdoptionRate">0%</span>
-                <span class="pulse-sub-pill" id="buddyKpiAdoptionBreakdown">0 ON • 0 OFF</span>
-              </div>
-            </div>
-
-            <!-- Card 2: Total Interactions & Active Time -->
-            <div class="pulse-kpi-card bca-pressable">
-              <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">INTERACTIONS &amp; ACTIVE TIME</span>
-                <span class="pulse-delta delta-up" id="buddyKpiInteractionsBadge">
-                  <i class="fa-solid fa-bolt"></i> Active
-                </span>
-              </div>
-              <div class="pulse-metric-row">
-                <span class="pulse-big-val tabular-nums" id="buddyKpiTotalInteractions">0</span>
-                <span class="pulse-sub-pill" id="buddyKpiActiveTime">Total 0s • Avg 0s</span>
-              </div>
-            </div>
-
-            <!-- Card 3: Top Loved Feature -->
-            <div class="pulse-kpi-card bca-pressable">
-              <div class="pulse-kpi-head">
-                <span class="pulse-eyebrow">TOP LOVED FEATURE</span>
-                <span class="pulse-delta delta-good" id="buddyKpiTopFeatureBadge">
-                  <i class="fa-solid fa-heart"></i> #1 Fav
-                </span>
-              </div>
-              <div class="pulse-metric-row">
-                <span class="pulse-big-val" id="buddyKpiTopFeature" style="font-size:22px">None</span>
-                <span class="pulse-sub-pill" id="buddyKpiTopFeatureCount">0 actions (0%)</span>
-              </div>
-            </div>
-
-          </div><!-- /pulse-hero-grid -->
-
-        </div>
-
-        <!-- Feature Popularity Breakdown Card -->
-        <div class="suite-card" style="margin-top:16px">
-          <div class="suite-card-head">
-            <div>
-              <span class="suite-card-eyebrow">FEATURE POPULARITY BREAKDOWN</span>
-              <h3 class="suite-card-title">Action &amp; Mood Usage Distribution</h3>
-              <p class="suite-card-desc">Comparative usage counts across all PrimeBuddy student interactions.</p>
-            </div>
-          </div>
-          <div class="buddy-feature-breakdown-list" id="buddyFeatureBreakdownList">
-            <!-- Rendered by renderBuddyFeatureBreakdown() -->
-          </div>
-        </div>
-
-        <!-- Student-Wise PrimeBuddy Status & Activity Directory -->
-        <div class="suite-card" style="margin-top:16px">
-          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
-            <div>
-              <span class="suite-card-eyebrow">STUDENT DIRECTORY</span>
-              <h3 class="suite-card-title">Student PrimeBuddy Activity</h3>
-              <p class="suite-card-desc">Individual companion status, favorite feature, and engagement duration per student.</p>
-            </div>
-            <div class="suite-head-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input class="stats-search-input" id="statsBuddySearch" placeholder="Search by name, sem, or email…" oninput="filterStatsBuddyStudents()" style="min-width:240px">
-              <span class="stats-count-badge tabular-nums" id="statsBuddyCountBadge">0 Students</span>
-            </div>
-          </div>
-
-          <!-- Status Filter Pills -->
-          <div class="stats-filter-pills" id="statsBuddyFilterPills" role="tablist" aria-label="Status filter pills" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px">
-            <button type="button" class="range-pill active bca-pressable" data-status="all" onclick="setStatsBuddyStatusFilter('all')">
-              <span>All Students</span>
-            </button>
-            <button type="button" class="range-pill bca-pressable" data-status="on" onclick="setStatsBuddyStatusFilter('on')">
-              <span><span class="live-emerald-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#00B67A;margin-right:4px"></span> ON (Enabled)</span>
-            </button>
-            <button type="button" class="range-pill bca-pressable" data-status="off" onclick="setStatsBuddyStatusFilter('off')">
-              <span>OFF (Disabled)</span>
-            </button>
-          </div>
-
-          <!-- Student Cards Grid -->
-          <div class="stats-student-grid" id="statsBuddyListContainer">
-            <!-- Rendered by renderStatsBuddyStudents() -->
-          </div>
-
-          <!-- Dedicated Empty State -->
-          <div id="statsBuddyEmptyState" class="empty-state-wrap" hidden></div>
-        </div>
-
-      </section>
-
-      <!-- ============ MODULE 5: STUDENTS DIRECTORY & DRILL-DOWN ============ -->
+      <!-- ============ MODULE 4: STUDENTS 360° DIRECTORY & DRILL-DOWN ============ -->
       <section class="suite-module-view" id="module-students">
 
         <!-- Directory Header Card -->
         <div class="suite-card">
           <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
             <div>
-              <span class="suite-card-eyebrow">STUDENT DIRECTORY &amp; DRILL-DOWN</span>
-              <h2 class="suite-card-title">Individual Student Telemetry Suite</h2>
-              <p class="suite-card-desc">Deep reading history, download tracking, search queries, and activity logs per student.</p>
+              <span class="suite-card-eyebrow">STUDENT 360° DIRECTORY &amp; DRILL-DOWN</span>
+              <h2 class="suite-card-title">Student 360° A-to-Z Telemetry Suite</h2>
+              <p class="suite-card-desc">Deep reading history, downloads, device model, traffic source, and PrimeBuddy companion stats per student.</p>
             </div>
             <div class="suite-head-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, or college…" oninput="filterStatsStudents()" style="min-width:240px">
+              <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, college, or device model…" oninput="filterStatsStudents()" style="min-width:260px">
               <select class="stats-select" id="statsStudentCollegeFilter" onchange="filterStatsStudents()">
                 <option value="all">All Colleges</option>
               </select>
@@ -602,7 +565,7 @@
 
           <!-- Student Cards Grid -->
           <div class="stats-student-grid" id="statsStudentListContainer">
-            <!-- Rendered by renderStatsStudents() -->
+            <!-- Rendered by renderStatsStudents() with device model, traffic source & buddy telemetry -->
           </div>
 
           <!-- Dedicated Empty State -->
@@ -613,31 +576,23 @@
 
     </main><!-- /suite-main -->
 
-    <!-- Mobile Bottom Navigation Bar (Tabs) -->
+    <!-- Mobile Bottom Navigation Bar (4 Consolidated Focused Tabs) -->
     <nav class="mobile-bottom-tabs" aria-label="Mobile Navigation">
       <button type="button" class="mob-tab-btn active bca-pressable" data-tab="pulse" onclick="switchSuiteTab('pulse')">
         <i class="fa-solid fa-heart-pulse"></i>
         <span>Pulse</span>
       </button>
-      <button type="button" class="mob-tab-btn bca-pressable" data-tab="engagement" onclick="switchSuiteTab('engagement')">
-        <i class="fa-solid fa-chart-line"></i>
-        <span>Engage</span>
+      <button type="button" class="mob-tab-btn bca-pressable" data-tab="audience" onclick="switchSuiteTab('audience')">
+        <i class="fa-solid fa-users-viewfinder"></i>
+        <span>Audience</span>
       </button>
       <button type="button" class="mob-tab-btn bca-pressable" data-tab="academic" onclick="switchSuiteTab('academic')">
         <i class="fa-solid fa-graduation-cap"></i>
         <span>Academic</span>
       </button>
-      <button type="button" class="mob-tab-btn bca-pressable" data-tab="primebuddy" onclick="switchSuiteTab('primebuddy')">
-        <i class="fa-solid fa-crown" style="color:#fbbf24"></i>
-        <span>Buddy</span>
-      </button>
-      <button type="button" class="mob-tab-btn bca-pressable" data-tab="livefeed" onclick="switchSuiteTab('livefeed')">
-        <i class="fa-solid fa-stream"></i>
-        <span>Stream</span>
-      </button>
       <button type="button" class="mob-tab-btn bca-pressable" data-tab="students" onclick="switchSuiteTab('students')">
         <i class="fa-solid fa-user-graduate"></i>
-        <span>Students</span>
+        <span>Students 360°</span>
       </button>
     </nav>
 
