@@ -1122,6 +1122,16 @@
     try { if (window.BCA_UI && window.BCA_UI.Toast) window.BCA_UI.Toast.success('Test submitted! Check your score below.'); } catch(e){}
     setMtView('result');
 
+    // Context-Aware PrimeBuddy celebration reaction on high score
+    try {
+      if (percentage >= 60) {
+        const celebrateMsg = percentage >= 80 ? 'Nailed it! 🎉' : 'Awesome test score! 🌟';
+        window.dispatchEvent(new CustomEvent('primebuddy:react', {
+          detail: { type: 'celebrate', message: celebrateMsg }
+        }));
+      }
+    } catch (_e) {}
+
     // Save result to Supabase if logged in
     saveResultToSupabase(score, total, percentage, answersRecord, timeTaken);
   };

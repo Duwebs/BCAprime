@@ -582,6 +582,12 @@ INSERT INTO courses VALUES
 
       if (executionResult.exitCode === 0) {
         notify('Program executed successfully! ⚡', 'success');
+        // Context-Aware PrimeBuddy celebration reaction for clean code run
+        try {
+          window.dispatchEvent(new CustomEvent('primebuddy:react', {
+            detail: { type: 'celebrate', message: 'Clean code run! ⚡' }
+          }));
+        } catch (_e) {}
       } else {
         notify('Execution finished with error', 'error');
       }

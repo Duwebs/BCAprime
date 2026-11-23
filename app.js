@@ -1490,8 +1490,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         requireAccount('Sign up or log in to bookmark and save study material.','save',id);
         return;
       }
-      state.saved=state.saved.includes(id)?state.saved.filter(x=>x!==id):[...state.saved,id];
+      const isSaving=!state.saved.includes(id);
+      state.saved=isSaving?[...state.saved,id]:state.saved.filter(x=>x!==id);
       localStorage.setItem('bca-saved',JSON.stringify(state.saved));
+      if(isSaving){
+        try{
+          window.dispatchEvent(new CustomEvent('primebuddy:react', {
+            detail: { type: 'save', message: 'Saved for exams! 📚' }
+          }));
+        }catch(_e){}
+      }
       setTimeout(render,90);
     }
     let restrictedAction=null;
@@ -1651,6 +1659,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const resource=resources.find(item=>item.title===title);
       trackEvent('download',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});
       trackEvent('download_success',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem});
+      try{
+        window.dispatchEvent(new CustomEvent('primebuddy:react', {
+          detail: { type: 'save', message: 'Got it in your vault! ✅' }
+        }));
+      }catch(_e){}
       if(resource&&(resource.fileData||resource.fileUrl)){
         if(!await ensureFileAvailable(resource,'download')){
           trackEvent('download_failed',{title,type:resource&&resource.type,subject:resource&&resource.subject,sem:resource&&resource.sem,reason:'unavailable'});

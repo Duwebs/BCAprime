@@ -155,6 +155,25 @@
   let crownAngle = 0;
   let crownRafId = null;
 
+  // ⏱️ Focus Study Timer State (25m Pomodoro)
+  let isFocusMode = false;
+  let isFocusPaused = false;
+  let focusTimeRemaining = 25 * 60; // 1500 seconds
+  let focusTimerInterval = null;
+  let focusWidgetEl = null;
+  let focusPopupEl = null;
+  let focusPopupBackdropEl = null;
+
+  // 📖 Smart Reading Auto-Peek State
+  let isPeeking = false;
+  let lastMascotTouchTime = performance.now();
+  let lastScrollTime = 0;
+  let peekCheckInterval = null;
+
+  // ⚡ Smart Event Reactions Timers
+  let celebrationTimer = null;
+  let saveTimer = null;
+
   // Load saved roam preference (default ON)
   const savedRoam = localStorage.getItem(STORAGE_KEY_ROAM);
   if (savedRoam !== null) {
@@ -746,12 +765,16 @@
     return isBuddyEnabled() && !isTemporarilyHiddenForSession;
   }
 
-  function triggerHaptic(ms = 10) {
-    if (window.BCA_UI && window.BCA_UI.triggerLightHaptic) {
-      window.BCA_UI.triggerLightHaptic();
-    } else if (navigator.vibrate) {
-      try { navigator.vibrate(ms); } catch (_e) {}
+  function safeVibrate(pattern) {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      try {
+        navigator.vibrate(pattern);
+      } catch (_e) {}
     }
+  }
+
+  function triggerHaptic(ms = 10) {
+    safeVibrate(ms);
   }
 
   function showToast(msg, type = 'info') {
@@ -852,10 +875,7 @@
     // Strictly lock pill text to "Wheee! ✨"
     lockWheeeBubble();
 
-    triggerHaptic(25);
-    if (navigator.vibrate) {
-      try { navigator.vibrate([15, 40, 20]); } catch (_e) {}
-    }
+    safeVibrate(8); // 8ms ultra-light tap on rapid-tap "Wheee! ✨" combo activation
 
     resetWheeeDecelCooldown();
 
@@ -871,7 +891,7 @@
     wheeeAngularVelocity = Math.min(2520, wheeeAngularVelocity + 540);
     isWheeeDecelerating = false;
 
-    triggerHaptic(18);
+    safeVibrate(8);
     lockWheeeBubble();
     resetWheeeDecelCooldown();
     resetIdleTimer();
@@ -988,9 +1008,21 @@
   function handleMascotTap() {
     closeActionPill();
 
+    // If currently peeking, tap pops him right back out happily!
+    if (isPeeking) {
+      popOutOfPeek();
+      return;
+    }
+
     // If currently napping, tap wakes him up!
     if (isNapping) {
       wakeUpMascot();
+      return;
+    }
+
+    // If in Focus mode, tap opens the focus control options (pause / cancel)
+    if (isFocusMode) {
+      toggleFocusControlPopup();
       return;
     }
 
@@ -1114,6 +1146,15 @@
 
     mascotEl.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
+
+      lastMascotTouchTime = performance.now();
+
+      // If mascot is tucked halfway off-edge in peek mode, tap pops him right back out happily!
+      if (isPeeking) {
+        popOutOfPeek();
+        e.preventDefault();
+        return;
+      }
 
       // If mascot is napping, tap wakes him up immediately!
       if (isNapping) {
@@ -1459,12 +1500,16 @@
       // Bottom Wall Collision (100vh - size - very bottom edge of screen)
       else if (currentY >= maxY) {
         currentY = maxY;
-        flingVelY = -flingVelY * RESTITUTION;
+        if (Math.abs(flingVelY) < 35) {
+          flingVelY = 0;
+        } else {
+          flingVelY = -flingVelY * RESTITUTION;
+        }
         hitWall = true;
       }
 
       if (hitWall) {
-        triggerHaptic(10);
+        safeVibrate(8); // 8ms ultra-light tap on wall ricochet impact
         // Only trigger dizzy if thrown at extreme speed AND slamming into wall
         if (isHardFling && Math.hypot(flingVelX, flingVelY) > 1700 && currentMood !== 'dizzy') {
           triggerDizzyState(3000);
@@ -1495,7 +1540,7 @@
   }
 
   /* ------------------------------------------------------------
-     Long-Press Action Pill: Dance | Nap | Hide
+     Long-Press Action Pill: Dance | Nap | Focus | Hide
      ------------------------------------------------------------ */
   function createActionPillElement() {
     if (document.getElementById('buddyActionPill')) return;
@@ -1507,7 +1552,7 @@
     actionPillBackdropEl.onclick = () => closeActionPill();
     document.body.appendChild(actionPillBackdropEl);
 
-    // Horizontal Floating Action Pill
+    // Horizontal Floating Action Pill (4 Action Buttons)
     actionPillEl = document.createElement('div');
     actionPillEl.id = 'buddyActionPill';
     actionPillEl.className = 'buddy-action-pill';
@@ -1523,6 +1568,11 @@
       <button class="buddy-pill-btn bca-pressable" id="buddyPillNapBtn" type="button" aria-label="Nap">
         <span class="pill-btn-emoji">😴</span>
         <span id="buddyPillNapLabel">Nap</span>
+      </button>
+      <div class="buddy-pill-sep"></div>
+      <button class="buddy-pill-btn bca-pressable" id="buddyPillFocusBtn" type="button" aria-label="Focus Study Timer">
+        <span class="pill-btn-emoji">⏱️</span>
+        <span id="buddyPillFocusLabel">Focus</span>
       </button>
       <div class="buddy-pill-sep"></div>
       <button class="buddy-pill-btn bca-pressable" id="buddyPillHideBtn" type="button" aria-label="Hide">
@@ -1550,6 +1600,14 @@
       });
     }
 
+    const focusBtn = document.getElementById('buddyPillFocusBtn');
+    if (focusBtn) {
+      focusBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleFocusActionClick();
+      });
+    }
+
     const hideBtn = document.getElementById('buddyPillHideBtn');
     if (hideBtn) {
       hideBtn.addEventListener('click', (e) => {
@@ -1564,7 +1622,7 @@
 
     const screenW = window.innerWidth || 360;
     const screenH = window.innerHeight || 640;
-    const pillW = 216;
+    const pillW = Math.min(284, screenW - 20);
     const pillH = 44;
 
     // Horizontally center aligned with mascot
@@ -1591,10 +1649,19 @@
     }
     stopRoaming();
 
+    // Subtle 12ms mobile micro-haptic pulse when long-press pill opens
+    safeVibrate(12);
+
     // Update Nap / Wake button label
     const napLabel = document.getElementById('buddyPillNapLabel');
     if (napLabel) {
       napLabel.textContent = isNapping ? 'Wake' : 'Nap';
+    }
+
+    // Update Focus button label
+    const focusLabel = document.getElementById('buddyPillFocusLabel');
+    if (focusLabel) {
+      focusLabel.textContent = isFocusMode ? 'Stop' : 'Focus';
     }
 
     positionActionPill();
@@ -1607,6 +1674,425 @@
     if (actionPillBackdropEl) actionPillBackdropEl.classList.remove('open');
     resetIdleTimer();
   }
+
+  /* ------------------------------------------------------------
+     ⏱️ Focus (25m) Pomodoro Study Timer Implementation
+     ------------------------------------------------------------ */
+  function handleFocusActionClick() {
+    closeActionPill();
+    if (isFocusMode) {
+      cancelFocusSession();
+    } else {
+      startFocusSession();
+    }
+  }
+
+  function startFocusSession() {
+    closeActionPill();
+    if (isNapping) wakeUpMascot();
+    if (isPeeking) popOutOfPeek();
+    stopRoaming();
+
+    isFocusMode = true;
+    isFocusPaused = false;
+    focusTimeRemaining = 25 * 60; // 1500s
+
+    // Dock quietly into corner
+    const maxX = getMaxX();
+    const maxY = getMaxY();
+    const targetX = maxX - 12;
+    const targetY = Math.max(16, Math.min(currentY, maxY - 90));
+
+    currentX = targetX;
+    currentY = targetY;
+    currentEdge = 'right';
+
+    mascotEl.style.transition = 'transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)';
+    mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+    mascotEl.classList.remove('edge-left');
+    mascotEl.classList.add('edge-right');
+    mascotEl.classList.add('is-focusing');
+
+    setTimeout(() => {
+      if (mascotEl) mascotEl.style.transition = '';
+    }, 520);
+
+    createOrShowFocusWidget();
+    updateFocusWidgetDisplay();
+
+    safeVibrate(12);
+    showBubble('Focus Mode ON! 25m study timer ⏱️', 3000);
+
+    if (focusTimerInterval) clearInterval(focusTimerInterval);
+    focusTimerInterval = setInterval(onFocusTick, 1000);
+  }
+
+  function createOrShowFocusWidget() {
+    if (!focusWidgetEl) {
+      focusWidgetEl = document.createElement('div');
+      focusWidgetEl.id = 'buddyFocusWidget';
+      focusWidgetEl.className = 'buddy-focus-widget bca-pressable';
+      focusWidgetEl.setAttribute('role', 'button');
+      focusWidgetEl.setAttribute('aria-label', 'Pomodoro Focus Timer');
+      focusWidgetEl.innerHTML = `
+        <svg class="buddy-focus-ring-svg" viewBox="0 0 32 32">
+          <circle class="buddy-focus-ring-bg" cx="16" cy="16" r="13" />
+          <circle class="buddy-focus-ring-fg" id="buddyFocusRingFg" cx="16" cy="16" r="13" />
+        </svg>
+        <span class="buddy-focus-digits" id="buddyFocusDigits">25:00</span>
+      `;
+      focusWidgetEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleFocusControlPopup();
+      });
+      mascotEl.appendChild(focusWidgetEl);
+    }
+    focusWidgetEl.style.display = 'flex';
+  }
+
+  function updateFocusWidgetDisplay() {
+    const digitsEl = document.getElementById('buddyFocusDigits');
+    const ringFgEl = document.getElementById('buddyFocusRingFg');
+
+    const mins = Math.floor(Math.max(0, focusTimeRemaining) / 60);
+    const secs = Math.max(0, focusTimeRemaining) % 60;
+    const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+    if (digitsEl) {
+      digitsEl.textContent = isFocusPaused ? `⏸ ${timeStr}` : timeStr;
+    }
+
+    if (ringFgEl) {
+      const radius = 13;
+      const circumference = 2 * Math.PI * radius; // ~81.68
+      const progress = Math.max(0, Math.min(1, focusTimeRemaining / (25 * 60)));
+      const offset = circumference * (1 - progress);
+      ringFgEl.style.strokeDasharray = `${circumference.toFixed(2)}`;
+      ringFgEl.style.strokeDashoffset = `${offset.toFixed(2)}`;
+    }
+    if (focusWidgetEl) {
+      focusWidgetEl.classList.toggle('is-paused', isFocusPaused);
+    }
+  }
+
+  function onFocusTick() {
+    if (!isFocusMode || isFocusPaused) return;
+
+    focusTimeRemaining--;
+    updateFocusWidgetDisplay();
+
+    if (focusTimeRemaining <= 0) {
+      completeFocusSession();
+    }
+  }
+
+  function toggleFocusPause() {
+    if (!isFocusMode) return;
+    isFocusPaused = !isFocusPaused;
+    safeVibrate(10);
+    updateFocusWidgetDisplay();
+    if (isFocusPaused) {
+      showBubble('Focus Paused ⏸️', 2000);
+    } else {
+      showBubble('Focus Resumed! ⏱️', 2000);
+    }
+  }
+
+  function cancelFocusSession() {
+    if (!isFocusMode) return;
+    isFocusMode = false;
+    isFocusPaused = false;
+    if (focusTimerInterval) {
+      clearInterval(focusTimerInterval);
+      focusTimerInterval = null;
+    }
+    if (focusWidgetEl) {
+      focusWidgetEl.remove();
+      focusWidgetEl = null;
+    }
+    closeFocusControlPopup();
+    if (mascotEl) mascotEl.classList.remove('is-focusing');
+    safeVibrate(10);
+    showBubble('Focus session ended 🚀', 2500);
+    resetIdleTimer();
+  }
+
+  function completeFocusSession() {
+    isFocusMode = false;
+    isFocusPaused = false;
+    if (focusTimerInterval) {
+      clearInterval(focusTimerInterval);
+      focusTimerInterval = null;
+    }
+    if (focusWidgetEl) {
+      focusWidgetEl.remove();
+      focusWidgetEl = null;
+    }
+    closeFocusControlPopup();
+    if (mascotEl) mascotEl.classList.remove('is-focusing');
+
+    // Celebratory victory reaction!
+    triggerCelebrationReaction('25m Focus Complete! Take a 5m break 🎉');
+    safeVibrate([20, 80, 20, 80, 40]);
+    showToast('25m Focus Complete! Take a 5m break 🎉', 'success');
+    resetIdleTimer();
+  }
+
+  function createFocusPopupElements() {
+    if (document.getElementById('buddyFocusPopup')) return;
+
+    focusPopupBackdropEl = document.createElement('div');
+    focusPopupBackdropEl.id = 'buddyFocusPopupBackdrop';
+    focusPopupBackdropEl.className = 'buddy-pill-backdrop';
+    focusPopupBackdropEl.onclick = () => closeFocusControlPopup();
+    document.body.appendChild(focusPopupBackdropEl);
+
+    focusPopupEl = document.createElement('div');
+    focusPopupEl.id = 'buddyFocusPopup';
+    focusPopupEl.className = 'buddy-focus-popup';
+    document.body.appendChild(focusPopupEl);
+  }
+
+  function toggleFocusControlPopup() {
+    createFocusPopupElements();
+    if (focusPopupEl.classList.contains('open')) {
+      closeFocusControlPopup();
+      return;
+    }
+    openFocusControlPopup();
+  }
+
+  function openFocusControlPopup() {
+    if (!focusPopupEl) createFocusPopupElements();
+
+    focusPopupEl.innerHTML = `
+      <div class="buddy-focus-popup-header">
+        <span class="buddy-focus-popup-title">⏱️ 25m Focus Timer</span>
+        <span class="buddy-focus-popup-status">${isFocusPaused ? 'Paused' : 'Active'}</span>
+      </div>
+      <div class="buddy-focus-popup-actions">
+        <button class="buddy-focus-popup-btn bca-pressable" id="buddyFocusPauseBtn" type="button">
+          ${isFocusPaused ? '▶️ Resume' : '⏸️ Pause'}
+        </button>
+        <button class="buddy-focus-popup-btn cancel bca-pressable" id="buddyFocusCancelBtn" type="button">
+          ✕ Cancel
+        </button>
+      </div>
+    `;
+
+    const screenW = window.innerWidth || 360;
+    const screenH = window.innerHeight || 640;
+    const popupW = 184;
+    const popupH = 76;
+
+    let left = currentX + (MASCOT_SIZE / 2) - (popupW / 2);
+    left = Math.max(8, Math.min(left, screenW - popupW - 8));
+    let top = currentY - popupH - 12;
+    if (top < 12) top = currentY + MASCOT_SIZE + 12;
+    top = Math.max(8, Math.min(top, screenH - popupH - 8));
+
+    focusPopupEl.style.left = `${Math.round(left)}px`;
+    focusPopupEl.style.top = `${Math.round(top)}px`;
+
+    focusPopupEl.classList.add('open');
+    if (focusPopupBackdropEl) focusPopupBackdropEl.classList.add('open');
+
+    const pauseBtn = document.getElementById('buddyFocusPauseBtn');
+    if (pauseBtn) {
+      pauseBtn.onclick = (e) => {
+        e.stopPropagation();
+        toggleFocusPause();
+        closeFocusControlPopup();
+      };
+    }
+
+    const cancelBtn = document.getElementById('buddyFocusCancelBtn');
+    if (cancelBtn) {
+      cancelBtn.onclick = (e) => {
+        e.stopPropagation();
+        cancelFocusSession();
+      };
+    }
+  }
+
+  function closeFocusControlPopup() {
+    if (focusPopupEl) focusPopupEl.classList.remove('open');
+    if (focusPopupBackdropEl) focusPopupBackdropEl.classList.remove('open');
+  }
+
+  /* ------------------------------------------------------------
+     📖 Smart Reading Auto-Peek (Halfway Off-Edge Tucking)
+     ------------------------------------------------------------ */
+  function initReadingPeekTracking() {
+    const onScrollActivity = () => {
+      lastScrollTime = performance.now();
+    };
+
+    window.addEventListener('scroll', onScrollActivity, { passive: true });
+    document.addEventListener('scroll', onScrollActivity, { passive: true, capture: true });
+
+    if (peekCheckInterval) clearInterval(peekCheckInterval);
+    peekCheckInterval = setInterval(evaluateReadingPeek, 1000);
+  }
+
+  function evaluateReadingPeek() {
+    if (isDragging || isFlinging || isNapping || isFocusMode || !isBuddyVisible()) return;
+
+    const now = performance.now();
+    const isActivelyReading = (now - lastScrollTime < 4000);
+
+    if (!isPeeking) {
+      // Actively reading without touching mascot for 20 seconds
+      if (isActivelyReading && (now - lastMascotTouchTime >= 20000)) {
+        triggerReadingAutoPeek();
+      }
+    } else {
+      // If student stops reading for 15 seconds, pop right back out happily!
+      if (now - lastScrollTime > 15000) {
+        popOutOfPeek();
+      }
+    }
+  }
+
+  function triggerReadingAutoPeek() {
+    if (isPeeking || isDragging || isFlinging || isNapping || isFocusMode || !isBuddyVisible()) return;
+
+    isPeeking = true;
+    stopRoaming();
+
+    const screenW = window.innerWidth || 360;
+    const nearestLeft = currentX < (screenW / 2);
+    currentEdge = nearestLeft ? 'left' : 'right';
+
+    // Tuck halfway off-edge (translateX ±45% = ~30px)
+    const targetX = nearestLeft ? -30 : (screenW - 36);
+
+    mascotEl.style.transition = 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)';
+    currentX = targetX;
+    mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+    mascotEl.classList.add('is-peeking');
+    mascotEl.classList.toggle('peeking-left', nearestLeft);
+    mascotEl.classList.toggle('peeking-right', !nearestLeft);
+    mascotEl.classList.toggle('edge-left', nearestLeft);
+    mascotEl.classList.toggle('edge-right', !nearestLeft);
+
+    setTimeout(() => {
+      if (mascotEl) mascotEl.style.transition = '';
+    }, 680);
+  }
+
+  function popOutOfPeek() {
+    if (!isPeeking) return;
+    isPeeking = false;
+    lastMascotTouchTime = performance.now();
+
+    const maxX = getMaxX();
+    const isLeft = currentEdge === 'left';
+    const targetX = isLeft ? 10 : (maxX - 10);
+
+    mascotEl.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+    currentX = targetX;
+    mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+    mascotEl.classList.remove('is-peeking', 'peeking-left', 'peeking-right');
+
+    setTimeout(() => {
+      if (mascotEl) mascotEl.style.transition = '';
+    }, 420);
+
+    safeVibrate(8);
+    triggerFriendlyWave(1200);
+    resetIdleTimer();
+  }
+
+  /* ------------------------------------------------------------
+     ⚡ Smart Context-Aware Reactions (Zero-API App-Event Trigger)
+     ------------------------------------------------------------ */
+  function triggerCelebrationReaction(message = 'Nailed it! 🎉') {
+    if (celebrationTimer) clearTimeout(celebrationTimer);
+    if (isNapping) wakeUpMascot();
+    if (isPeeking) popOutOfPeek();
+
+    mascotEl.classList.remove('is-celebrating');
+    void mascotEl.offsetWidth; // Reflow
+    mascotEl.classList.add('is-celebrating');
+
+    safeVibrate([15, 50, 15, 50, 25]);
+    showBubble(message, 3400);
+
+    celebrationTimer = setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('is-celebrating');
+    }, 2800);
+    resetIdleTimer();
+  }
+
+  function triggerSaveReaction(message = 'Saved for exams! 📚') {
+    if (saveTimer) clearTimeout(saveTimer);
+    if (isNapping) wakeUpMascot();
+    if (isPeeking) popOutOfPeek();
+
+    mascotEl.classList.add('is-winking');
+    triggerFriendlyWave(2200);
+
+    safeVibrate(14);
+    showBubble(message, 3000);
+
+    saveTimer = setTimeout(() => {
+      if (mascotEl) mascotEl.classList.remove('is-winking');
+    }, 2200);
+    resetIdleTimer();
+  }
+
+  function triggerLateNightStudyReaction(force = false) {
+    if (!isBuddyVisible()) return;
+    if (!force && sessionStorage.getItem('bca_primebuddy_latenight_shown')) return;
+
+    if (!force) {
+      // Check IST time: 11:00 PM (23) to 3:30 AM (3:30)
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const ist = new Date(utc + (3600000 * 5.5));
+      const h = ist.getHours();
+      const m = ist.getMinutes();
+
+      const isLateNight = (h >= 23 || h < 3 || (h === 3 && m <= 30));
+      if (!isLateNight) return;
+    }
+
+    sessionStorage.setItem('bca_primebuddy_latenight_shown', 'true');
+
+    const quotes = [
+      "Late night grind! Don't forget water 💧",
+      "Midnight exam prep mode! 🌙"
+    ];
+    const quote = quotes[Math.floor(Math.random() * quotes.length)];
+
+    setTimeout(() => {
+      if (!isBuddyVisible() || isNapping || isDragging) return;
+      mascotEl.classList.add('is-sleepy-blinking');
+      setTimeout(() => {
+        if (mascotEl) mascotEl.classList.remove('is-sleepy-blinking');
+      }, 700);
+      showBubble(quote, 3500);
+    }, force ? 100 : 3500);
+  }
+
+  function triggerPrimeBuddyReaction(type, message) {
+    if (!isBuddyVisible()) return;
+    if (type === 'celebrate') {
+      triggerCelebrationReaction(message || 'Nailed it! 🎉');
+    } else if (type === 'save') {
+      triggerSaveReaction(message || 'Saved for exams! 📚');
+    } else if (type === 'late-night') {
+      triggerLateNightStudyReaction(true);
+    }
+  }
+
+  window.addEventListener('primebuddy:react', (e) => {
+    const detail = e.detail || {};
+    triggerPrimeBuddyReaction(detail.type, detail.message);
+  });
 
   /* 1. Dance Action: 3s fun rhythmic dance & spin */
   function triggerDanceAction() {
@@ -1692,7 +2178,7 @@
     if (idleTimer) clearTimeout(idleTimer);
     if (isRoaming) stopRoaming();
 
-    if (!autoRoamEnabled || isDragging || isFlinging || isNapping || !isBuddyVisible()) return;
+    if (!autoRoamEnabled || isDragging || isFlinging || isNapping || isFocusMode || isPeeking || !isBuddyVisible()) return;
 
     idleTimer = setTimeout(() => {
       startAutonomousRoam();
@@ -1709,14 +2195,14 @@
   }
 
   function startAutonomousRoam() {
-    if (!autoRoamEnabled || isRoaming || isDragging || isFlinging || isNapping || !isBuddyVisible()) return;
+    if (!autoRoamEnabled || isRoaming || isDragging || isFlinging || isNapping || isFocusMode || isPeeking || !isBuddyVisible()) return;
     isRoaming = true;
     if (mascotEl) mascotEl.classList.add('is-roaming');
     triggerAutonomousRoamStep();
   }
 
   function triggerAutonomousRoamStep() {
-    if (!isRoaming || !autoRoamEnabled || isNapping || !isBuddyVisible()) return;
+    if (!isRoaming || !autoRoamEnabled || isNapping || isFocusMode || isPeeking || !isBuddyVisible()) return;
 
     const maxX = getMaxX();
     const maxY = getMaxY();
@@ -1909,8 +2395,10 @@
       mascotEl.classList.toggle('is-hidden', !visible);
       mascotEl.style.display = visible ? 'block' : 'none';
     }
-    if (!visible && actionPillEl) {
-      closeActionPill();
+    if (!visible) {
+      if (isFocusMode) cancelFocusSession();
+      if (isPeeking) popOutOfPeek();
+      if (actionPillEl) closeActionPill();
     }
     if (visible) {
       resetIdleTimer();
@@ -1938,6 +2426,12 @@
   window.triggerPrimeBuddyLove = triggerLoveReaction;
   window.triggerPrimeBuddyWheee = triggerWheeeReaction;
   window.triggerPrimeBuddyGreeting = triggerSmartGreeting;
+  window.triggerPrimeBuddyReact = triggerPrimeBuddyReaction;
+  window.startPrimeBuddyFocus = startFocusSession;
+  window.cancelPrimeBuddyFocus = cancelFocusSession;
+  window.togglePrimeBuddyFocusPause = toggleFocusPause;
+  window.triggerPrimeBuddyPeek = triggerReadingAutoPeek;
+  window.popOutOfPrimeBuddyPeek = popOutOfPeek;
 
   window.PrimeBuddy = {
     init,
@@ -1953,7 +2447,14 @@
     greet: triggerSmartGreeting,
     openPill: openActionPill,
     closePill: closeActionPill,
-    triggerDizzy: triggerDizzyState
+    triggerDizzy: triggerDizzyState,
+    react: triggerPrimeBuddyReaction,
+    celebrate: triggerCelebrationReaction,
+    save: triggerSaveReaction,
+    focus: startFocusSession,
+    cancelFocus: cancelFocusSession,
+    peek: triggerReadingAutoPeek,
+    popPeek: popOutOfPeek
   };
 
   /* ------------------------------------------------------------
@@ -1962,6 +2463,7 @@
   function init() {
     createMascotElements();
     checkFirstTimeIntro();
+    initReadingPeekTracking();
 
     try {
       if (location.search.includes('buddy_intro=1')) {
@@ -1976,6 +2478,11 @@
     setTimeout(() => {
       triggerSmartGreeting();
     }, 700);
+
+    // Context-Aware Late-Night Study Mode check (11:00 PM – 3:30 AM IST)
+    setTimeout(() => {
+      triggerLateNightStudyReaction();
+    }, 3800);
   }
 
   if (document.readyState === 'loading') {
