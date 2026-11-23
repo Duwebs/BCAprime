@@ -2328,3 +2328,167 @@ h1, h2, h3, h4, .font-heading {
   margin: 0;
   line-height: 1.45;
 }
+
+/* ============================================================
+   PrimeBuddy Analytics Suite Styles
+   ============================================================ */
+.buddy-feature-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.buddy-feature-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: transform var(--anim-duration) var(--anim-curve), border-color var(--anim-duration) var(--anim-curve);
+}
+
+.buddy-feature-bar-row:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+
+.buddy-feature-bar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.buddy-feature-name-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.buddy-feature-counts-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.buddy-feature-count-val {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.buddy-feature-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+[data-theme="light"] .buddy-feature-bar-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.buddy-feature-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.6s var(--anim-curve);
+}
+
+/* Feature specific gradient fills */
+.fill-focus {
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+}
+.fill-spin_wheee {
+  background: linear-gradient(90deg, #d97706, #fbbf24);
+}
+.fill-dance {
+  background: linear-gradient(90deg, #db2777, #f472b6);
+}
+.fill-love_tap {
+  background: linear-gradient(90deg, #e11d48, #fb7185);
+}
+.fill-fling {
+  background: linear-gradient(90deg, #059669, #34d399);
+}
+.fill-nap {
+  background: linear-gradient(90deg, #7c3aed, #a78bfa);
+}
+.fill-hide {
+  background: linear-gradient(90deg, #475569, #94a3b8);
+}
+
+/* Student PrimeBuddy Status & Metrics */
+.buddy-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.buddy-status-pill.on {
+  background: rgba(0, 182, 122, 0.14);
+  color: #00B67A;
+  border: 1px solid rgba(0, 182, 122, 0.3);
+}
+
+.buddy-status-pill.off {
+  background: rgba(100, 116, 139, 0.14);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.buddy-fav-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(251, 191, 36, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.28);
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.buddy-student-metrics-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.buddy-metric-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.buddy-metric-item strong {
+  color: var(--ink);
+  font-weight: 600;
+}

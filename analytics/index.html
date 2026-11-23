@@ -153,6 +153,10 @@
           <i class="fa-solid fa-graduation-cap"></i>
           <span>Academic Intel</span>
         </button>
+        <button type="button" class="seg-tab bca-pressable" data-tab="primebuddy" onclick="switchSuiteTab('primebuddy')">
+          <i class="fa-solid fa-crown" style="color:#fbbf24"></i>
+          <span>PrimeBuddy</span>
+        </button>
         <button type="button" class="seg-tab bca-pressable" data-tab="livefeed" onclick="switchSuiteTab('livefeed')">
           <i class="fa-solid fa-stream"></i>
           <span>Stream</span>
@@ -434,6 +438,123 @@
 
       </section>
 
+      <!-- ================= MODULE: PRIMEBUDDY TELEMETRY ================= -->
+      <section class="suite-module-view" id="module-primebuddy" hidden>
+
+        <!-- PrimeBuddy Overview Hero Card -->
+        <div class="suite-card">
+          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
+            <div>
+              <span class="suite-card-eyebrow">STUDENT COMPANION &amp; ADOPTION</span>
+              <h2 class="suite-card-title">PrimeBuddy Telemetry &amp; Engagement</h2>
+              <p class="suite-card-desc">Student adoption rate, feature popularity breakdown, active focus duration, and student directory.</p>
+            </div>
+            <div class="suite-head-actions">
+              <span class="stream-status-tag" id="buddyRealtimeTag"><i class="fa-solid fa-crown" style="color:#fbbf24"></i> Companion Live</span>
+            </div>
+          </div>
+
+          <!-- 3 KPI Summary Cards Grid -->
+          <div class="pulse-hero-grid" style="grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));margin-bottom:16px">
+            
+            <!-- Card 1: Adoption Rate -->
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">ADOPTION RATE</span>
+                <span class="pulse-delta delta-good" id="buddyKpiAdoptionBadge">
+                  <i class="fa-solid fa-crown"></i> <span id="buddyKpiAdoptionPct">0%</span>
+                </span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val tabular-nums" id="buddyKpiAdoptionRate">0%</span>
+                <span class="pulse-sub-pill" id="buddyKpiAdoptionBreakdown">0 ON • 0 OFF</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Total Interactions & Active Time -->
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">INTERACTIONS &amp; ACTIVE TIME</span>
+                <span class="pulse-delta delta-up" id="buddyKpiInteractionsBadge">
+                  <i class="fa-solid fa-bolt"></i> Active
+                </span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val tabular-nums" id="buddyKpiTotalInteractions">0</span>
+                <span class="pulse-sub-pill" id="buddyKpiActiveTime">Total 0s • Avg 0s</span>
+              </div>
+            </div>
+
+            <!-- Card 3: Top Loved Feature -->
+            <div class="pulse-kpi-card bca-pressable">
+              <div class="pulse-kpi-head">
+                <span class="pulse-eyebrow">TOP LOVED FEATURE</span>
+                <span class="pulse-delta delta-good" id="buddyKpiTopFeatureBadge">
+                  <i class="fa-solid fa-heart"></i> #1 Fav
+                </span>
+              </div>
+              <div class="pulse-metric-row">
+                <span class="pulse-big-val" id="buddyKpiTopFeature" style="font-size:22px">None</span>
+                <span class="pulse-sub-pill" id="buddyKpiTopFeatureCount">0 actions (0%)</span>
+              </div>
+            </div>
+
+          </div><!-- /pulse-hero-grid -->
+
+        </div>
+
+        <!-- Feature Popularity Breakdown Card -->
+        <div class="suite-card" style="margin-top:16px">
+          <div class="suite-card-head">
+            <div>
+              <span class="suite-card-eyebrow">FEATURE POPULARITY BREAKDOWN</span>
+              <h3 class="suite-card-title">Action &amp; Mood Usage Distribution</h3>
+              <p class="suite-card-desc">Comparative usage counts across all PrimeBuddy student interactions.</p>
+            </div>
+          </div>
+          <div class="buddy-feature-breakdown-list" id="buddyFeatureBreakdownList">
+            <!-- Rendered by renderBuddyFeatureBreakdown() -->
+          </div>
+        </div>
+
+        <!-- Student-Wise PrimeBuddy Status & Activity Directory -->
+        <div class="suite-card" style="margin-top:16px">
+          <div class="suite-card-head" style="flex-wrap:wrap;gap:12px">
+            <div>
+              <span class="suite-card-eyebrow">STUDENT DIRECTORY</span>
+              <h3 class="suite-card-title">Student PrimeBuddy Activity</h3>
+              <p class="suite-card-desc">Individual companion status, favorite feature, and engagement duration per student.</p>
+            </div>
+            <div class="suite-head-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input class="stats-search-input" id="statsBuddySearch" placeholder="Search by name, sem, or email…" oninput="filterStatsBuddyStudents()" style="min-width:240px">
+              <span class="stats-count-badge tabular-nums" id="statsBuddyCountBadge">0 Students</span>
+            </div>
+          </div>
+
+          <!-- Status Filter Pills -->
+          <div class="stats-filter-pills" id="statsBuddyFilterPills" role="tablist" aria-label="Status filter pills" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px">
+            <button type="button" class="range-pill active bca-pressable" data-status="all" onclick="setStatsBuddyStatusFilter('all')">
+              <span>All Students</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-status="on" onclick="setStatsBuddyStatusFilter('on')">
+              <span><span class="live-emerald-dot" style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#00B67A;margin-right:4px"></span> ON (Enabled)</span>
+            </button>
+            <button type="button" class="range-pill bca-pressable" data-status="off" onclick="setStatsBuddyStatusFilter('off')">
+              <span>OFF (Disabled)</span>
+            </button>
+          </div>
+
+          <!-- Student Cards Grid -->
+          <div class="stats-student-grid" id="statsBuddyListContainer">
+            <!-- Rendered by renderStatsBuddyStudents() -->
+          </div>
+
+          <!-- Dedicated Empty State -->
+          <div id="statsBuddyEmptyState" class="empty-state-wrap" hidden></div>
+        </div>
+
+      </section>
+
       <!-- ============ MODULE 5: STUDENTS DIRECTORY & DRILL-DOWN ============ -->
       <section class="suite-module-view" id="module-students" hidden>
 
@@ -505,6 +626,10 @@
       <button type="button" class="mob-tab-btn bca-pressable" data-tab="academic" onclick="switchSuiteTab('academic')">
         <i class="fa-solid fa-graduation-cap"></i>
         <span>Academic</span>
+      </button>
+      <button type="button" class="mob-tab-btn bca-pressable" data-tab="primebuddy" onclick="switchSuiteTab('primebuddy')">
+        <i class="fa-solid fa-crown" style="color:#fbbf24"></i>
+        <span>Buddy</span>
       </button>
       <button type="button" class="mob-tab-btn bca-pressable" data-tab="livefeed" onclick="switchSuiteTab('livefeed')">
         <i class="fa-solid fa-stream"></i>

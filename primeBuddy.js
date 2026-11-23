@@ -183,6 +183,269 @@
   /* ------------------------------------------------------------
      Helper: Viewport Boundaries & Non-Repeating Quote Pickers
      ------------------------------------------------------------ */
+  /* ------------------------------------------------------------
+     Student-Only Engagement & Adoption Telemetry Buffer
+     ------------------------------------------------------------ */
+  const STORAGE_KEY_TELEMETRY_BUFFER = 'bcaprime_buddy_buffered_telemetry';
+  const TELEMETRY_FLUSH_INTERVAL = 30000; // 30 seconds
+
+  let telemetryFlushTimer = null;
+  let activeDurationTicker = null;
+
+  const telemetryBuffer = {
+    total_interactions: 0,
+    active_seconds: 0,
+    feature_counts: {
+      focus: 0,
+      dance: 0,
+      nap: 0,
+      hide: 0,
+      spin_wheee: 0,
+      love_tap: 0,
+      fling: 0
+    },
+    focus_sessions_completed: 0,
+    hasPendingActivity: false
+  };
+
+  // Restore any pending telemetry from localStorage
+  try {
+    const savedBuf = localStorage.getItem(STORAGE_KEY_TELEMETRY_BUFFER);
+    if (savedBuf) {
+      const parsed = JSON.parse(savedBuf);
+      if (parsed && typeof parsed === 'object') {
+        telemetryBuffer.total_interactions += (parsed.total_interactions || 0);
+        telemetryBuffer.active_seconds += (parsed.active_seconds || 0);
+        telemetryBuffer.focus_sessions_completed += (parsed.focus_sessions_completed || 0);
+        if (parsed.feature_counts) {
+          for (const k in telemetryBuffer.feature_counts) {
+            telemetryBuffer.feature_counts[k] += (parsed.feature_counts[k] || 0);
+          }
+        }
+        telemetryBuffer.hasPendingActivity = true;
+      }
+    }
+  } catch (_e) {}
+
+  function isStudentSession() {
+    try {
+      const path = (window.location.pathname || '').toLowerCase();
+      // Strictly exclude Admin and Stats/Analytics sessions from telemetry
+      if (path.includes('/admin') || path.includes('/analytics') || path.includes('/stats')) {
+        return false;
+      }
+      return true;
+    } catch (_e) {
+      return true;
+    }
+  }
+
+  async function getStudentUid() {
+    try {
+      if (typeof window.__bcaSessionUid === 'function') {
+        const uid = window.__bcaSessionUid();
+        if (uid) return uid;
+      } else if (typeof window.__bcaSessionUid === 'string' && window.__bcaSessionUid) {
+        return window.__bcaSessionUid;
+      }
+      if (window.accountSession && window.accountSession.uid) {
+        return window.accountSession.uid;
+      }
+      const client = (typeof window !== 'undefined' && (window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null))) || null;
+      if (client && client.auth) {
+        const { data: sData } = await client.auth.getSession();
+        if (sData?.session?.user?.id) return sData.session.user.id;
+      }
+      const lsKeys = Object.keys(localStorage);
+      const tokenKey = lsKeys.find(k => k.includes('-auth-token') && !k.includes('bca-admin') && !k.includes('bca-analytics'));
+      if (tokenKey) {
+        const tokenObj = JSON.parse(localStorage.getItem(tokenKey) || '{}');
+        const sUser = tokenObj?.user || tokenObj?.currentSession?.user;
+        if (sUser?.id) return sUser.id;
+      }
+      const cachedSession = localStorage.getItem('bcaprime_user_session') || localStorage.getItem('supabase.auth.token');
+      if (cachedSession) {
+        const parsed = JSON.parse(cachedSession);
+        if (parsed?.user?.id || parsed?.uid) return parsed?.user?.id || parsed?.uid;
+      }
+    } catch (_e) {}
+    return '';
+  }
+
+  function savePendingTelemetryToLocalStorage() {
+    try {
+      localStorage.setItem(STORAGE_KEY_TELEMETRY_BUFFER, JSON.stringify(telemetryBuffer));
+    } catch (_e) {}
+  }
+
+  function clearPendingLocalStorageTelemetry() {
+    try {
+      localStorage.removeItem(STORAGE_KEY_TELEMETRY_BUFFER);
+    } catch (_e) {}
+  }
+
+  function recordBuddyFeatureInteraction(actionKey) {
+    if (!isStudentSession()) return;
+    if (telemetryBuffer.feature_counts.hasOwnProperty(actionKey)) {
+      telemetryBuffer.feature_counts[actionKey] += 1;
+    }
+    telemetryBuffer.total_interactions += 1;
+    telemetryBuffer.hasPendingActivity = true;
+    savePendingTelemetryToLocalStorage();
+  }
+
+  function recordBuddyFocusCompleted() {
+    if (!isStudentSession()) return;
+    telemetryBuffer.focus_sessions_completed += 1;
+    telemetryBuffer.hasPendingActivity = true;
+    savePendingTelemetryToLocalStorage();
+  }
+
+  // Active duration ticker: runs every 1 second, checks if student is actively engaging
+  function initActiveDurationTracking() {
+    if (activeDurationTicker) clearInterval(activeDurationTicker);
+    activeDurationTicker = setInterval(() => {
+      if (!isStudentSession() || document.hidden) return;
+      const isActivelyEngaged = isDragging || isFlinging || (isFocusMode && !isFocusPaused) || isWheeeSpinning || (currentMood === 'love' || currentMood === 'dizzy');
+      if (isActivelyEngaged) {
+        telemetryBuffer.active_seconds += 1;
+        telemetryBuffer.hasPendingActivity = true;
+      }
+    }, 1000);
+  }
+
+  // Immediate status sync to Supabase (ON / OFF)
+  async function syncBuddyEnabledToCloud(enabled) {
+    if (!isStudentSession()) return;
+    const uid = await getStudentUid();
+    if (!uid) return;
+
+    const client = (typeof window !== 'undefined' && (window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null))) || null;
+    if (!client) return;
+
+    try {
+      const { error } = await client.rpc('log_primebuddy_telemetry', {
+        p_user_id: uid,
+        p_is_enabled: Boolean(enabled),
+        p_interactions_delta: 0,
+        p_seconds_delta: 0,
+        p_feature_deltas: {},
+        p_focus_completed_delta: 0
+      });
+
+      if (error) {
+        // Fallback: direct table upsert
+        await client.from('primebuddy_telemetry').upsert({
+          user_id: uid,
+          is_enabled: Boolean(enabled),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+    } catch (_e) {}
+  }
+
+  // Batched flush to Supabase
+  async function flushBuddyTelemetry(isImmediate = false) {
+    if (!isStudentSession()) return;
+    if (!telemetryBuffer.hasPendingActivity && !isImmediate) return;
+
+    const uid = await getStudentUid();
+    if (!uid) {
+      savePendingTelemetryToLocalStorage();
+      return;
+    }
+
+    const interactionsDelta = telemetryBuffer.total_interactions;
+    const secondsDelta = telemetryBuffer.active_seconds;
+    const featureDeltas = { ...telemetryBuffer.feature_counts };
+    const focusCompletedDelta = telemetryBuffer.focus_sessions_completed;
+    const isEnabled = isBuddyEnabled();
+
+    if (interactionsDelta === 0 && secondsDelta === 0 && focusCompletedDelta === 0 && !isImmediate) {
+      return;
+    }
+
+    // Reset in-memory buffer before dispatch
+    telemetryBuffer.total_interactions = 0;
+    telemetryBuffer.active_seconds = 0;
+    for (const k in telemetryBuffer.feature_counts) {
+      telemetryBuffer.feature_counts[k] = 0;
+    }
+    telemetryBuffer.focus_sessions_completed = 0;
+    telemetryBuffer.hasPendingActivity = false;
+
+    const client = (typeof window !== 'undefined' && (window.supabaseClient || (typeof supabaseClient !== 'undefined' ? supabaseClient : null))) || null;
+    if (!client) {
+      savePendingTelemetryToLocalStorage();
+      return;
+    }
+
+    try {
+      const { error: rpcError } = await client.rpc('log_primebuddy_telemetry', {
+        p_user_id: uid,
+        p_is_enabled: isEnabled,
+        p_interactions_delta: interactionsDelta,
+        p_seconds_delta: secondsDelta,
+        p_feature_deltas: featureDeltas,
+        p_focus_completed_delta: focusCompletedDelta
+      });
+
+      if (rpcError) {
+        // Direct table upsert fallback
+        const { data: existing } = await client.from('primebuddy_telemetry').select('*').eq('user_id', uid).maybeSingle();
+        const existingCounts = (existing && existing.feature_counts) || {};
+        const mergedCounts = { ...existingCounts };
+        for (const k in featureDeltas) {
+          mergedCounts[k] = (mergedCounts[k] || 0) + (featureDeltas[k] || 0);
+        }
+
+        await client.from('primebuddy_telemetry').upsert({
+          user_id: uid,
+          is_enabled: isEnabled,
+          total_interactions: ((existing && existing.total_interactions) || 0) + interactionsDelta,
+          active_seconds: ((existing && existing.active_seconds) || 0) + secondsDelta,
+          feature_counts: mergedCounts,
+          focus_sessions_completed: ((existing && existing.focus_sessions_completed) || 0) + focusCompletedDelta,
+          last_interacted_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id' });
+      }
+      clearPendingLocalStorageTelemetry();
+    } catch (_err) {
+      // Restore buffer if network failed
+      telemetryBuffer.total_interactions += interactionsDelta;
+      telemetryBuffer.active_seconds += secondsDelta;
+      for (const k in featureDeltas) {
+        telemetryBuffer.feature_counts[k] += featureDeltas[k];
+      }
+      telemetryBuffer.focus_sessions_completed += focusCompletedDelta;
+      telemetryBuffer.hasPendingActivity = true;
+      savePendingTelemetryToLocalStorage();
+    }
+  }
+
+  function initTelemetryLifecycle() {
+    if (!isStudentSession()) return;
+    initActiveDurationTracking();
+
+    if (telemetryFlushTimer) clearInterval(telemetryFlushTimer);
+    telemetryFlushTimer = setInterval(() => {
+      if (telemetryBuffer.hasPendingActivity) {
+        flushBuddyTelemetry(false);
+      }
+    }, TELEMETRY_FLUSH_INTERVAL);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushBuddyTelemetry(true);
+      }
+    });
+
+    window.addEventListener('pagehide', () => {
+      flushBuddyTelemetry(true);
+    });
+  }
+
   function getMaxX() {
     return Math.max(0, (window.innerWidth || document.documentElement.clientWidth || 360) - MASCOT_SIZE);
   }
@@ -876,6 +1139,7 @@
   function triggerLoveReaction(duration = 2000) {
     if (currentMood === 'dizzy') return;
     setMascotMood('love');
+    recordBuddyFeatureInteraction('love_tap');
     triggerHaptic(18);
     if (navigator.vibrate) {
       try { navigator.vibrate([15, 60, 20]); } catch (_e) {}
@@ -902,6 +1166,7 @@
     if (currentMood === 'dizzy') return;
     if (currentMood === 'love') setMascotMood('normal');
 
+    recordBuddyFeatureInteraction('spin_wheee');
     isWheeeSpinning = true;
     isWheeeDecelerating = false;
     wheeeAngularVelocity = 1260; // Initial ~3.5 rotations/sec
@@ -1491,6 +1756,7 @@
   function startFlingPhysics(initialVx, initialVy) {
     if (isFlinging) cancelAnimationFrame(flingRafId);
     isFlinging = true;
+    recordBuddyFeatureInteraction('fling');
     mascotEl.classList.add('is-flinging');
 
     flingVelX = Math.max(-2800, Math.min(2800, initialVx));
@@ -1743,6 +2009,7 @@
     if (isPeeking) popOutOfPeek();
     stopRoaming();
 
+    recordBuddyFeatureInteraction('focus');
     isFocusMode = true;
     isFocusPaused = false;
     focusTimeRemaining = 25 * 60; // 1500s
@@ -1870,6 +2137,7 @@
   function completeFocusSession() {
     isFocusMode = false;
     isFocusPaused = false;
+    recordBuddyFocusCompleted();
     if (focusTimerInterval) {
       clearInterval(focusTimerInterval);
       focusTimerInterval = null;
@@ -2152,6 +2420,7 @@
   /* 1. Dance Action: 3s fun rhythmic dance & spin */
   function triggerDanceAction() {
     closeActionPill();
+    recordBuddyFeatureInteraction('dance');
     if (isNapping) {
       isNapping = false;
       mascotEl.classList.remove('is-napping');
@@ -2188,6 +2457,7 @@
     isNapping = true;
     stopRoaming();
     setMascotMood('napping');
+    recordBuddyFeatureInteraction('nap');
     triggerHaptic(14);
     showBubble('Taking a quick nap... zZz 😴', 2400);
   }
@@ -2211,6 +2481,7 @@
   /* 3. Hide Action (Temporary session-only hide — reappears on refresh/reopen) */
   function hideBuddyAction() {
     closeActionPill();
+    recordBuddyFeatureInteraction('hide');
     isTemporarilyHiddenForSession = true;
     updateMascotVisibility();
     showToast("PrimeBuddy hidden for now — he'll be back next time you open BCAPrime!", 'info');
@@ -2429,6 +2700,9 @@
     syncSettingsCheckboxes(enabled);
     updateMascotVisibility();
 
+    // Immediate sync to Supabase for student session
+    syncBuddyEnabledToCloud(enabled);
+
     if (showFeedback) {
       triggerHaptic(10);
       showToast(enabled ? 'PrimeBuddy enabled! 🚀' : 'PrimeBuddy turned off.', 'info');
@@ -2538,6 +2812,16 @@
     setTimeout(() => {
       triggerLateNightStudyReaction();
     }, 3800);
+
+    // Initialize Student Telemetry Tracker & Batched Flusher
+    initTelemetryLifecycle();
+
+    // Initial check to flush any restored pending telemetry once authenticated
+    setTimeout(() => {
+      if (telemetryBuffer.hasPendingActivity) {
+        flushBuddyTelemetry(false);
+      }
+    }, 2500);
 
     // Dynamic Viewport / Window Resize Tracking
     window.addEventListener('resize', () => {

@@ -298,6 +298,9 @@ function scheduleStatsRealtimeRefresh() {
     if ($('tab-students') && !$('tab-students').hidden) {
       renderStudentsModule();
     }
+    if (activeModuleTab === 'primebuddy') {
+      renderPrimeBuddyModule();
+    }
   }, 400);
 }
 
@@ -387,6 +390,7 @@ function switchSuiteTab(tab) {
   if (tab === 'academic') renderAcademicModule();
   if (tab === 'livefeed') renderLiveFeedModule();
   if (tab === 'students') renderStudentsModule();
+  if (tab === 'primebuddy') renderPrimeBuddyModule();
 }
 
 /* ============================================================
@@ -490,14 +494,18 @@ async function fetchSuiteTelemetry() {
     const resourcesPromise = analyticsSupabaseClient.from('resources').select('id, title, downloads, views, semester, subject, type').order('downloads', { ascending: false }).limit(25);
     const srItemsPromise = analyticsSupabaseClient.from('senior_requests').select('id, subject, semester, type').order('created_at', { ascending: false }).limit(40);
 
-    const [profRes, evRes, srRes, lfRes, fbRes, resRes, srItemsRes] = await Promise.allSettled([
+    // 5. Fetch PrimeBuddy Telemetry
+    const buddyPromise = analyticsSupabaseClient.from('primebuddy_telemetry').select('*');
+
+    const [profRes, evRes, srRes, lfRes, fbRes, resRes, srItemsRes, buddyRes] = await Promise.allSettled([
       profilesPromise,
       eventsPromise,
       seniorPromise,
       lfPromise,
       feedbackPromise,
       resourcesPromise,
-      srItemsPromise
+      srItemsPromise,
+      buddyPromise
     ]);
 
     // Ensure approved custom colleges are merged
@@ -514,6 +522,7 @@ async function fetchSuiteTelemetry() {
     }
     telemetryCache.totalStudents = totalStudents;
     telemetryCache.deduplicatedStudents = deduplicatedStudents;
+    telemetryCache.buddyTelemetry = (buddyRes.status === 'fulfilled' && Array.isArray(buddyRes.value.data)) ? buddyRes.value.data : [];
 
     // 1. Group active students STRICTLY by semester (Sem 1 to Sem 6)
     const semDist = { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0 };
@@ -608,6 +617,7 @@ async function fetchSuiteTelemetry() {
     if (activeModuleTab === 'engagement') renderEngagementModule();
     if (activeModuleTab === 'academic') renderAcademicModule();
     if (activeModuleTab === 'livefeed') renderLiveFeedModule();
+    if (activeModuleTab === 'primebuddy') renderPrimeBuddyModule();
 
   } catch (err) {
     console.error('[Analytics] Telemetry aggregation error:', err);
@@ -2220,6 +2230,429 @@ function renderOtherActivitySection(codeRuns, mockTests, requests, lostFound, fe
   `).join('');
 }
 
+/* ============================================================
+   MODULE: PrimeBuddy Engagement & Adoption Telemetry
+   ============================================================ */
+let statsBuddyStudentsCache = [];
+let currentStatsBuddyStatusFilter = 'all';
+let buddySearchDebounce = null;
+
+const BUDDY_FEATURE_META = {
+  focus: { id: 'focus', name: 'Focus Timer', icon: '⏱️', fillCls: 'fill-focus' },
+  spin_wheee: { id: 'spin_wheee', name: 'Wheee Spin', icon: '🌀', fillCls: 'fill-spin_wheee' },
+  dance: { id: 'dance', name: 'Dance Party', icon: '💃', fillCls: 'fill-dance' },
+  love_tap: { id: 'love_tap', name: 'Love Tap', icon: '😍', fillCls: 'fill-love_tap' },
+  fling: { id: 'fling', name: 'Fling Physics', icon: '🚀', fillCls: 'fill-fling' },
+  nap: { id: 'nap', name: 'Nap / Sleep', icon: '😴', fillCls: 'fill-nap' },
+  hide: { id: 'hide', name: 'Temp Hide', icon: '👋', fillCls: 'fill-hide' }
+};
+
+async function renderPrimeBuddyModule() {
+  const listContainer = $('statsBuddyListContainer');
+  const emptyWrap = $('statsBuddyEmptyState');
+  const countBadge = $('statsBuddyCountBadge');
+  if (emptyWrap) emptyWrap.hidden = true;
+
+  try {
+    if (!analyticsSupabaseClient) throw new Error('Supabase client not connected');
+
+    // 1. Ensure we have student profiles
+    let deduplicatedProfiles = telemetryCache.deduplicatedStudents;
+    if (!deduplicatedProfiles || !deduplicatedProfiles.length) {
+      const { data: profs } = await analyticsSupabaseClient
+        .from('user_profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+      deduplicatedProfiles = deduplicateStudentProfiles(profs || []);
+      telemetryCache.deduplicatedStudents = deduplicatedProfiles;
+    }
+
+    // 2. Fetch or reuse buddy telemetry rows
+    let buddyRows = telemetryCache.buddyTelemetry;
+    if (!buddyRows || !Array.isArray(buddyRows)) {
+      try {
+        const { data: bData, error: bErr } = await analyticsSupabaseClient
+          .from('primebuddy_telemetry')
+          .select('*');
+        if (!bErr && Array.isArray(bData)) {
+          buddyRows = bData;
+          telemetryCache.buddyTelemetry = buddyRows;
+        } else {
+          buddyRows = [];
+        }
+      } catch (_e) {
+        buddyRows = [];
+      }
+    }
+
+    // Build lookup map by user_id
+    const buddyMap = new Map();
+    (buddyRows || []).forEach(row => {
+      if (row.user_id) {
+        buddyMap.set(String(row.user_id), row);
+      }
+    });
+
+    // 3. Aggregate KPI metrics
+    let onCount = 0;
+    let offCount = 0;
+    let totalInteractions = 0;
+    let totalActiveSeconds = 0;
+    let totalFocusSessionsCompleted = 0;
+
+    const featureTotals = {
+      focus: 0,
+      spin_wheee: 0,
+      dance: 0,
+      love_tap: 0,
+      fling: 0,
+      nap: 0,
+      hide: 0
+    };
+
+    // Combine student profiles with telemetry
+    const combinedStudents = (deduplicatedProfiles || []).map(p => {
+      const bRow = buddyMap.get(String(p.uid)) || buddyMap.get(String(p.id)) || null;
+      const isEnabled = bRow ? (bRow.is_enabled !== false) : true;
+      const interactions = bRow ? (bRow.total_interactions || 0) : 0;
+      const activeSec = bRow ? (bRow.active_seconds || 0) : 0;
+      const fCounts = (bRow && bRow.feature_counts && typeof bRow.feature_counts === 'object') ? bRow.feature_counts : {};
+      const focusComp = bRow ? (bRow.focus_sessions_completed || 0) : 0;
+      const lastAt = bRow ? (bRow.last_interacted_at || bRow.updated_at || null) : null;
+
+      if (isEnabled) onCount++; else offCount++;
+      totalInteractions += interactions;
+      totalActiveSeconds += activeSec;
+      totalFocusSessionsCompleted += focusComp;
+
+      for (const featKey in featureTotals) {
+        if (fCounts[featKey]) {
+          featureTotals[featKey] += Number(fCounts[featKey]) || 0;
+        }
+      }
+
+      // Determine this student's individual favorite feature
+      let maxFeatKey = '';
+      let maxFeatCount = 0;
+      for (const featKey in featureTotals) {
+        const count = Number(fCounts[featKey]) || 0;
+        if (count > maxFeatCount) {
+          maxFeatCount = count;
+          maxFeatKey = featKey;
+        }
+      }
+
+      const favMeta = maxFeatKey && BUDDY_FEATURE_META[maxFeatKey];
+      const favBadge = favMeta ? `${favMeta.icon} ${favMeta.name}` : '✨ New';
+
+      return {
+        ...p,
+        is_enabled: isEnabled,
+        total_interactions: interactions,
+        active_seconds: activeSec,
+        feature_counts: fCounts,
+        focus_sessions_completed: focusComp,
+        last_interacted_at: lastAt,
+        favorite_feature: favBadge
+      };
+    });
+
+    // Check for any orphan telemetry rows whose user_id is not in user_profiles
+    (buddyRows || []).forEach(row => {
+      const uidStr = String(row.user_id);
+      const alreadyIncluded = combinedStudents.some(s => String(s.uid) === uidStr || String(s.id) === uidStr);
+      if (!alreadyIncluded) {
+        const isEnabled = row.is_enabled !== false;
+        const interactions = row.total_interactions || 0;
+        const activeSec = row.active_seconds || 0;
+        const fCounts = (row.feature_counts && typeof row.feature_counts === 'object') ? row.feature_counts : {};
+        const focusComp = row.focus_sessions_completed || 0;
+        const lastAt = row.last_interacted_at || row.updated_at || null;
+
+        if (isEnabled) onCount++; else offCount++;
+        totalInteractions += interactions;
+        totalActiveSeconds += activeSec;
+        totalFocusSessionsCompleted += focusComp;
+
+        for (const featKey in featureTotals) {
+          if (fCounts[featKey]) {
+            featureTotals[featKey] += Number(fCounts[featKey]) || 0;
+          }
+        }
+
+        let maxFeatKey = '';
+        let maxFeatCount = 0;
+        for (const featKey in featureTotals) {
+          const count = Number(fCounts[featKey]) || 0;
+          if (count > maxFeatCount) {
+            maxFeatCount = count;
+            maxFeatKey = featKey;
+          }
+        }
+        const favMeta = maxFeatKey && BUDDY_FEATURE_META[maxFeatKey];
+        const favBadge = favMeta ? `${favMeta.icon} ${favMeta.name}` : '✨ New';
+
+        combinedStudents.push({
+          uid: uidStr,
+          name: 'Student',
+          username: uidStr.slice(0, 8),
+          semester: 1,
+          college: 'avviare',
+          is_enabled: isEnabled,
+          total_interactions: interactions,
+          active_seconds: activeSec,
+          feature_counts: fCounts,
+          focus_sessions_completed: focusComp,
+          last_interacted_at: lastAt,
+          favorite_feature: favBadge
+        });
+      }
+    });
+
+    // 4. Update KPI 1: Adoption Rate
+    const totalStudentsConsidered = onCount + offCount;
+    const adoptionPct = totalStudentsConsidered > 0 ? Math.round((onCount / totalStudentsConsidered) * 100) : 0;
+    
+    if ($('buddyKpiAdoptionPct')) $('buddyKpiAdoptionPct').textContent = `${adoptionPct}%`;
+    if ($('buddyKpiAdoptionRate')) $('buddyKpiAdoptionRate').textContent = `${adoptionPct}%`;
+    if ($('buddyKpiAdoptionBreakdown')) $('buddyKpiAdoptionBreakdown').textContent = `${onCount} ON • ${offCount} OFF`;
+    if ($('buddyKpiAdoptionBadge')) {
+      $('buddyKpiAdoptionBadge').className = `pulse-delta ${adoptionPct >= 50 ? 'delta-good' : 'delta-neutral'}`;
+    }
+
+    // 5. Update KPI 2: Total Interactions & Active Time
+    if ($('buddyKpiTotalInteractions')) {
+      $('buddyKpiTotalInteractions').textContent = totalInteractions.toLocaleString();
+    }
+    const avgSecPerStudent = totalStudentsConsidered > 0 ? Math.round(totalActiveSeconds / totalStudentsConsidered) : 0;
+    if ($('buddyKpiActiveTime')) {
+      $('buddyKpiActiveTime').textContent = `Total ${fmtDuration(totalActiveSeconds)} • Avg ${fmtDuration(avgSecPerStudent)}`;
+    }
+
+    // 6. Update KPI 3: Top Loved Feature
+    let totalFeatureSum = 0;
+    let topFeatKey = '';
+    let topFeatCount = 0;
+    for (const k in featureTotals) {
+      const c = featureTotals[k];
+      totalFeatureSum += c;
+      if (c > topFeatCount) {
+        topFeatCount = c;
+        topFeatKey = k;
+      }
+    }
+
+    if ($('buddyKpiTopFeature')) {
+      if (topFeatCount > 0 && BUDDY_FEATURE_META[topFeatKey]) {
+        const topMeta = BUDDY_FEATURE_META[topFeatKey];
+        $('buddyKpiTopFeature').textContent = `${topMeta.icon} ${topMeta.name}`;
+      } else {
+        $('buddyKpiTopFeature').textContent = 'None yet';
+      }
+    }
+    if ($('buddyKpiTopFeatureCount')) {
+      if (topFeatCount > 0 && totalFeatureSum > 0) {
+        const pct = Math.round((topFeatCount / totalFeatureSum) * 100);
+        $('buddyKpiTopFeatureCount').textContent = `${topFeatCount} actions (${pct}%)`;
+      } else {
+        $('buddyKpiTopFeatureCount').textContent = '0 actions (0%)';
+      }
+    }
+
+    // 7. Render Feature Popularity Breakdown List
+    renderBuddyFeatureBreakdown(featureTotals, totalFeatureSum);
+
+    // 8. Sort student list: most recently interacted first, then total interactions, then name
+    combinedStudents.sort((a, b) => {
+      const aTime = a.last_interacted_at ? new Date(a.last_interacted_at).getTime() : 0;
+      const bTime = b.last_interacted_at ? new Date(b.last_interacted_at).getTime() : 0;
+      if (bTime !== aTime) return bTime - aTime;
+      if (b.total_interactions !== a.total_interactions) return b.total_interactions - a.total_interactions;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    statsBuddyStudentsCache = combinedStudents;
+    filterStatsBuddyStudents();
+
+  } catch (err) {
+    console.error('[Analytics] renderPrimeBuddyModule error:', err);
+    if (listContainer) {
+      listContainer.innerHTML = `
+        <div class="empty-state-wrap" style="grid-column:1/-1;padding:36px 16px;text-align:center">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:28px;color:var(--brand);margin-bottom:10px;display:block"></i>
+          <h3 style="margin:0 0 6px;font-size:16px">Could not load PrimeBuddy Telemetry</h3>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 16px">${escapeHtml(err.message || 'Check database connection')}</p>
+          <button class="range-pill bca-pressable" onclick="renderPrimeBuddyModule()" style="min-height:40px;padding:0 16px">
+            <i class="fa-solid fa-arrows-rotate"></i> Retry
+          </button>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderBuddyFeatureBreakdown(featureTotals, totalFeatureSum) {
+  const container = $('buddyFeatureBreakdownList');
+  if (!container) return;
+
+  const featureItems = Object.keys(BUDDY_FEATURE_META).map(key => {
+    const meta = BUDDY_FEATURE_META[key];
+    const count = featureTotals[key] || 0;
+    const pct = totalFeatureSum > 0 ? Math.round((count / totalFeatureSum) * 100) : 0;
+    return { ...meta, count, pct };
+  });
+
+  // Sort by count descending
+  featureItems.sort((a, b) => b.count - a.count);
+
+  container.innerHTML = featureItems.map(item => `
+    <div class="buddy-feature-bar-row">
+      <div class="buddy-feature-bar-meta">
+        <div class="buddy-feature-name-group">
+          <span>${item.icon}</span>
+          <span>${escapeHtml(item.name)}</span>
+        </div>
+        <div class="buddy-feature-counts-group">
+          <span class="buddy-feature-count-val">${item.count}</span>
+          <span>actions (${item.pct}%)</span>
+        </div>
+      </div>
+      <div class="buddy-feature-bar-track">
+        <div class="buddy-feature-bar-fill ${item.fillCls}" style="width:${item.count > 0 ? Math.max(item.pct, 4) : 0}%"></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setStatsBuddyStatusFilter(status) {
+  triggerHaptic();
+  currentStatsBuddyStatusFilter = status;
+  document.querySelectorAll('#statsBuddyFilterPills .range-pill').forEach(b => {
+    b.classList.toggle('active', b.dataset.status === status);
+  });
+  filterStatsBuddyStudents();
+}
+
+function clearStatsBuddyFilters() {
+  triggerHaptic();
+  const searchInput = $('statsBuddySearch');
+  if (searchInput) searchInput.value = '';
+  setStatsBuddyStatusFilter('all');
+}
+
+function filterStatsBuddyStudents() {
+  clearTimeout(buddySearchDebounce);
+  buddySearchDebounce = setTimeout(() => {
+    const q = ($('statsBuddySearch')?.value || '').trim().toLowerCase();
+    const statusFilter = currentStatsBuddyStatusFilter;
+
+    const filtered = (statsBuddyStudentsCache || []).filter(s => {
+      if (q) {
+        const name = (s.name || '').toLowerCase();
+        const uname = (s.username || '').toLowerCase();
+        const email = (s.email || '').toLowerCase();
+        const college = (s.college || '').toLowerCase();
+        const sem = `sem ${s.semester || 1}`;
+        if (!name.includes(q) && !uname.includes(q) && !email.includes(q) && !college.includes(q) && !sem.includes(q)) {
+          return false;
+        }
+      }
+      if (statusFilter === 'on' && !s.is_enabled) return false;
+      if (statusFilter === 'off' && s.is_enabled) return false;
+      return true;
+    });
+
+    renderStatsBuddyStudents(filtered);
+  }, 100);
+}
+
+function renderStatsBuddyStudents(list) {
+  const container = $('statsBuddyListContainer');
+  const emptyWrap = $('statsBuddyEmptyState');
+  const countBadge = $('statsBuddyCountBadge');
+
+  if (countBadge) {
+    countBadge.textContent = `${list.length} ${list.length === 1 ? 'Student' : 'Students'}`;
+  }
+
+  if (!list || list.length === 0) {
+    if (container) container.innerHTML = '';
+    if (emptyWrap) {
+      emptyWrap.hidden = false;
+      emptyWrap.innerHTML = `
+        <div style="padding:28px 16px;text-align:center">
+          <i class="fa-solid fa-users-slash" style="font-size:32px;color:var(--muted);margin-bottom:12px;display:block"></i>
+          <h3 style="margin:0 0 6px;font-size:16px;font-family:var(--font-display);font-weight:600">No students match filter</h3>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 16px;font-family:var(--font-sans)">Try adjusting your search query or status filter.</p>
+          <button class="range-pill bca-pressable" onclick="clearStatsBuddyFilters()" style="min-height:38px;padding:0 16px">
+            <i class="fa-solid fa-xmark"></i> Clear Filters
+          </button>
+        </div>
+      `;
+      initPressables();
+    }
+    return;
+  }
+
+  if (emptyWrap) emptyWrap.hidden = true;
+
+  if (container) {
+    container.innerHTML = list.map(student => {
+      const name = escapeHtml(student.name || 'Student');
+      const username = escapeHtml(student.username || (student.email ? student.email.split('@')[0] : 'student'));
+      const college = escapeHtml(formatStudentCollege(student.college));
+      const sem = student.semester || 1;
+      const firstLetter = (student.name || student.email || 'S').trim().charAt(0).toUpperCase();
+      const avatarColor = getAvatarColor(student.name || student.email);
+
+      const avatarHtml = student.avatar_url
+        ? `<div class="stats-student-avatar"><img src="${escapeHtml(student.avatar_url)}" alt="${name}" onerror="this.parentElement.innerHTML='${firstLetter}'"></div>`
+        : `<div class="stats-student-avatar" style="background:${avatarColor}">${firstLetter}</div>`;
+
+      const statusHtml = student.is_enabled
+        ? `<span class="buddy-status-pill on"><i class="fa-solid fa-check"></i> ON</span>`
+        : `<span class="buddy-status-pill off"><i class="fa-solid fa-power-off"></i> OFF</span>`;
+
+      const lastInteractedStr = student.last_interacted_at
+        ? formatRelativeTime(student.last_interacted_at)
+        : 'Never';
+
+      return `
+        <div class="stats-student-card bca-pressable" role="button" tabindex="0" onclick="openStudentInspector('${escapeHtml(student.uid)}')">
+          <div class="stats-student-head">
+            ${avatarHtml}
+            <div class="stats-student-info">
+              <div class="stats-student-title-row">
+                <span class="stats-student-name">${name}</span>
+                <span class="stats-student-username">@${username}</span>
+                <span class="stats-student-sem-badge">SEM ${sem}</span>
+                ${statusHtml}
+              </div>
+              <div class="stats-student-meta">
+                <i class="fa-solid fa-building-columns" style="font-size:11px;opacity:0.7;margin-right:4px"></i>
+                <span>${college}</span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px">
+            <span class="buddy-fav-badge"><i class="fa-solid fa-heart" style="font-size:10px"></i> ${escapeHtml(student.favorite_feature || '✨ New')}</span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">
+              <i class="fa-solid fa-clock-rotate-left"></i> ${lastInteractedStr}
+            </span>
+          </div>
+          <div class="buddy-student-metrics-row">
+            <span class="buddy-metric-item"><i class="fa-solid fa-bolt" style="color:var(--brand)"></i> <strong>${student.total_interactions || 0}</strong> acts</span>
+            <span class="buddy-metric-item"><i class="fa-solid fa-clock" style="color:#38bdf8"></i> <strong>${fmtDuration(student.active_seconds || 0)}</strong></span>
+            ${student.focus_sessions_completed > 0 ? `<span class="buddy-metric-item"><i class="fa-solid fa-circle-check" style="color:#34d399"></i> <strong>${student.focus_sessions_completed}</strong> focus</span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  initPressables();
+}
+
 window.switchSuiteTab = switchSuiteTab;
 window.setRange = setRange;
 window.refreshAll = refreshAll;
@@ -2233,3 +2666,8 @@ window.clearStatsStudentFilters = clearStatsStudentFilters;
 window.setStatsStudentSemFilter = setStatsStudentSemFilter;
 window.openStudentInspector = openStudentInspector;
 window.closeStudentInspector = closeStudentInspector;
+window.renderPrimeBuddyModule = renderPrimeBuddyModule;
+window.filterStatsBuddyStudents = filterStatsBuddyStudents;
+window.renderStatsBuddyStudents = renderStatsBuddyStudents;
+window.setStatsBuddyStatusFilter = setStatsBuddyStatusFilter;
+window.clearStatsBuddyFilters = clearStatsBuddyFilters;
