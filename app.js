@@ -2305,9 +2305,41 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       });
       document.querySelectorAll('.oauth-inline-spinner-wrap').forEach(s => s.remove());
     }
+    function isPasskeySupportedOnDevice(){
+      if(typeof window === 'undefined') return false;
+      if(!window.PublicKeyCredential) return false;
+      const ua = navigator.userAgent || '';
+      // Exclude desktop devices: Windows, Mac, Linux x86_64, or desktop screen widths (>= 1024px)
+      const isMobileOrTabletUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua);
+      const isDesktopUA = /Windows NT|Macintosh|Mac OS X|X11|Linux x86_64/i.test(ua) && !isMobileOrTabletUA;
+      const isLargeScreen = (window.innerWidth || 1024) >= 1024;
+      if(isDesktopUA || isLargeScreen) return false;
+      return Boolean(isMobileOrTabletUA || (('ontouchstart' in window || navigator.maxTouchPoints > 0) && !isLargeScreen));
+    }
+    window.isPasskeySupportedOnDevice = isPasskeySupportedOnDevice;
+
     function resetAuthGateState(options = {}){
       setGateSubmitLoading(false);
       resetOAuthButtons();
+      const passkeyBtn = $('gatePasskeyBtn');
+      if(passkeyBtn){
+        passkeyBtn.classList.remove('is-loading');
+        passkeyBtn.disabled = false;
+        const spinner = $('gatePasskeySpinner');
+        if(spinner) spinner.style.display = 'none';
+        const txt = passkeyBtn.querySelector('.passkey-gate-text');
+        if(txt) txt.textContent = 'Sign in with Passkey';
+        const canUsePasskey = isPasskeySupportedOnDevice();
+        if(gateMode !== 'login' || !canUsePasskey){
+          passkeyBtn.hidden = true;
+          passkeyBtn.classList.add('is-hidden');
+          passkeyBtn.style.setProperty('display', 'none', 'important');
+        } else {
+          passkeyBtn.hidden = false;
+          passkeyBtn.classList.remove('is-hidden');
+          passkeyBtn.style.removeProperty('display');
+        }
+      }
       const gateMsg = $('gateAccountMessage');
       if(gateMsg) gateMsg.textContent = '';
       const acctMsg = $('accountMessage');
@@ -2511,6 +2543,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const qrTrig = $('desktopQrTrigger');
       if(qrTrig){
         qrTrig.hidden = (mode !== 'login');
+      }
+
+      const passkeyBtn = $('gatePasskeyBtn');
+      const canUsePasskey = isPasskeySupportedOnDevice();
+      if(passkeyBtn){
+        // STRICT: Show strictly on login screen, never on signup, and never for desktop users
+        if(mode === 'login' && canUsePasskey){
+          passkeyBtn.hidden = false;
+          passkeyBtn.classList.remove('is-hidden');
+          passkeyBtn.style.removeProperty('display');
+        } else {
+          passkeyBtn.hidden = true;
+          passkeyBtn.classList.add('is-hidden');
+          passkeyBtn.style.setProperty('display', 'none', 'important');
+        }
       }
     }
     async function submitGateAccount(event){
@@ -3418,6 +3465,22 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(camBadge){ camBadge.hidden=false; camBadge.style.display='flex'; }
         if(edBtn){ edBtn.hidden=false; edBtn.style.display=''; edBtn.onclick=openEditProfileModal; }
         if(avWrap){ avWrap.onclick=openEditProfileModal; avWrap.style.cursor='pointer'; }
+        const canUsePasskey = isPasskeySupportedOnDevice();
+        const passRow = $('profilePasskeysRow');
+        const passDiv = $('profilePasskeysDivider');
+        const passGroup = $('settingsPasskeysGroup');
+        if(passRow) {
+          passRow.hidden = !canUsePasskey;
+          passRow.style.setProperty('display', canUsePasskey ? 'flex' : 'none', 'important');
+        }
+        if(passDiv) {
+          passDiv.hidden = !canUsePasskey;
+          passDiv.style.setProperty('display', canUsePasskey ? 'block' : 'none', 'important');
+        }
+        if(passGroup) {
+          passGroup.hidden = !canUsePasskey;
+          passGroup.style.setProperty('display', canUsePasskey ? 'block' : 'none', 'important');
+        }
       }else{
         if(footLabel) footLabel.textContent='Browsing as';
         if(footEmail) footEmail.textContent='Guest mode';
@@ -3426,6 +3489,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(camBadge){ camBadge.hidden=true; camBadge.style.display='none'; }
         if(edBtn){ edBtn.hidden=true; edBtn.style.display='none'; }
         if(avWrap){ avWrap.onclick=()=>openSignUpPage('Sign up or log in to customize your profile.'); avWrap.style.cursor='pointer'; }
+        const passRow = $('profilePasskeysRow');
+        const passDiv = $('profilePasskeysDivider');
+        const passGroup = $('settingsPasskeysGroup');
+        if(passRow) {
+          passRow.hidden = true;
+          passRow.style.setProperty('display', 'none', 'important');
+        }
+        if(passDiv) {
+          passDiv.hidden = true;
+          passDiv.style.setProperty('display', 'none', 'important');
+        }
+        if(passGroup) {
+          passGroup.hidden = true;
+          passGroup.style.setProperty('display', 'none', 'important');
+        }
       }
     }
     function openSettingsSheet(){
@@ -3435,6 +3513,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const verBadge=$('settingsListVersion');
       if(verBadge&&typeof CURRENT_APP_VERSION!=='undefined') verBadge.textContent='v'+CURRENT_APP_VERSION;
       try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      if(typeof loadUserPasskeys === 'function') loadUserPasskeys();
     }
     function closeSettingsSheet(){
       const m=$('settingsModal');
@@ -3451,6 +3530,348 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const m=$('notifySettingsModal');
       if(m)m.classList.remove('open');
     }
+
+    /* ============================================================
+       Passkey (WebAuthn Biometric & Fingerprint) Authentication
+       ============================================================ */
+    async function handlePasskeySignIn(btn){
+      if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(14);
+      const msgEl = $('gateAccountMessage');
+      if(msgEl) msgEl.textContent = '';
+
+      if(!supabaseClient){
+        if(msgEl) msgEl.textContent = 'Sign-in is not available right now.';
+        toast('Sign-in is not available right now.', 'error');
+        return;
+      }
+
+      if(!isPasskeySupportedOnDevice()){
+        toast('Passkeys are supported on mobile and tablet devices only.', 'info');
+        return;
+      }
+
+      const spinner = $('gatePasskeySpinner');
+      const btnText = btn ? btn.querySelector('.passkey-gate-text') : null;
+
+      try {
+        if(btn) {
+          btn.classList.add('is-loading');
+          btn.disabled = true;
+        }
+        if(spinner) spinner.style.display = 'inline-flex';
+        if(btnText) btnText.textContent = 'Verifying Passkey…';
+
+        const { data, error } = await supabaseClient.auth.signInWithPasskey();
+
+        if(error) {
+          console.warn('[BCAPrime] Passkey sign-in error:', error);
+          const isCancelled = error.name === 'NotAllowedError' ||
+                              /cancel|abort|not allowed|user gesture/i.test(error.message || '');
+          if(isCancelled){
+            toast('Passkey verification cancelled.', 'info');
+          } else if(/no credentials|not found|no passkey|no credential/i.test(error.message || '')){
+            toast('No passkey found on this device. Sign in with password to add one in Settings.', 'error');
+            if(msgEl) msgEl.textContent = 'No passkey found on this device. Sign in with password to register one.';
+          } else {
+            toast(error.message || 'Passkey sign-in failed.', 'error');
+            if(msgEl) msgEl.textContent = error.message || 'Passkey sign-in failed.';
+          }
+          return;
+        }
+
+        if(data && (data.session || data.user)){
+          toast('Signed in with Passkey ✅', 'success');
+          if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(20);
+          showAuthenticatedApp();
+        }
+      } catch(err) {
+        console.error('[BCAPrime] Unexpected passkey error:', err);
+        const isCancelled = err.name === 'NotAllowedError' || /cancel|abort/i.test(err.message || '');
+        if(isCancelled){
+          toast('Passkey verification cancelled.', 'info');
+        } else {
+          toast(err.message || 'Failed to authenticate with passkey.', 'error');
+          if(msgEl) msgEl.textContent = err.message || 'Failed to authenticate with passkey.';
+        }
+      } finally {
+        if(btn) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+        }
+        if(spinner) spinner.style.display = 'none';
+        if(btnText) btnText.textContent = 'Sign in with Passkey';
+      }
+    }
+
+    function openPasskeysSheet(){
+      if(!isPasskeySupportedOnDevice()){
+        toast('Passkeys are supported on mobile and tablet devices only.', 'info');
+        return;
+      }
+      closeModals();
+      const m = $('passkeysModal');
+      if(m) m.classList.add('open');
+      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      loadUserPasskeys();
+    }
+
+    function closePasskeysSheet(){
+      const m = $('passkeysModal');
+      if(m) m.classList.remove('open');
+    }
+
+    function getFriendlyPasskeyName(){
+      const meta = window.__bcaDeviceMetadata || currentDeviceMetadata;
+      if(meta && meta.model && meta.model !== 'Unknown' && meta.model !== 'Generic Mobile'){
+        return (meta.brand && !meta.model.toLowerCase().includes(meta.brand.toLowerCase()))
+          ? `${meta.brand} ${meta.model}`
+          : meta.model;
+      }
+      if(meta && meta.os && meta.os !== 'Unknown'){
+        const type = meta.deviceType === 'Mobile' ? 'Phone' : (meta.deviceType === 'Tablet' ? 'Tablet' : 'PC');
+        return `${meta.os} ${type}`;
+      }
+      const ua = navigator.userAgent || '';
+      if(/iPhone/i.test(ua)) return 'iPhone';
+      if(/iPad/i.test(ua)) return 'iPad';
+      if(/Android/i.test(ua)) return 'Android Device';
+      if(/Macintosh/i.test(ua)) return 'MacBook / Mac';
+      if(/Windows/i.test(ua)) return 'Windows PC';
+      return 'My Device';
+    }
+
+    async function handleAddPasskey(btn){
+      if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(12);
+
+      const isGuest = isGuestMode();
+      if(isGuest || !accountSession || !accountSession.uid){
+        closeModals();
+        openSignUpPage('Sign in or create an account to register a biometric passkey.');
+        return;
+      }
+
+      if(!isPasskeySupportedOnDevice()){
+        toast('Passkeys are supported on mobile and tablet devices only.', 'error');
+        return;
+      }
+
+      const spinner = $('passkeyAddSpinner');
+      const addText = btn ? btn.querySelector('.passkey-add-text') : null;
+
+      try {
+        if(btn) {
+          btn.classList.add('is-loading');
+          btn.disabled = true;
+        }
+        if(spinner) spinner.style.display = 'inline-flex';
+        if(addText) addText.textContent = 'Registering…';
+
+        const friendlyName = getFriendlyPasskeyName();
+        const { data, error } = await supabaseClient.auth.registerPasskey();
+
+        if(error){
+          console.warn('[BCAPrime] Register passkey error:', error);
+          const isCancelled = error.name === 'NotAllowedError' || /cancel|abort|not allowed/i.test(error.message || '');
+          if(isCancelled){
+            toast('Passkey registration cancelled.', 'info');
+          } else {
+            toast(error.message || 'Could not register passkey on this device.', 'error');
+          }
+          return;
+        }
+
+        // Auto-label with detected device name in Supabase
+        if(data && data.id && supabaseClient.auth.passkey && typeof supabaseClient.auth.passkey.update === 'function'){
+          try {
+            await supabaseClient.auth.passkey.update({ passkeyId: data.id, friendlyName: friendlyName });
+          } catch(_e){}
+        }
+
+        toast(`Passkey added for ${friendlyName} ✅`, 'success');
+        try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+        await loadUserPasskeys();
+      } catch(err) {
+        console.error('[BCAPrime] Unexpected register passkey error:', err);
+        const isCancelled = err.name === 'NotAllowedError' || /cancel|abort/i.test(err.message || '');
+        if(isCancelled){
+          toast('Passkey registration cancelled.', 'info');
+        } else {
+          toast(err.message || 'Failed to add passkey.', 'error');
+        }
+      } finally {
+        if(btn) {
+          btn.classList.remove('is-loading');
+          btn.disabled = false;
+        }
+        if(spinner) spinner.style.display = 'none';
+        if(addText) addText.textContent = 'Add a Passkey';
+      }
+    }
+
+    async function loadUserPasskeys(){
+      if(!isPasskeySupportedOnDevice()) return;
+      const listEl = $('passkeysList');
+      const countPill = $('passkeysCountPill');
+      const badge = $('settingsPasskeyBadge');
+
+      const uid = (accountSession && accountSession.uid) || (typeof accountUid === 'function' ? accountUid() : '');
+      if(!uid || isGuestMode()){
+        if(listEl){
+          listEl.innerHTML = `
+            <div class="passkey-empty-state">
+              <div class="passkey-empty-icon"><i class="fa-solid fa-lock"></i></div>
+              <h4>Sign in required</h4>
+              <p>Sign in to your BCAPrime account to save and manage biometric passkeys.</p>
+            </div>
+          `;
+        }
+        if(countPill) countPill.textContent = '0';
+        if(badge) badge.style.display = 'none';
+        return;
+      }
+
+      // Render Skeleton Shimmer placeholder while loading (AGENTS.md Rule 4)
+      if(listEl && (!listEl.children.length || listEl.querySelector('.passkey-empty-state'))){
+        listEl.innerHTML = `
+          <div class="passkey-item-card" style="opacity:0.6">
+            <div class="passkey-item-icon" style="background:rgba(255,255,255,0.06)"></div>
+            <div class="passkey-item-details">
+              <div style="height:14px;width:120px;border-radius:4px;background:rgba(255,255,255,0.08);margin-bottom:6px"></div>
+              <div style="height:11px;width:80px;border-radius:4px;background:rgba(255,255,255,0.04)"></div>
+            </div>
+          </div>
+        `;
+      }
+
+      let passkeys = [];
+      try {
+        if(supabaseClient && supabaseClient.auth.passkey && typeof supabaseClient.auth.passkey.list === 'function'){
+          const res = await supabaseClient.auth.passkey.list();
+          if(res && Array.isArray(res.data)){
+            passkeys = res.data;
+          }
+        }
+      } catch(err){
+        console.warn('[BCAPrime] Could not fetch passkeys:', err);
+      }
+
+      // Cache locally for fast offline/online render
+      const cacheKey = `bcaprime_passkeys_${uid}`;
+      if(passkeys.length > 0){
+        try{ localStorage.setItem(cacheKey, JSON.stringify(passkeys)); }catch(e){}
+      } else {
+        try{
+          const cached = localStorage.getItem(cacheKey);
+          if(cached && passkeys.length === 0){
+            if(!navigator.onLine){
+              passkeys = JSON.parse(cached) || [];
+            }
+          }
+        }catch(e){}
+      }
+
+      if(countPill) countPill.textContent = String(passkeys.length);
+      if(badge){
+        if(passkeys.length > 0){
+          badge.textContent = `${passkeys.length} active`;
+          badge.style.display = 'inline-block';
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+
+      if(!listEl) return;
+
+      if(passkeys.length === 0){
+        listEl.innerHTML = `
+          <div class="passkey-empty-state">
+            <div class="passkey-empty-icon"><i class="fa-solid fa-fingerprint"></i></div>
+            <h4>No passkeys registered yet</h4>
+            <p>Add this device to sign in faster with biometric authentication.</p>
+          </div>
+        `;
+        return;
+      }
+
+      function getDeviceIcon(name){
+        const n = String(name || '').toLowerCase();
+        if(n.includes('phone') || n.includes('samsung') || n.includes('pixel') || n.includes('redmi') || n.includes('iphone') || n.includes('android')){
+          return 'fa-mobile-screen-button';
+        }
+        if(n.includes('pad') || n.includes('tablet')){
+          return 'fa-tablet-screen-button';
+        }
+        if(n.includes('mac') || n.includes('windows') || n.includes('laptop') || n.includes('pc')){
+          return 'fa-laptop';
+        }
+        return 'fa-key';
+      }
+
+      function formatCreatedDate(iso){
+        if(!iso) return 'Recently added';
+        try {
+          const d = new Date(iso);
+          return 'Added ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch(_e){
+          return 'Added recently';
+        }
+      }
+
+      listEl.innerHTML = passkeys.map(p => {
+        const icon = getDeviceIcon(p.friendly_name);
+        const name = escapeHtml(p.friendly_name || 'Biometric Passkey');
+        const date = formatCreatedDate(p.created_at);
+        return `
+          <div class="passkey-item-card" data-id="${p.id}">
+            <div class="passkey-item-icon">
+              <i class="fa-solid ${icon}"></i>
+            </div>
+            <div class="passkey-item-details">
+              <strong class="passkey-item-title">${name}</strong>
+              <span class="passkey-item-date">${date} &bull; Screen lock / Fingerprint</span>
+            </div>
+            <button type="button" class="passkey-remove-btn bca-pressable" aria-label="Remove ${name}" title="Remove passkey" onclick="handleDeletePasskey('${p.id}', '${name}')">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      if(window.BCA_UI && typeof window.BCA_UI.initPressable === 'function'){
+        listEl.querySelectorAll('.bca-pressable').forEach(el => window.BCA_UI.initPressable(el));
+      }
+    }
+
+    async function handleDeletePasskey(passkeyId, name){
+      if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(14);
+      if(!confirm(`Remove "${name}" passkey from your BCAPrime account?`)) return;
+
+      try {
+        if(supabaseClient && supabaseClient.auth.passkey && typeof supabaseClient.auth.passkey.delete === 'function'){
+          const { error } = await supabaseClient.auth.passkey.delete({ passkeyId });
+          if(error){
+            toast(error.message || 'Could not remove passkey.', 'error');
+            return;
+          }
+        }
+        toast('Passkey removed.', 'info');
+        const uid = (accountSession && accountSession.uid) || (typeof accountUid === 'function' ? accountUid() : '');
+        if(uid){
+          try{ localStorage.removeItem(`bcaprime_passkeys_${uid}`); }catch(e){}
+        }
+        await loadUserPasskeys();
+      } catch(err){
+        console.error('[BCAPrime] Delete passkey error:', err);
+        toast(err.message || 'Could not remove passkey.', 'error');
+      }
+    }
+
+    window.handlePasskeySignIn = handlePasskeySignIn;
+    window.openPasskeysSheet = openPasskeysSheet;
+    window.closePasskeysSheet = closePasskeysSheet;
+    window.handleAddPasskey = handleAddPasskey;
+    window.handleDeletePasskey = handleDeletePasskey;
+    window.loadUserPasskeys = loadUserPasskeys;
     function syncNotifyToggleState(){
       const toggle=$('notifySettingsToggle');
       const hint=$('notifyStatusHint');

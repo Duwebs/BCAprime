@@ -7,7 +7,13 @@
 const __ENV = (typeof window !== 'undefined' && window.__ENV) || {};
 const SUPABASE_URL = (typeof __ENV.VITE_SUPABASE_URL === 'string' && __ENV.VITE_SUPABASE_URL.trim()) || 'https://kjesjaakjddfxykisssh.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = (typeof __ENV.VITE_SUPABASE_ANON_KEY === 'string' && __ENV.VITE_SUPABASE_ANON_KEY.trim()) || 'sb_publishable_ZZ-StuiDnSwyJ9xNRjbY7A_eoyZF7Fl';
-const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
+const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    experimental: {
+      passkey: true
+    }
+  }
+}) : null;
 if (typeof window !== 'undefined') {
   window.supabaseClient = supabaseClient;
 }

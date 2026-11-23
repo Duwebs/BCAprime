@@ -6751,6 +6751,7 @@ body.light .profile-session-card,
 #myUploadsModal,
 #settingsModal,
 #notifySettingsModal,
+#passkeysModal,
 #aboutModal,
 #ratingModal {
   position: fixed;
@@ -8740,6 +8741,7 @@ body.dark .bottom-tabs {
 #profileModal,
 #settingsModal,
 #notifySettingsModal,
+#passkeysModal,
 #aboutModal,
 #ratingModal,
 #feedbackModal,
@@ -9964,6 +9966,315 @@ html:not([data-theme="dark"]) .legal-doc-ul {
   .legal-sheet-handle-wrap {
     display: flex;
   }
+}
+
+/* ============================================================
+   Passkey (WebAuthn Biometric & Fingerprint) Authentication
+   ============================================================ */
+
+/* 1. Auth Gate Login Passkey Button */
+.passkey-gate-btn {
+  width: 100% !important;
+  min-height: 48px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  padding: 12px 18px !important;
+  border-radius: 16px !important;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  cursor: pointer !important;
+  transition: all var(--ui-anim-duration, 200ms) cubic-bezier(0.16, 1, 0.3, 1) !important;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12) 0%, rgba(37, 99, 235, 0.18) 100%) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.38) !important;
+  box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12) !important;
+}
+
+.passkey-gate-btn[hidden],
+.passkey-gate-btn.is-hidden {
+  display: none !important;
+}
+
+/* Strictly hide all passkey features on desktop (>=1024px) */
+@media (min-width: 1024px) {
+  .passkey-gate-btn,
+  #gatePasskeyBtn,
+  #settingsPasskeysGroup,
+  #profilePasskeysRow,
+  #profilePasskeysDivider,
+  #passkeysModal {
+    display: none !important;
+  }
+}
+
+[data-theme="light"] .passkey-gate-btn,
+body:not(.dark):not([data-theme="dark"]) .passkey-gate-btn {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.08) 0%, rgba(37, 99, 235, 0.12) 100%) !important;
+  color: #0284c7 !important;
+  border: 1px solid rgba(2, 132, 199, 0.32) !important;
+  box-shadow: 0 4px 16px rgba(2, 132, 199, 0.08) !important;
+}
+
+.passkey-gate-btn:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, rgba(37, 99, 235, 0.28) 100%) !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  transform: translateY(-1px);
+}
+
+.passkey-gate-icon {
+  font-size: 19px !important;
+}
+
+.passkey-gate-btn.is-loading {
+  opacity: 0.75 !important;
+  pointer-events: none !important;
+}
+
+/* 2. Passkey Management Sheet */
+.passkeys-dialog {
+  max-width: 440px !important;
+}
+
+.passkey-hero-card {
+  text-align: center;
+  padding: 24px 18px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  margin-top: 10px;
+  margin-bottom: 18px;
+}
+
+[data-theme="light"] .passkey-hero-card,
+body:not(.dark):not([data-theme="dark"]) .passkey-hero-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.passkey-hero-icon-wrap {
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(56, 189, 248, 0.14);
+  color: #38bdf8;
+  font-size: 26px;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.22);
+}
+
+[data-theme="light"] .passkey-hero-icon-wrap,
+body:not(.dark):not([data-theme="dark"]) .passkey-hero-icon-wrap {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+}
+
+.passkey-hero-title {
+  margin: 0 0 6px;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
+  font-size: 21px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.passkey-hero-sub {
+  margin: 0 auto 16px;
+  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
+  font-size: 14px;
+  line-height: 1.45;
+  color: #94a3b8;
+  max-width: 320px;
+}
+
+[data-theme="light"] .passkey-hero-sub,
+body:not(.dark):not([data-theme="dark"]) .passkey-hero-sub {
+  color: #64748b;
+}
+
+.passkey-add-btn {
+  width: 100% !important;
+  min-height: 48px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif) !important;
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.passkeys-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  margin-bottom: 8px;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+[data-theme="light"] .passkeys-section-header,
+body:not(.dark):not([data-theme="dark"]) .passkeys-section-header {
+  color: #64748b;
+}
+
+.passkeys-count-pill {
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+}
+
+[data-theme="light"] .passkeys-count-pill,
+body:not(.dark):not([data-theme="dark"]) .passkeys-count-pill {
+  background: #e2e8f0;
+}
+
+.passkeys-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+  margin-bottom: 16px;
+}
+
+.passkey-item-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+[data-theme="light"] .passkey-item-card,
+body:not(.dark):not([data-theme="dark"]) .passkey-item-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.passkey-item-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .passkey-item-icon,
+body:not(.dark):not([data-theme="dark"]) .passkey-item-icon {
+  background: rgba(2, 132, 199, 0.1);
+  color: #0284c7;
+}
+
+.passkey-item-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.passkey-item-title {
+  display: block;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
+}
+
+.passkey-item-date {
+  display: block;
+  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin-top: 1px;
+}
+
+[data-theme="light"] .passkey-item-date,
+body:not(.dark):not([data-theme="dark"]) .passkey-item-date {
+  color: #64748b;
+}
+
+.passkey-remove-btn {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #f43f5e !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  transition: background 0.15s ease, transform 0.15s ease !important;
+}
+
+.passkey-remove-btn:hover {
+  background: rgba(244, 63, 94, 0.12) !important;
+}
+
+.passkey-empty-state {
+  text-align: center;
+  padding: 24px 16px;
+  border-radius: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+[data-theme="light"] .passkey-empty-state,
+body:not(.dark):not([data-theme="dark"]) .passkey-empty-state {
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+}
+
+.passkey-empty-icon {
+  font-size: 28px;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.passkey-empty-state h4 {
+  margin: 0 0 4px;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: inherit;
+}
+
+.passkey-empty-state p {
+  margin: 0;
+  font-family: var(--font-condensed-body, 'Roboto Condensed', sans-serif);
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+[data-theme="light"] .passkey-empty-state p,
+body:not(.dark):not([data-theme="dark"]) .passkey-empty-state p {
+  color: #64748b;
 }
 
 

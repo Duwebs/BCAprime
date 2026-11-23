@@ -287,6 +287,16 @@
               </span>
             </button>
           </form>
+          <!-- Biometric Passkey Login Button (Rendered STRICTLY on Login view only for mobile/tablet) -->
+          <button class="passkey-gate-btn is-hidden bca-pressable" id="gatePasskeyBtn" type="button" onclick="handlePasskeySignIn(this)" hidden style="display: none !important;">
+            <i class="fa-solid fa-fingerprint passkey-gate-icon"></i>
+            <span class="passkey-gate-text">Sign in with Passkey</span>
+            <span class="auth-submit-spinner-wrap passkey-gate-spinner" id="gatePasskeySpinner" aria-hidden="true" style="display:none">
+              <svg class="auth-submit-spinner" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" fill="none" stroke-dasharray="38 18"></circle>
+              </svg>
+            </span>
+          </button>
           <div class="auth-divider" id="gateAuthDivider">
             <span>or continue with</span>
           </div>
@@ -1082,6 +1092,16 @@
 
       <!-- Support & Preferences Group Card -->
       <div class="profile-group-card">
+        <div class="profile-group-row bca-pressable" id="profilePasskeysRow" onclick="openPasskeysSheet()" role="button" tabindex="0" hidden style="display: none !important;">
+          <div class="profile-row-plain-icon" style="color:var(--brand, #38bdf8)">
+            <i class="fa-solid fa-fingerprint"></i>
+          </div>
+          <div class="profile-row-text" style="flex:1">
+            <span class="profile-row-title">Passkeys</span>
+          </div>
+          <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+        </div>
+        <div class="profile-group-divider" id="profilePasskeysDivider" hidden style="display: none !important;"></div>
         <div class="profile-group-row" style="cursor:default">
           <div class="profile-row-plain-icon" style="color:#38bdf8">
             <i class="fa-solid fa-crown"></i>
@@ -1183,6 +1203,22 @@
         </div>
       </div>
 
+      <!-- Card Group: Passkeys & Biometrics (Mobile/Tablet Only) -->
+      <div class="profile-group-card settings-group-card" id="settingsPasskeysGroup" hidden style="display: none !important;">
+        <div class="profile-group-row bca-pressable" onclick="openPasskeysSheet()" role="button" tabindex="0">
+          <div class="profile-row-plain-icon" style="color:var(--brand, #38bdf8)">
+            <i class="fa-solid fa-fingerprint"></i>
+          </div>
+          <div class="profile-row-text" style="flex:1">
+            <span class="profile-row-main">Passkeys</span>
+          </div>
+          <div class="settings-row-end">
+            <span class="settings-ver-badge" id="settingsPasskeyBadge" style="display:none">0</span>
+            <i class="fa-solid fa-chevron-right profile-row-chevron"></i>
+          </div>
+        </div>
+      </div>
+
       <!-- Card Group: PrimeBuddy Interactive Study Mascot -->
       <div class="profile-group-card settings-group-card">
         <div class="profile-group-row" style="cursor:default">
@@ -1257,6 +1293,51 @@
         </div>
       </div>
       <p class="notify-status-hint" id="notifyStatusHint">Turn on to get instant alerts for notes, PYQs &amp; college updates.</p>
+    </div>
+  </div>
+
+  <!-- Dedicated Passkeys Sub-View Sheet -->
+  <div class="modal pf-sheet-modal" id="passkeysModal" onclick="if(event.target===this)closePasskeysSheet()" role="dialog" aria-modal="true" aria-labelledby="passkeysSheetTitle">
+    <div class="dialog settings-dialog passkeys-dialog">
+      <div class="profile-sheet-handle"><span></span></div>
+      <div class="profile-header with-back">
+        <button class="profile-back-btn bca-pressable" aria-label="Back to settings" onclick="closePasskeysSheet();openSettingsSheet()">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <h2 class="profile-heading" id="passkeysSheetTitle">Passkeys</h2>
+        <button class="profile-close-btn bca-pressable" aria-label="Close" onclick="closeModals()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Overview Hero Card -->
+      <div class="passkey-hero-card">
+        <div class="passkey-hero-icon-wrap">
+          <i class="fa-solid fa-fingerprint"></i>
+        </div>
+        <h3 class="passkey-hero-title">Sign in with Biometrics</h3>
+        <p class="passkey-hero-sub">Use your phone's fingerprint, Face Unlock, or screen lock to sign in safely without typing passwords.</p>
+        <button class="primary passkey-add-btn bca-pressable" id="passkeyAddBtn" type="button" onclick="handleAddPasskey(this)">
+          <i class="fa-solid fa-plus"></i>
+          <span class="passkey-add-text">Add a Passkey</span>
+          <span class="auth-submit-spinner-wrap passkey-add-spinner" id="passkeyAddSpinner" aria-hidden="true" style="display:none">
+            <svg class="auth-submit-spinner" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" fill="none" stroke-dasharray="38 18"></circle>
+            </svg>
+          </span>
+        </button>
+      </div>
+
+      <!-- Saved Passkeys Section -->
+      <div class="passkeys-section-header">
+        <span>SAVED PASSKEYS</span>
+        <span class="passkeys-count-pill" id="passkeysCountPill">0</span>
+      </div>
+
+      <!-- Passkeys List Container -->
+      <div class="passkeys-list" id="passkeysList">
+        <!-- Rendered dynamically -->
+      </div>
     </div>
   </div>
 
