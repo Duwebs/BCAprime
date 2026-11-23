@@ -1024,7 +1024,54 @@
     return val !== 'false';
   }
 
+  function isInsideMainApp() {
+    try {
+      const docEl = document.documentElement;
+      if (docEl.classList.contains('auth-gate-open')) return false;
+      if (!docEl.classList.contains('auth-known')) return false;
+
+      const gate = document.getElementById('authGate');
+      if (gate) {
+        if (!gate.hidden && window.getComputedStyle(gate).display !== 'none') {
+          return false;
+        }
+      }
+
+      const shell = document.getElementById('appShell');
+      if (!shell) return false;
+      if (shell.hidden || window.getComputedStyle(shell).display === 'none') {
+        return false;
+      }
+
+      const hasKnownAuth = localStorage.getItem('bca-auth-known') === '1';
+      const isGuest = sessionStorage.getItem('bca-guest-mode') === 'true';
+      const hasSession = Boolean(window.accountSession || hasKnownAuth || isGuest);
+      if (!hasSession) return false;
+
+      // Must have finished college & semester onboarding
+      const isOnboarded = localStorage.getItem('bca-onboarded') === 'true';
+      if (!isOnboarded) return false;
+
+      const ob = document.getElementById('onboarding');
+      if (ob && ob.classList.contains('open')) return false;
+      if (document.body && document.body.classList.contains('bca-onboarding-open')) return false;
+
+      // Check tour modal (do not interrupt first-time product tour)
+      const tour = document.getElementById('tour');
+      if (tour && !tour.hidden && window.getComputedStyle(tour).display !== 'none') {
+        return false;
+      }
+
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
   function isBuddyVisible() {
+    if (!isInsideMainApp()) return false;
+    const seenIntro = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
+    if (!seenIntro) return false;
     return isBuddyEnabled() && !isTemporarilyHiddenForSession;
   }
 
@@ -1382,6 +1429,12 @@
     mascotEl.setAttribute('role', 'button');
     mascotEl.setAttribute('tabindex', '0');
     mascotEl.setAttribute('aria-label', 'PrimeBuddy Mascot');
+
+    // Immediately start in hidden state if not inside main app or not yet accepted
+    if (!isBuddyVisible()) {
+      mascotEl.classList.add('is-hidden');
+      mascotEl.style.setProperty('display', 'none', 'important');
+    }
 
     // Speech bubble
     speechBubbleEl = document.createElement('div');
@@ -2646,19 +2699,37 @@
       </div>
     `;
 
+    // Backdrop click dismisses modal with "Later" behavior
+    introModalEl.addEventListener('click', (e) => {
+      if (e.target === introModalEl) {
+        dismissPrimeBuddyIntro();
+      }
+    });
+
     document.body.appendChild(introModalEl);
   }
 
+  let introCheckTimer = null;
   function checkFirstTimeIntro() {
     const seen = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
-    if (!seen) {
-      setTimeout(() => {
+    if (seen) return;
+    if (!isInsideMainApp()) return;
+
+    if (introCheckTimer) clearTimeout(introCheckTimer);
+    introCheckTimer = setTimeout(() => {
+      if (isInsideMainApp() && !localStorage.getItem(STORAGE_KEY_INTRO_SEEN)) {
         showIntroModal();
-      }, 1200);
-    }
+      }
+    }, 800);
   }
 
   function showIntroModal() {
+    if (!isInsideMainApp()) {
+      return;
+    }
+    if (!introModalEl) {
+      createIntroModalElement();
+    }
     if (introModalEl) {
       introModalEl.classList.add('open');
       triggerHaptic(10);
@@ -2666,6 +2737,10 @@
   }
 
   function closeIntroModal() {
+    if (introCheckTimer) {
+      clearTimeout(introCheckTimer);
+      introCheckTimer = null;
+    }
     if (introModalEl) {
       introModalEl.classList.remove('open');
     }
@@ -2722,18 +2797,96 @@
     syncSettingsCheckboxes(isBuddyEnabled());
     if (mascotEl) {
       mascotEl.classList.toggle('is-hidden', !visible);
-      mascotEl.style.display = visible ? 'block' : 'none';
+      mascotEl.style.setProperty('display', visible ? 'block' : 'none', 'important');
     }
     if (!visible) {
       if (isFocusMode) cancelFocusSession();
       if (isPeeking) popOutOfPeek();
       if (actionPillEl) closeActionPill();
+      if (speechBubbleEl) speechBubbleEl.classList.remove('visible');
     }
     if (visible) {
       resetIdleTimer();
     } else {
       stopRoaming();
     }
+  }
+
+  /* ------------------------------------------------------------
+     App State & Navigation Watcher (Auth Gate, Onboarding, Tour)
+     ------------------------------------------------------------ */
+  let appStateObserver = null;
+  let lastWasInsideMainApp = false;
+
+  function handleAppNavigationStateChange() {
+    const inside = isInsideMainApp();
+    lastWasInsideMainApp = inside;
+
+    if (inside) {
+      updateMascotVisibility();
+      const seen = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
+      if (!seen) {
+        checkFirstTimeIntro();
+      } else {
+        setTimeout(() => {
+          if (isBuddyVisible()) triggerSmartGreeting();
+        }, 700);
+      }
+    } else {
+      closeIntroModal();
+      if (speechBubbleEl) speechBubbleEl.classList.remove('visible');
+      if (actionPillEl) closeActionPill();
+      if (focusPopupEl) cancelFocusSession();
+      updateMascotVisibility();
+    }
+  }
+
+  function initAuthStateObserver() {
+    lastWasInsideMainApp = isInsideMainApp();
+
+    if (typeof MutationObserver !== 'undefined') {
+      appStateObserver = new MutationObserver(() => {
+        handleAppNavigationStateChange();
+      });
+
+      const observeElement = (el, options) => {
+        if (el) {
+          try {
+            appStateObserver.observe(el, options);
+          } catch (_e) {}
+        }
+      };
+
+      observeElement(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+
+      const gate = document.getElementById('authGate');
+      if (gate) observeElement(gate, { attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
+
+      const ob = document.getElementById('onboarding');
+      if (ob) observeElement(ob, { attributes: true, attributeFilter: ['class', 'style', 'hidden'] });
+
+      const tour = document.getElementById('tour');
+      if (tour) observeElement(tour, { attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
+
+      const shell = document.getElementById('appShell');
+      if (shell) observeElement(shell, { attributes: true, attributeFilter: ['hidden', 'style', 'class'] });
+    }
+
+    window.addEventListener('storage', (e) => {
+      if (!e.key || ['bca-auth-known', 'bca-onboarded', 'bca-tour-seen', STORAGE_KEY_INTRO_SEEN, STORAGE_KEY_ENABLED].includes(e.key)) {
+        handleAppNavigationStateChange();
+      }
+    });
+
+    window.addEventListener('bca:auth-state-changed', () => {
+      handleAppNavigationStateChange();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && introModalEl && introModalEl.classList.contains('open')) {
+        dismissPrimeBuddyIntro();
+      }
+    });
   }
 
   /* ------------------------------------------------------------
@@ -2764,6 +2917,11 @@
 
   window.PrimeBuddy = {
     init,
+    onDashboardEntered: handleAppNavigationStateChange,
+    onDashboardExited: handleAppNavigationStateChange,
+    checkNavigationState: handleAppNavigationStateChange,
+    isInsideMainApp,
+    isBuddyVisible,
     toggle: () => setPrimeBuddyEnabled(!isBuddyEnabled()),
     enable: () => setPrimeBuddyEnabled(true),
     disable: () => setPrimeBuddyEnabled(false),
@@ -2791,11 +2949,16 @@
      ------------------------------------------------------------ */
   function init() {
     createMascotElements();
-    checkFirstTimeIntro();
+    initAuthStateObserver();
+
+    if (isInsideMainApp()) {
+      checkFirstTimeIntro();
+    }
+
     initReadingPeekTracking();
 
     try {
-      if (location.search.includes('buddy_intro=1')) {
+      if (location.search.includes('buddy_intro=1') && isInsideMainApp()) {
         setTimeout(showIntroModal, 500);
       }
       if (location.search.includes('primebuddy=1')) {
@@ -2803,22 +2966,24 @@
       }
     } catch (_e) {}
 
-    // Trigger Smart Time-of-Day Greeting once dashboard initializes
-    setTimeout(() => {
-      triggerSmartGreeting();
-    }, 700);
+    // Trigger Smart Time-of-Day Greeting only if inside main app & visible
+    if (isBuddyVisible()) {
+      setTimeout(() => {
+        if (isBuddyVisible()) triggerSmartGreeting();
+      }, 700);
 
-    // Context-Aware Late-Night Study Mode check (11:00 PM – 3:30 AM IST)
-    setTimeout(() => {
-      triggerLateNightStudyReaction();
-    }, 3800);
+      // Context-Aware Late-Night Study Mode check (11:00 PM – 3:30 AM IST)
+      setTimeout(() => {
+        if (isBuddyVisible()) triggerLateNightStudyReaction();
+      }, 3800);
+    }
 
     // Initialize Student Telemetry Tracker & Batched Flusher
     initTelemetryLifecycle();
 
     // Initial check to flush any restored pending telemetry once authenticated
     setTimeout(() => {
-      if (telemetryBuffer.hasPendingActivity) {
+      if (telemetryBuffer.hasPendingActivity && isInsideMainApp()) {
         flushBuddyTelemetry(false);
       }
     }, 2500);

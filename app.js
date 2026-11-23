@@ -2622,6 +2622,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       setTimeout(showOnboardingIfNeeded,180);
       setTimeout(function(){if(window.checkWhatsNew)window.checkWhatsNew()},900);
       setTimeout(function(){if(typeof checkLostFoundPendingClaims==='function')checkLostFoundPendingClaims()},1400);
+      try{
+        window.dispatchEvent(new CustomEvent('bca:auth-state-changed',{detail:{state:'authenticated'}}));
+        if(localStorage.getItem('bca-onboarded')==='true'&&(localStorage.getItem('bca-tour-seen')==='true'||!$('tour')||$('tour').hidden)){
+          window.PrimeBuddy?.onDashboardEntered?.();
+        }
+      }catch(e){}
     }
     function continueAsGuest(){
       triggerAuthHaptic(12);
@@ -2660,6 +2666,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
       renderGreeting();
       updateQrButtonVisibility();
+      try{document.body.classList.remove('bca-onboarding-open')}catch(e){}
+      try{
+        window.dispatchEvent(new CustomEvent('bca:auth-state-changed',{detail:{state:'unauthenticated'}}));
+        window.PrimeBuddy?.onDashboardExited?.();
+      }catch(e){}
     }
     /* ================== Account-bound college & semester ==================
        Ab account (Supabase uid) ki ek server-side profile hoti hai (college +
@@ -5801,6 +5812,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
     function openOnboardingFlow(force=false){
       if(!force && localStorage.getItem('bca-onboarded')) return;
+      try{document.body.classList.add('bca-onboarding-open')}catch(e){}
       state.onboardingDone=false;
       state.onboardingSem='';
       const sInp=$('onboardingSearch');if(sInp)sInp.value='';
@@ -5833,6 +5845,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }else{
         if(localStorage.getItem('bca-onboarded')||sessionStorage.getItem('bca-guest-mode')==='true'){
           const modal=$('onboarding');if(modal)modal.classList.remove('open');
+          try{document.body.classList.remove('bca-onboarding-open')}catch(e){}
+          try{window.PrimeBuddy?.onDashboardEntered?.()}catch(e){}
         }else{
           toast('Pick your college to personalize your study desk');
         }
@@ -5996,6 +6010,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         saveProfileSemester(chosenSem);
       }
       try{$('onboarding').classList.remove('open')}catch(error){}
+      try{document.body.classList.remove('bca-onboarding-open')}catch(e){}
       try{
         updateSemesterOptions();
         if($('collegeLabel')) $('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||colleges[0])[1];
@@ -6007,6 +6022,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }catch(error){console.warn('Library refresh skipped.',error)}
       saveProfileToAccount();
       setTimeout(startTour,200);
+      try{
+        window.dispatchEvent(new CustomEvent('bca:auth-state-changed',{detail:{state:'onboarding-complete'}}));
+        if(localStorage.getItem('bca-tour-seen')==='true'){
+          window.PrimeBuddy?.onDashboardEntered?.();
+        }
+      }catch(e){}
     }
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem&&!state.profileSemester){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}
     async function addOnboardingCollege(){
@@ -6046,7 +6067,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function nextTourStep(){if(tourIndex>=tourSteps.length-1){finishTour();return}tourIndex+=1;renderTourStep()}
     function previousTourStep(){if(tourIndex<=0)return;tourIndex-=1;renderTourStep()}
-    function finishTour(){try{localStorage.setItem('bca-tour-seen','true')}catch(error){}try{$('tour').hidden=true}catch(error){}try{document.body.style.overflow=''}catch(error){}}
+    function finishTour(){
+      try{localStorage.setItem('bca-tour-seen','true')}catch(error){}
+      try{$('tour').hidden=true}catch(error){}
+      try{document.body.style.overflow=''}catch(error){}
+      try{
+        window.dispatchEvent(new CustomEvent('bca:auth-state-changed',{detail:{state:'tour-finished'}}));
+        window.PrimeBuddy?.onDashboardEntered?.();
+      }catch(e){}
+    }
     function skipTour(){finishTour()}
     (function bindTourGestures(){
       let startX=0;

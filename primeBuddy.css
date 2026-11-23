@@ -939,6 +939,61 @@ body:not(.dark):not([data-theme="dark"]) .buddy-focus-popup-btn {
   display: grid;
 }
 
+/* Hard CSS Gate: Block PrimeBuddy completely on Auth Gate, Login, and Onboarding */
+html.auth-gate-open #primeBuddyMascot,
+html.auth-gate-open #primeBuddyWrap,
+html.auth-gate-open .prime-buddy-wrap,
+html.auth-gate-open #primeBuddyIntroModal,
+html.auth-gate-open .buddy-intro-modal,
+html.auth-gate-open .prime-buddy-bubble,
+html.auth-gate-open .buddy-action-pill,
+html.auth-gate-open .buddy-focus-popup,
+html:not(.auth-known) #primeBuddyMascot,
+html:not(.auth-known) #primeBuddyWrap,
+html:not(.auth-known) .prime-buddy-wrap,
+html:not(.auth-known) #primeBuddyIntroModal,
+html:not(.auth-known) .buddy-intro-modal,
+html:not(.auth-known) .prime-buddy-bubble,
+html:not(.auth-known) .buddy-action-pill,
+html:not(.auth-known) .buddy-focus-popup,
+body:has(#onboarding.open) #primeBuddyMascot,
+body:has(#onboarding.open) #primeBuddyWrap,
+body:has(#onboarding.open) .prime-buddy-wrap,
+body:has(#onboarding.open) #primeBuddyIntroModal,
+body:has(#onboarding.open) .buddy-intro-modal,
+body:has(#onboarding.open) .prime-buddy-bubble,
+body:has(#onboarding.open) .buddy-action-pill,
+body:has(#onboarding.open) .buddy-focus-popup,
+body.bca-onboarding-open #primeBuddyMascot,
+body.bca-onboarding-open #primeBuddyWrap,
+body.bca-onboarding-open .prime-buddy-wrap,
+body.bca-onboarding-open #primeBuddyIntroModal,
+body.bca-onboarding-open .buddy-intro-modal,
+body.bca-onboarding-open .prime-buddy-bubble,
+body.bca-onboarding-open .buddy-action-pill,
+body.bca-onboarding-open .buddy-focus-popup,
+body:has(#tour:not([hidden])) #primeBuddyMascot,
+body:has(#tour:not([hidden])) #primeBuddyWrap,
+body:has(#tour:not([hidden])) .prime-buddy-wrap,
+body:has(#tour:not([hidden])) #primeBuddyIntroModal,
+body:has(#tour:not([hidden])) .buddy-intro-modal,
+body:has(#tour:not([hidden])) .prime-buddy-bubble,
+body:has(#tour:not([hidden])) .buddy-action-pill,
+body:has(#tour:not([hidden])) .buddy-focus-popup,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) #primeBuddyMascot,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) #primeBuddyWrap,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) .prime-buddy-wrap,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) #primeBuddyIntroModal,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-intro-modal,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) .prime-buddy-bubble,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-action-pill,
+body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-focus-popup {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
 @keyframes buddyFadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
