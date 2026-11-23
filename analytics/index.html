@@ -243,7 +243,7 @@
         </div>
 
         <!-- Real-Time Live Activity Stream Card -->
-        <div class="suite-card stream-hero-card" style="margin-top:14px" id="liveActivityStreamCard">
+        <div class="suite-card" style="margin-top:14px" id="liveActivityStreamCard">
           <div class="suite-card-header" style="margin-bottom:10px">
             <div style="display:flex;align-items:center;gap:10px">
               <span class="live-emerald-dot" style="width:10px;height:10px"></span>
@@ -280,7 +280,7 @@
           </div>
 
           <!-- 4 KPI Guest Grid -->
-          <div class="pulse-hero-grid" style="grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));margin-bottom:16px">
+          <div class="pulse-hero-grid" style="margin-bottom:16px">
             
             <div class="pulse-kpi-card bca-pressable">
               <div class="pulse-kpi-head">
@@ -515,7 +515,7 @@
               <p class="suite-card-desc">Reading history, downloads, device model, traffic source, and PrimeBuddy companion activity.</p>
             </div>
             <div class="suite-head-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, college, or device model…" oninput="filterStatsStudents()" style="min-width:260px">
+              <input class="stats-search-input" id="statsStudentSearch" placeholder="Search by name, @username, email, college, or device model…" oninput="filterStatsStudents()">
               <select class="stats-select" id="statsStudentCollegeFilter" onchange="filterStatsStudents()">
                 <option value="all">All colleges</option>
               </select>

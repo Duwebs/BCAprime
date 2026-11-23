@@ -34,6 +34,7 @@
 
   --topbar-h: 56px;
   --bottombar-h: 60px;
+  --radius: 12px;
   --radius-xs: 6px;
   --radius-sm: 10px;
   --radius-md: 14px;
@@ -887,17 +888,23 @@ h1, h2, h3, h4, .font-heading {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 [data-theme="light"] .suite-card {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+.suite-card-head,
 .suite-card-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .suite-card-eyebrow {
@@ -1208,9 +1215,12 @@ h1, h2, h3, h4, .font-heading {
    MODULE 4: Live Activity Stream
    ============================================================ */
 .stream-hero-card {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .stream-hero-left {
@@ -1270,16 +1280,23 @@ h1, h2, h3, h4, .font-heading {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .stream-event-item {
-  background: var(--surface);
+  background: var(--surface2);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  min-width: 0;
   animation: slideIn 0.25s ease;
 }
 
@@ -1397,10 +1414,13 @@ h1, h2, h3, h4, .font-heading {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-size: 13.5px;
   outline: none;
   transition: border-color var(--anim-duration) var(--anim-curve);
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .stats-search-input:focus {
@@ -1414,9 +1434,12 @@ h1, h2, h3, h4, .font-heading {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   color: var(--ink);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   font-size: 13px;
   outline: none;
+  flex: 1 1 120px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .stats-count-badge {

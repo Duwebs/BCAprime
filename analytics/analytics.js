@@ -1660,8 +1660,21 @@ function getEventPresentation(ev) {
       return { cls: 'ev-mocktest', icon: 'fa-solid fa-graduation-cap', headline: `Completed Test: ${title}`, user, badge: `${ev.results || 0}% Score` };
     case 'upload':
       return { cls: 'ev-download', icon: 'fa-solid fa-cloud-arrow-up', headline: `Uploaded: ${title}`, user, badge: 'Pending Review' };
-    default:
-      return { cls: 'ev-view', icon: 'fa-solid fa-bolt', headline: `Action: ${type}`, user, badge: 'App' };
+    case 'session_heartbeat':
+      return { cls: 'ev-view', icon: 'fa-solid fa-heart-pulse', headline: `Active study session`, user, badge: 'Live' };
+    case 'visit':
+      return { cls: 'ev-download', icon: 'fa-solid fa-door-open', headline: `Opened BCAPrime`, user, badge: 'Visit' };
+    case 'primebuddy_focus':
+      return { cls: 'ev-codelab', icon: 'fa-solid fa-stopwatch', headline: `PrimeBuddy: Focus session`, user, badge: 'Focus' };
+    case 'primebuddy_interact':
+      return { cls: 'ev-mocktest', icon: 'fa-solid fa-crown', headline: `PrimeBuddy interaction`, user, badge: 'Buddy' };
+    case 'primebuddy_toggle':
+      return { cls: 'ev-search', icon: 'fa-solid fa-toggle-on', headline: `PrimeBuddy settings toggled`, user, badge: 'Settings' };
+    default: {
+      const cleanType = String(type || 'activity').replace(/_/g, ' ');
+      const titleStr = cleanType.charAt(0).toUpperCase() + cleanType.slice(1);
+      return { cls: 'ev-view', icon: 'fa-solid fa-bolt', headline: titleStr, user, badge: 'Activity' };
+    }
   }
 }
 
