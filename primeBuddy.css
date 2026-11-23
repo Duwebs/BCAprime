@@ -549,9 +549,11 @@
    ============================================================ */
 .prime-buddy-bubble {
   position: absolute;
-  top: -38px;
-  left: 50%;
-  transform: translateX(-50%) scale(0.85);
+  top: auto;
+  bottom: 76px;
+  left: 0;
+  transform: scale(0.85);
+  transform-origin: center bottom;
   background: rgba(18, 18, 24, 0.94);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -580,7 +582,7 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble {
 
 .prime-buddy-bubble.visible {
   opacity: 1;
-  transform: translateX(-50%) scale(1);
+  transform: scale(1);
 }
 
 /* Downward speech bubble pointer arrow */
@@ -588,13 +590,16 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble {
   content: "";
   position: absolute;
   bottom: -5px;
-  left: 50%;
+  top: auto;
+  left: var(--arrow-left, 50%);
   transform: translateX(-50%);
   border-width: 5px 5px 0;
   border-style: solid;
   border-color: rgba(18, 18, 24, 0.94) transparent transparent;
   display: block;
   width: 0;
+  height: 0;
+  transition: left 0.08s ease-out;
 }
 
 [data-theme="light"] .prime-buddy-bubble::after,
@@ -602,45 +607,25 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble::after {
   border-color: rgba(255, 255, 255, 0.96) transparent transparent;
 }
 
-/* Screen Edge-Clamped Speech Bubble Positions */
-.prime-buddy-wrap.bubble-below .prime-buddy-bubble {
-  top: 72px;
+/* Top-Edge Flip: when y < 76px, bubble flips cleanly below PrimeBuddy */
+.prime-buddy-wrap.bubble-below .prime-buddy-bubble,
+.prime-buddy-bubble.bubble-below {
+  transform-origin: center top;
 }
-.prime-buddy-wrap.bubble-below .prime-buddy-bubble::after {
+
+.prime-buddy-wrap.bubble-below .prime-buddy-bubble::after,
+.prime-buddy-bubble.bubble-below::after {
   top: -5px;
   bottom: auto;
   border-width: 0 5px 5px 5px;
   border-color: transparent transparent rgba(18, 18, 24, 0.94) transparent;
 }
+
 [data-theme="light"] .prime-buddy-wrap.bubble-below .prime-buddy-bubble::after,
-body:not(.dark):not([data-theme="dark"]) .prime-buddy-wrap.bubble-below .prime-buddy-bubble::after {
+body:not(.dark):not([data-theme="dark"]) .prime-buddy-wrap.bubble-below .prime-buddy-bubble::after,
+[data-theme="light"] .prime-buddy-bubble.bubble-below::after,
+body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble.bubble-below::after {
   border-color: transparent transparent rgba(255, 255, 255, 0.96) transparent;
-}
-
-.prime-buddy-wrap.bubble-align-left .prime-buddy-bubble {
-  left: 0;
-  transform: translateX(0) scale(0.85);
-}
-.prime-buddy-wrap.bubble-align-left .prime-buddy-bubble.visible {
-  transform: translateX(0) scale(1);
-}
-.prime-buddy-wrap.bubble-align-left .prime-buddy-bubble::after {
-  left: 24px;
-  transform: none;
-}
-
-.prime-buddy-wrap.bubble-align-right .prime-buddy-bubble {
-  left: auto;
-  right: 0;
-  transform: translateX(0) scale(0.85);
-}
-.prime-buddy-wrap.bubble-align-right .prime-buddy-bubble.visible {
-  transform: translateX(0) scale(1);
-}
-.prime-buddy-wrap.bubble-align-right .prime-buddy-bubble::after {
-  left: auto;
-  right: 24px;
-  transform: none;
 }
 
 /* ============================================================
@@ -660,7 +645,7 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-wrap.bubble-below .prime-b
 .buddy-action-pill {
   position: fixed;
   z-index: 10055;
-  width: min(284px, calc(100vw - 20px));
+  width: min(284px, calc(100vw - 24px));
   height: 44px;
   border-radius: 9999px;
   background: rgba(18, 18, 24, 0.94);

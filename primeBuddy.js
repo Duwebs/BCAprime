@@ -783,20 +783,56 @@
     }
   }
 
+  /* Continuous Viewport-Aware Speech Bubble Clamping & Top-Edge Flip */
+  function updateSpeechBubblePosition() {
+    if (!speechBubbleEl || !mascotEl) return;
+
+    const screenW = window.innerWidth || 360;
+    const pillRect = speechBubbleEl.getBoundingClientRect();
+    const fallbackW = Math.max(70, (speechBubbleEl.textContent || '').length * 8 + 26);
+    const pillW = pillRect.width || speechBubbleEl.offsetWidth || fallbackW;
+
+    // 1. Top-Edge Flip: whenever PrimeBuddy is near the top of the screen (currentY < 76px),
+    // automatically flip the speech pill below PrimeBuddy (top: buddyHeight + 10px = 76px);
+    // otherwise place it cleanly above his crown (bottom: buddyHeight + 10px = 76px).
+    const isBelow = currentY < 76;
+    mascotEl.classList.toggle('bubble-below', isBelow);
+    speechBubbleEl.classList.toggle('bubble-below', isBelow);
+
+    if (isBelow) {
+      speechBubbleEl.style.top = `${MASCOT_SIZE + 10}px`;
+      speechBubbleEl.style.bottom = 'auto';
+    } else {
+      speechBubbleEl.style.top = 'auto';
+      speechBubbleEl.style.bottom = `${MASCOT_SIZE + 10}px`;
+    }
+
+    // 2. Left & Right Edge Clamp: clamp horizontal screen X-coordinate strictly
+    // within [12px, window.innerWidth - pillWidth - 12px] on every frame
+    let pillScreenX = currentX + (MASCOT_SIZE / 2) - (pillW / 2);
+    const minX = 12;
+    const maxX = Math.max(minX, screenW - pillW - 12);
+    pillScreenX = Math.max(minX, Math.min(pillScreenX, maxX));
+
+    const relativeLeft = pillScreenX - currentX;
+    speechBubbleEl.style.left = `${Math.round(relativeLeft)}px`;
+    speechBubbleEl.style.right = 'auto';
+
+    // 3. Dynamic Pointer Arrow pointing directly at PrimeBuddy's center, clamped within pill border-radius
+    const mascotCenterX = currentX + (MASCOT_SIZE / 2);
+    const arrowXInBubble = mascotCenterX - pillScreenX;
+    const clampedArrowX = Math.max(14, Math.min(arrowXInBubble, pillW - 14));
+    speechBubbleEl.style.setProperty('--arrow-left', `${clampedArrowX.toFixed(1)}px`);
+  }
+
   /* Edge-Clamped Speech Bubble */
   function showBubble(text, duration = 2500) {
     if (!speechBubbleEl || !mascotEl) return;
     // Strictly lock speech bubble to "Wheee! ✨" without interruption while spinning
     if (isWheeeSpinning && text !== 'Wheee! ✨') return;
     speechBubbleEl.textContent = text;
-
-    // Dynamically clamp speech bubble within viewport edges
-    const screenW = window.innerWidth || 360;
-    mascotEl.classList.toggle('bubble-below', currentY < 48);
-    mascotEl.classList.toggle('bubble-align-left', currentX < 24);
-    mascotEl.classList.toggle('bubble-align-right', currentX > screenW - MASCOT_SIZE - 24);
-
     speechBubbleEl.classList.add('visible');
+    updateSpeechBubblePosition();
 
     if (bubbleTimeout) clearTimeout(bubbleTimeout);
     bubbleTimeout = setTimeout(() => {
@@ -908,13 +944,8 @@
   function lockWheeeBubble() {
     if (!speechBubbleEl || !mascotEl) return;
     speechBubbleEl.textContent = 'Wheee! ✨';
-
-    const screenW = window.innerWidth || 360;
-    mascotEl.classList.toggle('bubble-below', currentY < 48);
-    mascotEl.classList.toggle('bubble-align-left', currentX < 24);
-    mascotEl.classList.toggle('bubble-align-right', currentX > screenW - MASCOT_SIZE - 24);
-
     speechBubbleEl.classList.add('visible');
+    updateSpeechBubblePosition();
     if (bubbleTimeout) clearTimeout(bubbleTimeout);
   }
 
@@ -957,6 +988,10 @@
     if (bodyEl) {
       const hop = isWheeeDecelerating ? 0 : (Math.sin((wheeeAngle * Math.PI) / 180) * 4 - 6);
       bodyEl.style.transform = `translate3d(0, ${hop.toFixed(1)}px, 0) rotate(${(wheeeAngle % 360000).toFixed(1)}deg)`;
+    }
+
+    if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
+      updateSpeechBubblePosition();
     }
 
     wheeeRafId = requestAnimationFrame(stepContinuousWheeeSpin);
@@ -1136,6 +1171,9 @@
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
     mascotEl.classList.toggle('edge-left', currentEdge === 'left');
     mascotEl.classList.toggle('edge-right', currentEdge === 'right');
+    if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
+      updateSpeechBubblePosition();
+    }
   }
 
   /* ------------------------------------------------------------
@@ -1256,6 +1294,10 @@
 
       // ZERO-LAG 1:1 DIRECT DOM UPDATE (no scale/tilt shift, perfectly glued to finger)
       mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+
+      if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
+        updateSpeechBubblePosition();
+      }
 
       // Directional eye glance via CSS class toggle (zero SVG innerHTML re-renders!)
       const isLeft = currentX < (window.innerWidth || 360) / 2;
@@ -1425,6 +1467,10 @@
     mascotEl.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)';
     mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
+    if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
+      updateSpeechBubblePosition();
+    }
+
     setTimeout(() => {
       if (mascotEl) mascotEl.style.transition = '';
     }, 260);
@@ -1521,6 +1567,10 @@
       } else {
         const flightTilt = Math.max(-25, Math.min(25, flingVelX * 0.02));
         mascotEl.style.transform = `translate3d(${Math.round(currentX)}px, ${Math.round(currentY)}px, 0) rotate(${flightTilt}deg)`;
+      }
+
+      if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
+        updateSpeechBubblePosition();
       }
 
       const currentSpeed = Math.hypot(flingVelX, flingVelY);
@@ -1622,19 +1672,19 @@
 
     const screenW = window.innerWidth || 360;
     const screenH = window.innerHeight || 640;
-    const pillW = Math.min(284, screenW - 20);
+    const pillW = Math.min(284, screenW - 24);
     const pillH = 44;
 
-    // Horizontally center aligned with mascot
+    // Horizontally center aligned with mascot, clamped strictly within [12px, screenW - pillW - 12px]
     let left = currentX + (MASCOT_SIZE / 2) - (pillW / 2);
-    left = Math.max(8, Math.min(left, screenW - pillW - 8));
+    left = Math.max(12, Math.min(left, screenW - pillW - 12));
 
-    // Prefer placing ABOVE mascot; if too close to top edge, place BELOW
-    let top = currentY - pillH - 8;
-    if (top < 8) {
-      top = currentY + MASCOT_SIZE + 8;
+    // Top-Edge Flip: if near top edge (currentY < 76px), place BELOW PrimeBuddy; else place ABOVE
+    let top = currentY - pillH - 10;
+    if (currentY < 76) {
+      top = currentY + MASCOT_SIZE + 10;
     }
-    top = Math.max(8, Math.min(top, screenH - pillH - 8));
+    top = Math.max(12, Math.min(top, screenH - pillH - 12));
 
     actionPillEl.style.left = `${Math.round(left)}px`;
     actionPillEl.style.top = `${Math.round(top)}px`;
@@ -1862,6 +1912,23 @@
     openFocusControlPopup();
   }
 
+  function positionFocusPopup() {
+    if (!focusPopupEl) return;
+    const screenW = window.innerWidth || 360;
+    const screenH = window.innerHeight || 640;
+    const popupW = 184;
+    const popupH = 76;
+
+    let left = currentX + (MASCOT_SIZE / 2) - (popupW / 2);
+    left = Math.max(12, Math.min(left, screenW - popupW - 12));
+    let top = currentY - popupH - 10;
+    if (currentY < 76) top = currentY + MASCOT_SIZE + 10;
+    top = Math.max(12, Math.min(top, screenH - popupH - 12));
+
+    focusPopupEl.style.left = `${Math.round(left)}px`;
+    focusPopupEl.style.top = `${Math.round(top)}px`;
+  }
+
   function openFocusControlPopup() {
     if (!focusPopupEl) createFocusPopupElements();
 
@@ -1880,19 +1947,7 @@
       </div>
     `;
 
-    const screenW = window.innerWidth || 360;
-    const screenH = window.innerHeight || 640;
-    const popupW = 184;
-    const popupH = 76;
-
-    let left = currentX + (MASCOT_SIZE / 2) - (popupW / 2);
-    left = Math.max(8, Math.min(left, screenW - popupW - 8));
-    let top = currentY - popupH - 12;
-    if (top < 12) top = currentY + MASCOT_SIZE + 12;
-    top = Math.max(8, Math.min(top, screenH - popupH - 8));
-
-    focusPopupEl.style.left = `${Math.round(left)}px`;
-    focusPopupEl.style.top = `${Math.round(top)}px`;
+    positionFocusPopup();
 
     focusPopupEl.classList.add('open');
     if (focusPopupBackdropEl) focusPopupBackdropEl.classList.add('open');
@@ -2483,6 +2538,20 @@
     setTimeout(() => {
       triggerLateNightStudyReaction();
     }, 3800);
+
+    // Dynamic Viewport / Window Resize Tracking
+    window.addEventListener('resize', () => {
+      settleFreePosition();
+      if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
+        updateSpeechBubblePosition();
+      }
+      if (actionPillEl && actionPillEl.classList.contains('open')) {
+        positionActionPill();
+      }
+      if (focusPopupEl && focusPopupEl.classList.contains('open')) {
+        positionFocusPopup();
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
