@@ -434,7 +434,9 @@ p, label, small,
     .profile-pop-head{display:flex;align-items:center;gap:12px}.profile-pop-head img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--brand-2);background:var(--surface)}.profile-pop-copy{min-width:0;flex:1}.profile-pop-copy strong{display:block;font:600 15px 'Geist';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profile-pop-copy small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .profile-pop-meta{display:grid;gap:8px;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--bg)}.profile-pop-meta span{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted)}.profile-pop-meta span i{color:var(--brand);width:14px;text-align:center}.profile-pop-meta b{margin-left:auto;color:var(--ink);font-weight:600;font-size:12.5px;text-align:right}
     .danger-logout,.account-logout-btn,.danger-logout-btn,button[onclick*="signOutAccount"],button[onclick*="logoutFromPop"],button[onclick*="leaveDeviceGate"]{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:9px;border:1px solid color-mix(in srgb,#ee0000 45%,var(--line));background:color-mix(in srgb,#ee0000 10%,transparent);color:#ee0000;font-weight:700;font-size:13px;transition:background .18s ease,border-color .18s ease,color .18s ease}.danger-logout{width:100%}.danger-logout:hover,.account-logout-btn:hover,.danger-logout-btn:hover,button[onclick*="signOutAccount"]:hover,button[onclick*="logoutFromPop"]:hover,button[onclick*="leaveDeviceGate"]:hover{background:color-mix(in srgb,#ee0000 20%,transparent);border-color:#ee0000;color:#ee0000}.account-user .danger-logout,.account-user .account-logout-btn,.account-user button[onclick*="signOutAccount"]{width:auto;padding:6px 14px;font-size:13px}
-    html{color-scheme:light}[data-theme=dark]{color-scheme:dark}
+    html{color-scheme:light dark}
+    html[data-theme="dark"],[data-theme="dark"],[data-theme="dark"] html,[data-theme="dark"] body{color-scheme:dark!important}
+    html[data-theme="light"],[data-theme="light"],html:not([data-theme="dark"]){color-scheme:light!important}
     body{-webkit-tap-highlight-color:transparent}
     button,a,input,select,label{touch-action:manipulation}
 
@@ -9051,16 +9053,29 @@ html:not([data-theme="dark"]) .notif-item.is-unread .notif-item-msg {
   grid-template-columns: repeat(5, 1fr) !important;
   gap: 0 !important;
   padding: 0 0 env(safe-area-inset-bottom, 0px) 0 !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   height: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+  min-height: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
   box-sizing: border-box !important;
   z-index: 30 !important;
   overflow: visible !important;
 }
 
+.bottom-tabs::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: max(20px, env(safe-area-inset-bottom, 20px));
+  background: inherit;
+  pointer-events: none;
+}
+
 [data-theme="dark"] .bottom-tabs,
 html[data-theme="dark"] .bottom-tabs,
 body.dark .bottom-tabs {
-  background: #0d0d0f !important;
+  background: #050505 !important;
   border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5) !important;
 }

@@ -133,7 +133,8 @@ function toggleAnalyticsTheme() {
 }
 
 function syncAnalyticsThemeColor(theme) {
-  const col = theme === 'light' ? '#ffffff' : '#090D12';
+  const isDark = theme !== 'light';
+  const col = isDark ? '#050505' : '#ffffff';
   let mc = document.querySelector('meta[name="theme-color"]');
   if (!mc) {
     mc = document.createElement('meta');
@@ -141,6 +142,9 @@ function syncAnalyticsThemeColor(theme) {
     document.head.appendChild(mc);
   }
   mc.content = col;
+  try {
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+  } catch(e) {}
 }
 
 function updateThemeIcon(theme) {

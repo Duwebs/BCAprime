@@ -789,7 +789,8 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
       bindUploadDropzone();
     }
     function syncThemeColorMeta(theme){
-      const col = theme === 'dark' ? '#050505' : '#ffffff';
+      const isDark = theme === 'dark';
+      const col = isDark ? '#050505' : '#ffffff';
       let mc = document.querySelector('meta[name="theme-color"]');
       if(!mc){
         mc = document.createElement('meta');
@@ -797,6 +798,9 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
         document.head.appendChild(mc);
       }
       mc.setAttribute('content', col);
+      try {
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+      } catch(e) {}
     }
     function applyTheme(theme){
       state.theme=theme;
