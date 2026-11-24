@@ -3653,14 +3653,19 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
 
         const rawOpts = authOptsRes.data.options;
-        const requestOptions = parseRequestOptions(rawOpts);
+        rawOpts.userVerification = 'preferred';
 
         // Harmonize Relying Party ID if testing on localhost / dev
         const currentHost = window.location.hostname;
         if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
+          rawOpts.rpId = currentHost;
+        }
+
+        const requestOptions = parseRequestOptions(rawOpts);
+        requestOptions.userVerification = 'preferred';
+        if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
           requestOptions.rpId = currentHost;
         }
-        requestOptions.userVerification = 'preferred';
 
         // Step 2: Prompt user for biometric / screen lock
         let cred;
@@ -3668,12 +3673,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           cred = await navigator.credentials.get({ publicKey: requestOptions });
         } catch(ceremonyErr){
           console.warn('[BCAPrime] navigator.credentials.get error:', ceremonyErr);
-          const isCancelled = ceremonyErr.name === 'NotAllowedError' || /cancel|abort/i.test(ceremonyErr.message || '');
+          const isCancelled = ceremonyErr.name === 'AbortError' || /cancel|abort/i.test(ceremonyErr.message || '');
+          const isNoPasskey = ceremonyErr.name === 'NotAllowedError' || /no credentials|not found|no passkey|no credential|not allowed/i.test(ceremonyErr.message || '');
           if(isCancelled){
-            toast('Passkey verification cancelled.', 'info');
-          } else if(/no credentials|not found|no passkey|no credential/i.test(ceremonyErr.message || '')){
-            toast('No passkey found on this device. Sign in with password to add one in Settings.', 'error');
-            if(msgEl) msgEl.textContent = 'No passkey found on this device. Sign in with password to register one.';
+            toast('Passkey sign-in cancelled.', 'info');
+          } else if(isNoPasskey){
+            toast("No passkey detected. Make sure you're not in Incognito, or delete & re-add your passkey in Settings.", 'error');
+            if(msgEl) msgEl.textContent = "No passkey detected. Delete & re-add your passkey in Settings to enable 1-tap sign-in.";
           } else {
             toast(ceremonyErr.message || 'Passkey sign-in failed.', 'error');
             if(msgEl) msgEl.textContent = ceremonyErr.message || 'Passkey sign-in failed.';
@@ -3812,25 +3818,40 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
 
         const rawOpts = regOptsRes.data.options;
-        const creationOptions = parseCreationOptions(rawOpts);
 
-        // Harmonize Relying Party ID if testing on localhost / dev
-        const currentHost = window.location.hostname;
-        if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
-          if(creationOptions.rp) creationOptions.rp.id = currentHost;
-        }
-
-        // CRITICAL: Force residentKey: 'required' so it's stored as discoverable for 1-tap login
-        creationOptions.authenticatorSelection = Object.assign({
+        // CRITICAL: Force residentKey: 'required' on rawOpts directly BEFORE JSON parsing!
+        rawOpts.authenticatorSelection = Object.assign({}, rawOpts.authenticatorSelection || {}, {
           authenticatorAttachment: 'platform',
           residentKey: 'required',
           requireResidentKey: true,
           userVerification: 'preferred'
-        }, creationOptions.authenticatorSelection || {}, {
+        });
+
+        // Harmonize Relying Party ID if testing on localhost / dev
+        const currentHost = window.location.hostname;
+        if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
+          if(rawOpts.rp) rawOpts.rp.id = currentHost;
+        }
+
+        if(rawOpts.user){
+          const email = (accountSession && accountSession.email) || 'Student';
+          const name = (accountSession && (accountSession.user_metadata?.full_name || accountSession.email)) || 'Student';
+          rawOpts.user.name = rawOpts.user.name || email;
+          rawOpts.user.displayName = rawOpts.user.displayName || name;
+        }
+
+        const creationOptions = parseCreationOptions(rawOpts);
+
+        // Also assign directly to creationOptions
+        creationOptions.authenticatorSelection = Object.assign({}, creationOptions.authenticatorSelection || {}, {
+          authenticatorAttachment: 'platform',
           residentKey: 'required',
           requireResidentKey: true,
           userVerification: 'preferred'
         });
+        if((currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1') && creationOptions.rp){
+          creationOptions.rp.id = currentHost;
+        }
 
         // Step 2: Trigger native browser biometric / screen lock prompt
         let cred;
@@ -4078,7 +4099,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           const { error: mfaErr } = await supabaseClient.auth.mfa.unenroll({ factorId: passkeyId });
           if(!mfaErr) deleted = true;
         }
-        toast('Passkey removed.', 'info');
+        toast('Passkey removed. You can now re-add it with discoverable 1-tap sign-in.', 'info');
         const uid = (accountSession && accountSession.uid) || (typeof accountUid === 'function' ? accountUid() : '');
         if(uid){
           try{ localStorage.removeItem(`bcaprime_passkeys_${uid}`); }catch(e){}
