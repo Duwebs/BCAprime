@@ -3533,6 +3533,88 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ============================================================
        Passkey (WebAuthn Biometric & Fingerprint) Authentication
        ============================================================ */
+    function b64urlToBuf(str) {
+      if (typeof str !== 'string') return new ArrayBuffer(0);
+      const pad = '='.repeat((4 - (str.length % 4)) % 4);
+      const b64 = (str + pad).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(b64);
+      const buf = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) buf[i] = raw.charCodeAt(i);
+      return buf.buffer;
+    }
+
+    function bufToB64url(buf) {
+      if (!buf) return '';
+      const bytes = new Uint8Array(buf);
+      let str = '';
+      for (let i = 0; i < bytes.byteLength; i++) str += String.fromCharCode(bytes[i]);
+      return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    function parseCreationOptions(opts) {
+      if (typeof PublicKeyCredential !== 'undefined' && typeof PublicKeyCredential.parseCreationOptionsFromJSON === 'function') {
+        try {
+          return PublicKeyCredential.parseCreationOptionsFromJSON(opts);
+        } catch (_e) {}
+      }
+      const cloned = Object.assign({}, opts);
+      if (cloned.challenge && typeof cloned.challenge === 'string') {
+        cloned.challenge = b64urlToBuf(cloned.challenge);
+      }
+      if (cloned.user && cloned.user.id && typeof cloned.user.id === 'string') {
+        cloned.user = Object.assign({}, cloned.user, { id: b64urlToBuf(cloned.user.id) });
+      }
+      if (Array.isArray(cloned.excludeCredentials)) {
+        cloned.excludeCredentials = cloned.excludeCredentials.map(c => Object.assign({}, c, {
+          id: typeof c.id === 'string' ? b64urlToBuf(c.id) : c.id
+        }));
+      }
+      return cloned;
+    }
+
+    function parseRequestOptions(opts) {
+      if (typeof PublicKeyCredential !== 'undefined' && typeof PublicKeyCredential.parseRequestOptionsFromJSON === 'function') {
+        try {
+          return PublicKeyCredential.parseRequestOptionsFromJSON(opts);
+        } catch (_e) {}
+      }
+      const cloned = Object.assign({}, opts);
+      if (cloned.challenge && typeof cloned.challenge === 'string') {
+        cloned.challenge = b64urlToBuf(cloned.challenge);
+      }
+      if (Array.isArray(cloned.allowCredentials)) {
+        cloned.allowCredentials = cloned.allowCredentials.map(c => Object.assign({}, c, {
+          id: typeof c.id === 'string' ? b64urlToBuf(c.id) : c.id
+        }));
+      }
+      return cloned;
+    }
+
+    function serializeCredential(cred) {
+      if (cred && typeof cred.toJSON === 'function') {
+        return cred.toJSON();
+      }
+      const res = cred.response;
+      const isCreation = res && 'attestationObject' in res;
+      return {
+        id: cred.id,
+        rawId: cred.id,
+        type: cred.type || 'public-key',
+        authenticatorAttachment: cred.authenticatorAttachment || undefined,
+        clientExtensionResults: cred.getClientExtensionResults ? cred.getClientExtensionResults() : {},
+        response: isCreation ? {
+          attestationObject: bufToB64url(res.attestationObject),
+          clientDataJSON: bufToB64url(res.clientDataJSON),
+          transports: res.getTransports ? res.getTransports() : []
+        } : {
+          authenticatorData: bufToB64url(res.authenticatorData),
+          clientDataJSON: bufToB64url(res.clientDataJSON),
+          signature: bufToB64url(res.signature),
+          userHandle: res.userHandle ? bufToB64url(res.userHandle) : null
+        }
+      };
+    }
+
     async function handlePasskeySignIn(btn){
       if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(14);
       const msgEl = $('gateAccountMessage');
@@ -3560,25 +3642,70 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(spinner) spinner.style.display = 'inline-flex';
         if(btnText) btnText.textContent = 'Verifying Passkey…';
 
-        const { data, error } = await supabaseClient.auth.signInWithPasskey();
+        // Step 1: Request authentication challenge options from Supabase
+        const authOptsRes = await supabaseClient.auth.passkey.startAuthentication();
+        if(authOptsRes.error || !authOptsRes.data){
+          console.error('[BCAPrime] startAuthentication error:', authOptsRes.error);
+          const errMsg = authOptsRes.error?.message || 'Could not start passkey authentication.';
+          toast(errMsg, 'error');
+          if(msgEl) msgEl.textContent = errMsg;
+          return;
+        }
 
-        if(error) {
-          console.warn('[BCAPrime] Passkey sign-in error:', error);
-          const isCancelled = error.name === 'NotAllowedError' ||
-                              /cancel|abort|not allowed|user gesture/i.test(error.message || '');
+        const rawOpts = authOptsRes.data.options;
+        const requestOptions = parseRequestOptions(rawOpts);
+
+        // Harmonize Relying Party ID if testing on localhost / dev
+        const currentHost = window.location.hostname;
+        if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
+          requestOptions.rpId = currentHost;
+        }
+        requestOptions.userVerification = 'preferred';
+
+        // Step 2: Prompt user for biometric / screen lock
+        let cred;
+        try {
+          cred = await navigator.credentials.get({ publicKey: requestOptions });
+        } catch(ceremonyErr){
+          console.warn('[BCAPrime] navigator.credentials.get error:', ceremonyErr);
+          const isCancelled = ceremonyErr.name === 'NotAllowedError' || /cancel|abort/i.test(ceremonyErr.message || '');
           if(isCancelled){
             toast('Passkey verification cancelled.', 'info');
-          } else if(/no credentials|not found|no passkey|no credential/i.test(error.message || '')){
+          } else if(/no credentials|not found|no passkey|no credential/i.test(ceremonyErr.message || '')){
             toast('No passkey found on this device. Sign in with password to add one in Settings.', 'error');
             if(msgEl) msgEl.textContent = 'No passkey found on this device. Sign in with password to register one.';
           } else {
-            toast(error.message || 'Passkey sign-in failed.', 'error');
-            if(msgEl) msgEl.textContent = error.message || 'Passkey sign-in failed.';
+            toast(ceremonyErr.message || 'Passkey sign-in failed.', 'error');
+            if(msgEl) msgEl.textContent = ceremonyErr.message || 'Passkey sign-in failed.';
           }
           return;
         }
 
-        if(data && (data.session || data.user)){
+        if(!cred){
+          toast('No passkey selected.', 'error');
+          return;
+        }
+
+        // Step 3: Serialize and verify authentication with Supabase
+        const serialized = serializeCredential(cred);
+        const verifyRes = await supabaseClient.auth.passkey.verifyAuthentication({
+          challengeId: authOptsRes.data.challenge_id,
+          credential: serialized
+        });
+
+        if(verifyRes.error || !verifyRes.data){
+          console.error('[BCAPrime] verifyAuthentication error:', verifyRes.error);
+          const errMsg = verifyRes.error?.message || 'Passkey authentication failed.';
+          toast(errMsg, 'error');
+          if(msgEl) msgEl.textContent = errMsg;
+          return;
+        }
+
+        const session = verifyRes.data.session;
+        const user = verifyRes.data.user || (session && session.user);
+
+        if(session || user){
+          accountSession = normalizeSupabaseUser(user);
           toast('Signed in with Passkey ✅', 'success');
           if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(20);
           showAuthenticatedApp();
@@ -3635,7 +3762,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(/Android/i.test(ua)) return 'Android Device';
       if(/Macintosh/i.test(ua)) return 'MacBook / Mac';
       if(/Windows/i.test(ua)) return 'Windows PC';
-      return 'My Device';
+      return 'This Device';
     }
 
     async function handleAddPasskey(btn){
@@ -3675,28 +3802,80 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(addText) addText.textContent = 'Registering…';
 
         const friendlyName = getFriendlyPasskeyName();
-        const { data, error } = await supabaseClient.auth.registerPasskey();
 
-        if(error){
-          console.warn('[BCAPrime] Register passkey error:', error);
-          const isCancelled = error.name === 'NotAllowedError' || /cancel|abort|not allowed/i.test(error.message || '');
-          if(isCancelled){
+        // Step 1: Request registration challenge options from Supabase
+        const regOptsRes = await supabaseClient.auth.passkey.startRegistration();
+        if(regOptsRes.error || !regOptsRes.data){
+          console.error('[BCAPrime] startRegistration error:', regOptsRes.error);
+          toast(regOptsRes.error?.message || 'Could not start passkey registration.', 'error');
+          return;
+        }
+
+        const rawOpts = regOptsRes.data.options;
+        const creationOptions = parseCreationOptions(rawOpts);
+
+        // Harmonize Relying Party ID if testing on localhost / dev
+        const currentHost = window.location.hostname;
+        if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
+          if(creationOptions.rp) creationOptions.rp.id = currentHost;
+        }
+
+        // CRITICAL: Force residentKey: 'required' so it's stored as discoverable for 1-tap login
+        creationOptions.authenticatorSelection = Object.assign({
+          authenticatorAttachment: 'platform',
+          residentKey: 'required',
+          requireResidentKey: true,
+          userVerification: 'preferred'
+        }, creationOptions.authenticatorSelection || {}, {
+          residentKey: 'required',
+          requireResidentKey: true,
+          userVerification: 'preferred'
+        });
+
+        // Step 2: Trigger native browser biometric / screen lock prompt
+        let cred;
+        try {
+          cred = await navigator.credentials.create({ publicKey: creationOptions });
+        } catch(ceremonyErr){
+          console.warn('[BCAPrime] navigator.credentials.create error:', ceremonyErr);
+          if(ceremonyErr.name === 'NotAllowedError' || /cancel|abort/i.test(ceremonyErr.message || '')){
             toast('Passkey registration cancelled.', 'info');
           } else {
-            toast(error.message || 'Could not register passkey on this device.', 'error');
+            toast(ceremonyErr.message || 'Device passkey enrollment failed.', 'error');
           }
           return;
         }
 
-        // Auto-label with detected device name in Supabase
-        if(data && data.id && supabaseClient.auth.passkey && typeof supabaseClient.auth.passkey.update === 'function'){
-          try {
-            await supabaseClient.auth.passkey.update({ passkeyId: data.id, friendlyName: friendlyName });
-          } catch(_e){}
+        if(!cred){
+          toast('No passkey created.', 'error');
+          return;
         }
 
-        toast('Passkey added! You can now sign in with fingerprint/screen lock.', 'success');
-        try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+        // Step 3: Serialize and verify registration with Supabase
+        const serialized = serializeCredential(cred);
+        const verifyRes = await supabaseClient.auth.passkey.verifyRegistration({
+          challengeId: regOptsRes.data.challenge_id,
+          credential: serialized
+        });
+
+        if(verifyRes.error || !verifyRes.data){
+          console.error('[BCAPrime] verifyRegistration error:', verifyRes.error);
+          toast(verifyRes.error?.message || 'Passkey verification failed on server.', 'error');
+          return;
+        }
+
+        // Step 4: Auto-label friendly name on the verified passkey
+        const passkeyId = (verifyRes.data && verifyRes.data.id);
+        if(passkeyId && typeof supabaseClient.auth.passkey.update === 'function'){
+          try {
+            await supabaseClient.auth.passkey.update({ passkeyId, friendlyName });
+          } catch(updErr){
+            console.warn('[BCAPrime] passkey.update friendlyName error:', updErr);
+          }
+        }
+
+        toast('Passkey saved successfully! You can now sign in with fingerprint/screen lock.', 'success');
+        if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(20);
         await loadUserPasskeys();
       } catch(err) {
         console.error('[BCAPrime] Unexpected register passkey error:', err);
@@ -3741,10 +3920,10 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(listEl && (!listEl.children.length || listEl.querySelector('.passkey-empty-state'))){
         listEl.innerHTML = `
           <div class="passkey-item-card" style="opacity:0.6">
-            <div class="passkey-item-icon" style="background:rgba(255,255,255,0.06)"></div>
+            <div class="passkey-item-icon passkey-skeleton-icon"></div>
             <div class="passkey-item-details">
-              <div style="height:14px;width:120px;border-radius:4px;background:rgba(255,255,255,0.08);margin-bottom:6px"></div>
-              <div style="height:11px;width:80px;border-radius:4px;background:rgba(255,255,255,0.04)"></div>
+              <div class="passkey-skeleton-line" style="height:14px;width:120px;border-radius:4px;margin-bottom:6px"></div>
+              <div class="passkey-skeleton-line" style="height:11px;width:80px;border-radius:4px"></div>
             </div>
           </div>
         `;
@@ -3765,10 +3944,27 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         }
       } catch(err){
         console.warn('[BCAPrime] Could not fetch passkeys:', err);
-        toast(err.message || 'Could not load saved passkeys.', 'error');
       }
 
-      // Cache locally for fast offline/online render
+      // Fallback check on MFA factors if passkey.list is empty
+      if(passkeys.length === 0 && supabaseClient && supabaseClient.auth.mfa && typeof supabaseClient.auth.mfa.listFactors === 'function'){
+        try {
+          const mfaRes = await supabaseClient.auth.mfa.listFactors();
+          if(mfaRes && mfaRes.data && Array.isArray(mfaRes.data.all)){
+            const webauthnFactors = mfaRes.data.all.filter(f => f.factor_type === 'webauthn');
+            if(webauthnFactors.length > 0){
+              passkeys = webauthnFactors.map(f => ({
+                id: f.id,
+                friendly_name: f.friendly_name || 'Biometric Passkey',
+                created_at: f.created_at,
+                status: f.status
+              }));
+            }
+          }
+        } catch(_e){}
+      }
+
+      // Cache locally for fast offline render
       const cacheKey = `bcaprime_passkeys_${uid}`;
       if(passkeys.length > 0){
         try{ localStorage.setItem(cacheKey, JSON.stringify(passkeys)); }catch(e){}
@@ -3831,19 +4027,28 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }
 
       listEl.innerHTML = passkeys.map(p => {
-        const icon = getDeviceIcon(p.friendly_name);
-        const name = escapeHtml(p.friendly_name || 'Biometric Passkey');
+        const rawName = p.friendly_name || p.name || '';
+        const name = escHtml(rawName || 'This Device');
+        const icon = getDeviceIcon(rawName);
         const date = formatCreatedDate(p.created_at);
+        const isVerified = (p.status !== 'unverified');
+        const statusBadge = isVerified
+          ? `<span class="passkey-status-badge verified"><i class="fa-solid fa-circle-check"></i> Verified</span>`
+          : `<span class="passkey-status-badge unverified"><i class="fa-solid fa-triangle-exclamation"></i> Unverified</span>`;
+
         return `
           <div class="passkey-item-card" data-id="${p.id}">
             <div class="passkey-item-icon">
               <i class="fa-solid ${icon}"></i>
             </div>
             <div class="passkey-item-details">
-              <strong class="passkey-item-title">${name}</strong>
-              <span class="passkey-item-date">${date} &bull; Screen lock / Fingerprint</span>
+              <div class="passkey-item-title-row">
+                <strong class="passkey-item-title">${name}</strong>
+                ${statusBadge}
+              </div>
+              <span class="passkey-item-date">${date} &bull; Biometric / Screen lock</span>
             </div>
-            <button type="button" class="passkey-remove-btn bca-pressable" aria-label="Remove ${name}" title="Remove passkey" onclick="handleDeletePasskey('${p.id}', '${name}')">
+            <button type="button" class="passkey-remove-btn bca-pressable" aria-label="Remove ${name}" title="Remove passkey" onclick="handleDeletePasskey('${p.id}', '${name.replace(/'/g, "\\'")}')">
               <i class="fa-solid fa-trash-can"></i>
             </button>
           </div>
@@ -3860,12 +4065,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!confirm(`Remove "${name}" passkey from your BCAPrime account?`)) return;
 
       try {
+        let deleted = false;
         if(supabaseClient && supabaseClient.auth.passkey && typeof supabaseClient.auth.passkey.delete === 'function'){
           const { error } = await supabaseClient.auth.passkey.delete({ passkeyId });
           if(error){
-            toast(error.message || 'Could not remove passkey.', 'error');
-            return;
+            console.warn('[BCAPrime] passkey.delete failed, trying mfa unenroll:', error);
+          } else {
+            deleted = true;
           }
+        }
+        if(!deleted && supabaseClient && supabaseClient.auth.mfa && typeof supabaseClient.auth.mfa.unenroll === 'function'){
+          const { error: mfaErr } = await supabaseClient.auth.mfa.unenroll({ factorId: passkeyId });
+          if(!mfaErr) deleted = true;
         }
         toast('Passkey removed.', 'info');
         const uid = (accountSession && accountSession.uid) || (typeof accountUid === 'function' ? accountUid() : '');
