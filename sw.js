@@ -6,7 +6,7 @@
    3) Supabase REST (library list)     -> network-first w/ cache fallback
    4) Trusted CDNs (firebase, supabase, fonts, font-awesome) -> network-first
    --------------------------------------------------------------- */
-const CACHE_NAME = 'bcaprime-app-v68';
+const CACHE_NAME = 'bcaprime-app-v69';
 const FILE_CACHE = 'bcaprime-files-v1';
 const CDN_CACHE  = 'bcaprime-cdn-v1';
 const SUPABASE_HOST = 'kjesjaakjddfxykisssh.supabase.co';
@@ -20,6 +20,8 @@ const APP_SHELL = [
   './whats-new.js',
   './push-subscribe.js',
   './manifest.webmanifest',
+  './admin-manifest.webmanifest',
+  './stats-manifest.webmanifest',
   './env.js',
   './supabase-config.js',
   './lib/pdf.min.js',
@@ -27,6 +29,10 @@ const APP_SHELL = [
   './assets/logo.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
+  './public/icons/admin-icon-192.png',
+  './public/icons/admin-icon-512.png',
+  './public/icons/stats-icon-192.png',
+  './public/icons/stats-icon-512.png',
   './assets/og-image.png',
   './assets/mascot-peeking.png',
   './assets/mascot-pointing.png',
@@ -118,10 +124,80 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  /* 1) Same-origin app shell (existing network-first with index.html fallback) */
+  /* 1) Same-origin requests across Main, Admin, and Stats PWAs */
   if (isSameOrigin) {
     if (url.pathname.startsWith('/rest/') || url.pathname.startsWith('/auth/') ||
-        url.pathname.startsWith('/functions/') || url.pathname.startsWith('/realtime/')) return;
+        url.pathname.startsWith('/functions/') || url.pathname.startsWith('/realtime/') ||
+        url.pathname.startsWith('/api/')) return;
+
+    // A) Manifests: network-first, cache fallback, NEVER fallback to HTML
+    const isManifest = url.pathname.endsWith('.webmanifest') ||
+                       url.pathname.includes('manifest.json') ||
+                       event.request.destination === 'manifest';
+    if (isManifest) {
+      event.respondWith(
+        fetch(event.request)
+          .then(response => {
+            if (response && response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+            }
+            return response;
+          })
+          .catch(() => caches.match(event.request))
+      );
+      return;
+    }
+
+    // B) Images & Icons: cache-first with network revalidation, NEVER fallback to HTML
+    const isImage = event.request.destination === 'image' ||
+                    /\.(png|jpe?g|gif|svg|ico|webp)$/i.test(url.pathname);
+    if (isImage) {
+      event.respondWith(
+        caches.match(event.request).then(cached => {
+          if (cached) return cached;
+          return fetch(event.request)
+            .then(response => {
+              if (response && (response.ok || response.type === 'opaque')) {
+                const copy = response.clone();
+                caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+              }
+              return response;
+            })
+            .catch(() => cached || new Response('', { status: 404, statusText: 'Not Found' }));
+        })
+      );
+      return;
+    }
+
+    // C) App Shell / Navigation requests: network-first with dedicated route fallbacks
+    if (event.request.mode === 'navigate') {
+      event.respondWith(
+        fetch(event.request)
+          .then(response => {
+            if (response && response.ok) {
+              const copy = response.clone();
+              caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+            }
+            return response;
+          })
+          .catch(() => {
+            if (url.pathname.startsWith('/admin')) {
+              return caches.match('./admin/index.html')
+                .then(r => r || caches.match('./admin/admin.html'))
+                .then(r => r || caches.match('./index.html'));
+            }
+            if (url.pathname.startsWith('/stats') || url.pathname.startsWith('/analytics')) {
+              return caches.match('./analytics/index.html')
+                .then(r => r || caches.match('./index.html'));
+            }
+            return caches.match('./index.html');
+          })
+      );
+      return;
+    }
+
+    // D) Static scripts, styles, fonts: network-first with cache fallback
     event.respondWith(
       fetch(event.request)
         .then(response => {
@@ -130,7 +206,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
           return response;
         })
-        .catch(() => caches.match(event.request).then(response => response || caches.match('./index.html')))
+        .catch(() => caches.match(event.request))
     );
   }
 });

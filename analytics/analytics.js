@@ -99,12 +99,12 @@ function dismissPwaBanner() {
   sessionStorage.setItem('pwa-dismissed', 'true');
 }
 
-/* Register Dedicated Analytics Service Worker */
+/* Register Root Service Worker across Main, Admin & Stats */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('analytics-sw.js')
-      .then(reg => console.info('[Analytics SW] Registered with scope:', reg.scope))
-      .catch(err => console.warn('[Analytics SW] Registration failed:', err));
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(reg => console.info('[Stats SW] Registered with scope:', reg.scope))
+      .catch(err => console.warn('[Stats SW] Registration failed:', err));
   });
 }
 

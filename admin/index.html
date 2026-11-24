@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XS6DNV433X"></script>
@@ -11,13 +11,1056 @@
     gtag('config', 'G-XS6DNV433X');
   </script>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>BCAPrime Admin</title>
+  <meta name="description" content="BCAPrime admin portal - review and moderate shared BCA study material.">
   <meta name="robots" content="noindex">
-  <script>location.replace('./admin.html');</script>
-  <meta http-equiv="refresh" content="0; url=./admin.html">
+  <link rel="manifest" href="/admin/admin-manifest.webmanifest">
+  <meta name="theme-color" content="#090D12">
+  <link rel="apple-touch-icon" href="/public/icons/admin-icon-apple.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BCA Admin">
+  <link rel="icon" type="image/png" href="/public/icons/admin-favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="admin.css?v=22">
 </head>
 <body>
-  <p>Opening BCAPrime Admin&hellip;</p>
-  <p><a href="./admin.html">Click here if it does not open</a></p>
+
+  <!-- ================= Auth screen ================= -->
+  <section class="auth-screen" id="authScreen">
+    <div class="auth-card">
+      <div class="auth-brand-badge">
+        <span class="auth-brand-dot"></span>
+        <span class="eyebrow">BCAPRIME CONSOLE</span>
+      </div>
+      <div class="auth-logo-wrap" style="display:flex;justify-content:center;margin-bottom:12px">
+        <img src="../public/icons/admin-icon-192.png" alt="BCAPrime Admin" width="56" height="56" style="border-radius:14px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 6px 18px rgba(0,0,0,0.35);object-fit:contain">
+      </div>
+      <h1 id="authTitle">BCAPrime Admin</h1>
+      <p id="authDescription">Sign in with authorized administrator credentials to manage library and community queues.</p>
+      <form class="auth-form" id="authForm">
+        <label>Admin Email
+          <input id="authEmail" type="email" autocomplete="email" placeholder="admin@bcaprime.edu" required>
+        </label>
+        <label>Password
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="6" placeholder="••••••••" required>
+        </label>
+        <button class="button primary bca-pressable" id="authSubmit" type="submit">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Secure Login</span>
+        </button>
+      </form>
+      <p class="auth-message" id="authMessage" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- ================= Admin dashboard ================= -->
+  <main class="shell" id="adminShell" hidden>
+
+    <!-- Sticky Admin Topbar -->
+    <header class="adm-topbar">
+      <div class="adm-topbar-left">
+        <a class="adm-back-btn bca-pressable" href="../index.html" aria-label="Back to main app">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="adm-back-text">App</span>
+        </a>
+        <div class="adm-brand">
+          <img src="../public/icons/admin-icon-192.png" alt="Admin" class="adm-brand-img" width="34" height="34">
+          <div class="adm-brand-info">
+            <span class="adm-brand-title">BCAPrime <span class="adm-brand-accent">Admin</span></span>
+            <span class="adm-console-badge">ADMIN CONSOLE</span>
+          </div>
+        </div>
+      </div>
+      <div class="adm-topbar-actions">
+        <button type="button" class="adm-icon-btn bca-pressable" id="adminInstallBtn" onclick="installAdminPwa()" title="Install BCAPrime Admin App" aria-label="Install Admin App" hidden>
+          <i class="fa-solid fa-download"></i>
+        </button>
+        <a href="../analytics/index.html" class="adm-icon-btn bca-pressable" title="BCAPrime Stats" aria-label="BCAPrime Stats" style="color:#00B67A">
+          <i class="fa-solid fa-chart-simple"></i>
+        </a>
+        <button type="button" class="adm-icon-btn bca-pressable" id="admRefreshBtn" onclick="refreshAdminData()" title="Refresh Dashboard Data" aria-label="Refresh Dashboard">
+          <i class="fa-solid fa-arrows-rotate"></i>
+        </button>
+        <button type="button" class="adm-icon-btn bca-pressable" id="admThemeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button type="button" class="adm-icon-btn bca-pressable" id="adminNotifyBtn" onclick="adminSubscribeToPush()" title="Admin Alerts" aria-label="Admin Alerts">
+          <i class="fa-solid fa-bell"></i>
+        </button>
+        <button type="button" class="adm-icon-btn adm-logout-btn bca-pressable" id="logoutButton" onclick="logout()" title="Log out" aria-label="Log out">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          <span class="adm-exit-text">Exit</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 2×2 Compact KPI Grid (Core Admin Command Center) -->
+    <section class="adm-kpi-grid" aria-label="Key Performance Indicators">
+      <!-- KPI 1: Total Students -->
+      <div class="adm-kpi-card bca-pressable" onclick="switchTab('users')" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">TOTAL STUDENTS</span>
+          <span class="adm-kpi-icon kpi-blue"><i class="fa-solid fa-users"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiTotalStudents">—</div>
+        <div class="adm-kpi-foot">
+          <span>Active student accounts</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <!-- KPI 2: Pending Uploads -->
+      <div class="adm-kpi-card bca-pressable" onclick="focusPending()" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">PENDING UPLOADS</span>
+          <span class="adm-kpi-icon kpi-amber"><i class="fa-solid fa-inbox"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiPendingUploads">0</div>
+        <div class="adm-kpi-foot">
+          <span>Awaiting moderation</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <!-- KPI 3: Internal Feedback (1–3★) -->
+      <div class="adm-kpi-card bca-pressable" onclick="switchTab('feedback')" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">FEEDBACK (1–3★)</span>
+          <span class="adm-kpi-icon kpi-gold"><i class="fa-solid fa-star"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiStarFeedback">0</div>
+        <div class="adm-kpi-foot">
+          <span>Smart Star-Filter Inbox</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <!-- KPI 4: Community Posts -->
+      <div class="adm-kpi-card bca-pressable" onclick="switchTab('community')" role="button" tabindex="0">
+        <div class="adm-kpi-head">
+          <span class="adm-kpi-eyebrow">COMMUNITY POSTS</span>
+          <span class="adm-kpi-icon kpi-green"><i class="fa-solid fa-comments"></i></span>
+        </div>
+        <div class="adm-kpi-val" id="kpiCommunityPosts">0</div>
+        <div class="adm-kpi-foot">
+          <span>Requests &amp; Lost/Found</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- Horizontally Scrollable Segmented Tab Bar -->
+    <nav class="adm-segmented-tabs admin-tabs" aria-label="Admin sections">
+      <button type="button" class="tab adm-tab active bca-pressable" data-tab="material" onclick="switchTab('material')">
+        <i class="fa-solid fa-box-archive"></i>
+        <span>Notes &amp; PYQ</span>
+        <span class="adm-tab-badge" id="tabMaterialBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="feedback" onclick="switchTab('feedback')">
+        <i class="fa-solid fa-star"></i>
+        <span>Feedback &amp; Stars</span>
+        <span class="adm-tab-badge gold" id="tabFeedbackBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="community" onclick="switchTab('community')">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Community</span>
+        <span class="adm-tab-badge" id="tabCommunityBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="users" onclick="switchTab('users')">
+        <i class="fa-solid fa-users"></i>
+        <span>Users &amp; Badges</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="colleges" onclick="switchTab('colleges')">
+        <i class="fa-solid fa-building-columns"></i>
+        <span>College Approvals</span>
+        <span class="adm-tab-badge" id="tabCollegeBadge" hidden>0</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="subjects" onclick="switchTab('subjects')">
+        <i class="fa-solid fa-book"></i>
+        <span>Subjects</span>
+      </button>
+      <button type="button" class="tab adm-tab bca-pressable" data-tab="quizzes" onclick="switchTab('quizzes')">
+        <i class="fa-solid fa-graduation-cap"></i>
+        <span>Mock Tests</span>
+      </button>
+    </nav>
+
+    <!-- ============ TAB: Material (Notes & PYQ Queue) ============ -->
+    <section class="tab-panel" id="tab-material">
+
+    <!-- New upload banner (shown when new pending resources arrive) -->
+    <div class="upload-banner" id="uploadBanner" hidden>
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span id="uploadBannerText">New material pending review</span>
+      <button class="button primary" id="uploadBannerAction" onclick="focusPending()">Review now</button>
+      <button class="button" id="uploadBannerDismiss" onclick="dismissUploadBanner()">Dismiss</button>
+    </div>
+
+    <!-- Legacy Stats (kept for JS data binding) -->
+    <div class="stats adm-hidden-stats" style="display:none">
+      <div class="stat"><strong id="totalCount">0</strong><span>Total uploads</span></div>
+      <div class="stat"><strong id="collegeCount">0</strong><span>Colleges represented</span></div>
+      <div class="stat"><strong id="activeCount">0</strong><span>Active resources</span></div>
+    </div>
+
+    <!-- Review panel -->
+    <section class="panel">
+      <div class="toolbar">
+        <div>
+          <h2>Shared Material Queue</h2>
+          <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Review student notes &amp; university question papers before publishing.</p>
+        </div>
+      </div>
+
+      <!-- Segmented Status Filter Pills -->
+      <div class="adm-filter-pills" role="tablist" aria-label="Material status filters">
+        <button type="button" class="adm-pill active bca-pressable" data-status="pending" onclick="setMaterialStatusFilter('pending')">
+          <span>Needs Review</span>
+          <span class="adm-pill-count" id="pillPendingCount">0</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="approved" onclick="setMaterialStatusFilter('approved')">
+          <span>Active (Approved)</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="rejected" onclick="setMaterialStatusFilter('rejected')">
+          <span>Rejected</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="archived" onclick="setMaterialStatusFilter('archived')">
+          <span>Archived</span>
+        </button>
+        <button type="button" class="adm-pill bca-pressable" data-status="all" onclick="setMaterialStatusFilter('all')">
+          <span>All Uploads</span>
+        </button>
+      </div>
+
+      <div class="adm-search-bar-wrap">
+        <div class="adm-search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="search" id="search" placeholder="Search by title, subject, college, or uploader…" oninput="render()">
+        </div>
+        <!-- Hidden dropdown kept for JS compatibility -->
+        <select class="select" id="statusFilter" onchange="render()" style="display:none">
+          <option value="all">All status</option>
+          <option value="pending" selected>Needs review</option>
+          <option value="approved">Active</option>
+          <option value="rejected">Rejected</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+
+      <!-- Bulk actions (shown when rows are selected) -->
+      <div class="bulk-actions" id="bulkActions">
+        <span class="bulk-count" id="bulkCount">0 selected</span>
+        <button class="button primary" onclick="bulkUpdateStatus('approved')"><i class="fa-solid fa-check"></i> Approve Selected</button>
+        <button class="button danger" onclick="bulkUpdateStatus('rejected')"><i class="fa-solid fa-xmark"></i> Reject Selected</button>
+        <button class="button danger" onclick="bulkDelete()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
+      </div>
+
+      <!-- List subheader: Select all & live count -->
+      <div class="adm-list-header">
+        <label class="adm-select-all-label bca-pressable" title="Select all visible items">
+          <input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)">
+          <span>Select all</span>
+        </label>
+        <span class="adm-list-count" id="adminListCountDisplay">0 items</span>
+      </div>
+
+      <!-- Uploads queue (renders as sleek native cards) -->
+      <div class="table-wrap adm-mat-wrap">
+        <table class="table adm-table">
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+
+      <div class="note"><i class="fa-solid fa-circle-info"></i> Review pending uploads before approving. Only approved resources appear in the student library.</div>
+    </section>
+
+    <!-- Broadcast notifications -->
+    <section class="panel adm-broadcast-panel">
+      <div class="toolbar adm-broadcast-header">
+        <div>
+          <span class="adm-broadcast-eyebrow"><i class="fa-solid fa-bullhorn"></i> PUSH BROADCAST CONSOLE</span>
+          <h2>Send Broadcast Notification</h2>
+          <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Send instant push notifications directly to students' phone lock screens.</p>
+        </div>
+        <button type="button" class="adm-collapse-btn bca-pressable" id="btnToggleBroadcast" onclick="toggleBroadcastPanel()" title="Collapse / Expand" aria-label="Toggle broadcast panel">
+          <i class="fa-solid fa-chevron-up" id="iconBroadcastChevron"></i>
+        </button>
+      </div>
+
+      <div id="admBroadcastBody" class="adm-broadcast-body">
+        <form class="notify-form" id="notifyForm">
+          <div class="adm-field-group">
+            <label class="adm-field-label">Notification Title</label>
+            <div class="adm-input-with-icon">
+              <i class="fa-solid fa-heading"></i>
+              <input class="search notify-title" id="notifyTitle" placeholder="e.g. New DBMS Notes uploaded 📚" maxlength="80" required oninput="updatePushPreview()">
+            </div>
+          </div>
+
+          <div class="adm-field-group">
+            <label class="adm-field-label">Lock Screen Message</label>
+            <textarea class="notify-body" id="notifyBody" rows="2" placeholder="Brief 1-2 sentence message to grab student attention..." maxlength="240" required oninput="updatePushPreview()"></textarea>
+          </div>
+
+          <div class="notify-targets">
+            <div class="adm-field-group">
+              <label class="adm-field-label">Target College</label>
+              <select class="select notify-college" id="notifyCollege" onchange="updatePushPreview()">
+                <option value="">All colleges (Everyone)</option>
+              </select>
+            </div>
+            <div class="adm-field-group">
+              <label class="adm-field-label">Target Semester</label>
+              <select class="select notify-sem" id="notifySemester" onchange="updatePushPreview()">
+                <option value="">All semesters</option>
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3">Semester 3</option>
+                <option value="4">Semester 4</option>
+                <option value="5">Semester 5</option>
+                <option value="6">Semester 6</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Live Phone Notification Preview -->
+          <div class="adm-push-preview-card">
+            <div class="adm-preview-head">
+              <div class="adm-preview-app-info">
+                <span class="adm-preview-dot"></span>
+                <span class="adm-preview-app-name">BCAPrime</span>
+                <span class="adm-preview-time">&bull; now</span>
+              </div>
+              <span class="adm-preview-badge" id="previewAudienceBadge">All Students</span>
+            </div>
+            <div class="adm-preview-title" id="previewTitle">Notification Title Preview</div>
+            <div class="adm-preview-msg" id="previewMsg">Your message will appear here on students' mobile lock screens...</div>
+          </div>
+
+          <label class="notify-check bca-pressable">
+            <input type="checkbox" id="notifyOnApprove" checked>
+            <span>Auto-notify enrolled students whenever a study resource is approved</span>
+          </label>
+
+          <button class="button primary bca-pressable" id="notifySend" type="submit">
+            <i class="fa-solid fa-paper-plane"></i>
+            <span>Send Push Broadcast</span>
+          </button>
+        </form>
+      </div>
+    </section>
+
+    </section><!-- /tab-material -->
+
+    <!-- ============ TAB: Feedback & Smart Star-Filter Inbox ============ -->
+    <section class="tab-panel" id="tab-feedback" hidden>
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Feedback &amp; Ratings Inbox</h2>
+            <p style="color:var(--muted);font-size:13px;margin:2px 0 0">User reviews, 1–3★ ratings from Trustpilot star-filter, bug reports, and suggestions.</p>
+          </div>
+          <div class="actions">
+            <button class="button bca-pressable" onclick="loadFeedback()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- Feedback Filter Pills -->
+        <div class="adm-filter-pills" role="tablist" aria-label="Feedback category filters">
+          <button type="button" class="adm-pill active bca-pressable" data-fb-filter="all" onclick="setFeedbackFilter('all')">
+            <span>All Feedback</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="stars" onclick="setFeedbackFilter('stars')">
+            <span><i class="fa-solid fa-star" style="color:#eab308"></i> 1–3★ Star Ratings</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="bug" onclick="setFeedbackFilter('bug')">
+            <span><i class="fa-solid fa-bug"></i> Bugs</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="idea" onclick="setFeedbackFilter('idea')">
+            <span><i class="fa-solid fa-lightbulb"></i> Ideas</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="open" onclick="setFeedbackFilter('open')">
+            <span>Open Issues</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-fb-filter="resolved" onclick="setFeedbackFilter('resolved')">
+            <span>Resolved</span>
+          </button>
+        </div>
+
+        <!-- Bulk actions for Feedback -->
+        <div class="bulk-actions" id="bulkFeedbackActions">
+          <span class="bulk-count" id="bulkFeedbackCount">0 selected</span>
+          <button class="button danger bca-pressable" onclick="bulkDeleteFeedback()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
+        </div>
+
+        <!-- List subheader: Select all & live count -->
+        <div class="adm-list-header">
+          <label class="adm-select-all-label bca-pressable" title="Select all visible feedback">
+            <input type="checkbox" id="checkAllFeedback" onchange="toggleCheckAllFeedback(this.checked)">
+            <span>Select All</span>
+          </label>
+          <span class="adm-list-count" id="feedbackCountDisplay">0 feedback</span>
+        </div>
+
+        <div id="feedbackList" class="feedback-list">
+          <p class="note">Loading feedback&hellip;</p>
+        </div>
+      </section>
+    </section>
+
+    <!-- ============ TAB: Community Moderation ============ -->
+    <section class="tab-panel" id="tab-community" hidden>
+      <!-- Sub-filter navigation -->
+      <div class="adm-sub-tabs" role="tablist" aria-label="Community sections">
+        <button type="button" class="adm-sub-tab active bca-pressable" data-sub="lostfound" onclick="switchCommunitySub('lostfound')">
+          <i class="fa-solid fa-circle-question"></i> Lost &amp; Found
+        </button>
+        <button type="button" class="adm-sub-tab bca-pressable" data-sub="reports" onclick="switchCommunitySub('reports')">
+          <i class="fa-solid fa-flag"></i> Resource Reports
+          <span class="tab-badge" id="reportsBadgeSub" hidden>0</span>
+        </button>
+        <button type="button" class="adm-sub-tab bca-pressable" data-sub="requests" onclick="switchCommunitySub('requests')">
+          <i class="fa-solid fa-users"></i> Junior / Senior Requests
+        </button>
+        <button type="button" class="adm-sub-tab bca-pressable" data-sub="pending-subjects" onclick="switchCommunitySub('pending-subjects')">
+          <i class="fa-solid fa-inbox"></i> Pending Subjects
+          <span class="tab-badge" id="pendingSubjectsBadgeSub" hidden>0</span>
+        </button>
+      </div>
+
+      <!-- Sub-panel 1: Lost & Found -->
+      <div class="comm-sub-panel" id="commSub-lostfound">
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Lost &amp; Found Moderation</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Approve, reject, or wipe resolved/30-day items from storage.</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button class="button bca-pressable danger" onclick="purgeOldRemovedImages()" title="Scan and wipe storage images for all removed/resolved items">
+                <i class="fa-solid fa-broom"></i> Purge Old Removed Images
+              </button>
+              <button class="button bca-pressable" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+            </div>
+          </div>
+
+          <!-- Bulk actions for Lost & Found -->
+          <div class="bulk-actions" id="bulkLostFoundActions">
+            <span class="bulk-count" id="bulkLostFoundCount">0 selected</span>
+            <button class="button danger bca-pressable" onclick="bulkDeleteLostFound()"><i class="fa-solid fa-trash"></i> Delete Selected &amp; Wipe Storage</button>
+          </div>
+
+          <!-- List subheader: Select all & live count -->
+          <div class="adm-list-header">
+            <label class="adm-select-all-label bca-pressable" title="Select all lost & found items">
+              <input type="checkbox" id="checkAllLostFound" onchange="toggleCheckAllLostFound(this.checked)">
+              <span>Select All</span>
+            </label>
+            <span class="adm-list-count" id="lostfoundCountDisplay">0 items</span>
+          </div>
+
+          <div id="lostfoundQueue" class="lf-admin-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+
+      <!-- Sub-panel 2: Resource Reports -->
+      <div class="comm-sub-panel" id="commSub-reports" hidden>
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Resource Reports</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Broken links, wrong files or corrupted pages reported by students.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadReports()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="reportsQueue" class="reports-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+
+      <!-- Sub-panel 3: Junior / Senior Requests -->
+      <div class="comm-sub-panel" id="commSub-requests" hidden>
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Junior &amp; Senior Requests</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Study material requests submitted through Ask Seniors &amp; Juniors Request.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadCommunityRequests()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+
+          <!-- Bulk actions for Junior & Senior Requests -->
+          <div class="bulk-actions" id="bulkRequestsActions">
+            <span class="bulk-count" id="bulkRequestsCount">0 selected</span>
+            <button class="button danger bca-pressable" onclick="bulkDeleteCommunityRequests()"><i class="fa-solid fa-trash"></i> Delete Selected</button>
+          </div>
+
+          <!-- List subheader: Select all & live count -->
+          <div class="adm-list-header">
+            <label class="adm-select-all-label bca-pressable" title="Select all requests">
+              <input type="checkbox" id="checkAllRequests" onchange="toggleCheckAllRequests(this.checked)">
+              <span>Select All</span>
+            </label>
+            <span class="adm-list-count" id="requestsCountDisplay">0 requests</span>
+          </div>
+
+          <div id="communityRequestsQueue" class="community-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+
+      <!-- Sub-panel 4: Pending Subjects -->
+      <div class="comm-sub-panel" id="commSub-pending-subjects" hidden>
+        <section class="panel">
+          <div class="toolbar">
+            <div>
+              <h2>Pending Subject Requests</h2>
+              <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Student-requested subjects awaiting syllabus verification.</p>
+            </div>
+            <button class="button bca-pressable" onclick="loadPendingSubjects()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="pendingQueue" class="pending-queue"><p class="note">Loading&hellip;</p></div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============ TAB: College Approvals ============ -->
+    <section class="tab-panel" id="tab-colleges" hidden>
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Custom College Approvals</h2>
+            <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Review student-submitted custom college requests. Approved colleges immediately appear in all app dropdowns.</p>
+          </div>
+          <button class="button bca-pressable" onclick="loadCustomCollegesAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="collegeApprovalsQueue" class="college-approvals-queue"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Approving a college automatically syncs it across BCAPrime, Admin broadcast targeting, and Stats analytics. Rejection archives it.</div>
+      </section>
+    </section>
+
+    <!-- ============ TAB: Subjects ============ -->
+    <section class="tab-panel" id="tab-subjects" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Subject Management</h2>
+        </div>
+
+        <div class="subject-filters">
+          <label>College
+            <select class="select" id="subjectCollege" onchange="renderSubjects()"></select>
+          </label>
+          <label>Semester
+            <select class="select" id="subjectSemester" onchange="renderSubjects()">
+              <option value="all">All Semesters</option>
+            </select>
+          </label>
+          <button class="button" onclick="loadSubjects()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          <span class="count-badge" id="subjectCountBadge">Found 0 Subjects</span>
+        </div>
+
+        <div class="subject-grid" id="subjectGrid"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Filter by college + semester to review the exact subject list. Public subjects appear for all students; Pending subjects are still waiting for approval.</div>
+      </section>
+
+    </section>
+
+    <!-- ============ TAB: Pending Subjects (Moderation Queue) ============ -->
+    <section class="tab-panel" id="tab-pending" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Pending Subject Requests</h2>
+          <button class="button" onclick="loadPendingSubjects()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="pendingQueue" class="pending-queue"><p class="note">Loading&hellip;</p></div>
+        <div class="note">Approve a request to publish it for every student in that college &amp; semester. Reject uses the safe-delete confirmation (type the PIN) so you don't remove anything by accident.</div>
+      </section>
+
+    </section>
+
+    <!-- ============ TAB: Lost & Found (moderation) ============ -->
+    <section class="tab-panel" id="tab-lostfound" hidden>
+
+      <section class="panel">
+        <div class="toolbar">
+          <h2>Lost &amp; Found</h2>
+          <button class="button" onclick="loadLostFoundAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+        </div>
+        <div id="lostfoundQueue" class="lf-admin-queue"><p class="note">Loading&hellip;</p></div>
+        <div class="note">New posts arrive here as <b>Pending</b> — approve to publish them for that college (an alert goes out on approval), or reject to archive. You can see the item photo (click to enlarge).</div>
+      </section>
+
+    </section>
+
+    <!-- ============ TAB: Resource Reports ============ -->
+    <section class="tab-panel" id="tab-reports" hidden>
+
+      <!-- New report banner -->
+      <div class="upload-banner report-alert-banner" id="reportAlertBanner" hidden>
+        <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444"></i>
+        <span id="reportAlertBannerText">New resource report submitted</span>
+        <button class="button primary" onclick="dismissReportBanner()">Acknowledge</button>
+      </div>
+
+      <section class="panel">
+        <div class="toolbar">
+          <div>
+            <h2>Resource Reports</h2>
+            <p style="margin:4px 0 0;color:var(--muted);font-size:13px;">Issues reported by students on study materials (broken links, wrong files, corrupted pages).</p>
+          </div>
+          <div class="filters">
+            <select class="select" id="reportStatusFilter" onchange="renderReports()">
+              <option value="all">All statuses</option>
+              <option value="open" selected>Open only</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="resolved">Resolved</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+            <button class="button" onclick="loadReports()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+        </div>
+
+        <!-- Reports stats bar -->
+        <div class="rep-stats-bar">
+          <div class="rep-stat-item">
+            <span class="rep-stat-val" id="repStatTotal">0</span>
+            <span class="rep-stat-lbl">Total Reports</span>
+          </div>
+          <div class="rep-stat-item open">
+            <span class="rep-stat-val" id="repStatOpen">0</span>
+            <span class="rep-stat-lbl">Open Issues</span>
+          </div>
+          <div class="rep-stat-item resolved">
+            <span class="rep-stat-val" id="repStatResolved">0</span>
+            <span class="rep-stat-lbl">Resolved</span>
+          </div>
+        </div>
+
+        <div id="reportsQueue" class="reports-queue">
+          <p class="note">Loading reports&hellip;</p>
+        </div>
+      </section>
+
+    </section>
+
+    <!-- ============ TAB: Mock Tests & MCQs ============ -->
+    <section class="tab-panel" id="tab-quizzes" hidden>
+      <div class="toolbar">
+        <div>
+          <h2>Mock Tests &amp; MCQs</h2>
+          <p class="desc" style="color:var(--muted);font-size:13px;margin:3px 0 0">Curate BCA curriculum mock tests, bulk import questions via JSON/CSV, and inspect engagement.</p>
+        </div>
+        <div class="actions">
+          <button class="button" onclick="loadAdminQuizzes()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          <button class="button primary" onclick="openBulkImportModal()"><i class="fa-solid fa-file-import"></i> Bulk Import MCQs</button>
+          <button class="button" onclick="openManualQuizModal()"><i class="fa-solid fa-plus"></i> New Quiz</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <section class="stats">
+        <div class="stat">
+          <strong id="quizStatTotal">0</strong>
+          <span>Total Mock Tests</span>
+        </div>
+        <div class="stat">
+          <strong id="quizStatQuestions">0</strong>
+          <span>Total Questions</span>
+        </div>
+        <div class="stat">
+          <strong id="quizStatAi">0</strong>
+          <span>AI Quizzes Created</span>
+        </div>
+      </section>
+
+      <!-- Filters -->
+      <div class="filters" style="margin-bottom:14px;flex-wrap:wrap">
+        <select class="select" id="quizFilterSem" onchange="renderAdminQuizzes()">
+          <option value="all">All Semesters</option>
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+          <option value="5">Semester 5</option>
+          <option value="6">Semester 6</option>
+        </select>
+        <input class="search" id="quizSearch" placeholder="Search by quiz title or subject&hellip;" oninput="renderAdminQuizzes()" style="max-width:320px">
+      </div>
+
+      <!-- Quizzes Grid -->
+      <div class="quiz-grid" id="adminQuizGrid">
+        <p class="note">Loading mock tests&hellip;</p>
+      </div>
+    </section>
+
+    <!-- ============ TAB: Users & Stats ============ -->
+    <section class="tab-panel" id="tab-users" hidden>
+
+      <!-- Header actions bar -->
+      <div class="user-stats-header">
+        <div>
+          <h2>User Growth &amp; Registrations</h2>
+          <p>Real-time student signup velocity, counts, and latest account activations.</p>
+        </div>
+        <div class="user-stats-actions">
+          <button class="button bca-pressable" id="btnTestAdminBotAlert" onclick="triggerTestAdminBotAlert()" title="Send Test Alert to BCAPrime Admin Telegram Bot">
+            <i class="fa-brands fa-telegram" style="color:var(--brand)"></i> Send Test Admin Alert
+          </button>
+          <button class="button bca-pressable" id="btnTestTelegramAlert" onclick="triggerTestTelegramAlert()" title="Send test ping to New User Signup Telegram Bot">
+            <i class="fa-solid fa-user-plus"></i> Test Signup Bot
+          </button>
+          <button class="button primary bca-pressable" id="btnRefreshUserStats" onclick="loadUserStats(true)">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh Stats
+          </button>
+        </div>
+      </div>
+
+      <!-- Stats Counters Grid -->
+      <section class="stats user-stats-grid">
+        <div class="stat stat-primary">
+          <strong id="statTotalUsers">—</strong>
+          <span>Total Users</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersToday">—</strong>
+          <span>New Today (IST)</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersWeek">—</strong>
+          <span>This Week</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersMonth">—</strong>
+          <span>This Month</span>
+        </div>
+        <div class="stat">
+          <strong id="statUsersLastMonth">—</strong>
+          <span>Last Month</span>
+        </div>
+      </section>
+
+      <!-- Student Directory Panel (Clean Mobile-Native Identity & Moderation) -->
+      <section class="panel">
+        <div class="toolbar" style="flex-wrap:wrap;gap:12px">
+          <div>
+            <h2 style="font-family:var(--font-condensed-heading);font-weight:600;font-size:19px;margin:0 0 2px">Student Directory</h2>
+            <small style="color:var(--muted);font-family:var(--font-condensed-body);font-size:13px">Tap any student card to inspect account, roles, or launch telemetry</small>
+          </div>
+          <div class="filters" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <input class="search" id="userSearchInput" placeholder="Search by name, @username, email, or college…" oninput="filterRecentUsers()" style="min-width:240px">
+            <select class="adm-select" id="userCollegeFilter" onchange="filterRecentUsers()" style="height:38px;padding:0 10px;border-radius:8px;background:var(--surface2);color:var(--ink);border:1px solid var(--line);font-size:13px">
+              <option value="all">All Colleges</option>
+            </select>
+            <span class="user-count-badge" id="userListCountBadge">0 users</span>
+          </div>
+        </div>
+
+        <!-- Semester Filter Pills -->
+        <div class="adm-filter-pills" id="studentSemFilterPills" role="tablist" aria-label="Semester filter pills" style="margin:12px 0 16px;display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">
+          <button type="button" class="adm-pill active bca-pressable" data-sem="all" onclick="setStudentSemFilter('all')">
+            <span>All Semesters</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-sem="1" onclick="setStudentSemFilter('1')">
+            <span>SEM 1</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-sem="2" onclick="setStudentSemFilter('2')">
+            <span>SEM 2</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-sem="3" onclick="setStudentSemFilter('3')">
+            <span>SEM 3</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-sem="4" onclick="setStudentSemFilter('4')">
+            <span>SEM 4</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-sem="5" onclick="setStudentSemFilter('5')">
+            <span>SEM 5</span>
+          </button>
+          <button type="button" class="adm-pill bca-pressable" data-sem="6" onclick="setStudentSemFilter('6')">
+            <span>SEM 6</span>
+          </button>
+        </div>
+
+        <!-- Bulk actions for Students -->
+        <div class="bulk-actions" id="bulkUsersActions">
+          <span class="bulk-count" id="bulkUsersCount">0 selected</span>
+          <button class="button danger bca-pressable" onclick="bulkDeleteUsers()"><i class="fa-solid fa-trash"></i> Delete Selected Students</button>
+        </div>
+
+        <!-- List subheader: Select all & count -->
+        <div class="adm-list-header">
+          <label class="adm-select-all-label bca-pressable" title="Select all eligible students">
+            <input type="checkbox" id="checkAllUsers" onchange="toggleCheckAllUsers(this.checked)">
+            <span>Select All Students</span>
+          </label>
+          <span class="adm-list-count" id="userSelectCountDisplay">0 eligible</span>
+        </div>
+
+        <!-- Mobile-Native Student Cards Grid -->
+        <div class="student-cards-grid" id="studentCardsList">
+          <!-- Rendered via renderRecentUsers() -->
+        </div>
+
+        <!-- Users Table (Kept for structured fallback) -->
+        <div class="table-wrap" id="recentUsersTableWrap" style="display:none">
+          <table class="table" id="recentUsersTable">
+            <thead>
+              <tr>
+                <th style="width:48px">#</th>
+                <th>Student</th>
+                <th>Email</th>
+                <th>Signup Date &amp; Time (IST)</th>
+              </tr>
+            </thead>
+            <tbody id="userRows"></tbody>
+          </table>
+        </div>
+
+        <!-- Empty state container for filtered users -->
+        <div id="usersEmptyState" class="empty-state-wrap" hidden></div>
+
+        <div class="note" style="margin-top:16px">
+          <i class="fa-solid fa-circle-info"></i> All timestamps and daily/weekly/monthly cutoffs are calculated in Indian Standard Time (IST, UTC+5:30).
+        </div>
+      </section>
+
+    </section>
+
+  </main>
+
+  <!-- ================= Student Admin Profile Modal ================= -->
+  <div class="modal-overlay" id="studentAdminModal" hidden onclick="if(event.target===this)closeStudentAdminModal()">
+    <div class="modal-card student-admin-modal-card">
+      <div class="modal-head">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="adm-modal-icon-badge"><i class="fa-solid fa-id-card"></i></span>
+          <div>
+            <h3 style="margin:0;font-family:var(--font-condensed-heading);font-weight:600;font-size:18px">Student Account</h3>
+            <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;font-family:var(--font-condensed-heading);font-weight:600">Identity &amp; Moderation</span>
+          </div>
+        </div>
+        <button class="modal-close bca-pressable" aria-label="Close" onclick="closeStudentAdminModal()">&times;</button>
+      </div>
+
+      <div class="student-profile-body" id="studentAdminModalBody">
+        <!-- Injected dynamically by openStudentAdminProfile() -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Subject edit / add modal ================= -->
+  <div class="modal-overlay" id="subjectModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="subjectModalTitle">Edit Subject</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeSubjectModal()">&times;</button>
+      </div>
+      <form class="modal-form" id="subjectForm">
+        <input type="hidden" id="subjectId" value="">
+        <label>Subject Name
+          <input class="search" id="subjectName" required maxlength="80" placeholder="e.g. Database Management Systems">
+        </label>
+        <label>Subject Code <small>(optional)</small>
+          <input class="search" id="subjectCode" maxlength="20" placeholder="e.g. BCA-304">
+        </label>
+        <div class="modal-grid-2">
+          <label>Semester
+            <select class="select" id="subjectSem"></select>
+          </label>
+          <label>College
+            <select class="select" id="subjectCollegePick"></select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button" onclick="closeSubjectModal()">Cancel</button>
+          <button type="submit" class="button primary" id="subjectSaveBtn">Save Subject</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= Reusable Safe Delete Modal (Random PIN guard) ================= -->
+  <div class="modal-overlay" id="safeDeleteModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm deletion</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeSafeDelete()">&times;</button>
+      </div>
+      <p class="sd-desc" id="safeDeleteDesc">This action cannot be undone.</p>
+      <div class="sd-pin-box">
+        Type <strong id="safeDeletePin">0000</strong> to confirm deletion
+      </div>
+      <div class="modal-form">
+        <label>Enter PIN
+          <input class="search sd-input" id="safeDeleteInput" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="Enter the 4-digit PIN" oninput="onSafeDeleteInput()">
+        </label>
+        <p class="sd-error" id="safeDeleteError"></p>
+        <div class="modal-actions">
+          <button class="button" onclick="closeSafeDelete()">Cancel</button>
+          <button class="button danger" id="safeDeleteConfirm" disabled onclick="confirmSafeDelete()">Confirm Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Bulk Import MCQs Modal ================= -->
+  <div class="modal-overlay" id="bulkImportModal" hidden>
+    <div class="modal-card" style="max-width:760px">
+      <div class="modal-head">
+        <h3><i class="fa-solid fa-file-import" style="color:var(--brand)"></i> Bulk Import MCQs</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeBulkImportModal()">&times;</button>
+      </div>
+
+      <div class="modal-form">
+        <!-- Target Quiz -->
+        <label>Target Quiz
+          <select class="select" id="importQuizTarget" onchange="toggleImportTargetFields()">
+            <option value="new">+ Create New Quiz for these MCQs</option>
+          </select>
+        </label>
+
+        <!-- New Quiz Fields Container -->
+        <div id="importNewQuizFields">
+          <div class="modal-grid-2">
+            <label>Quiz Title *
+              <input class="search" id="importQuizTitle" placeholder="e.g. Operating Systems End-Sem Mock Test">
+            </label>
+            <label>Subject *
+              <input class="search" id="importQuizSubject" placeholder="e.g. Operating Systems">
+            </label>
+          </div>
+          <div class="modal-grid-2">
+            <label>Semester
+              <select class="select" id="importQuizSem">
+                <option value="1">Semester 1</option>
+                <option value="2">Semester 2</option>
+                <option value="3" selected>Semester 3</option>
+                <option value="4">Semester 4</option>
+                <option value="5">Semester 5</option>
+                <option value="6">Semester 6</option>
+              </select>
+            </label>
+            <label>Time Limit (minutes)
+              <input class="search" id="importQuizTime" type="number" value="15" min="5" max="180">
+            </label>
+          </div>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="import-dropzone" id="importDropzone" onclick="$('importFileInput').click()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <p id="importDropzoneTitle">Choose a JSON or CSV file to parse</p>
+          <small>Supports JSON array or CSV with question, options A/B/C/D, correct_answer &amp; explanation</small>
+          <input type="file" id="importFileInput" accept=".json,.csv" hidden onchange="handleImportFileSelect(this)">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button type="button" class="button" onclick="downloadSampleJson()"><i class="fa-solid fa-download"></i> Sample JSON Template</button>
+          <button type="button" class="button" onclick="downloadSampleCsv()"><i class="fa-solid fa-download"></i> Sample CSV Template</button>
+        </div>
+
+        <!-- Live Parsed Questions Preview Box -->
+        <div id="importPreviewContainer" hidden>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <strong style="color:var(--ink);font-size:13px"><i class="fa-solid fa-list-check"></i> Parsed MCQs Preview</strong>
+            <span class="quiz-badge" id="importCountBadge" style="background:rgba(112,209,169,0.18);color:var(--good)">0 valid questions</span>
+          </div>
+          <div class="import-preview-box">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th style="width:30px">#</th>
+                  <th>Question</th>
+                  <th>Options</th>
+                  <th style="width:60px">Ans</th>
+                  <th>Explanation</th>
+                </tr>
+              </thead>
+              <tbody id="importPreviewTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <p class="sd-error" id="importError" style="margin-top:8px"></p>
+      </div>
+
+      <div class="modal-actions modal-actions-sticky">
+        <button type="button" class="button" onclick="closeBulkImportModal()">Cancel</button>
+        <button type="button" class="button primary" id="btnConfirmImport" disabled onclick="executeBulkImport()"><i class="fa-solid fa-check"></i> Import to Supabase</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= View Questions Modal ================= -->
+  <div class="modal-overlay" id="quizQuestionsModal" hidden>
+    <div class="modal-card" style="max-width:820px">
+      <div class="modal-head">
+        <div>
+          <h3 id="viewQuizTitle">Quiz Questions</h3>
+          <p id="viewQuizSubtitle" style="color:var(--muted);font-size:12.5px;margin:2px 0 0"></p>
+        </div>
+        <button class="modal-close" aria-label="Close" onclick="closeQuizQuestionsModal()">&times;</button>
+      </div>
+
+      <div style="max-height:60vh;overflow-y:auto;padding-right:4px;margin-top:10px" id="quizQuestionsList">
+        <p class="note">Loading questions&hellip;</p>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px">
+        <button type="button" class="button" onclick="closeQuizQuestionsModal()">Close</button>
+        <button type="button" class="button primary" id="btnExportQuizJson" onclick="exportCurrentQuizJson()"><i class="fa-solid fa-file-export"></i> Export JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= New Quiz Modal ================= -->
+  <div class="modal-overlay" id="manualQuizModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Create New Mock Test</h3>
+        <button class="modal-close" aria-label="Close" onclick="closeManualQuizModal()">&times;</button>
+      </div>
+      <form class="modal-form" id="manualQuizForm" onsubmit="handleManualQuizSubmit(event)">
+        <label>Quiz Title *
+          <input class="search" id="manualQuizTitle" required placeholder="e.g. C Programming End-Term Mock">
+        </label>
+        <label>Subject *
+          <input class="search" id="manualQuizSubject" required placeholder="e.g. Programming Principles &amp; C">
+        </label>
+        <div class="modal-grid-2">
+          <label>Semester
+            <select class="select" id="manualQuizSem">
+              <option value="1">Semester 1</option>
+              <option value="2">Semester 2</option>
+              <option value="3">Semester 3</option>
+              <option value="4">Semester 4</option>
+              <option value="5">Semester 5</option>
+              <option value="6">Semester 6</option>
+            </select>
+          </label>
+          <label>Time Limit (minutes)
+            <input class="search" id="manualQuizTime" type="number" value="15" min="5" max="180">
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="button" onclick="closeManualQuizModal()">Cancel</button>
+          <button type="submit" class="button primary" id="btnSaveManualQuiz">Create Quiz</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= Scripts ================= -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../env.js"></script>
+  <script src="../supabase-config.js"></script>
+  <script src="../lib/colleges.js?v=1"></script>
+  <script type="module" src="../ui/index.js"></script>
+  <script src="admin.js?v=21"></script>
 </body>
 </html>

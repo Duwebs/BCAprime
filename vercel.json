@@ -51,15 +51,21 @@
     {
       "source": "/(.*\\.webmanifest)",
       "headers": [
-        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }
+        { "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ],
   "rewrites": [
+    { "source": "/stats/stats-manifest.webmanifest", "destination": "/stats-manifest.webmanifest" },
+    { "source": "/stats/stats-manifest.json", "destination": "/stats-manifest.json" },
     { "source": "/stats", "destination": "/analytics/index.html" },
-    { "source": "/stats/(.*)", "destination": "/analytics/index.html" },
+    { "source": "/stats/", "destination": "/analytics/index.html" },
     { "source": "/analytics", "destination": "/analytics/index.html" },
-    { "source": "/analytics/(.*)", "destination": "/analytics/index.html" },
+    { "source": "/analytics/", "destination": "/analytics/index.html" },
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/", "destination": "/admin/index.html" },
     { "source": "/resource/:id/og", "destination": "/api/og?id=:id" },
     { "source": "/resource/:id", "destination": "/api/resource?id=:id" },
     { "source": "/sitemap.xml", "destination": "/sitemap.xml" }

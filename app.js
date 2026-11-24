@@ -6879,8 +6879,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         try{sessionStorage.setItem('bca-auto-updated','true')}catch(e){}
         location.reload();
       });
-            window.addEventListener('load',()=>{
-        navigator.serviceWorker.register('./sw.js?v=36').then(reg=>{
+      window.addEventListener('load',()=>{
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(reg=>{
           const check=()=>{try{reg.update().catch(()=>{})}catch(e){}};
           check();
           setInterval(check,3600000); /* har 1 ghante */

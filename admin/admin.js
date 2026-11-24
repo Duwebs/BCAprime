@@ -2112,9 +2112,32 @@ async function initAuth() {
 initAuth();
 
 /* ---- PWA: installable admin panel ---- */
+let deferredAdminInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredAdminInstallPrompt = e;
+  const btn = $('adminInstallBtn');
+  if (btn) btn.hidden = false;
+});
+window.addEventListener('appinstalled', () => {
+  deferredAdminInstallPrompt = null;
+  const btn = $('adminInstallBtn');
+  if (btn) btn.hidden = true;
+});
+async function installAdminPwa() {
+  if (deferredAdminInstallPrompt) {
+    deferredAdminInstallPrompt.prompt();
+    await deferredAdminInstallPrompt.userChoice;
+    deferredAdminInstallPrompt = null;
+    const btn = $('adminInstallBtn');
+    if (btn) btn.hidden = true;
+  }
+}
+window.installAdminPwa = installAdminPwa;
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () =>
-    navigator.serviceWorker.register('./admin-sw.js?q=2')
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
       .catch(error => console.info('Admin PWA service worker unavailable.', error.message))
   );
 }
@@ -2173,7 +2196,7 @@ async function adminSubscribeToPush() {
   // Toggle off: unsubscribe + remove stored row
   if (localStorage.getItem(ADMIN_ALERT_PREF_KEY) === 'on') {
     try {
-      const reg = await navigator.serviceWorker.getRegistration('./admin-sw.js?q=2');
+      const reg = await navigator.serviceWorker.getRegistration();
       const sub = reg && await reg.pushManager.getSubscription();
       if (sub) {
         const endpoint = sub.endpoint;
@@ -2193,7 +2216,7 @@ async function adminSubscribeToPush() {
   }
 
   try {
-    const reg = await navigator.serviceWorker.register('./admin-sw.js?q=2');
+    const reg = (await navigator.serviceWorker.getRegistration()) || (await navigator.serviceWorker.register('/sw.js', { scope: '/' }));
     await navigator.serviceWorker.ready;
     let subscription = await reg.pushManager.getSubscription();
     if (!subscription) {
