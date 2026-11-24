@@ -10009,14 +10009,22 @@ html:not([data-theme="dark"]) .legal-doc-ul {
 }
 
 .passkey-gate-btn[hidden],
-.passkey-gate-btn.is-hidden {
+.passkey-gate-btn.is-hidden,
+#authGate.gate-signup .passkey-gate-btn,
+#gateSegmentedTabs[data-active="signup"] ~ #gatePasskeyBtn,
+.auth-segmented-tabs[data-active="signup"] ~ #gatePasskeyBtn,
+.auth-segmented-tabs.is-signup ~ #gatePasskeyBtn {
   display: none !important;
 }
 
-/* Strictly hide passkey login button on desktop (>=1024px) */
+/* Strictly hide passkey features on desktop (>=1024px) */
 @media (min-width: 1024px) {
   .passkey-gate-btn,
-  #gatePasskeyBtn {
+  #gatePasskeyBtn,
+  #profilePasskeysRow,
+  #profilePasskeysDivider,
+  #settingsPasskeysGroup,
+  #passkeysModal {
     display: none !important;
   }
 }

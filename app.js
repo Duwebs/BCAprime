@@ -2321,6 +2321,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function resetAuthGateState(options = {}){
       setGateSubmitLoading(false);
       resetOAuthButtons();
+      const authGateEl = $('authGate');
+      if(authGateEl){
+        authGateEl.classList.toggle('gate-signup', gateMode === 'signup');
+        authGateEl.classList.toggle('gate-login', gateMode === 'login');
+      }
       const passkeyBtn = $('gatePasskeyBtn');
       if(passkeyBtn){
         passkeyBtn.classList.remove('is-loading');
@@ -2543,6 +2548,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const qrTrig = $('desktopQrTrigger');
       if(qrTrig){
         qrTrig.hidden = (mode !== 'login');
+      }
+
+      const authGateEl = $('authGate');
+      if(authGateEl){
+        authGateEl.classList.toggle('gate-signup', mode === 'signup');
+        authGateEl.classList.toggle('gate-login', mode === 'login');
       }
 
       const passkeyBtn = $('gatePasskeyBtn');
@@ -3468,17 +3479,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const passRow = $('profilePasskeysRow');
         const passDiv = $('profilePasskeysDivider');
         const passGroup = $('settingsPasskeysGroup');
+        const showPasskeys = isPasskeySupportedOnDevice();
         if(passRow) {
-          passRow.hidden = false;
-          passRow.style.setProperty('display', 'flex');
+          passRow.hidden = !showPasskeys;
+          passRow.style.setProperty('display', showPasskeys ? 'flex' : 'none');
         }
         if(passDiv) {
-          passDiv.hidden = false;
-          passDiv.style.setProperty('display', 'block');
+          passDiv.hidden = !showPasskeys;
+          passDiv.style.setProperty('display', showPasskeys ? 'block' : 'none');
         }
         if(passGroup) {
-          passGroup.hidden = false;
-          passGroup.style.setProperty('display', 'block');
+          passGroup.hidden = !showPasskeys;
+          passGroup.style.setProperty('display', showPasskeys ? 'block' : 'none');
         }
       }else{
         if(footLabel) footLabel.textContent='Browsing as';
@@ -3652,13 +3664,36 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           return;
         }
 
-        const rawOpts = authOptsRes.data.options;
+        const rawOpts = Object.assign({}, authOptsRes.data.options);
         rawOpts.userVerification = 'preferred';
 
         // Harmonize Relying Party ID if testing on localhost / dev
         const currentHost = window.location.hostname;
         if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
           rawOpts.rpId = currentHost;
+        }
+
+        // Check for local credentials on this device
+        let localPasskeys = [];
+        try {
+          localPasskeys = JSON.parse(localStorage.getItem('bcaprime_device_passkeys') || '[]');
+        } catch(_e){}
+
+        const inputUser = ($('gateAccountEmail') && $('gateAccountEmail').value.trim().toLowerCase()) || '';
+        const matchingCreds = inputUser
+          ? localPasskeys.filter(c => (c.email && c.email.toLowerCase() === inputUser) || (c.username && c.username.toLowerCase() === inputUser))
+          : localPasskeys;
+
+        // If local credentials exist, set allowCredentials so Android Credential Manager matches immediately
+        const targetCreds = (matchingCreds.length > 0) ? matchingCreds : localPasskeys;
+        if(targetCreds && targetCreds.length > 0){
+          rawOpts.allowCredentials = targetCreds.map(c => ({
+            id: c.id,
+            type: 'public-key',
+            transports: c.transports || ['internal', 'hybrid']
+          }));
+        } else {
+          delete rawOpts.allowCredentials;
         }
 
         const requestOptions = parseRequestOptions(rawOpts);
@@ -3670,9 +3705,27 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         // Step 2: Prompt user for biometric / screen lock
         let cred;
         try {
-          cred = await navigator.credentials.get({ publicKey: requestOptions });
+          try {
+            cred = await navigator.credentials.get({ publicKey: requestOptions });
+          } catch(firstErr){
+            console.warn('[BCAPrime] navigator.credentials.get targeted error:', firstErr);
+            // If targeted allowCredentials failed, retry once with discoverable (empty allowCredentials)
+            if(rawOpts.allowCredentials && rawOpts.allowCredentials.length > 0 && (firstErr.name === 'NotAllowedError' || /not found|no credentials/i.test(firstErr.message || ''))){
+              const fallbackOpts = Object.assign({}, rawOpts);
+              delete fallbackOpts.allowCredentials;
+              const discReqOpts = parseRequestOptions(fallbackOpts);
+              discReqOpts.userVerification = 'preferred';
+              if(currentHost === 'localhost' || currentHost === '127.0.0.1' || currentHost === '::1'){
+                discReqOpts.rpId = currentHost;
+              }
+              delete discReqOpts.allowCredentials;
+              cred = await navigator.credentials.get({ publicKey: discReqOpts });
+            } else {
+              throw firstErr;
+            }
+          }
         } catch(ceremonyErr){
-          console.warn('[BCAPrime] navigator.credentials.get error:', ceremonyErr);
+          console.warn('[BCAPrime] navigator.credentials.get final error:', ceremonyErr);
           const isCancelled = ceremonyErr.name === 'AbortError' || /cancel|abort/i.test(ceremonyErr.message || '');
           const isNoPasskey = ceremonyErr.name === 'NotAllowedError' || /no credentials|not found|no passkey|no credential|not allowed/i.test(ceremonyErr.message || '');
           if(isCancelled){
@@ -3712,6 +3765,21 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
         if(session || user){
           accountSession = normalizeSupabaseUser(user);
+          // Cache verified passkey on this device for future 1-tap fast path
+          try {
+            let list = JSON.parse(localStorage.getItem('bcaprime_device_passkeys') || '[]');
+            if(!list.some(c => c.id === cred.id)){
+              list.unshift({
+                id: cred.id,
+                transports: ['internal', 'hybrid'],
+                email: (accountSession && accountSession.email) || '',
+                username: (accountSession && (accountSession.user_metadata?.username || accountSession.user_metadata?.full_name)) || '',
+                createdAt: new Date().toISOString()
+              });
+              localStorage.setItem('bcaprime_device_passkeys', JSON.stringify(list));
+            }
+          } catch(_e){}
+
           toast('Signed in with Passkey ✅', 'success');
           if(typeof triggerAuthHaptic === 'function') triggerAuthHaptic(20);
           showAuthenticatedApp();
@@ -3893,6 +3961,28 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
           } catch(updErr){
             console.warn('[BCAPrime] passkey.update friendlyName error:', updErr);
           }
+        }
+
+        // Step 5: Cache credential metadata on this device for instant 1-tap sign-in matching
+        try {
+          const credId = cred.id;
+          const transports = (cred.response && typeof cred.response.getTransports === 'function')
+            ? cred.response.getTransports()
+            : ['internal', 'hybrid'];
+          let localPasskeys = [];
+          try { localPasskeys = JSON.parse(localStorage.getItem('bcaprime_device_passkeys') || '[]'); } catch(e){}
+          localPasskeys = localPasskeys.filter(c => c.id !== credId);
+          localPasskeys.unshift({
+            id: credId,
+            rawId: cred.rawId ? bufToB64url(cred.rawId) : credId,
+            transports: transports,
+            email: (accountSession && accountSession.email) || '',
+            username: (accountSession && (accountSession.user_metadata?.username || accountSession.user_metadata?.full_name)) || '',
+            createdAt: new Date().toISOString()
+          });
+          localStorage.setItem('bcaprime_device_passkeys', JSON.stringify(localPasskeys));
+        } catch(storeErr){
+          console.warn('[BCAPrime] Could not cache device passkey:', storeErr);
         }
 
         toast('Passkey saved successfully! You can now sign in with fingerprint/screen lock.', 'success');
@@ -4104,6 +4194,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(uid){
           try{ localStorage.removeItem(`bcaprime_passkeys_${uid}`); }catch(e){}
         }
+        try{ localStorage.removeItem('bcaprime_device_passkeys'); }catch(e){}
         await loadUserPasskeys();
       } catch(err){
         console.error('[BCAPrime] Delete passkey error:', err);
