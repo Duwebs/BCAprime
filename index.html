@@ -227,11 +227,11 @@
         <h1 class="auth-side-title">Welcome to your study desk.</h1>
         <p class="auth-side-sub">Your entire BCA library in one place &mdash; notes, previous year papers and saved material, all organised.</p>
         <ol class="auth-steps">
-          <li><span class="auth-step-num"><i class="fa-solid fa-building-columns"></i></span><div><strong>Pick your college</strong><small>Select your college during onboarding &mdash; that college's resources will show first.</small></div></li>
-          <li><span class="auth-step-num"><i class="fa-solid fa-layer-group"></i></span><div><strong>Pick semester + subject</strong><small>Find your semester's notes and PYQs in seconds with PrimeFinder.</small></div></li>
-          <li><span class="auth-step-num"><i class="fa-solid fa-bookmark"></i></span><div><strong>Save anywhere, study anywhere</strong><small>Bookmark important material &mdash; always one tap away in the Saved tab.</small></div></li>
+          <li><span class="auth-step-num"><i class="fa-solid fa-building-columns"></i></span><div><strong>Pick your college</strong><small>Select your college during onboarding &mdash; your university's resources show first.</small></div></li>
+          <li><span class="auth-step-num"><i class="fa-solid fa-layer-group"></i></span><div><strong>Pick semester + subject</strong><small>Find your semester's notes, PYQs, and AI mock tests in seconds.</small></div></li>
+          <li><span class="auth-step-num"><i class="fa-solid fa-bookmark"></i></span><div><strong>Save anywhere, study anywhere</strong><small>Bookmark important material and sync reading progress across devices.</small></div></li>
         </ol>
-        <div class="auth-side-foot"><i class="fa-solid fa-shield-halved"></i><span>Your data syncs only with your account. the same experience on every device.</span></div>
+        <div class="auth-side-foot"><i class="fa-solid fa-shield-halved"></i><span>Your data syncs only with your account. The same experience on every device.</span></div>
         <img src="assets/mascot-sitting.png" alt="" class="auth-mascot-sitting" aria-hidden="true">
       </aside>
       <div class="auth-main mode-form">
@@ -310,6 +310,10 @@
               <span class="auth-social-label">LinkedIn</span>
             </button>
           </div>
+          <button class="secondary desktop-qr-trigger bca-pressable" id="desktopQrTrigger" type="button" onclick="setAuthMode('qr')" hidden>
+            <i class="fa-solid fa-qrcode"></i>
+            <span>Log in with QR code</span>
+          </button>
           <p class="account-message" id="gateAccountMessage" aria-live="polite"></p>
           <button class="account-switch bca-pressable" id="gateAccountSwitch" type="button" style="display:none">Already have an account? <span class="account-switch-highlight">Log in</span></button>
           <button class="secondary guest-button auth-guest-pill bca-pressable" type="button" onclick="continueAsGuest()">
@@ -318,10 +322,6 @@
           <p class="auth-legal-notice">
             By continuing, you agree to BCAPrime's <a href="terms.html" class="auth-legal-link" target="_blank" rel="noopener noreferrer" onclick="openLegalModal('terms', event)">Terms of Service</a> and acknowledge our <a href="privacy.html" class="auth-legal-link" target="_blank" rel="noopener noreferrer" onclick="openLegalModal('privacy', event)">Privacy Policy</a>.
           </p>
-          <button class="secondary desktop-qr-trigger bca-pressable" id="desktopQrTrigger" type="button" onclick="setAuthMode('qr')" hidden>
-            <i class="fa-solid fa-qrcode"></i>
-            <span>Log in with QR code</span>
-          </button>
         </div>
       </div>
     </div></section>

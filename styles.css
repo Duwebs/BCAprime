@@ -3421,8 +3421,8 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
     align-items: stretch !important;
     width: min(100%, 940px) !important;
     max-width: 940px !important;
-    height: min(580px, calc(100dvh - 40px)) !important;
-    max-height: calc(100dvh - 40px) !important;
+    height: min(630px, calc(100dvh - 32px)) !important;
+    max-height: calc(100dvh - 32px) !important;
     margin: auto !important;
     padding: 0 !important;
     border-radius: 26px !important;
@@ -3442,8 +3442,8 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
     display: block !important;
     position: absolute;
     bottom: 0;
-    right: 20px;
-    width: 220px;
+    right: 14px;
+    width: 190px;
     height: auto;
     pointer-events: none;
     z-index: 5;
@@ -3457,7 +3457,7 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
     flex: 1 1 54%;
     min-width: 0;
     position: relative;
-    padding: 38px 38px 26px;
+    padding: 30px 32px 20px !important;
   }
 
   [data-theme="dark"] .auth-side {
@@ -3481,10 +3481,10 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
   .auth-side-title {
     font-family: 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif !important;
     font-weight: 600 !important;
-    font-size: 30px;
+    font-size: 28px !important;
     line-height: 1.1;
     letter-spacing: -0.025em;
-    margin: 12px 0 6px;
+    margin: 10px 0 4px !important;
   }
   [data-theme="dark"] .auth-side-title {
     color: #f3f4f6 !important;
@@ -3494,9 +3494,9 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
   }
 
   .auth-side-sub {
-    font-size: 13.5px;
+    font-size: 13px !important;
     line-height: 1.45;
-    margin: 0 0 18px;
+    margin: 0 0 14px !important;
     max-width: 42ch;
   }
   [data-theme="dark"] .auth-side-sub {
@@ -3508,32 +3508,32 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
 
   .auth-steps {
     list-style: none;
-    margin: 0 0 18px;
+    margin: 0 0 14px !important;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px !important;
   }
   .auth-steps li {
     display: flex;
-    gap: 12px;
+    gap: 10px !important;
     align-items: flex-start;
   }
   .auth-step-num {
     flex: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
     display: grid;
     place-items: center;
-    font-size: 14px;
+    font-size: 13px !important;
     color: #ffffff;
     background: #2563eb;
     box-shadow: none;
   }
   .auth-steps strong {
     display: block;
-    font: 600 14px 'Geist', sans-serif;
+    font: 600 13.5px 'Geist', sans-serif !important;
   }
   [data-theme="dark"] .auth-steps strong {
     color: #ffffff;
@@ -3545,8 +3545,8 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
   .auth-steps small {
     display: block;
     margin-top: 1px;
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: 11.5px !important;
+    line-height: 1.35;
   }
   [data-theme="dark"] .auth-steps small {
     color: #94a3b8;
@@ -3559,18 +3559,20 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
     margin-top: auto;
     display: flex;
     gap: 8px;
-    align-items: center;
+    align-items: flex-start !important;
     color: var(--muted);
-    font-size: 11px;
-    line-height: 1.35;
-    max-width: 240px;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
+    max-width: 205px !important;
     border: none;
     padding: 0;
+    z-index: 6;
   }
   .auth-side-foot i {
     color: #22c55e;
     font-size: 13px;
     flex-shrink: 0;
+    margin-top: 2px;
   }
 
   /* Right Panel (Auth Form) */
@@ -3580,38 +3582,88 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
   .auth-main {
     flex: 1 1 46%;
     max-width: 430px;
-    padding: 34px 34px;
+    padding: 24px 32px !important;
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+
+  .auth-segmented-tabs {
+    margin: 0 0 10px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+  .auth-tab-btn {
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+
+  .auth-gate .account-form {
+    gap: 7px !important;
+  }
+  .auth-gate .account-form label {
+    gap: 2px !important;
+    font-size: 12px !important;
+    margin-bottom: 0 !important;
+  }
+  .auth-gate .account-form input {
+    height: 38px !important;
+    min-height: 38px !important;
+    font-size: 13.5px !important;
+    border-radius: 9px !important;
+    padding: 0 12px !important;
+  }
+  .auth-input-wrap input {
+    padding-right: 40px !important;
+  }
+  .auth-eye-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .auth-pill-submit {
+    height: 38px !important;
+    min-height: 38px !important;
+    margin-top: 4px !important;
+    font-size: 14px !important;
+  }
+
+  .auth-divider {
+    margin: 8px 0 6px !important;
   }
 
   /* Stacked Social Buttons on Desktop */
   .auth-social-grid {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px !important;
   }
   .auth-social-btn {
     width: 100%;
-    height: 44px;
+    height: 38px !important;
+    min-height: 38px !important;
     border-radius: 9999px;
     gap: 10px;
-    font-size: 14px;
+    font-size: 13.5px !important;
   }
   .auth-social-btn i {
-    font-size: 16px;
+    font-size: 15px !important;
   }
   .auth-social-btn .auth-social-label {
     display: inline;
     font: 600 13px 'Geist', sans-serif;
   }
   .auth-guest-pill {
-    margin-top: 6px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    margin-top: 4px !important;
     margin-bottom: 2px !important;
+    font-size: 13px !important;
   }
   .auth-legal-notice {
     margin-top: 4px !important;
+    font-size: 11px !important;
+    line-height: 1.35 !important;
   }
 }
 
@@ -3657,10 +3709,10 @@ html:not([data-theme="dark"]) .auth-legal-link:hover {
     justify-content: center;
     gap: 8px;
     width: 100%;
-    height: 40px;
-    min-height: 40px;
+    height: 36px !important;
+    min-height: 36px !important;
     border-radius: 9999px;
-    margin-top: 8px;
+    margin-top: 6px !important;
     background: transparent;
     font: 500 13px 'Geist', sans-serif;
     cursor: pointer;
