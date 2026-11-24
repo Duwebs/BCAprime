@@ -18,14 +18,26 @@
   cursor: grab;
   filter: drop-shadow(0 8px 24px rgba(37, 99, 235, 0.4));
   will-change: transform;
+  contain: layout style;
   transform: translate3d(0, 0, 0);
   transition: opacity 0.25s ease;
 }
 
 .prime-buddy-wrap.is-dragging {
   cursor: grabbing;
-  filter: drop-shadow(0 16px 36px rgba(37, 99, 235, 0.58));
+  filter: none !important;
   transition: none !important;
+}
+
+.prime-buddy-wrap.is-dragging,
+.prime-buddy-wrap.is-dragging * {
+  transition: none !important;
+}
+
+.prime-buddy-wrap.is-dragging .prime-buddy-speech-bubble {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(18, 18, 24, 0.98) !important;
 }
 
 .prime-buddy-wrap.is-hidden {
@@ -250,45 +262,45 @@
   transform-origin: 54px 38px;
 }
 
-/* 5. Dragging State: Directional Air-Drag & Inverse Inertia */
+/* 5. Dragging State: Directional Air-Drag & Inverse Inertia (Instant 60fps GPU Transform) */
 .prime-buddy-wrap.is-dragging .buddy-body-path {
   transform: rotate(var(--drag-body-tilt, 0deg));
   transform-origin: 32px 36px;
-  transition: transform 0.1s ease-out;
+  transition: none !important;
 }
 
 .prime-buddy-wrap.is-dragging .buddy-hands {
   transform: translate(var(--drag-hand-x, 0px), var(--drag-hand-y, 0px));
-  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+  transition: none !important;
 }
 
 .prime-buddy-wrap.is-dragging .buddy-hand-left {
   animation: none !important;
   transform: rotate(calc(-10deg + var(--drag-body-tilt, 0deg) * -0.5)) !important;
   transform-origin: 10px 38px;
-  transition: transform 0.12s ease-out;
+  transition: none !important;
 }
 
 .prime-buddy-wrap.is-dragging .buddy-hand-right {
   animation: none !important;
   transform: rotate(calc(10deg + var(--drag-body-tilt, 0deg) * -0.5)) !important;
   transform-origin: 54px 38px;
-  transition: transform 0.12s ease-out;
+  transition: none !important;
 }
 
 .prime-buddy-wrap.is-dragging .buddy-crown-svg-group {
   transform: translate(var(--drag-crown-x, 0px), var(--drag-crown-y, 0px));
-  transition: transform 0.14s ease-out;
+  transition: none !important;
 }
 
 .prime-buddy-wrap.is-dragging .buddy-feet {
   transform: translate(var(--drag-feet-x, 0px), var(--drag-feet-y, 0px));
-  transition: transform 0.12s cubic-bezier(0.2, 0.8, 0.4, 1);
+  transition: none !important;
 }
 
 .prime-buddy-wrap.is-dragging .buddy-pupil {
   transform: translate(var(--drag-pupil-x, 0px), var(--drag-pupil-y, 0px)) !important;
-  transition: transform 0.1s ease-out !important;
+  transition: none !important;
 }
 
 /* 6. Dizzy State: Rapid Spinning Eyes & Orbiting Head Stars */

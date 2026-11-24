@@ -859,23 +859,45 @@ setInterval(() => {
 }, 20000);
 
 /* ---- Broadcast push notifications (Web Push via Edge Function) ---- */
-// Must match the NOTIFY_SECRET configured on the send-push Edge Function.
-const ADMIN_NOTIFY_SECRET = 'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz';
+// Never hardcode secrets in client bundles. Read from window or prompt & store in sessionStorage.
+function getAdminSecret() {
+  if (typeof window === 'undefined') return '';
+  if (window.__ADMIN_NOTIFY_SECRET) return window.__ADMIN_NOTIFY_SECRET;
+  let s = '';
+  try { s = sessionStorage.getItem('bcaprime_admin_notify_secret') || ''; } catch (e) {}
+  if (!s) {
+    s = (window.prompt('Enter Admin Secret (stored in current tab session only):') || '').trim();
+    if (s) {
+      try { sessionStorage.setItem('bcaprime_admin_notify_secret', s); } catch (e) {}
+    }
+  }
+  return s;
+}
 
 /* ---- Private bucket: admin "Open file" ab signed URL se khulta hai ----
    resources bucket private hai, isliye seedha public URL 403 deta hai.
-   sign-resource Edge Function admin secret bhejti hai -> full access. */
+   sign-resource Edge Function admin session JWT ya secret verify karti hai -> full access. */
 async function openResourceFile(fileUrl) {
   if (!fileUrl) return;
   if (typeof SUPABASE_URL === 'undefined') { window.open(fileUrl, '_blank', 'noopener'); return; }
   try {
+    let authHeader = 'Bearer ' + (typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : '');
+    if (adminSupabaseClient) {
+      const { data } = await adminSupabaseClient.auth.getSession();
+      if (data && data.session && data.session.access_token) {
+        authHeader = 'Bearer ' + data.session.access_token;
+      }
+    }
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader
+    };
+    let secret = '';
+    try { secret = (window.__ADMIN_NOTIFY_SECRET || sessionStorage.getItem('bcaprime_admin_notify_secret')) || ''; } catch (e) {}
+    if (secret) headers['x-admin-secret'] = secret;
     const res = await fetch(SUPABASE_URL + '/functions/v1/sign-resource', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + (typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : ''),
-        'x-admin-secret': ADMIN_NOTIFY_SECRET,
-      },
+      headers: headers,
       body: JSON.stringify({ fileUrl: fileUrl, mode: 'download' }),
     });
     const data = await res.json().catch(() => null);
@@ -892,8 +914,13 @@ async function sendPushBroadcast(title, body, tag, target) {
     console.warn('send-push function URL missing.');
     return false;
   }
+  const sec = getAdminSecret();
+  if (!sec) {
+    alert('Admin secret is required to broadcast notifications.');
+    return false;
+  }
   try {
-    const payload = { title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: ADMIN_NOTIFY_SECRET };
+    const payload = { title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: sec };
         // Optional targeting (college + semester) — when provided, only matching users get the push.
     if (target && target.college) payload.college = target.college;
     if (target && target.semester != null) payload.semester = Number(target.semester);
@@ -2023,10 +2050,11 @@ async function approveLostFoundPost(id){
   if(error){ alert('Approve failed: ' + error.message); return; }
   /* Approve hote hi college ko push (notify-lostfound Edge Function) */
   try{
+    const sec = getAdminSecret();
     const res = await fetch(SUPABASE_URL + '/functions/v1/notify-lostfound', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ post_id: id, secret: ADMIN_NOTIFY_SECRET })
+      body: JSON.stringify({ post_id: id, secret: sec })
     });
     const result = await res.json();
     if (!res.ok && result.blocked === 'daily-limit') {

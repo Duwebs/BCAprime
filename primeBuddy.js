@@ -1094,31 +1094,32 @@
   }
 
   /* Continuous Viewport-Aware Speech Bubble Clamping & Top-Edge Flip */
+  let cachedBubbleWidth = 140;
   function updateSpeechBubblePosition() {
     if (!speechBubbleEl || !mascotEl) return;
 
-    const screenW = window.innerWidth || 360;
-    const pillRect = speechBubbleEl.getBoundingClientRect();
-    const fallbackW = Math.max(70, (speechBubbleEl.textContent || '').length * 8 + 26);
-    const pillW = pillRect.width || speechBubbleEl.offsetWidth || fallbackW;
+    const screenW = cachedViewportW || (window.innerWidth || 360);
+    const pillW = cachedBubbleWidth || 140;
 
     // 1. Top-Edge Flip: whenever PrimeBuddy is near the top of the screen (currentY < 76px),
     // automatically flip the speech pill below PrimeBuddy (top: buddyHeight + 10px = 76px);
     // otherwise place it cleanly above his crown (bottom: buddyHeight + 10px = 76px).
     const isBelow = currentY < 76;
-    mascotEl.classList.toggle('bubble-below', isBelow);
-    speechBubbleEl.classList.toggle('bubble-below', isBelow);
+    if (mascotEl.classList.contains('bubble-below') !== isBelow) {
+      mascotEl.classList.toggle('bubble-below', isBelow);
+      speechBubbleEl.classList.toggle('bubble-below', isBelow);
 
-    if (isBelow) {
-      speechBubbleEl.style.top = `${MASCOT_SIZE + 10}px`;
-      speechBubbleEl.style.bottom = 'auto';
-    } else {
-      speechBubbleEl.style.top = 'auto';
-      speechBubbleEl.style.bottom = `${MASCOT_SIZE + 10}px`;
+      if (isBelow) {
+        speechBubbleEl.style.top = `${MASCOT_SIZE + 10}px`;
+        speechBubbleEl.style.bottom = 'auto';
+      } else {
+        speechBubbleEl.style.top = 'auto';
+        speechBubbleEl.style.bottom = `${MASCOT_SIZE + 10}px`;
+      }
     }
 
     // 2. Left & Right Edge Clamp: clamp horizontal screen X-coordinate strictly
-    // within [12px, window.innerWidth - pillWidth - 12px] on every frame
+    // within [12px, screenW - pillWidth - 12px] on every frame (zero layout queries!)
     let pillScreenX = currentX + (MASCOT_SIZE / 2) - (pillW / 2);
     const minX = 12;
     const maxX = Math.max(minX, screenW - pillW - 12);
@@ -1142,6 +1143,8 @@
     if (isWheeeSpinning && text !== 'Wheee! ✨') return;
     speechBubbleEl.textContent = text;
     speechBubbleEl.classList.add('visible');
+    // Pre-calculate bubble width once when text updates to avoid layout thrashing during drag
+    cachedBubbleWidth = speechBubbleEl.offsetWidth || Math.max(70, text.length * 8 + 26);
     updateSpeechBubblePosition();
 
     if (bubbleTimeout) clearTimeout(bubbleTimeout);
@@ -1497,13 +1500,31 @@
   /* ------------------------------------------------------------
      Tap & Long-Press Detection + Zero-Lag 1:1 Direct Drag Physics
      ------------------------------------------------------------ */
+  let dragRafId = null;
+  let pendingPointerX = 0;
+  let pendingPointerY = 0;
+  let cachedViewportW = 360;
+  let cachedViewportH = 640;
+  let cachedMaxX = 300;
+  let cachedMaxY = 574;
+
+  function refreshCachedViewport() {
+    cachedViewportW = window.innerWidth || document.documentElement.clientWidth || 360;
+    cachedViewportH = window.innerHeight || document.documentElement.clientHeight || 640;
+    cachedMaxX = Math.max(0, cachedViewportW - MASCOT_SIZE);
+    cachedMaxY = Math.max(0, cachedViewportH - MASCOT_SIZE);
+  }
+
   function initInteractionAndPhysics() {
     if (!mascotEl) return;
+    refreshCachedViewport();
+    window.addEventListener('resize', refreshCachedViewport, { passive: true });
 
     mascotEl.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
 
       lastMascotTouchTime = performance.now();
+      refreshCachedViewport();
 
       // If mascot is tucked halfway off-edge in peek mode, tap pops him right back out happily!
       if (isPeeking) {
@@ -1536,6 +1557,8 @@
 
       dragStartX = e.clientX;
       dragStartY = e.clientY;
+      pendingPointerX = e.clientX;
+      pendingPointerY = e.clientY;
       elemStartX = currentX;
       elemStartY = currentY;
 
@@ -1576,73 +1599,53 @@
       e.preventDefault();
     });
 
-    mascotEl.addEventListener('pointermove', (e) => {
-      if (!isDragging) return;
+    function updateDragFrame() {
+      dragRafId = null;
+      if (!isDragging || !wasDragged || isLongPressTriggered) return;
 
-      const dx = e.clientX - dragStartX;
-      const dy = e.clientY - dragStartY;
-
-      // Detect deliberate drag movement (> 5px)
-      if (Math.hypot(dx, dy) > 5) {
-        wasDragged = true;
-        if (isWheeeSpinning) {
-          stopContinuousWheeeSpin();
-        }
-        if (longPressTimer) {
-          clearTimeout(longPressTimer);
-          longPressTimer = null;
+      if (!mascotEl.classList.contains('is-dragging')) {
+        mascotEl.classList.add('is-dragging');
+        if (currentMood !== 'dizzy' && currentMood !== 'dragging') {
+          setMascotMood('dragging');
         }
       }
 
-      // If long-press pill opened, lock position
-      if (isLongPressTriggered) return;
-      if (!wasDragged) return;
+      const dx = pendingPointerX - dragStartX;
+      const dy = pendingPointerY - dragStartY;
 
-      mascotEl.classList.add('is-dragging');
-      if (currentMood !== 'dizzy' && currentMood !== 'dragging') {
-        setMascotMood('dragging');
-      }
+      // True edge-to-edge full-screen bounds using cached boundaries (zero layout thrashing)
+      currentX = Math.round(Math.max(0, Math.min(elemStartX + dx, cachedMaxX)));
+      currentY = Math.round(Math.max(0, Math.min(elemStartY + dy, cachedMaxY)));
 
-      const maxX = getMaxX();
-      const maxY = getMaxY();
-
-      // True edge-to-edge full-screen bounds (0px to 100vh)
-      currentX = Math.round(Math.max(0, Math.min(elemStartX + dx, maxX)));
-      currentY = Math.round(Math.max(0, Math.min(elemStartY + dy, maxY)));
-
-      // ZERO-LAG 1:1 DIRECT DOM UPDATE (no scale/tilt shift, perfectly glued to finger)
+      // ZERO-LAG 1:1 DIRECT GPU DOM UPDATE
       mascotEl.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
 
       if (speechBubbleEl && speechBubbleEl.classList.contains('visible')) {
         updateSpeechBubblePosition();
       }
 
-      // Directional eye glance via CSS class toggle (zero SVG innerHTML re-renders!)
-      const isLeft = currentX < (window.innerWidth || 360) / 2;
-      mascotEl.classList.toggle('edge-left', isLeft);
-      mascotEl.classList.toggle('edge-right', !isLeft);
-      currentEdge = isLeft ? 'left' : 'right';
-
-      const now = performance.now();
-      pointerHistory.push({ x: e.clientX, y: e.clientY, time: now });
-      while (pointerHistory.length > 5 && now - pointerHistory[0].time > 100) {
-        pointerHistory.shift();
+      // Directional eye glance via CSS class toggle
+      const isLeft = currentX < cachedViewportW / 2;
+      if (isLeft && currentEdge !== 'left') {
+        currentEdge = 'left';
+        mascotEl.classList.add('edge-left');
+        mascotEl.classList.remove('edge-right');
+      } else if (!isLeft && currentEdge !== 'right') {
+        currentEdge = 'right';
+        mascotEl.classList.add('edge-right');
+        mascotEl.classList.remove('edge-left');
       }
 
       // Compute delta from last pointer event for dynamic directional drag physics
-      const stepDx = e.clientX - lastDragPointerX;
-      const stepDy = e.clientY - lastDragPointerY;
-      lastDragPointerX = e.clientX;
-      lastDragPointerY = e.clientY;
+      const stepDx = pendingPointerX - lastDragPointerX;
+      const stepDy = pendingPointerY - lastDragPointerY;
+      lastDragPointerX = pendingPointerX;
+      lastDragPointerY = pendingPointerY;
 
       // Low-pass filtered velocity for buttery-smooth inverse inertia
       dragSmoothVx = dragSmoothVx * 0.62 + stepDx * 0.38;
       dragSmoothVy = dragSmoothVy * 0.62 + stepDy * 0.38;
 
-      // Directional Inverse Air-Drag & Lag
-      // Dragging downward (vy > 0): hands trail upward (-y lag), eyes look down
-      // Dragging upward (vy < 0): hands trail downward (+y lag), eyes look up
-      // Dragging left/right (vx): body leans into movement (+-10deg tilt), hands & crown trail behind
       const bodyTilt = Math.max(-10, Math.min(10, dragSmoothVx * 1.2));
       const handLagX = Math.max(-5, Math.min(5, -dragSmoothVx * 0.45));
       const handLagY = Math.max(-6, Math.min(6, -dragSmoothVy * 0.5));
@@ -1664,6 +1667,7 @@
       mascotEl.style.setProperty('--drag-pupil-y', `${pupilY.toFixed(1)}px`);
 
       // Playful Drag Speech Bubble (Once per sustained medium-speed drag gesture)
+      const now = performance.now();
       accumulatedDragDist += Math.hypot(stepDx, stepDy);
       const dragElapsed = now - dragStartTime;
       if (!hasTriggeredDragQuoteThisGesture && accumulatedDragDist > 70 && dragElapsed > 200) {
@@ -1675,8 +1679,8 @@
       }
 
       // SHAKE DETECTION: At least 4 sharp direction reversals within 450ms
-      const moveDx = e.clientX - lastShakeX;
-      const moveDy = e.clientY - lastShakeY;
+      const moveDx = pendingPointerX - lastShakeX;
+      const moveDy = pendingPointerY - lastShakeY;
 
       if (Math.abs(moveDx) > 8) {
         const dirX = Math.sign(moveDx);
@@ -1684,7 +1688,7 @@
           shakeHistory.push(now);
         }
         lastShakeDirX = dirX;
-        lastShakeX = e.clientX;
+        lastShakeX = pendingPointerX;
       }
 
       if (Math.abs(moveDy) > 8) {
@@ -1693,7 +1697,7 @@
           shakeHistory.push(now);
         }
         lastShakeDirY = dirY;
-        lastShakeY = e.clientY;
+        lastShakeY = pendingPointerY;
       }
 
       // Filter reversals older than 450ms
@@ -1702,9 +1706,50 @@
         shakeHistory = [];
         triggerDizzyState(3200);
       }
+    }
+
+    mascotEl.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+
+      pendingPointerX = e.clientX;
+      pendingPointerY = e.clientY;
+
+      const now = performance.now();
+      pointerHistory.push({ x: e.clientX, y: e.clientY, time: now });
+      while (pointerHistory.length > 5 && now - pointerHistory[0].time > 100) {
+        pointerHistory.shift();
+      }
+
+      const dx = pendingPointerX - dragStartX;
+      const dy = pendingPointerY - dragStartY;
+
+      // Detect deliberate drag movement (> 5px)
+      if (!wasDragged && Math.hypot(dx, dy) > 5) {
+        wasDragged = true;
+        if (isWheeeSpinning) {
+          stopContinuousWheeeSpin();
+        }
+        if (longPressTimer) {
+          clearTimeout(longPressTimer);
+          longPressTimer = null;
+        }
+      }
+
+      // If long-press pill opened, lock position
+      if (isLongPressTriggered || !wasDragged) return;
+
+      // Coalesced 60fps rAF queue: zero layout queries or synchronous DOM writes
+      if (!dragRafId) {
+        dragRafId = requestAnimationFrame(updateDragFrame);
+      }
     });
 
     const onPointerRelease = (e) => {
+      if (dragRafId) {
+        cancelAnimationFrame(dragRafId);
+        dragRafId = null;
+      }
+
       if (longPressTimer) {
         clearTimeout(longPressTimer);
         longPressTimer = null;

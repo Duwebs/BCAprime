@@ -4680,7 +4680,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function refreshUploadFiles(fileList){
       if(!fileList||!fileList.length){uploadFiles=[];$('fileName').textContent='Choose files or drag & drop — PDF, DOCX, PPTX, images';$('uploadFileBadges').hidden=true;renderPhotoGrid();return}
       const files=Array.from(fileList);
-      const MAX_BATCH_BYTES=15*1024*1024;let totalSize=0;for(let i=0;i<files.length;i++)totalSize+=files[i].size;
+      const ALLOWED_EXTS = /\.(pdf|docx?|pptx?|jpe?g|png|webp|heic)$/i;
+      const MAX_BATCH_BYTES=15*1024*1024;
+      let totalSize=0;
+      for(let i=0;i<files.length;i++){
+        if(!ALLOWED_EXTS.test(files[i].name)){
+          toast('Disallowed file: "'+escHtml(files[i].name)+'". Only PDF, Word, PowerPoint, and photo files are permitted.');
+          return;
+        }
+        totalSize+=files[i].size;
+      }
       if(totalSize>MAX_BATCH_BYTES){toast('Total batch too large ('+Math.round(totalSize/1024/1024)+'MB). Max 15MB per upload.');return}
       uploadFiles=files;
       let imgCount=0,docCount=0,otherCount=0;
@@ -4927,25 +4936,6 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const row={title:upload.title,type:upload.type,subject:upload.subject,college:upload.college,semester:upload.sem,year:upload.year,file_name:file.name,file_url:publicData.publicUrl,status:'pending',downloads:0,uploader_email:upload.uploaderEmail||'',uploader_name:upload.uploader||'',uploader_uid:upload.uploaderUid||accountUid()||''};
       const {error:insertError}=await supabaseClient.from('resources').insert(row);
       if(insertError) throw insertError;
-      // Fire-and-forget: admin ko naye upload ka push alert (role='admin' targeting)
-      try{
-        if(typeof SEND_PUSH_FUNCTION_URL!=='undefined'&&typeof SUPABASE_PUBLISHABLE_KEY!=='undefined'){
-          const typeLabel=upload.type==='pyq'?'PYQ':'Notes';
-          await fetch(SEND_PUSH_FUNCTION_URL,{
-            method:'POST',
-            headers:{'Content-Type':'application/json','apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY},
-            body:JSON.stringify({
-              title:'New '+typeLabel+' uploaded 📥',
-              body:(upload.title||'Untitled')+' — '+(upload.uploader||'Anonymous')+' | Sem '+upload.sem+' | waiting for review',
-              url:'/admin/admin.html',
-              tag:'admin-new-upload',
-              alertType:'upload',
-              role:'admin',
-              secret:'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz'
-            })
-          });
-        }
-      }catch(e){/* alert fail ho to upload fail na ho */}
       // Fire-and-forget: BCAPrime Admin Telegram Bot alert
       try {
         sendAdminTelegramAlert('resource_upload', {
@@ -6913,7 +6903,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 const LOST_FOUND_TABLE='lost_found';
 const LOST_FOUND_CLAIMS_TABLE='lost_found_claims';
 const LF_MAX_DAILY=3;
-const LF_NOTIFY_SECRET=(typeof window!=='undefined'&&window.__lfSecret?window.__lfSecret:'F3g2qnkM18UWbVJUNHRD0-wCbr5IgHUz');
+const LF_NOTIFY_SECRET=(typeof window!=='undefined'&&window.__lfSecret?window.__lfSecret:'');
 const LF_NOTIFY_URL=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'')+'/functions/v1/notify-lostfound';
 const LOST_FOUND_CATEGORIES=[
   {value:'phone',label:'Phone',icon:'fa-mobile-screen',emoji:'📱'},
@@ -6936,7 +6926,7 @@ let lfType='all';
 let lfPostMode='lost';
 let lfImageFile=null;
 let lfClaimed=new Set();
-function lfEscape(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function lfEscape(s){return typeof escHtml==='function'?escHtml(s):String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m])}
 function lfCatMeta(value){const c=LOST_FOUND_CATEGORIES.find(x=>x.value===value);return c||LOST_FOUND_CATEGORIES[LOST_FOUND_CATEGORIES.length-1]}
 function lfItemName(p){if(p.category==='other'&&(p.custom_category||'').trim())return p.custom_category;return lfCatMeta(p.category).label}
 function lfTimeAgo(iso){if(!iso)return '';try{const d=new Date(iso);const s=Math.floor((Date.now()-d.getTime())/1000);if(s<60)return 'just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago'}catch(e){return ''}}
@@ -7109,7 +7099,27 @@ function closeLfCategoryPicker(){
 window.openLfCategoryPicker=openLfCategoryPicker;
 window.closeLfCategoryPicker=closeLfCategoryPicker;
 window.selectLfCategory=selectLfCategory;
-function showLfImage(input){const f=input&&input.files&&input.files[0];if(!f)return;lfImageFile=f;const name=$('lfImageName');if(name)name.textContent=f.name;const r=new FileReader();r.onloadend=()=>{const thumb=$('lfThumb');if(thumb)thumb.src=r.result;const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=false};r.readAsDataURL(f)}
+function showLfImage(input){
+  const f=input&&input.files&&input.files[0];
+  if(!f)return;
+  const ALLOWED_IMG=/\.(jpe?g|png|webp|heic)$/i;
+  if(!ALLOWED_IMG.test(f.name)){
+    toast('Only image files (JPG, PNG, WebP, HEIC) are supported.');
+    clearLfImage();
+    return;
+  }
+  if(f.size>5*1024*1024){
+    toast('Image is too large (max 5MB).');
+    clearLfImage();
+    return;
+  }
+  lfImageFile=f;
+  const name=$('lfImageName');
+  if(name)name.textContent=f.name;
+  const r=new FileReader();
+  r.onloadend=()=>{const thumb=$('lfThumb');if(thumb)thumb.src=r.result;const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=false};
+  r.readAsDataURL(f);
+}
 function removeLfImage(e){if(e)try{e.preventDefault()}catch(x){}clearLfImage()}
 function clearLfImage(){lfImageFile=null;const inp=$('lfImage');if(inp)inp.value='';const name=$('lfImageName');if(name)name.textContent='Attach a photo';const thumb=$('lfThumb');if(thumb)thumb.src='';const wrap=$('lfThumbWrap');if(wrap)wrap.hidden=true}
 function closeLostFoundModal(){closeModals()}
@@ -7139,6 +7149,16 @@ async function submitLostFoundPost(event){
     let image_url='';
     if(lfImageFile){
       const ext=(lfImageFile.name.split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+      if(!/^(jpe?g|png|webp|heic)$/i.test(ext)){
+        toast('Invalid image type. Only JPG, PNG, and WebP are allowed.');
+        if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}
+        return;
+      }
+      if(lfImageFile.size>5*1024*1024){
+        toast('Image is too large (max 5MB).');
+        if(btn){btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Post'}
+        return;
+      }
       const path='lost/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
       const {error:upErr}=await supabaseClient.storage.from('lossfound').upload(path,lfImageFile,{contentType:lfImageFile.type||'image/'+ext});
       if(upErr)throw upErr;
