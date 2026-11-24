@@ -930,11 +930,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     /* ============================================================
        PrimeFinder Native Mobile UX Engine
        ============================================================ */
-    function triggerHaptic(){
+    function triggerHaptic(ms = 10){
       try{
-        if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);
+        if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(ms);
       }catch(e){}
     }
+    window.triggerHaptic=triggerHaptic;
 
     let pfUpdateTimer=null;
     function triggerLiveFilterUpdate(){
@@ -1745,6 +1746,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function focusFinder(){$('bca-prime-finder').scrollIntoView({behavior:'smooth'})}
     function scrollToLibrary(){const lib=$('library')||$('bca-prime-finder');if(lib)lib.scrollIntoView({behavior:'smooth',block:'start'});render()}
     function selectTab(tab,button){
+      triggerHaptic(10);
       document.querySelectorAll('.bottom-tab').forEach(item=>item.classList.remove('active'));
       if(button) button.classList.add('active');
       if(tab==='profile'){state.savedOnly=false;openProfile();return}
@@ -1761,6 +1763,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     window.selectTab=selectTab;
     window.setTab=selectTab;
     function toggleSave(id){
+      triggerHaptic(10);
       if(isGuestMode()){
         requireAccount('Sign up or log in to bookmark and save study material.','save',id);
         return;
@@ -3385,8 +3388,9 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if($('profileUploadsSub')) $('profileUploadsSub').textContent = `${localUploads.length} live · 0 in review`;
       }
       renderAvatar();
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      triggerHaptic(12);
       $('profileModal').classList.add('open');
+      window.bcaOverlay?.push('profileModal', () => closeModals());
       syncBottomNavTab();
       initProfileSheetGestures();
     }
@@ -3398,13 +3402,15 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const modal=$('myUploadsModal');
       if(modal){
         modal.classList.add('open');
+        window.bcaOverlay?.push('myUploadsModal', () => closeMyUploadsSheet());
         renderMyUploads();
-        try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(15);}catch(e){}
+        triggerHaptic(10);
       }
     }
     function closeMyUploadsSheet(){
       const modal=$('myUploadsModal');
       if(modal) modal.classList.remove('open');
+      window.bcaOverlay?.remove('myUploadsModal');
     }
     let uploadSheetDragBound=false;
     function initUploadSheetGestures(){
@@ -3445,15 +3451,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
     function openUpload(){
       if(!requireAccount('Sign up or login to upload study material.','upload'))return;
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(20);}catch(e){}
+      triggerHaptic(12);
       const fileBox=document.querySelector('.file-box');
       if(fileBox)fileBox.style.borderColor='var(--brand)';
       const semSel=document.querySelector('#uploadModal select[name="semester"]');
       if(semSel&&state.profileSemester)semSel.value=String(state.profileSemester);
       $('uploadModal').classList.add('open');
+      window.bcaOverlay?.push('uploadModal', () => closeModals());
       initUploadSheetGestures();
       updateUploadSubjects();
-    };function syncBottomNavTab(){const tabs=document.querySelectorAll('.bottom-tab');if(!tabs.length)return;const profModal=$('profileModal');const profOpen=profModal&&profModal.classList.contains('open');if(profOpen){tabs.forEach(t=>t.classList.toggle('active',t.classList.contains('bottom-tab-profile')))}else if(state.savedOnly){tabs.forEach((t,i)=>t.classList.toggle('active',i===3))}else{tabs.forEach((t,i)=>t.classList.toggle('active',i===0))}}function closeModals(){stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();try{if(typeof closeCodeLab==='function')closeCodeLab(false);}catch(e){}closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}syncBottomNavTab();}
+    };function syncBottomNavTab(){const tabs=document.querySelectorAll('.bottom-tab');if(!tabs.length)return;const profModal=$('profileModal');const profOpen=profModal&&profModal.classList.contains('open');if(profOpen){tabs.forEach(t=>t.classList.toggle('active',t.classList.contains('bottom-tab-profile')))}else if(state.savedOnly){tabs.forEach((t,i)=>t.classList.toggle('active',i===3))}else{tabs.forEach((t,i)=>t.classList.toggle('active',i===0))}}function closeModals(){try{window.bcaOverlay?.clear();}catch(e){}stopQrScannerCamera();const dg=$('deviceGateModal');document.querySelectorAll('.modal').forEach(m=>{if(m!==dg)m.classList.remove('open')});closeSeniorRequest();try{if(typeof closeCodeLab==='function')closeCodeLab(false);}catch(e){}closeSuggestions();const pb=$('previewBody');if(pb)pb.innerHTML='';const rf=$('readerFrame');if(rf)rf.src='about:blank';try{destroySecurePdf()}catch(e){}try{disableSecureGuards()}catch(e){}try{pendingHelpRequest=null}catch(e){}syncBottomNavTab();}
     function getAvatar(){let saved='';try{saved=localStorage.getItem(avatarStorageKey())||(!accountUid()?localStorage.getItem('bca-avatar')||'':'')}catch(e){}if(saved)return saved;if(accountSession&&accountSession.photoURL)return accountSession.photoURL;return initialsAvatar(accountSession?getUserName(accountSession):'Guest')}
     function initialsAvatar(name){
       const letter=((name||'S').trim().charAt(0).toUpperCase()||'S');
@@ -3541,25 +3548,29 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       closeModals();
       const m=$('settingsModal');
       if(m)m.classList.add('open');
+      window.bcaOverlay?.push('settingsModal', () => closeSettingsSheet());
       const verBadge=$('settingsListVersion');
       if(verBadge&&typeof CURRENT_APP_VERSION!=='undefined') verBadge.textContent='v'+CURRENT_APP_VERSION;
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      triggerHaptic(10);
       if(typeof loadUserPasskeys === 'function') loadUserPasskeys();
     }
     function closeSettingsSheet(){
       const m=$('settingsModal');
       if(m)m.classList.remove('open');
+      window.bcaOverlay?.remove('settingsModal');
     }
     function openNotifySettingsSheet(){
       closeModals();
       syncNotifyToggleState();
       const m=$('notifySettingsModal');
       if(m)m.classList.add('open');
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      window.bcaOverlay?.push('notifySettingsModal', () => closeNotifySettingsSheet());
+      triggerHaptic(10);
     }
     function closeNotifySettingsSheet(){
       const m=$('notifySettingsModal');
       if(m)m.classList.remove('open');
+      window.bcaOverlay?.remove('notifySettingsModal');
     }
 
     /* ============================================================
@@ -3829,14 +3840,16 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(m) {
         m.classList.add('open');
         m.style.zIndex = '10005';
+        window.bcaOverlay?.push('passkeysModal', () => closePasskeysSheet());
       }
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      triggerHaptic(10);
       loadUserPasskeys();
     }
 
     function closePasskeysSheet(){
       const m = $('passkeysModal');
       if(m) m.classList.remove('open');
+      window.bcaOverlay?.remove('passkeysModal');
     }
 
     function getFriendlyPasskeyName(){
@@ -4303,14 +4316,18 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function openAboutModal(){
       closeModals();
       const m=$('aboutModal');
-      if(m)m.classList.add('open');
+      if(m) {
+        m.classList.add('open');
+        window.bcaOverlay?.push('aboutModal', () => closeAboutModal());
+      }
       const vEl=$('aboutHeroVer');
       if(vEl&&typeof CURRENT_APP_VERSION!=='undefined') vEl.textContent='Version '+CURRENT_APP_VERSION;
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      triggerHaptic(10);
     }
     function closeAboutModal(){
       const m=$('aboutModal');
       if(m)m.classList.remove('open');
+      window.bcaOverlay?.remove('aboutModal');
     }
     let currentRatingStar = 0;
 
@@ -4322,10 +4339,13 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       closeModals();
       resetRatingModal();
       const m=$('ratingModal');
-      if(m)m.classList.add('open');
+      if(m) {
+        m.classList.add('open');
+        window.bcaOverlay?.push('ratingModal', () => closeRatingModal());
+      }
       const backBtn = $('ratingBackBtn');
       if(backBtn) backBtn.style.visibility = ratingOpenedFromAbout ? 'visible' : 'hidden';
-      try{if(typeof navigator!=='undefined'&&navigator.vibrate)navigator.vibrate(10);}catch(e){}
+      triggerHaptic(10);
     }
     function handleRatingBack(){
       closeRatingModal();
@@ -4334,6 +4354,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function closeRatingModal(){
       const m=$('ratingModal');
       if(m)m.classList.remove('open');
+      window.bcaOverlay?.remove('ratingModal');
     }
     function resetRatingModal(){
       currentRatingStar = 0;
@@ -4517,6 +4538,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
 
       modal.classList.add('open');
       modal.setAttribute('aria-hidden', 'false');
+      window.bcaOverlay?.push('legalModal', () => closeLegalModal());
       body.scrollTop = 0;
     }
 
@@ -4527,6 +4549,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         modal.classList.remove('open');
         modal.setAttribute('aria-hidden', 'true');
       }
+      window.bcaOverlay?.remove('legalModal');
     }
 
     function openPrivacyPolicy(e){
@@ -4573,9 +4596,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         nameInput.value=(currName==='there')?'':currName;
       }
       modal.classList.add('open');
+      window.bcaOverlay?.push('editProfileModal', () => closeEditProfileModal());
     }
     function closeEditProfileModal(){
       const m=$('editProfileModal');if(m)m.classList.remove('open');
+      window.bcaOverlay?.remove('editProfileModal');
     }
     function changeAvatarFromModal(input){
       const f=input&&input.files&&input.files[0];if(!f)return;
@@ -6177,6 +6202,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         else renderSecurePdf(pane,src,{ initialPage: currentReaderInitialPage });   /* unknown = mostly PDF -> canvas try */
       }
       $('readerModal').classList.add('open');
+      window.bcaOverlay?.push('readerModal', () => closeReader());
       enableSecureGuards();
       applyReaderZoom();
       const vp=$('readerViewport')||document.querySelector('.reader-viewport');
@@ -6188,6 +6214,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function closeReader(){
       const m=$('readerModal');
       if(m)m.classList.remove('open');
+      window.bcaOverlay?.remove('readerModal');
       if(typeof updateStudentPresenceActivity==='function')updateStudentPresenceActivity('Home Library');
       clearTimeout(readerEngagementTimer);
       const timeSpent = Date.now() - (readerOpenedAt || 0);
@@ -6415,6 +6442,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const backdrop = $('srSheetBackdrop');
       if(sheet) sheet.classList.add('open');
       if(backdrop) backdrop.classList.add('open');
+      window.bcaOverlay?.push('seniorReqSheet', () => closeSeniorRequest());
       initSrSheetGestures();
     }
 
@@ -6422,6 +6450,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(window.BCA_UI && window.BCA_UI.triggerLightHaptic) window.BCA_UI.triggerLightHaptic(10);
       else if(navigator.vibrate) navigator.vibrate(10);
 
+      window.bcaOverlay?.remove('seniorReqSheet');
       const sheet = $('seniorReqSheet');
       const backdrop = $('srSheetBackdrop');
       if(sheet) sheet.classList.remove('open');

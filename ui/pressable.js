@@ -18,6 +18,11 @@ export function triggerLightHaptic(ms = UI_CONFIG.pressable.hapticMs) {
   }
 }
 
+if (typeof window !== 'undefined') {
+  window.triggerLightHaptic = triggerLightHaptic;
+  window.triggerHaptic = triggerLightHaptic;
+}
+
 /**
  * Attaches PressableScale behavior to an existing element or selector.
  * 

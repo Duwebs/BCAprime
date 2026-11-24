@@ -6,6 +6,7 @@
 
 import { UI_CONFIG } from './config.js';
 import { triggerLightHaptic } from './pressable.js';
+import { OverlayManager } from './overlayManager.js';
 
 export class BottomSheet {
   /**
@@ -187,6 +188,11 @@ export class BottomSheet {
     // Prevent body background scroll
     document.body.style.overflow = 'hidden';
 
+    // Hook into Android hardware back button overlay manager
+    try {
+      OverlayManager.push(this, () => this.close());
+    } catch (e) {}
+
     if (typeof this.options.onOpen === 'function') {
       this.options.onOpen();
     }
@@ -208,6 +214,11 @@ export class BottomSheet {
 
     // Restore body scroll
     document.body.style.overflow = '';
+
+    // Remove from Android hardware back button overlay manager
+    try {
+      OverlayManager.remove(this);
+    } catch (e) {}
 
     setTimeout(() => {
       if (typeof this.options.onClose === 'function') {

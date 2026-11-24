@@ -9,6 +9,7 @@ import { BottomSheet } from './bottomSheet.js';
 import { Skeleton, skeletonHTML, SkeletonCard } from './skeleton.js';
 import { EmptyState } from './emptyState.js';
 import { Toast } from './toast.js';
+import { OverlayManager } from './overlayManager.js';
 
 // Auto-inject CSS custom properties if DOM is available
 if (typeof window !== 'undefined') {
@@ -26,6 +27,7 @@ if (typeof window !== 'undefined') {
     SkeletonCard,
     EmptyState,
     Toast,
+    OverlayManager,
   };
 }
 
@@ -41,4 +43,5 @@ export {
   SkeletonCard,
   EmptyState,
   Toast,
+  OverlayManager,
 };

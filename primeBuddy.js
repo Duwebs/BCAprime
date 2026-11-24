@@ -1175,7 +1175,7 @@
     setMascotMood('dizzy');
     const quote = getRandomDizzyQuote();
     showBubble(quote, duration);
-    triggerHaptic(25);
+    triggerHaptic(12);
 
     if (dizzyRecoverTimer) clearTimeout(dizzyRecoverTimer);
     dizzyRecoverTimer = setTimeout(() => {
@@ -1194,10 +1194,7 @@
     if (currentMood === 'dizzy') return;
     setMascotMood('love');
     recordBuddyFeatureInteraction('love_tap');
-    triggerHaptic(18);
-    if (navigator.vibrate) {
-      try { navigator.vibrate([15, 60, 20]); } catch (_e) {}
-    }
+    triggerHaptic(10);
 
     const quote = getRandomLoveQuote();
     showBubble(quote, duration);
@@ -1591,7 +1588,7 @@
             stopContinuousWheeeSpin();
           }
           isLongPressTriggered = true;
-          triggerHaptic(25);
+          triggerHaptic(12);
           openActionPill();
         }
       }, 400);
@@ -2529,10 +2526,7 @@
     }
     setMascotMood('normal');
 
-    triggerHaptic(18);
-    if (navigator.vibrate) {
-      try { navigator.vibrate([20, 80, 20, 80, 40]); } catch (_e) {}
-    }
+    triggerHaptic(10);
 
     mascotEl.classList.remove('is-dancing');
     void mascotEl.offsetWidth; // Reflow
@@ -2560,7 +2554,7 @@
     stopRoaming();
     setMascotMood('napping');
     recordBuddyFeatureInteraction('nap');
-    triggerHaptic(14);
+    triggerHaptic(10);
     showBubble('Taking a quick nap... zZz 😴', 2400);
   }
 
@@ -2570,7 +2564,7 @@
     mascotEl.classList.remove('is-napping');
     mascotEl.classList.add('is-waking-up');
     setMascotMood('normal');
-    triggerHaptic(14);
+    triggerHaptic(10);
     showBubble("I'm awake! Ready to study ✨", 2200);
 
     setTimeout(() => {
@@ -2812,19 +2806,21 @@
     }
     if (introModalEl) {
       introModalEl.classList.add('open');
+      window.bcaOverlay?.push('primeBuddyIntroModal', () => closeIntroModal());
       triggerHaptic(10);
     }
   }
 
   function closeIntroModal() {
     clearIntroTimer();
+    window.bcaOverlay?.remove('primeBuddyIntroModal');
     if (introModalEl) {
       introModalEl.classList.remove('open');
     }
   }
 
   function acceptPrimeBuddyIntro() {
-    triggerHaptic(14);
+    triggerHaptic(10);
     closeIntroModal();
     localStorage.setItem(STORAGE_KEY_INTRO_SEEN, 'true');
     setPrimeBuddyEnabled(true, true);
