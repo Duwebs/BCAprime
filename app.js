@@ -6774,6 +6774,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         if(localStorage.getItem('bca-tour-seen')==='true'){
           window.PrimeBuddy?.onDashboardEntered?.();
         }
+        window.PrimeBuddy?.startOnboardingIntroTimer?.(17000);
       }catch(e){}
     }
     function finishOnboarding(){if(state.onboardingDone)return;if(!state.onboardingCollege){toast('Choose your college first');return}if(!state.onboardingSem&&!state.profileSemester){toast('Choose your semester first');return}completeOnboarding(state.onboardingCollege)}

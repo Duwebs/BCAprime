@@ -674,7 +674,7 @@
      - 5 Radial Orbiting Peaks (72° apart) with depth z-scaling
      - Vivid jewel tips & specular highlights
      ------------------------------------------------------------ */
-  function renderCrownElementsMarkup(angle) {
+  function renderCrownElementsMarkup(angle, prefix = '') {
     const cx = 32;
     const cy = 13.5;
     const rx = 11.5;
@@ -707,7 +707,7 @@
     backPeaks.forEach(p => {
       const jRad = (1.1 + 0.25 * (p.z + 1)).toFixed(2);
       backPeaksSvg += `
-        <polygon points="${(p.x - p.hw).toFixed(1)},${p.y.toFixed(1)} ${p.tx.toFixed(1)},${p.ty.toFixed(1)} ${(p.x + p.hw).toFixed(1)},${p.y.toFixed(1)}" fill="url(#crownDarkGrad)" opacity="0.82"/>
+        <polygon points="${(p.x - p.hw).toFixed(1)},${p.y.toFixed(1)} ${p.tx.toFixed(1)},${p.ty.toFixed(1)} ${(p.x + p.hw).toFixed(1)},${p.y.toFixed(1)}" fill="url(#${prefix}crownDarkGrad)" opacity="0.82"/>
         <circle cx="${p.tx.toFixed(1)}" cy="${p.ty.toFixed(1)}" r="${jRad}" fill="${p.color}" opacity="0.85"/>
       `;
     });
@@ -716,7 +716,7 @@
     frontPeaks.forEach(p => {
       const jRad = (1.3 + 0.45 * p.z).toFixed(2);
       frontPeaksSvg += `
-        <polygon points="${(p.x - p.hw).toFixed(1)},${p.y.toFixed(1)} ${p.tx.toFixed(1)},${p.ty.toFixed(1)} ${(p.x + p.hw).toFixed(1)},${p.y.toFixed(1)}" fill="url(#crownGoldGrad)"/>
+        <polygon points="${(p.x - p.hw).toFixed(1)},${p.y.toFixed(1)} ${p.tx.toFixed(1)},${p.ty.toFixed(1)} ${(p.x + p.hw).toFixed(1)},${p.y.toFixed(1)}" fill="url(#${prefix}crownGoldGrad)"/>
         <line x1="${p.tx.toFixed(1)}" y1="${p.ty.toFixed(1)}" x2="${p.x.toFixed(1)}" y2="${p.y.toFixed(1)}" stroke="#fef08a" stroke-width="0.8" opacity="0.75"/>
         <circle cx="${p.tx.toFixed(1)}" cy="${p.ty.toFixed(1)}" r="${jRad}" fill="${p.color}" stroke="#ffffff" stroke-width="0.5"/>
         <circle cx="${(p.tx - 0.4).toFixed(1)}" cy="${(p.ty - 0.4).toFixed(1)}" r="0.45" fill="#ffffff" opacity="0.95"/>
@@ -731,11 +731,11 @@
       <!-- Back Crown Points -->
       ${backPeaksSvg}
       <!-- Crown Inner Golden Glow -->
-      <ellipse cx="32" cy="13.5" rx="9.5" ry="2.6" fill="url(#crownInnerGlow)"/>
+      <ellipse cx="32" cy="13.5" rx="9.5" ry="2.6" fill="url(#${prefix}crownInnerGlow)"/>
       <!-- Front Crown Points -->
       ${frontPeaksSvg}
       <!-- Front Golden Rim Arc -->
-      <path d="M 20.5,13.5 A 11.5,3.4 0 0,0 43.5,13.5" fill="none" stroke="url(#crownGoldGrad)" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M 20.5,13.5 A 11.5,3.4 0 0,0 43.5,13.5" fill="none" stroke="url(#${prefix}crownGoldGrad)" stroke-width="2.6" stroke-linecap="round"/>
       <!-- Front Specular Rim Highlight -->
       <path d="M 23,14.6 A 9,2.2 0 0,0 41,14.6" fill="none" stroke="#fef08a" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>
     `;
@@ -753,6 +753,10 @@
       if (groupEl && !document.hidden && mascotEl && !mascotEl.classList.contains('is-hidden')) {
         groupEl.innerHTML = renderCrownElementsMarkup(crownAngle);
       }
+      const popupGroupEl = document.getElementById('popup-buddy-buddyCrownSvgGroup');
+      if (popupGroupEl && introModalEl && introModalEl.classList.contains('open')) {
+        popupGroupEl.innerHTML = renderCrownElementsMarkup(crownAngle, 'popup-buddy-');
+      }
       crownRafId = requestAnimationFrame(step);
     }
 
@@ -762,7 +766,7 @@
   /* ------------------------------------------------------------
      High-Craft Multi-Layered "Crowned B" Mascot SVG Generator
      ------------------------------------------------------------ */
-  function getMascotSvg(mood = 'normal', edge = currentEdge) {
+  function getMascotSvg(mood = 'normal', edge = currentEdge, prefix = '') {
     const eyeDx = edge === 'right' ? -1.8 : (edge === 'left' ? 1.8 : 0);
 
     let crownSparkles = '';
@@ -806,13 +810,13 @@
         <!-- Left Heart Eye -->
         <g class="buddy-eye-socket" transform-origin="24 28">
           <ellipse cx="24" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
-          <path d="M 24,28.8 C 24,27.2 21.2,24.8 19.4,26.2 C 17.6,27.6 18.2,30.2 24,33.2 C 29.8,30.2 30.4,27.6 28.6,26.2 C 26.8,24.8 24,27.2 24,28.8 Z" fill="url(#buddyHeartEyeGrad)" stroke="#ffffff" stroke-width="0.6"/>
+          <path d="M 24,28.8 C 24,27.2 21.2,24.8 19.4,26.2 C 17.6,27.6 18.2,30.2 24,33.2 C 29.8,30.2 30.4,27.6 28.6,26.2 C 26.8,24.8 24,27.2 24,28.8 Z" fill="url(#${prefix}buddyHeartEyeGrad)" stroke="#ffffff" stroke-width="0.6"/>
           <circle cx="22.2" cy="27.4" r="0.75" fill="#ffffff"/>
         </g>
         <!-- Right Heart Eye -->
         <g class="buddy-eye-socket" transform-origin="38 28">
           <ellipse cx="38" cy="28" rx="5.2" ry="5.8" fill="#ffffff"/>
-          <path d="M 38,28.8 C 38,27.2 35.2,24.8 33.4,26.2 C 31.6,27.6 32.2,30.2 38,33.2 C 43.8,30.2 44.4,27.6 42.6,26.2 C 40.8,24.8 38,27.2 38,28.8 Z" fill="url(#buddyHeartEyeGrad)" stroke="#ffffff" stroke-width="0.6"/>
+          <path d="M 38,28.8 C 38,27.2 35.2,24.8 33.4,26.2 C 31.6,27.6 32.2,30.2 38,33.2 C 43.8,30.2 44.4,27.6 42.6,26.2 C 40.8,24.8 38,27.2 38,28.8 Z" fill="url(#${prefix}buddyHeartEyeGrad)" stroke="#ffffff" stroke-width="0.6"/>
           <circle cx="36.2" cy="27.4" r="0.75" fill="#ffffff"/>
         </g>
       `;
@@ -890,43 +894,43 @@
     return `
       <svg class="prime-buddy-svg" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="buddyBodyGrad" x1="14" y1="14" x2="52" y2="54" gradientUnits="userSpaceOnUse">
+          <linearGradient id="${prefix}buddyBodyGrad" x1="14" y1="14" x2="52" y2="54" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#38bdf8"/>
             <stop offset="28%" stop-color="#2563eb"/>
             <stop offset="72%" stop-color="#1d4ed8"/>
             <stop offset="100%" stop-color="#0f172a"/>
           </linearGradient>
-          <radialGradient id="buddy3DGlow" cx="35%" cy="30%" r="65%">
+          <radialGradient id="${prefix}buddy3DGlow" cx="35%" cy="30%" r="65%">
             <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.8"/>
             <stop offset="50%" stop-color="#3b82f6" stop-opacity="0.2"/>
             <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0"/>
           </radialGradient>
-          <linearGradient id="buddyHandGrad" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="${prefix}buddyHandGrad" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#38bdf8"/>
             <stop offset="100%" stop-color="#1d4ed8"/>
           </linearGradient>
-          <radialGradient id="buddyFloorShadow" cx="50%" cy="50%" r="50%">
+          <radialGradient id="${prefix}buddyFloorShadow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stop-color="rgba(0,0,0,0.35)"/>
             <stop offset="60%" stop-color="rgba(0,0,0,0.14)"/>
             <stop offset="100%" stop-color="rgba(0,0,0,0)"/>
           </radialGradient>
           <!-- 3D Volumetric Crown Gradients -->
-          <linearGradient id="crownGoldGrad" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="${prefix}crownGoldGrad" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#fef08a"/>
             <stop offset="35%" stop-color="#fbbf24"/>
             <stop offset="70%" stop-color="#f59e0b"/>
             <stop offset="100%" stop-color="#b45309"/>
           </linearGradient>
-          <linearGradient id="crownDarkGrad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="${prefix}crownDarkGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#d97706"/>
             <stop offset="100%" stop-color="#78350f"/>
           </linearGradient>
-          <radialGradient id="crownInnerGlow" cx="50%" cy="50%" r="50%">
+          <radialGradient id="${prefix}crownInnerGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stop-color="#fef08a" stop-opacity="0.45"/>
             <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
           </radialGradient>
           <!-- Heart Eye Glowing Gradient -->
-          <linearGradient id="buddyHeartEyeGrad" x1="0" y1="0" x2="1" y2="1">
+          <linearGradient id="${prefix}buddyHeartEyeGrad" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#fda4af"/>
             <stop offset="35%" stop-color="#f43f5e"/>
             <stop offset="100%" stop-color="#e11d48"/>
@@ -934,7 +938,7 @@
         </defs>
 
         <!-- Ambient Floor Drop Shadow -->
-        <ellipse cx="32" cy="59" rx="16" ry="3.2" fill="url(#buddyFloorShadow)" class="buddy-shadow-ellipse"/>
+        <ellipse cx="32" cy="59" rx="16" ry="3.2" fill="url(#${prefix}buddyFloorShadow)" class="buddy-shadow-ellipse"/>
 
         <!-- Character Group with Floating & Idle Animations -->
         <g class="buddy-char-group">
@@ -942,12 +946,12 @@
           <g class="buddy-hands">
             <!-- Left Hand -->
             <g class="buddy-hand buddy-hand-left">
-              <ellipse cx="10" cy="38" rx="4.8" ry="4" fill="url(#buddyHandGrad)"/>
+              <ellipse cx="10" cy="38" rx="4.8" ry="4" fill="#38bdf8" style="fill:url(#${prefix}buddyHandGrad) #38bdf8"/>
               <path d="M7.5,36.5 C9,35.5 11,36 12,37" stroke="rgba(255,255,255,0.45)" stroke-width="1.1" stroke-linecap="round" fill="none"/>
             </g>
             <!-- Right Hand (Waving / Pointing) -->
             <g class="buddy-hand buddy-hand-right">
-              <ellipse cx="54" cy="38" rx="4.8" ry="4" fill="url(#buddyHandGrad)"/>
+              <ellipse cx="54" cy="38" rx="4.8" ry="4" fill="#38bdf8" style="fill:url(#${prefix}buddyHandGrad) #38bdf8"/>
               <path d="M51.5,36.5 C53,35.5 55,36 56,37" stroke="rgba(255,255,255,0.45)" stroke-width="1.1" stroke-linecap="round" fill="none"/>
             </g>
           </g>
@@ -955,20 +959,20 @@
           <!-- Subtle Cute Stubby Feet / Legs Under "B" Body -->
           <g class="buddy-feet">
             <g class="buddy-foot buddy-foot-left">
-              <ellipse cx="23.5" cy="52.8" rx="3.4" ry="2.2" fill="url(#buddyHandGrad)"/>
+              <ellipse cx="23.5" cy="52.8" rx="3.4" ry="2.2" fill="#38bdf8" style="fill:url(#${prefix}buddyHandGrad) #38bdf8"/>
               <path d="M21.5,51.8 C22.8,51.2 24.8,51.4 25.5,52.4" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
             </g>
             <g class="buddy-foot buddy-foot-right">
-              <ellipse cx="37.5" cy="52.8" rx="3.4" ry="2.2" fill="url(#buddyHandGrad)"/>
+              <ellipse cx="37.5" cy="52.8" rx="3.4" ry="2.2" fill="#38bdf8" style="fill:url(#${prefix}buddyHandGrad) #38bdf8"/>
               <path d="M35.5,51.8 C36.8,51.2 38.8,51.4 39.5,52.4" stroke="rgba(255,255,255,0.4)" stroke-width="0.8" stroke-linecap="round" fill="none"/>
             </g>
           </g>
 
-          <!-- Main "Crowned B" Mascot Body Shape -->
-          <path class="buddy-body-path" d="M18,17 C16,17 14,20 14,26 L14,44 C14,50 16,53 20,53 C26,53 38,54 44,50 C49,46 51,41 49,36 C47,33 43,32 39,32 C43,32 47,30 48,25 C50,20 46,16 40,16 C34,16 22,17 18,17 Z" fill="url(#buddyBodyGrad)"/>
+          <!-- Main "Crowned B" Mascot Body Shape with solid fallback fill -->
+          <path class="buddy-body-path" d="M18,17 C16,17 14,20 14,26 L14,44 C14,50 16,53 20,53 C26,53 38,54 44,50 C49,46 51,41 49,36 C47,33 43,32 39,32 C43,32 47,30 48,25 C50,20 46,16 40,16 C34,16 22,17 18,17 Z" fill="#2563eb" style="fill:url(#${prefix}buddyBodyGrad) #2563eb"/>
           
           <!-- 3D Volumetric Lighting Overlay -->
-          <path d="M18,17 C16,17 14,20 14,26 L14,44 C14,50 16,53 20,53 C26,53 38,54 44,50 C49,46 51,41 49,36 C47,33 43,32 39,32 C43,32 47,30 48,25 C50,20 46,16 40,16 C34,16 22,17 18,17 Z" fill="url(#buddy3DGlow)"/>
+          <path d="M18,17 C16,17 14,20 14,26 L14,44 C14,50 16,53 20,53 C26,53 38,54 44,50 C49,46 51,41 49,36 C47,33 43,32 39,32 C43,32 47,30 48,25 C50,20 46,16 40,16 C34,16 22,17 18,17 Z" fill="url(#${prefix}buddy3DGlow)"/>
 
           <!-- Glossy Forehead & Belly Specular Highlights -->
           <path d="M18,19 C23,18 31,18 36,20 C34,22 24,21 18,22 Z" fill="#ffffff" opacity="0.55"/>
@@ -1004,16 +1008,16 @@
           </g>
 
           <!-- 3D Golden Orbiting Crown Stage -->
-          <g id="buddyCrownSvgGroup" class="buddy-crown-svg-group">
-            ${renderCrownElementsMarkup(crownAngle)}
+          <g id="${prefix}buddyCrownSvgGroup" class="buddy-crown-svg-group">
+            ${renderCrownElementsMarkup(crownAngle, prefix)}
           </g>
         </g>
       </svg>
     `;
   }
 
-  function renderMascotBody(mood = 'normal', edge = currentEdge) {
-    return getMascotSvg(mood, edge);
+  function renderMascotBody(mood = 'normal', edge = currentEdge, prefix = '') {
+    return getMascotSvg(mood, edge, prefix);
   }
 
   /* ------------------------------------------------------------
@@ -2696,55 +2700,58 @@
     introModalEl.setAttribute('aria-labelledby', 'buddyIntroTitle');
 
     introModalEl.innerHTML = `
-      <div class="buddy-intro-card">
+      <div class="buddy-intro-card" role="document">
+        <button type="button" class="buddy-intro-close-btn bca-pressable" aria-label="Close" onclick="window.dismissPrimeBuddyIntro()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
         <div class="buddy-intro-glow"></div>
-        <span class="buddy-intro-badge"><i class="fa-solid fa-sparkles"></i> NEW FEATURE</span>
+        <span class="buddy-intro-badge"><i class="fa-solid fa-sparkles"></i> STUDY BUDDY</span>
         
         <div class="buddy-intro-avatar-wrap">
-          ${renderMascotBody('normal', 'right')}
+          ${renderMascotBody('normal', 'right', 'popup-buddy-')}
         </div>
 
         <h2 class="buddy-intro-title" id="buddyIntroTitle">Meet PrimeBuddy</h2>
         <p class="buddy-intro-copy">
-          Your interactive campus study companion! Tap me for heart-eyes &amp; sparkles, rapid-tap for a 720° spin, drag me anywhere edge-to-edge, or hold me for actions (Dance, Nap &amp; Hide).
+          Your smart BCA study companion &mdash; right beside you while you read.
         </p>
 
         <div class="buddy-intro-features">
           <div class="buddy-intro-feat-row">
-            <span class="buddy-feat-icon" style="color:#f43f5e"><i class="fa-solid fa-heart"></i></span>
+            <span class="buddy-feat-icon feat-icon-blue"><i class="fa-solid fa-hand-pointer"></i></span>
             <div class="buddy-feat-text">
-              <h4>Playful Tap Reactions</h4>
-              <p>Heart-eyes love mode, floating hearts, and rapid-tap 720° Wheee spin</p>
+              <h4>Playful Tap &amp; Drag</h4>
+              <p>Tap for reactions, double-tap to spin, or drag anywhere.</p>
             </div>
           </div>
           <div class="buddy-intro-feat-row">
-            <span class="buddy-feat-icon"><i class="fa-solid fa-arrows-up-down-left-right"></i></span>
+            <span class="buddy-feat-icon feat-icon-purple"><i class="fa-solid fa-stopwatch"></i></span>
             <div class="buddy-feat-text">
-              <h4>Free Roam &amp; 4-Wall Bounce</h4>
-              <p>Move anywhere edge-to-edge (0px–100vh) with elastic ricochet momentum</p>
+              <h4>Hold for Quick Tools</h4>
+              <p>Long-press to open Focus Timer, Dance, Nap, or Hide.</p>
             </div>
           </div>
           <div class="buddy-intro-feat-row">
-            <span class="buddy-feat-icon" style="color:#fbbf24"><i class="fa-solid fa-crown"></i></span>
+            <span class="buddy-feat-icon feat-icon-emerald"><i class="fa-solid fa-book-open"></i></span>
             <div class="buddy-feat-text">
-              <h4>3D Volumetric Rotating Crown</h4>
-              <p>Continuous 360° rotating golden crown with sparkling jewel tips</p>
+              <h4>Zero-Clutter Reading</h4>
+              <p>Smart edge-snap keeps your notes and PYQs clear.</p>
             </div>
           </div>
         </div>
 
         <div class="buddy-intro-actions">
           <button class="buddy-btn-primary bca-pressable" id="buddyIntroTryBtn" onclick="window.acceptPrimeBuddyIntro()">
-            <i class="fa-solid fa-sparkles"></i> Yes, Meet PrimeBuddy
+            <i class="fa-solid fa-sparkles"></i> Let's Go!
           </button>
           <button class="buddy-btn-later bca-pressable" id="buddyIntroLaterBtn" onclick="window.dismissPrimeBuddyIntro()">
-            Later
+            Not now
           </button>
         </div>
       </div>
     `;
 
-    // Backdrop click dismisses modal with "Later" behavior
+    // Backdrop click dismisses modal with "Not now" behavior
     introModalEl.addEventListener('click', (e) => {
       if (e.target === introModalEl) {
         dismissPrimeBuddyIntro();
@@ -2754,18 +2761,46 @@
     document.body.appendChild(introModalEl);
   }
 
-  let introCheckTimer = null;
+  let introTimer = null;
+  const INTRO_DELAY_MS = 17000;
+
+  function clearIntroTimer() {
+    if (introTimer) {
+      clearTimeout(introTimer);
+      introTimer = null;
+    }
+  }
+
+  function scheduleFirstTimeIntro(delayMs = INTRO_DELAY_MS) {
+    const seen = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
+    if (seen) return;
+
+    clearIntroTimer();
+
+    introTimer = setTimeout(() => {
+      introTimer = null;
+      const alreadySeen = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
+      if (alreadySeen) return;
+
+      if (isInsideMainApp()) {
+        showIntroModal();
+      } else {
+        // If user is currently in a subflow/tour, check again shortly once on desk
+        introTimer = setTimeout(() => {
+          introTimer = null;
+          if (isInsideMainApp() && !localStorage.getItem(STORAGE_KEY_INTRO_SEEN)) {
+            showIntroModal();
+          }
+        }, 2500);
+      }
+    }, Math.max(0, delayMs));
+  }
+
   function checkFirstTimeIntro() {
     const seen = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
     if (seen) return;
     if (!isInsideMainApp()) return;
-
-    if (introCheckTimer) clearTimeout(introCheckTimer);
-    introCheckTimer = setTimeout(() => {
-      if (isInsideMainApp() && !localStorage.getItem(STORAGE_KEY_INTRO_SEEN)) {
-        showIntroModal();
-      }
-    }, 800);
+    scheduleFirstTimeIntro(INTRO_DELAY_MS);
   }
 
   function showIntroModal() {
@@ -2782,10 +2817,7 @@
   }
 
   function closeIntroModal() {
-    if (introCheckTimer) {
-      clearTimeout(introCheckTimer);
-      introCheckTimer = null;
-    }
+    clearIntroTimer();
     if (introModalEl) {
       introModalEl.classList.remove('open');
     }
@@ -2986,8 +3018,14 @@
     focus: startFocusSession,
     cancelFocus: cancelFocusSession,
     peek: triggerReadingAutoPeek,
-    popPeek: popOutOfPeek
+    popPeek: popOutOfPeek,
+    showIntro: showIntroModal,
+    startOnboardingIntroTimer: (delayMs = 17000) => scheduleFirstTimeIntro(delayMs),
+    clearIntroTimer
   };
+
+  window.addEventListener('beforeunload', clearIntroTimer, { passive: true });
+  window.addEventListener('pagehide', clearIntroTimer, { passive: true });
 
   /* ------------------------------------------------------------
      Lifecycle Initialization
