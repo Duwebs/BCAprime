@@ -788,7 +788,23 @@ window.sendAdminTelegramAlert = sendAdminTelegramAlert;
       updateQrButtonVisibility();
       bindUploadDropzone();
     }
-    function applyTheme(theme){state.theme=theme;document.documentElement.dataset.theme=theme;localStorage.setItem('bca-theme',theme);$('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';const mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.content=theme==='dark'?'#000000':'#fafafa'}
+    function syncThemeColorMeta(theme){
+      const col = theme === 'dark' ? '#050505' : '#ffffff';
+      let mc = document.querySelector('meta[name="theme-color"]');
+      if(!mc){
+        mc = document.createElement('meta');
+        mc.setAttribute('name', 'theme-color');
+        document.head.appendChild(mc);
+      }
+      mc.setAttribute('content', col);
+    }
+    function applyTheme(theme){
+      state.theme=theme;
+      document.documentElement.dataset.theme=theme;
+      localStorage.setItem('bca-theme',theme);
+      if($('themeIcon')) $('themeIcon').className=theme==='dark'?'fa-solid fa-sun':'fa-solid fa-moon';
+      syncThemeColorMeta(theme);
+    }
     function toggleTheme(){applyTheme(state.theme==='dark'?'light':'dark');try{localStorage.setItem('bca-theme-manual','1')}catch(e){}}
     function render(){const q=String(state.query||'');const match=r=>{
         if(state.savedOnly&&!state.saved.includes(r.title.replace(/\W/g,'')))return false;

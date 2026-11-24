@@ -290,9 +290,14 @@ html.auth-known:not(.auth-gate-open) #appTabs{display:grid!important}
 html.auth-gate-open #authGate{display:flex!important;z-index:9999!important}
 html.auth-gate-open #appShell{display:none!important}
 html.auth-gate-open #appTabs{display:none!important}
-:root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f2f2f2;--ink:#171717;--muted:#4d4d4d;--line:#ebebeb;--brand:#0070f3;--brand-2:#d3e5ff;--good:#0070f3;--shadow:0 1px 1px rgba(0,0,0,.04);--shadow-float:0 2px 2px rgba(0,0,0,.04),0 8px 16px -4px rgba(0,0,0,.08);--font-display:'Barlow Condensed',sans-serif;--font-body:'Roboto Condensed',sans-serif;--font-barlow-condensed:'Barlow Condensed',-apple-system,BlinkMacSystemFont,sans-serif;--font-condensed-heading:'Barlow Condensed',-apple-system,BlinkMacSystemFont,sans-serif;--font-condensed-body:'Roboto Condensed',-apple-system,BlinkMacSystemFont,sans-serif}
-    [data-theme=dark]{--bg:#000000;--surface:#0a0a0a;--surface-2:#121212;--ink:#ededed;--muted:#a1a1a1;--line:#222222;--brand:#3291ff;--brand-2:#0f2240;--good:#3291ff;--shadow:0 1px 2px rgba(0,0,0,.5);--shadow-float:0 8px 24px rgba(0,0,0,.65)}
-    *{box-sizing:border-box}[hidden]{display:none!important}html{background:var(--bg);scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 'Roboto Condensed',sans-serif}button,input,select,textarea{font-family:'Roboto Condensed',sans-serif}button{cursor:pointer}a{color:inherit;text-decoration:none}
+:root{--bg:#ffffff;--surface:#ffffff;--surface-2:#f2f2f2;--ink:#171717;--muted:#4d4d4d;--line:#ebebeb;--brand:#0070f3;--brand-2:#d3e5ff;--good:#0070f3;--shadow:0 1px 1px rgba(0,0,0,.04);--shadow-float:0 2px 2px rgba(0,0,0,.04),0 8px 16px -4px rgba(0,0,0,.08);--font-display:'Barlow Condensed',sans-serif;--font-body:'Roboto Condensed',sans-serif;--font-barlow-condensed:'Barlow Condensed',-apple-system,BlinkMacSystemFont,sans-serif;--font-condensed-heading:'Barlow Condensed',-apple-system,BlinkMacSystemFont,sans-serif;--font-condensed-body:'Roboto Condensed',-apple-system,BlinkMacSystemFont,sans-serif}
+    [data-theme=dark]{--bg:#050505;--surface:#0a0a0a;--surface-2:#121212;--ink:#ededed;--muted:#a1a1a1;--line:#222222;--brand:#3291ff;--brand-2:#0f2240;--good:#3291ff;--shadow:0 1px 2px rgba(0,0,0,.5);--shadow-float:0 8px 24px rgba(0,0,0,.65)}
+    *{box-sizing:border-box}[hidden]{display:none!important}
+    html{background-color:#ffffff;background:var(--bg,#ffffff);scroll-behavior:smooth}
+    body{margin:0;background-color:#ffffff;background:var(--bg,#ffffff);color:var(--ink);font:15px/1.5 'Roboto Condensed',sans-serif}
+    html[data-theme="dark"],html[data-theme="dark"] body,[data-theme="dark"] html,[data-theme="dark"] body{background-color:#050505!important;background:#050505!important}
+    html:not([data-theme="dark"]),html:not([data-theme="dark"]) body,[data-theme="light"] html,[data-theme="light"] body{background-color:#ffffff!important;background:#ffffff!important}
+    button,input,select,textarea{font-family:'Roboto Condensed',sans-serif}button{cursor:pointer}a{color:inherit;text-decoration:none}
 
 /* Core Condensed Typography System */
 h1, h2, h3, h4, h5, h6,

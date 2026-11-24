@@ -11,10 +11,28 @@
     gtag('config', 'G-XS6DNV433X');
   </script>
   <meta charset="utf-8">
-  <script>/* Anti-flash: pehli paint se pehle hi known-session par auth gate chhupao + time-based theme */
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#050505" id="bcaThemeColorMeta">
+  <script>/* Anti-flash: pehli paint se pehle hi known-session par auth gate chhupao + dynamic theme sync */
   try{if(localStorage.getItem('bca-auth-known')==='1'||sessionStorage.getItem('bca-guest-mode')==='true'){document.documentElement.classList.add('auth-known')}}catch(e){}
-  try{if(!localStorage.getItem('bca-theme-manual')){var __h=new Date().getHours(),__t=(__h>=6&&__h<18)?'light':'dark';document.documentElement.dataset.theme=__t;var __mc=document.querySelector('meta[name="theme-color"]');if(__mc)__mc.content=__t==='dark'?'#000000':'#fafafa'}}catch(e){}</script>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  try{
+    var __saved=localStorage.getItem('bca-theme');
+    var __t=__saved;
+    if(!__t&&!localStorage.getItem('bca-theme-manual')){
+      var __h=new Date().getHours();
+      __t=(__h>=6&&__h<18)?'light':'dark';
+    }
+    if(!__t)__t='dark';
+    document.documentElement.dataset.theme=__t;
+    var __col=__t==='dark'?'#050505':'#ffffff';
+    var __mc=document.querySelector('meta[name="theme-color"]');
+    if(!__mc){
+      __mc=document.createElement('meta');
+      __mc.name='theme-color';
+      document.head.appendChild(__mc);
+    }
+    __mc.content=__col;
+  }catch(e){}</script>
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -201,7 +219,6 @@
   }
   </script>
   <link rel="manifest" href="/manifest.webmanifest">
-  <meta name="theme-color" content="#000000">
   <link rel="apple-touch-icon" href="assets/logo.png">
   <link rel="icon" href="assets/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">

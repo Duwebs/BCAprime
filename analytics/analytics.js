@@ -132,11 +132,23 @@ function toggleAnalyticsTheme() {
   }
 }
 
+function syncAnalyticsThemeColor(theme) {
+  const col = theme === 'light' ? '#ffffff' : '#090D12';
+  let mc = document.querySelector('meta[name="theme-color"]');
+  if (!mc) {
+    mc = document.createElement('meta');
+    mc.name = 'theme-color';
+    document.head.appendChild(mc);
+  }
+  mc.content = col;
+}
+
 function updateThemeIcon(theme) {
   const icon = $('themeIcon');
   if (icon) {
     icon.className = theme === 'light' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
   }
+  syncAnalyticsThemeColor(theme);
 }
 
 /* ============================================================

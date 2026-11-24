@@ -433,11 +433,22 @@ function resetToAuthScreen() {
 }
 
 /* ---- Admin panel: Supabase-backed moderation ---- */
+function syncAdminThemeColor(theme) {
+  const col = theme === 'light' ? '#ffffff' : '#090D12';
+  let mc = document.querySelector('meta[name="theme-color"]');
+  if (!mc) {
+    mc = document.createElement('meta');
+    mc.name = 'theme-color';
+    document.head.appendChild(mc);
+  }
+  mc.content = col;
+}
+
 function updateThemeIcon() {
   const icon = $('admThemeIcon');
-  if (!icon) return;
   const isLight = document.documentElement.dataset.theme === 'light';
-  icon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+  if (icon) icon.className = isLight ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+  syncAdminThemeColor(isLight ? 'light' : 'dark');
 }
 
 function toggleTheme() {
