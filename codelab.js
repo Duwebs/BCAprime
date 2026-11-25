@@ -1,18 +1,30 @@
 /**
- * BCAPrime Code Lab (codelab.js)
- * Multi-Language Compiler (C, C++, Java, Python), Web Dev Playground & SQLite Sandbox
- * Mobile-First Responsive Architecture with Tabbed Mobile View & Desktop Split-Screen
+ * BCAPrime PrimeCode IDE (codelab.js)
+ * Clean, Mobile-First IDE Architecture with 8 Languages, Multi-File HTML,
+ * ASCII Table MySQL Engine, Piston/Wandbox Compilers & Custom Stdin Input.
  */
 
 (function () {
   'use strict';
+
+  // ---- Language Configuration ----
+  const LANG_CONFIG = {
+    python: { name: 'Python', filename: 'main.py', ext: 'py', type: 'compiler', version: 'Python 3.10' },
+    java: { name: 'Java', filename: 'Main.java', ext: 'java', type: 'compiler', version: 'Java 21' },
+    c: { name: 'C', filename: 'main.c', ext: 'c', type: 'compiler', version: 'GCC 13' },
+    cpp: { name: 'C++', filename: 'main.cpp', ext: 'cpp', type: 'compiler', version: 'G++ 13' },
+    php: { name: 'PHP', filename: 'index.php', ext: 'php', type: 'compiler', version: 'PHP 8.3' },
+    mysql: { name: 'MySQL', filename: 'queries.sql', ext: 'sql', type: 'sql', version: 'MySQL / SQLite 3' },
+    html: { name: 'HTML', filename: 'index.html', ext: 'html', type: 'webdev', version: 'HTML5 & CSS3 & JS' },
+    javascript: { name: 'JavaScript', filename: 'index.js', ext: 'js', type: 'compiler', version: 'Node.js 20' }
+  };
 
   // ---- Starter Templates ----
   const STARTERS = {
     c: `#include <stdio.h>
 
 int main() {
-    printf("Welcome to BCAPrime Code Lab! 🚀\\n");
+    printf("Welcome to BCAPrime C Lab! 🚀\\n");
     printf("BCA C Programming Sandbox\\n\\n");
     
     // Sample calculation
@@ -96,11 +108,11 @@ const subjects = [
 
 console.log("Registered Semester Courses:");
 subjects.forEach((subj, idx) => {
-  console.log(\`\${idx + 1}. [\${subj.code}] \${subj.name} (\${subj.credits} Credits)\`);
+  console.log((idx + 1) + ". [" + subj.code + "] " + subj.name + " (" + subj.credits + " Credits)");
 });
 
 const totalCredits = subjects.reduce((sum, s) => sum + s.credits, 0);
-console.log(\`\\nTotal Semester Credits: \${totalCredits}\`);
+console.log("\\nTotal Semester Credits: " + totalCredits);
 `,
     html: `<div class="card">
   <h2>BCAPrime Web Lab 🚀</h2>
@@ -162,7 +174,7 @@ if (btn && countSpan) {
     countSpan.textContent = count;
   });
 }`,
-    sql: `-- BCA DBMS Lab: Query all Semester 3 students with high CGPA
+    mysql: `-- BCA DBMS Lab: Query Semester 3 students by CGPA
 SELECT id, name, semester, email, cgpa 
 FROM students 
 WHERE semester = 3 
@@ -198,26 +210,436 @@ INSERT INTO courses VALUES
   ('BCA-304', 'Python Programming', 3, 3);
 `;
 
-  // Code Lab State
+  // BCA Practical Lab Templates
+  const BCA_PRACTICALS = {
+    java: [
+      {
+        name: '1. Hello World (Basic Class)',
+        code: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+        System.out.println("BCAPrime Java Lab ☕");
+    }
+}`
+      },
+      {
+        name: '2. User Input & Arithmetic (Scanner)',
+        code: `import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.print("Enter first number: ");
+        int num1 = sc.nextInt();
+        System.out.print("Enter second number: ");
+        int num2 = sc.nextInt();
+        
+        int sum = num1 + num2;
+        int diff = num1 - num2;
+        int prod = num1 * num2;
+        
+        System.out.println("\\nResults:");
+        System.out.println("Sum: " + sum);
+        System.out.println("Difference: " + diff);
+        System.out.println("Product: " + prod);
+        sc.close();
+    }
+}`
+      },
+      {
+        name: '3. Method Overloading (Polymorphism)',
+        code: `public class Main {
+    // Area of Circle
+    static double area(double radius) {
+        return Math.PI * radius * radius;
+    }
+
+    // Area of Rectangle
+    static double area(double length, double breadth) {
+        return length * breadth;
+    }
+
+    // Area of Triangle
+    static double area(float base, float height) {
+        return 0.5 * base * height;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("--- Method Overloading Demo ---");
+        System.out.printf("Area of Circle (r=5.0): %.2f\\n", area(5.0));
+        System.out.printf("Area of Rectangle (l=4, b=6): %.2f\\n", area(4.0, 6.0));
+        System.out.printf("Area of Triangle (b=3, h=7): %.2f\\n", area(3.0f, 7.0f));
+    }
+}`
+      },
+      {
+        name: '4. Inheritance (Single & Multilevel)',
+        code: `class Person {
+    String name = "Aarav Sharma";
+    int age = 20;
+
+    void displayPerson() {
+        System.out.println("Name: " + name);
+        System.out.println("Age: " + age);
+    }
+}
+
+class Student extends Person {
+    String rollNo = "BCA-2024-042";
+    int semester = 3;
+
+    void displayStudent() {
+        displayPerson();
+        System.out.println("Roll Number: " + rollNo);
+        System.out.println("Semester: " + semester);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("=== Student Record (Inheritance) ===");
+        Student s = new Student();
+        s.displayStudent();
+    }
+}`
+      },
+      {
+        name: '5. Exception Handling (try-catch-finally)',
+        code: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("--- Exception Handling Demo ---");
+        try {
+            int a = 25;
+            int b = 0;
+            System.out.println("Attempting division: " + a + " / " + b);
+            int result = a / b;
+            System.out.println("Result: " + result);
+        } catch (ArithmeticException e) {
+            System.err.println("Caught Exception: Division by zero is not permitted!");
+        } finally {
+            System.out.println("Finally block executed cleanly.");
+        }
+    }
+}`
+      }
+    ],
+    python: [
+      {
+        name: '1. Hello World & Grade Calculator',
+        code: `# BCAPrime Python Lab 🐍
+def calculate_grade(marks):
+    avg = sum(marks) / len(marks)
+    if avg >= 75:
+        return avg, "First Class with Distinction 🏆"
+    elif avg >= 60:
+        return avg, "First Class 🌟"
+    elif avg >= 50:
+        return avg, "Second Class"
+    return avg, "Pass"
+
+scores = [88, 92, 79, 85, 91]
+average, grade = calculate_grade(scores)
+
+print(f"Student Marks: {scores}")
+print(f"Semester Average: {average:.2f}%")
+print(f"Academic Standing: {grade}")`
+      },
+      {
+        name: '2. User Input & Palindrome Check',
+        code: `# Palindrome Checker
+word = input("Enter a string or number: ").strip()
+cleaned = word.lower().replace(" ", "")
+
+if cleaned == cleaned[::-1]:
+    print(f"'{word}' is a PALINDROME! 🎉")
+else:
+    print(f"'{word}' is NOT a palindrome.")`
+      },
+      {
+        name: '3. Prime & Fibonacci Generators',
+        code: `def is_prime(n):
+    if n <= 1:
+        return False
+    for i in range(2, int(n ** 0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+def fibonacci(count):
+    series = [0, 1]
+    while len(series) < count:
+        series.append(series[-1] + series[-2])
+    return series[:count]
+
+print("First 10 Fibonacci Numbers:", fibonacci(10))
+primes = [x for x in range(2, 50) if is_prime(x)]
+print("Primes under 50:", primes)`
+      },
+      {
+        name: '4. List Comprehension & Dictionary Operations',
+        code: `students = [
+    {"name": "Aarav", "marks": 85, "sem": 3},
+    {"name": "Priya", "marks": 94, "sem": 3},
+    {"name": "Rohan", "marks": 72, "sem": 3},
+    {"name": "Sneha", "marks": 91, "sem": 3}
+]
+
+top_performers = [s["name"] for s in students if s["marks"] >= 85]
+avg_marks = sum(s["marks"] for s in students) / len(students)
+
+print("Top Performers (>= 85%):", top_performers)
+print(f"Class Average: {avg_marks:.2f}%")`
+      }
+    ],
+    c: [
+      {
+        name: '1. Hello World & Variables',
+        code: `#include <stdio.h>
+
+int main() {
+    printf("Welcome to BCAPrime C Lab! 🚀\\n");
+    int rollNo = 101;
+    char name[] = "Aarav Sharma";
+    float cgpa = 8.95;
+
+    printf("Student Info:\\n");
+    printf("Roll No: %d\\n", rollNo);
+    printf("Name: %s\\n", name);
+    printf("CGPA: %.2f\\n", cgpa);
+
+    return 0;
+}`
+      },
+      {
+        name: '2. Swap Two Numbers with Pointers',
+        code: `#include <stdio.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int main() {
+    int x = 25, y = 80;
+    printf("Before swap: x = %d, y = %d\\n", x, y);
+    swap(&x, &y);
+    printf("After swap:  x = %d, y = %d\\n", x, y);
+    return 0;
+}`
+      },
+      {
+        name: '3. Dynamic Memory Allocation (malloc)',
+        code: `#include <stdio.h>
+#include <stdlib.h>
+
+int main() {
+    int n = 5;
+    int *arr = (int*)malloc(n * sizeof(int));
+    if (arr == NULL) {
+        printf("Memory allocation failed!\\n");
+        return 1;
+    }
+
+    printf("Allocated array of size %d:\\n", n);
+    for (int i = 0; i < n; i++) {
+        arr[i] = (i + 1) * 10;
+        printf("arr[%d] = %d\\n", i, arr[i]);
+    }
+
+    free(arr);
+    printf("Memory freed successfully.\\n");
+    return 0;
+}`
+      }
+    ],
+    cpp: [
+      {
+        name: '1. Student Class & Object OOP',
+        code: `#include <iostream>
+#include <string>
+using namespace std;
+
+class Student {
+private:
+    int id;
+    string name;
+    double cgpa;
+
+public:
+    Student(int i, string n, double c) : id(i), name(n), cgpa(c) {}
+
+    void display() const {
+        cout << "ID: " << id << " | Name: " << name << " | CGPA: " << cgpa << endl;
+    }
+};
+
+int main() {
+    cout << "=== BCAPrime C++ OOP Lab ===" << endl;
+    Student s1(101, "Aarav Sharma", 8.9);
+    Student s2(102, "Priya Patel", 9.2);
+
+    s1.display();
+    s2.display();
+    return 0;
+}`
+      },
+      {
+        name: '2. Vectors & STL Algorithms',
+        code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+using namespace std;
+
+int main() {
+    vector<int> marks = {85, 92, 78, 88, 95};
+    cout << "Original marks: ";
+    for (int m : marks) cout << m << " ";
+    cout << endl;
+
+    sort(marks.begin(), marks.end());
+    cout << "Sorted marks: ";
+    for (int m : marks) cout << m << " ";
+    cout << endl;
+
+    int sum = accumulate(marks.begin(), marks.end(), 0);
+    cout << "Average: " << (double)sum / marks.size() << "%" << endl;
+    return 0;
+}`
+      }
+    ],
+    php: [
+      {
+        name: '1. Associative Arrays & Looping',
+        code: `<?php
+$students = [
+    ["name" => "Aarav Sharma", "semester" => 3, "score" => 92],
+    ["name" => "Priya Patel", "semester" => 3, "score" => 95],
+    ["name" => "Rohan Verma", "semester" => 3, "score" => 84]
+];
+
+echo "BCA Top Performers:\\n";
+foreach ($students as $index => $s) {
+    echo ($index + 1) . ". " . $s["name"] . " - Sem " . $s["semester"] . " (" . $s["score"] . "%)\\n";
+}
+?>`
+      },
+      {
+        name: '2. JSON API Simulator',
+        code: `<?php
+header('Content-Type: application/json');
+$response = [
+    "status" => "success",
+    "course" => "BCA",
+    "semester" => 3,
+    "subjects" => ["Data Structures", "DBMS", "Java OOP", "Computer Networks"],
+    "timestamp" => time()
+];
+echo json_encode($response, JSON_PRETTY_PRINT);
+?>`
+      }
+    ],
+    mysql: [
+      {
+        name: '1. Sem 3 Top Students (ORDER BY)',
+        code: `-- Query Semester 3 students ranked by CGPA
+SELECT id, name, semester, email, cgpa 
+FROM students 
+WHERE semester = 3 
+ORDER BY cgpa DESC;`
+      },
+      {
+        name: '2. Student & Courses JOIN Query',
+        code: `-- Join students with matching semester courses
+SELECT s.name, s.semester, c.course_code, c.course_name, c.credits
+FROM students s
+JOIN courses c ON s.semester = c.semester
+ORDER BY s.semester, s.name;`
+      },
+      {
+        name: '3. Semester CGPA Aggregation (GROUP BY)',
+        code: `-- Calculate student count and average CGPA per semester
+SELECT semester, COUNT(*) AS student_count, ROUND(AVG(cgpa), 2) AS avg_cgpa
+FROM students
+GROUP BY semester
+ORDER BY semester;`
+      }
+    ],
+    html: [
+      {
+        name: '1. Responsive Student Card Component',
+        code: `<div class="card">
+  <h2>BCAPrime Web Lab 🚀</h2>
+  <p>Interactive client-side sandbox for HTML5, CSS3 &amp; JavaScript.</p>
+  <button id="counterBtn" class="btn">Clicks: <span id="count">0</span></button>
+</div>`
+      }
+    ],
+    javascript: [
+      {
+        name: '1. Array Methods (map, filter, reduce)',
+        code: `const students = [
+  { name: 'Aarav', cgpa: 8.9, sem: 3 },
+  { name: 'Priya', cgpa: 9.2, sem: 3 },
+  { name: 'Rohan', cgpa: 7.8, sem: 2 },
+  { name: 'Sneha', cgpa: 9.5, sem: 4 }
+];
+
+const sem3HighPerformers = students
+  .filter(s => s.sem === 3 && s.cgpa >= 8.5)
+  .map(s => s.name + " (" + s.cgpa + " CGPA)");
+
+console.log("Sem 3 High Performers:", sem3HighPerformers);
+
+const avgCgpa = (students.reduce((sum, s) => sum + s.cgpa, 0) / students.length).toFixed(2);
+console.log("Overall Average CGPA:", avgCgpa);`
+      },
+      {
+        name: '2. Async/Await & Promise Simulation',
+        code: `function fetchCourseData() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        program: "Bachelor of Computer Applications (BCA)",
+        semester: 3,
+        status: "Active",
+        creditsCompleted: 44
+      });
+    }, 400);
+  });
+}
+
+async function loadDashboard() {
+  console.log("Fetching academic dashboard...");
+  const data = await fetchCourseData();
+  console.log("Dashboard Loaded Successfully: 🎉");
+  console.log(JSON.stringify(data, null, 2));
+}
+
+loadDashboard();`
+      }
+    ]
+  };
+
+  // ---- PrimeCode State ----
   const state = {
     screen: 'splash', // 'splash' | 'picker' | 'workspace'
-    showParentBrand: true, // prop/flag for "from BCAPrime" signature
+    showParentBrand: true,
     splashTimer: null,
-    mode: 'compiler', // 'compiler' | 'webdev' | 'sqllab'
-    compilerLang: 'python', // 'python' | 'java' | 'c' | 'cpp' | 'php' | 'javascript'
-    compilerMobileView: 'editor', // 'editor' | 'console'
-    webFile: 'html', // 'html' | 'css' | 'js'
-    webMobileView: 'editor', // 'editor' | 'preview'
-    sqlMobileView: 'editor', // 'editor' | 'results'
+    activeLang: 'java', // 'python' | 'java' | 'c' | 'cpp' | 'php' | 'mysql' | 'html' | 'javascript'
+    activeTab: 'code', // 'code' | 'console' | 'io' | 'preview'
+    activeWebFile: 'html', // 'html' | 'css' | 'js'
+    fontSize: '13.5px', // '13.5px' | '15px' | '18px'
     isExecuting: false,
-    stdinOpen: false,
     stdinWarnedOnce: false,
     sqlDb: null,
     sqlJsLoading: false
   };
 
-  // Safe Haptic feedback
-  function triggerHaptic(duration = 12) {
+  // ---- Haptics & Notification ----
+  function triggerHaptic(duration = 10) {
     try {
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(duration);
@@ -225,7 +647,6 @@ INSERT INTO courses VALUES
     } catch (e) {}
   }
 
-  // Toast feedback
   function notify(msg, type = 'info') {
     if (window.BCA_UI && window.BCA_UI.Toast) {
       if (type === 'success') window.BCA_UI.Toast.success(msg);
@@ -234,39 +655,30 @@ INSERT INTO courses VALUES
     } else if (typeof window.toast === 'function') {
       window.toast(msg);
     } else {
-      console.log('[CodeLab]', msg);
+      console.log('[PrimeCode]', msg);
     }
   }
 
-  // LocalStorage keys
+  // ---- LocalStorage Helpers ----
   function storageKey(id) {
     return `bcaprime_codelab_${id}`;
   }
 
-  function getSavedCode(lang) {
+  function getSavedCode(key) {
     try {
-      const saved = localStorage.getItem(storageKey(lang));
+      const saved = localStorage.getItem(storageKey(key));
       if (saved !== null && saved !== undefined) return saved;
     } catch (e) {}
-    return STARTERS[lang] || '';
+    return STARTERS[key] || '';
   }
 
-  function saveCode(lang, code) {
+  function saveCode(key, code) {
     try {
-      localStorage.setItem(storageKey(lang), code);
+      localStorage.setItem(storageKey(key), code);
     } catch (e) {}
   }
 
-  // Brand Endorsement Signature Controller
-  function setShowParentBrand(val) {
-    state.showParentBrand = Boolean(val);
-    const endorsement = document.getElementById('primecodeBrandEndorsement');
-    if (endorsement) {
-      endorsement.style.display = state.showParentBrand ? 'flex' : 'none';
-    }
-  }
-
-  // PrimeBuddy Mascot Visibility Controller (hides mascot during PrimeCode splash/modal)
+  // Mascot Controller
   function setPrimeBuddyVisible(visible) {
     const buddyEl = document.querySelector('.prime-buddy-wrap') || document.getElementById('primeBuddy');
     if (buddyEl) {
@@ -282,7 +694,7 @@ INSERT INTO courses VALUES
     }
   }
 
-  // ---- Screen Transition (Splash -> Picker -> Workspace) ----
+  // ---- Screen Navigation (Splash -> Picker -> Workspace) ----
   function switchScreen(screen) {
     state.screen = screen;
     const splashEl = document.getElementById('primecodeSplash');
@@ -293,8 +705,6 @@ INSERT INTO courses VALUES
       clearTimeout(state.splashTimer);
       state.splashTimer = null;
     }
-
-    setShowParentBrand(state.showParentBrand);
 
     if (screen === 'splash') {
       document.body.classList.add('primecode-splash-active');
@@ -310,7 +720,7 @@ INSERT INTO courses VALUES
       if (pickerEl) pickerEl.hidden = true;
       if (workspaceEl) workspaceEl.hidden = true;
 
-      // Automatically transition after ~1.2s (1200ms) with smooth fade
+      // Auto transition after 1.2s
       state.splashTimer = setTimeout(() => {
         if (state.screen === 'splash') {
           if (splashEl) {
@@ -353,13 +763,10 @@ INSERT INTO courses VALUES
       }
       if (pickerEl) pickerEl.hidden = true;
       if (workspaceEl) workspaceEl.hidden = false;
-
-      // Synchronize current mode & views
-      switchMode(state.mode);
     }
   }
 
-  // ---- Open & Close PrimeCode Modal ----
+  // Open & Close PrimeCode Modal
   function openCodeLab(directScreen = 'splash') {
     triggerHaptic(14);
     const modal = document.getElementById('codeLabModal');
@@ -406,7 +813,6 @@ INSERT INTO courses VALUES
     openCodeLab('splash');
   }
 
-  // Listen to hash changes for browser/Android back button
   window.addEventListener('hashchange', () => {
     if (location.hash === '#primecode' || location.hash === '#codelab') {
       openCodeLab('splash');
@@ -418,49 +824,846 @@ INSERT INTO courses VALUES
     }
   });
 
-  // ---- Mode Switcher ----
-  function switchMode(newMode) {
-    triggerHaptic(10);
-    state.mode = newMode;
-
-    document.querySelectorAll('.codelab-mode-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mode === newMode);
-    });
-
-    const compilerView = document.getElementById('codelabCompilerView');
-    const webdevView = document.getElementById('codelabWebdevView');
-    const sqlView = document.getElementById('codelabSqlView');
-
-    if (compilerView) compilerView.hidden = newMode !== 'compiler';
-    if (webdevView) webdevView.hidden = newMode !== 'webdev';
-    if (sqlView) sqlView.hidden = newMode !== 'sqllab';
-
-    if (newMode === 'compiler') {
-      renderCompilerCode();
-      switchCompilerMobileView(state.compilerMobileView);
-    } else if (newMode === 'webdev') {
-      renderWebdevCode();
-      switchWebMobileView(state.webMobileView);
-    } else if (newMode === 'sqllab') {
-      renderSqlCode();
-      switchSqlMobileView(state.sqlMobileView);
-      initSqlDatabase();
-    }
-  }
-
-  // ---- Line Number Generator ----
+  // ---- Line Number Generator & Fold Carets ----
   function updateLineNumbers(textareaEl, lineNumbersEl) {
     if (!textareaEl || !lineNumbersEl) return;
-    const lines = (textareaEl.value || '').split('\n').length;
-    let numbersText = '';
-    for (let i = 1; i <= lines; i++) {
-      numbersText += i + '\n';
+    const lines = (textareaEl.value || '').split('\n');
+    let numbersHtml = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const lineNum = i + 1;
+      const lineText = lines[i];
+      // Show fold caret on line 1 or lines opening a block
+      const hasFold = (lineNum === 1 || lineNum === 2 || lineText.includes('{') || lineText.trim().startsWith('def ') || lineText.trim().startsWith('class '));
+      const caret = hasFold ? ' <i class="fa-solid fa-caret-down fold-caret"></i>' : '';
+      numbersHtml += `<span>${lineNum}${caret}</span>\n`;
     }
-    lineNumbersEl.textContent = numbersText;
+    lineNumbersEl.innerHTML = numbersHtml;
     lineNumbersEl.scrollTop = textareaEl.scrollTop;
   }
 
-  // ---- Insert Symbol at Cursor ----
+  // ---- Open Language Workspace ----
+  function openLanguage(langKey) {
+    triggerHaptic(12);
+    state.activeLang = langKey;
+    const config = LANG_CONFIG[langKey] || LANG_CONFIG.python;
+
+    // 1. Configure Segmented Pill Switcher
+    const pillCode = document.getElementById('primecodeTabCode');
+    const pillConsole = document.getElementById('primecodeTabConsole');
+    const pillIo = document.getElementById('primecodeTabIo');
+    const pillPreview = document.getElementById('primecodeTabPreview');
+
+    if (pillCode) pillCode.style.display = 'inline-flex';
+
+    if (langKey === 'html') {
+      if (pillConsole) pillConsole.style.display = 'none';
+      if (pillIo) pillIo.style.display = 'none';
+      if (pillPreview) pillPreview.style.display = 'inline-flex';
+    } else if (langKey === 'mysql') {
+      if (pillConsole) pillConsole.style.display = 'none';
+      if (pillIo) pillIo.style.display = 'inline-flex';
+      if (pillPreview) pillPreview.style.display = 'none';
+    } else {
+      // Compiler (python, java, c, cpp, php, javascript)
+      if (pillConsole) pillConsole.style.display = 'inline-flex';
+      if (pillIo) pillIo.style.display = 'inline-flex';
+      if (pillPreview) pillPreview.style.display = 'none';
+    }
+
+    // 2. Configure File Tab Bar
+    const tabsTrack = document.getElementById('primecodeFileTabsTrack');
+    if (tabsTrack) {
+      if (langKey === 'html') {
+        state.activeWebFile = 'html';
+        tabsTrack.innerHTML = `
+          <button type="button" class="primecode-file-tab active bca-pressable" data-web-file="html">
+            <span>index.html</span>
+          </button>
+          <button type="button" class="primecode-file-tab bca-pressable" data-web-file="css">
+            <span>styles.css</span>
+          </button>
+          <button type="button" class="primecode-file-tab bca-pressable" data-web-file="js">
+            <span>script.js</span>
+          </button>
+        `;
+        tabsTrack.querySelectorAll('.primecode-file-tab').forEach(btn => {
+          btn.addEventListener('click', () => switchWebFile(btn.dataset.webFile));
+        });
+      } else {
+        tabsTrack.innerHTML = `
+          <button type="button" class="primecode-file-tab active" data-file="main" id="primecodeActiveFileTab">
+            <span>${config.filename}</span>
+          </button>
+        `;
+      }
+    }
+
+    // 3. Load Code into Editor
+    const editor = document.getElementById('primecodeEditor');
+    const lineNumbers = document.getElementById('primecodeLineNumbers');
+    if (editor) {
+      const codeKey = langKey === 'html' ? 'html' : langKey;
+      editor.value = getSavedCode(codeKey);
+      editor.style.fontSize = state.fontSize;
+      if (lineNumbers) {
+        lineNumbers.style.fontSize = state.fontSize;
+        updateLineNumbers(editor, lineNumbers);
+      }
+    }
+
+    // 4. Reset Output Badges & Bodies
+    const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+    if (consoleBadge) consoleBadge.style.display = 'none';
+
+    const ioBadge = document.getElementById('primecodeIoStatusBadge');
+    if (ioBadge) ioBadge.style.display = 'none';
+
+    const ioEmpty = document.getElementById('primecodeIoEmptyState');
+    if (ioEmpty) ioEmpty.style.display = 'flex';
+
+    const ioBody = document.getElementById('primecodeIoOutputBody');
+    if (ioBody) ioBody.style.display = 'none';
+
+    // 5. Default tab: 'code'
+    switchWorkspaceTab('code');
+
+    // 6. Pre-init SQLite if mysql
+    if (langKey === 'mysql' && !state.sqlDb) {
+      initSqlDatabase();
+    }
+
+    // Switch screen to workspace
+    switchScreen('workspace');
+  }
+
+  // ---- Workspace Tab Switching ----
+  function switchWorkspaceTab(tab) {
+    triggerHaptic(10);
+    state.activeTab = tab;
+
+    // Highlight active pill
+    document.querySelectorAll('.primecode-segment-pill').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+
+    const isDesktop = window.innerWidth >= 768;
+    const editorPane = document.getElementById('primecodePaneEditor');
+    const outputPane = document.getElementById('primecodePaneOutput');
+    const consoleView = document.getElementById('primecodeConsoleView');
+    const ioView = document.getElementById('primecodeIoView');
+    const previewView = document.getElementById('primecodePreviewView');
+
+    if (!isDesktop) {
+      // Mobile View Switching
+      if (tab === 'code') {
+        if (editorPane) editorPane.style.display = 'flex';
+        if (outputPane) outputPane.style.display = 'none';
+      } else {
+        if (editorPane) editorPane.style.display = 'none';
+        if (outputPane) outputPane.style.display = 'flex';
+
+        if (consoleView) consoleView.style.display = tab === 'console' ? 'flex' : 'none';
+        if (ioView) ioView.style.display = tab === 'io' ? 'flex' : 'none';
+        if (previewView) previewView.style.display = tab === 'preview' ? 'flex' : 'none';
+      }
+    } else {
+      // Desktop View (Split 2-Pane: Editor always visible on left)
+      if (editorPane) editorPane.style.display = 'flex';
+      if (outputPane) outputPane.style.display = 'flex';
+
+      if (state.activeLang === 'html') {
+        if (consoleView) consoleView.style.display = 'none';
+        if (ioView) ioView.style.display = 'none';
+        if (previewView) previewView.style.display = 'flex';
+      } else if (state.activeLang === 'mysql') {
+        if (consoleView) consoleView.style.display = 'none';
+        if (ioView) ioView.style.display = 'flex';
+        if (previewView) previewView.style.display = 'none';
+      } else {
+        // Compiler languages
+        if (tab === 'io') {
+          if (consoleView) consoleView.style.display = 'none';
+          if (ioView) ioView.style.display = 'flex';
+          if (previewView) previewView.style.display = 'none';
+        } else {
+          if (consoleView) consoleView.style.display = 'flex';
+          if (ioView) ioView.style.display = 'none';
+          if (previewView) previewView.style.display = 'none';
+        }
+      }
+    }
+  }
+
+  // ---- HTML Multi-File Switching ----
+  function switchWebFile(fileKey) {
+    triggerHaptic(10);
+    const editor = document.getElementById('primecodeEditor');
+    if (editor) {
+      // Save previous file
+      saveCode(state.activeWebFile, editor.value);
+      state.activeWebFile = fileKey;
+      editor.value = getSavedCode(fileKey);
+      const lineNumbers = document.getElementById('primecodeLineNumbers');
+      updateLineNumbers(editor, lineNumbers);
+    }
+
+    // Update active tab styling
+    document.querySelectorAll('#primecodeFileTabsTrack .primecode-file-tab').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.webFile === fileKey);
+    });
+  }
+
+  // ---- Input Call Detection ----
+  function detectInputCalls(code) {
+    if (!code) return { needsInput: false, keyword: '' };
+    if (/\b(Scanner|BufferedReader)\b/.test(code)) return { needsInput: true, keyword: 'Scanner' };
+    if (/\b(cin\s*>>|scanf\s*\()/.test(code)) return { needsInput: true, keyword: 'cin / scanf' };
+    if (/\b(input\s*\()/.test(code)) return { needsInput: true, keyword: 'input()' };
+    return { needsInput: false, keyword: '' };
+  }
+
+  // ---- ASCII Table Generator for MySQL ----
+  function formatSqlToAsciiTable(columns, values) {
+    if (!columns || columns.length === 0) return 'Query executed successfully. (0 rows returned)';
+    if (!values || values.length === 0) {
+      const colWidths = columns.map(c => Math.max(String(c).length, 3));
+      const sep = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+';
+      const hdr = '|' + columns.map((c, i) => ' ' + String(c).padEnd(colWidths[i]) + ' ').join('|') + '|';
+      return sep + '\n' + hdr + '\n' + sep + '\n(0 rows in set)';
+    }
+
+    const colWidths = columns.map((col, i) => {
+      let max = String(col).length;
+      values.forEach(row => {
+        const valStr = row[i] === null ? 'NULL' : String(row[i]);
+        if (valStr.length > max) max = valStr.length;
+      });
+      return Math.max(max, 3);
+    });
+
+    const sep = '+' + colWidths.map(w => '-'.repeat(w + 2)).join('+') + '+';
+    const hdr = '|' + columns.map((col, i) => ' ' + String(col).padEnd(colWidths[i]) + ' ').join('|') + '|';
+    const rows = values.map(row => {
+      return '|' + row.map((cell, i) => {
+        const valStr = cell === null ? 'NULL' : String(cell);
+        const isNum = !isNaN(Number(valStr)) && valStr.trim() !== '';
+        const padded = isNum ? valStr.padStart(colWidths[i]) : valStr.padEnd(colWidths[i]);
+        return ' ' + padded + ' ';
+      }).join('|') + '|';
+    });
+
+    return [sep, hdr, sep, ...rows, sep, `\n${values.length} row${values.length === 1 ? '' : 's'} in set`].join('\n');
+  }
+
+  // ---- SQLite Database Initialization ----
+  async function initSqlDatabase() {
+    if (state.sqlDb || state.sqlJsLoading) return;
+    state.sqlJsLoading = true;
+
+    try {
+      if (typeof window.initSqlJs !== 'function') {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js';
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+      }
+
+      if (typeof window.initSqlJs === 'function') {
+        const SQL = await window.initSqlJs({
+          locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+        });
+        state.sqlDb = new SQL.Database();
+        state.sqlDb.run(SQL_SEED);
+      }
+    } catch (e) {
+      console.warn('[PrimeCode] SQLite initialization error:', e);
+    } finally {
+      state.sqlJsLoading = false;
+    }
+  }
+
+  // ---- Primary Execution Engine (runPrimeCode) ----
+  async function runPrimeCode() {
+    if (state.isExecuting) return;
+    triggerHaptic(14);
+
+    const editor = document.getElementById('primecodeEditor');
+    if (!editor) return;
+
+    const lang = state.activeLang;
+
+    // === 1. HTML WEB DEV WORKSPACE ===
+    if (lang === 'html') {
+      saveCode(state.activeWebFile, editor.value);
+      const html = getSavedCode('html');
+      const css = getSavedCode('css');
+      const js = getSavedCode('js');
+
+      const iframe = document.getElementById('primecodePreviewIframe');
+      if (iframe) {
+        iframe.srcdoc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>${css}</style>
+</head>
+<body>
+  ${html}
+  <script>${js}<\/script>
+</body>
+</html>`;
+      }
+      switchWorkspaceTab('preview');
+      notify('Live preview refreshed! ⚡', 'success');
+      return;
+    }
+
+    // === 2. MYSQL QUERY EXECUTION ===
+    if (lang === 'mysql') {
+      const query = editor.value.trim();
+      if (!query) {
+        notify('Please enter a SQL query', 'info');
+        return;
+      }
+      saveCode('mysql', query);
+
+      if (!state.sqlDb) {
+        await initSqlDatabase();
+      }
+
+      const startTime = performance.now();
+      const ioStatusBadge = document.getElementById('primecodeIoStatusBadge');
+      const ioStatusText = document.getElementById('primecodeIoStatusText');
+      const ioEmpty = document.getElementById('primecodeIoEmptyState');
+      const ioBody = document.getElementById('primecodeIoOutputBody');
+      const ioPre = document.getElementById('primecodeIoOutputPre');
+
+      try {
+        if (state.sqlDb) {
+          const results = state.sqlDb.exec(query);
+          const elapsed = (performance.now() - startTime).toFixed(1);
+
+          if (!results || results.length === 0) {
+            const tableText = 'Query executed successfully. (0 rows returned)';
+            if (ioPre) ioPre.textContent = tableText;
+            if (ioStatusText) ioStatusText.textContent = `Success · ${elapsed} ms`;
+            if (ioStatusBadge) {
+              ioStatusBadge.className = 'primecode-status-badge success';
+              ioStatusBadge.style.display = 'inline-flex';
+            }
+          } else {
+            const first = results[0];
+            const tableText = formatSqlToAsciiTable(first.columns, first.values);
+            if (ioPre) ioPre.textContent = tableText;
+            if (ioStatusText) ioStatusText.textContent = `Success · ${elapsed} ms`;
+            if (ioStatusBadge) {
+              ioStatusBadge.className = 'primecode-status-badge success';
+              ioStatusBadge.style.display = 'inline-flex';
+            }
+          }
+          if (ioEmpty) ioEmpty.style.display = 'none';
+          if (ioBody) ioBody.style.display = 'block';
+          switchWorkspaceTab('io');
+          notify('SQL query executed successfully!', 'success');
+        } else {
+          if (ioPre) ioPre.textContent = `-- SQLite engine ready. Sample table: students (id, name, semester, cgpa)\n${query}`;
+          if (ioEmpty) ioEmpty.style.display = 'none';
+          if (ioBody) ioBody.style.display = 'block';
+          switchWorkspaceTab('io');
+        }
+      } catch (err) {
+        const elapsed = (performance.now() - startTime).toFixed(1);
+        if (ioPre) ioPre.textContent = `SQL Error: ${err.message || String(err)}`;
+        if (ioStatusText) ioStatusText.textContent = `Error · ${elapsed} ms`;
+        if (ioStatusBadge) {
+          ioStatusBadge.className = 'primecode-status-badge error';
+          ioStatusBadge.style.display = 'inline-flex';
+        }
+        if (ioEmpty) ioEmpty.style.display = 'none';
+        if (ioBody) ioBody.style.display = 'block';
+        switchWorkspaceTab('io');
+        notify('SQL syntax error', 'error');
+      }
+      return;
+    }
+
+    // === 3. COMPILER LANGUAGES (Java, Python, C, C++, PHP, JavaScript) ===
+    const code = editor.value;
+    const stdinInput = document.getElementById('primecodeIoInput');
+    const stdin = stdinInput ? stdinInput.value : '';
+    const hasStdin = stdin.trim().length > 0;
+
+    saveCode(lang, code);
+
+    // Smart Input Prompt Detection:
+    const inputCheck = detectInputCalls(code);
+    if (inputCheck.needsInput && !hasStdin && !state.stdinWarnedOnce) {
+      state.stdinWarnedOnce = true;
+      triggerHaptic(18);
+
+      switchWorkspaceTab('io');
+      if (stdinInput) {
+        stdinInput.placeholder = `Enter program inputs here (one per line, e.g. for ${inputCheck.keyword})...`;
+        stdinInput.focus();
+      }
+      notify(`Input Required: Enter values for ${inputCheck.keyword} in the INPUT box and tap ▶ Run`, 'info');
+      return;
+    }
+
+    state.stdinWarnedOnce = false;
+    state.isExecuting = true;
+
+    // UI Badges & Buttons state
+    const fabRun = document.getElementById('primecodeFabRun');
+    const deskRun = document.getElementById('primecodeDesktopRunBtn');
+    const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+    const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
+    const consolePre = document.getElementById('primecodeConsolePre');
+
+    const ioBadge = document.getElementById('primecodeIoStatusBadge');
+    const ioStatusText = document.getElementById('primecodeIoStatusText');
+    const ioEmpty = document.getElementById('primecodeIoEmptyState');
+    const ioBody = document.getElementById('primecodeIoOutputBody');
+    const ioPre = document.getElementById('primecodeIoOutputPre');
+
+    if (fabRun) fabRun.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running...</span>';
+    if (deskRun) deskRun.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running...</span>';
+
+    if (consoleStatusText) consoleStatusText.textContent = 'Running...';
+    if (consoleBadge) {
+      consoleBadge.className = 'primecode-status-badge running';
+      consoleBadge.style.display = 'inline-flex';
+    }
+    if (ioStatusText) ioStatusText.textContent = 'Running...';
+    if (ioBadge) {
+      ioBadge.className = 'primecode-status-badge running';
+      ioBadge.style.display = 'inline-flex';
+    }
+
+    if (consolePre) consolePre.textContent = 'Connecting to execution engine...\n';
+
+    // Switch to console view on run
+    switchWorkspaceTab('console');
+
+    const startTime = performance.now();
+
+    try {
+      // Smart Java filename resolution
+      let javaFileName = 'Main.java';
+      if (lang === 'java') {
+        const javaClassMatch = code.match(/public\s+class\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
+        if (javaClassMatch && javaClassMatch[1]) {
+          javaFileName = `${javaClassMatch[1]}.java`;
+        }
+      }
+
+      let executionResult = null;
+
+      // 1. Primary Execution Engine: Wandbox (Fast, robust, full stdin support)
+      try {
+        const wandboxCompilers = {
+          c: 'gcc-13.2.0-c',
+          cpp: 'gcc-13.2.0',
+          java: 'openjdk-jdk-21+35',
+          python: 'cpython-3.8.20',
+          php: 'php-8.3.12',
+          javascript: 'nodejs-20.17.0'
+        };
+
+        const compilerName = wandboxCompilers[lang] || wandboxCompilers.c;
+        const wandboxPayload = {
+          compiler: compilerName,
+          code: lang === 'java' ? '// BCA Java Runner' : code,
+          stdin: stdin
+        };
+
+        if (lang === 'java') {
+          wandboxPayload.codes = [{ file: javaFileName, code: code }];
+          wandboxPayload['compiler-option-raw'] = javaFileName;
+        }
+
+        const wbRes = await fetch('https://wandbox.org/api/compile.json', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(wandboxPayload)
+        });
+
+        if (wbRes.ok) {
+          const data = await wbRes.json();
+          executionResult = {
+            stdout: data.program_output || '',
+            stderr: (data.compiler_error || '') + (data.program_error || ''),
+            exitCode: parseInt(data.status, 10) || 0
+          };
+        }
+      } catch (err) {
+        console.warn('[PrimeCode] Wandbox runner error, attempting fallback:', err);
+      }
+
+      // 2. Secondary Fallback: Piston API
+      if (!executionResult) {
+        try {
+          const pistonLangs = {
+            c: { language: 'c', version: '10.2.0', file: 'main.c' },
+            cpp: { language: 'c++', version: '10.2.0', file: 'main.cpp' },
+            java: { language: 'java', version: '15.0.2', file: javaFileName },
+            python: { language: 'python', version: '3.10.0', file: 'main.py' },
+            php: { language: 'php', version: '8.2.3', file: 'main.php' },
+            javascript: { language: 'javascript', version: '18.15.0', file: 'main.js' }
+          };
+
+          const pistonConfig = pistonLangs[lang] || pistonLangs.c;
+
+          const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              language: pistonConfig.language,
+              version: pistonConfig.version,
+              files: [{ name: pistonConfig.file, content: code }],
+              stdin: stdin
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.run) {
+              executionResult = {
+                stdout: data.run.stdout || '',
+                stderr: (data.compile && data.compile.stderr) || data.run.stderr || '',
+                exitCode: data.run.code
+              };
+            }
+          }
+        } catch (err) {
+          console.warn('[PrimeCode] Secondary Piston fallback failed:', err);
+        }
+      }
+
+      const elapsed = Math.round(performance.now() - startTime);
+
+      if (executionResult) {
+        const isSuccess = executionResult.exitCode === 0 && !executionResult.stderr;
+        let outText = '';
+
+        if (executionResult.stdout) {
+          outText += executionResult.stdout;
+        }
+        if (executionResult.stderr) {
+          if (outText) outText += '\n--- Error / Stderr ---\n';
+          outText += executionResult.stderr;
+        }
+        if (!outText) {
+          outText = isSuccess ? 'Program completed with no output (exit code 0).' : `Process exited with code ${executionResult.exitCode}.`;
+        }
+
+        // Render into both Console and I/O outputs
+        if (consolePre) consolePre.textContent = outText;
+        if (ioPre) ioPre.textContent = outText;
+        if (ioEmpty) ioEmpty.style.display = 'none';
+        if (ioBody) ioBody.style.display = 'block';
+
+        const badgeClass = isSuccess ? 'primecode-status-badge success' : 'primecode-status-badge error';
+        const badgeText = isSuccess ? `Success · ${elapsed} ms` : `Exit code ${executionResult.exitCode} · ${elapsed} ms`;
+        const iconHtml = isSuccess ? '<i class="fa-solid fa-check"></i> ' : '<i class="fa-solid fa-circle-exclamation"></i> ';
+
+        if (consoleStatusText) consoleStatusText.innerHTML = `${iconHtml}${badgeText}`;
+        if (consoleBadge) {
+          consoleBadge.className = badgeClass;
+          consoleBadge.style.display = 'inline-flex';
+        }
+
+        if (ioStatusText) ioStatusText.innerHTML = `${iconHtml}${badgeText}`;
+        if (ioBadge) {
+          ioBadge.className = badgeClass;
+          ioBadge.style.display = 'inline-flex';
+        }
+
+        if (isSuccess) {
+          notify('Code executed successfully!', 'success');
+        } else {
+          notify('Program exited with error', 'error');
+        }
+      } else {
+        const fallbackMsg = 'Execution service is unreachable. Please verify your internet connection.';
+        if (consolePre) consolePre.textContent = fallbackMsg;
+        if (ioPre) ioPre.textContent = fallbackMsg;
+        if (ioEmpty) ioEmpty.style.display = 'none';
+        if (ioBody) ioBody.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('[PrimeCode] Run error:', err);
+      const errMsg = `Execution failed: ${err.message || String(err)}`;
+      if (consolePre) consolePre.textContent = errMsg;
+      if (ioPre) ioPre.textContent = errMsg;
+      if (ioEmpty) ioEmpty.style.display = 'none';
+      if (ioBody) ioBody.style.display = 'block';
+    } finally {
+      state.isExecuting = false;
+      if (fabRun) fabRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+      if (deskRun) deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+    }
+  }
+
+  // ---- BCA Practical Templates Sheet ----
+  function openPracticalTemplatesSheet() {
+    triggerHaptic(12);
+    const lang = state.activeLang;
+    const templates = BCA_PRACTICALS[lang] || [];
+
+    if (templates.length === 0) {
+      notify('Templates available for Java, Python, C, C++, PHP, MySQL & JS', 'info');
+      return;
+    }
+
+    let itemsHtml = '<div style="display:flex;flex-direction:column;gap:10px;padding:8px 0 20px;">';
+    templates.forEach((t, i) => {
+      itemsHtml += `
+        <button type="button" class="bca-pressable" data-template-idx="${i}"
+          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">${t.name}</div>
+          <i class="fa-solid fa-arrow-right" style="font-size:12px;color:#2563eb;flex-shrink:0;"></i>
+        </button>
+      `;
+    });
+    itemsHtml += '</div>';
+
+    if (window.BCA_UI && window.BCA_UI.BottomSheet) {
+      const sheet = new window.BCA_UI.BottomSheet({
+        title: `${LANG_CONFIG[lang].name} Practical Templates`,
+        content: itemsHtml
+      });
+      sheet.open();
+
+      // Listen to template selection
+      setTimeout(() => {
+        document.querySelectorAll('[data-template-idx]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.templateIdx, 10);
+            const chosen = templates[idx];
+            if (chosen) {
+              const editor = document.getElementById('primecodeEditor');
+              if (editor) {
+                editor.value = chosen.code;
+                saveCode(lang, chosen.code);
+                const lineNumbers = document.getElementById('primecodeLineNumbers');
+                updateLineNumbers(editor, lineNumbers);
+                notify(`Loaded: ${chosen.name}`, 'success');
+              }
+            }
+            sheet.close();
+          });
+        });
+      }, 50);
+    }
+  }
+
+  // ---- Options Menu Sheet ----
+  function openOptionsMenu() {
+    triggerHaptic(12);
+    const lang = state.activeLang;
+    const config = LANG_CONFIG[lang] || LANG_CONFIG.python;
+
+    const contentHtml = `
+      <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0 20px;">
+        <button type="button" id="optBcaTemplates" class="bca-pressable"
+          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <i class="fa-solid fa-book-open" style="color:#38bdf8;width:20px;text-align:center;"></i>
+          <div>
+            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">BCA Practical Templates</div>
+            <div style="font-size:12px;color:#94a3b8;">Curated university practical programs</div>
+          </div>
+        </button>
+
+        <button type="button" id="optResetCode" class="bca-pressable"
+          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <i class="fa-solid fa-rotate-left" style="color:#f59e0b;width:20px;text-align:center;"></i>
+          <div>
+            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Reset to Starter Code</div>
+            <div style="font-size:12px;color:#94a3b8;">Restore default template for ${config.name}</div>
+          </div>
+        </button>
+
+        <button type="button" id="optFontSize" class="bca-pressable"
+          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <i class="fa-solid fa-text-height" style="color:#a855f7;width:20px;text-align:center;"></i>
+          <div>
+            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Font Size: <span id="optCurrentFontSize">${state.fontSize}</span></div>
+            <div style="font-size:12px;color:#94a3b8;">Tap to toggle (13.5px / 15px / 18px)</div>
+          </div>
+        </button>
+
+        <button type="button" id="optCopyCode" class="bca-pressable"
+          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <i class="fa-regular fa-copy" style="color:#22c55e;width:20px;text-align:center;"></i>
+          <div>
+            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Copy All Code</div>
+            <div style="font-size:12px;color:#94a3b8;">Copy current file to clipboard</div>
+          </div>
+        </button>
+
+        <button type="button" id="optExportFile" class="bca-pressable"
+          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
+          <i class="fa-solid fa-download" style="color:#2563eb;width:20px;text-align:center;"></i>
+          <div>
+            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Export / Download File</div>
+            <div style="font-size:12px;color:#94a3b8;">Save ${config.filename} to device</div>
+          </div>
+        </button>
+      </div>
+    `;
+
+    if (window.BCA_UI && window.BCA_UI.BottomSheet) {
+      const sheet = new window.BCA_UI.BottomSheet({
+        title: 'PrimeCode Options',
+        content: contentHtml
+      });
+      sheet.open();
+
+      setTimeout(() => {
+        // BCA Practical Templates
+        const btnTemplates = document.getElementById('optBcaTemplates');
+        if (btnTemplates) {
+          btnTemplates.addEventListener('click', () => {
+            sheet.close();
+            setTimeout(openPracticalTemplatesSheet, 150);
+          });
+        }
+
+        // Reset code
+        const btnReset = document.getElementById('optResetCode');
+        if (btnReset) {
+          btnReset.addEventListener('click', () => {
+            const editor = document.getElementById('primecodeEditor');
+            if (editor) {
+              const defaultCode = STARTERS[lang] || '';
+              editor.value = defaultCode;
+              saveCode(lang, defaultCode);
+              const lineNumbers = document.getElementById('primecodeLineNumbers');
+              updateLineNumbers(editor, lineNumbers);
+              notify('Reset to default starter template', 'info');
+            }
+            sheet.close();
+          });
+        }
+
+        // Font size toggle
+        const btnFont = document.getElementById('optFontSize');
+        if (btnFont) {
+          btnFont.addEventListener('click', () => {
+            if (state.fontSize === '13.5px') state.fontSize = '15px';
+            else if (state.fontSize === '15px') state.fontSize = '18px';
+            else state.fontSize = '13.5px';
+
+            const editor = document.getElementById('primecodeEditor');
+            const lineNumbers = document.getElementById('primecodeLineNumbers');
+            if (editor) editor.style.fontSize = state.fontSize;
+            if (lineNumbers) lineNumbers.style.fontSize = state.fontSize;
+
+            const label = document.getElementById('optCurrentFontSize');
+            if (label) label.textContent = state.fontSize;
+            notify(`Font size: ${state.fontSize}`, 'info');
+          });
+        }
+
+        // Copy code
+        const btnCopy = document.getElementById('optCopyCode');
+        if (btnCopy) {
+          btnCopy.addEventListener('click', () => {
+            const editor = document.getElementById('primecodeEditor');
+            if (editor) {
+              navigator.clipboard.writeText(editor.value).then(() => {
+                notify('Code copied to clipboard! 📋', 'success');
+              });
+            }
+            sheet.close();
+          });
+        }
+
+        // Export file
+        const btnExport = document.getElementById('optExportFile');
+        if (btnExport) {
+          btnExport.addEventListener('click', () => {
+            sheet.close();
+            exportCurrentFile();
+          });
+        }
+      }, 50);
+    }
+  }
+
+  // ---- Export / Download File ----
+  function exportCurrentFile() {
+    triggerHaptic(12);
+    const editor = document.getElementById('primecodeEditor');
+    if (!editor) return;
+
+    const lang = state.activeLang;
+    const config = LANG_CONFIG[lang] || LANG_CONFIG.python;
+    const filename = lang === 'html' ? `${state.activeWebFile}.${state.activeWebFile === 'js' ? 'js' : state.activeWebFile === 'css' ? 'css' : 'html'}` : config.filename;
+
+    try {
+      const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      notify(`Exported ${filename} successfully!`, 'success');
+    } catch (e) {
+      navigator.clipboard.writeText(editor.value);
+      notify('Code copied to clipboard (download blocked)', 'info');
+    }
+  }
+
+  // ---- Auto-Format Current Code ----
+  function autoFormatCode() {
+    triggerHaptic(12);
+    const editor = document.getElementById('primecodeEditor');
+    if (!editor) return;
+
+    const code = editor.value;
+    const lines = code.split('\n');
+    let indentLevel = 0;
+    const formatted = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i].trim();
+      if (!line) {
+        formatted.push('');
+        continue;
+      }
+
+      // Closing bracket reduces indent
+      if (/^[}\]\)]/.test(line)) {
+        indentLevel = Math.max(0, indentLevel - 1);
+      }
+
+      formatted.push('  '.repeat(indentLevel) + line);
+
+      // Opening bracket increases indent
+      if (/[{\[\(]$/.test(line)) {
+        indentLevel++;
+      }
+    }
+
+    editor.value = formatted.join('\n');
+    saveCode(state.activeLang, editor.value);
+    const lineNumbers = document.getElementById('primecodeLineNumbers');
+    updateLineNumbers(editor, lineNumbers);
+    notify('Code formatted & indented! ✨', 'success');
+  }
+
+  // ---- Symbol Insertion at Cursor ----
   function insertSymbolAtCursor(textareaEl, symbol) {
     if (!textareaEl) return;
     textareaEl.focus();
@@ -495,904 +1698,13 @@ INSERT INTO courses VALUES
     textareaEl.value = val.substring(0, start) + insertText + val.substring(end);
     textareaEl.selectionStart = textareaEl.selectionEnd = start + cursorOffset;
 
-    // Trigger input event to update line numbers and auto-save
     textareaEl.dispatchEvent(new Event('input', { bubbles: true }));
     triggerHaptic(10);
   }
 
-  // ---- Mode A: Compiler Logic ----
-  function switchCompilerLang(lang) {
-    triggerHaptic(10);
-    // Save current before switching
-    const currentEditor = document.getElementById('codelabCompilerEditor');
-    if (currentEditor) {
-      saveCode(state.compilerLang, currentEditor.value);
-    }
-
-    state.compilerLang = lang;
-    document.querySelectorAll('.codelab-lang-pill').forEach(pill => {
-      pill.classList.toggle('active', pill.dataset.lang === lang);
-    });
-
-    renderCompilerCode();
-  }
-
-  function renderCompilerCode() {
-    const editor = document.getElementById('codelabCompilerEditor');
-    const lineNumbers = document.getElementById('codelabCompilerLines');
-    if (!editor || !lineNumbers) return;
-
-    editor.value = getSavedCode(state.compilerLang);
-    updateLineNumbers(editor, lineNumbers);
-    updateStdinUI(editor.value);
-  }
-
-  function switchCompilerMobileView(view) {
-    state.compilerMobileView = view;
-    triggerHaptic(10);
-
-    const editorToggle = document.getElementById('codelabCompilerEditorToggle');
-    const consoleToggle = document.getElementById('codelabCompilerConsoleToggle');
-    const editorPane = document.getElementById('codelabCompilerEditorPane');
-    const consolePane = document.getElementById('codelabCompilerConsolePane');
-    const symbolBar = document.getElementById('codelabCompilerSymbolBar');
-    const backToCodeBtn = document.getElementById('codelabBackToCodeBtn');
-
-    if (editorToggle && consoleToggle) {
-      editorToggle.classList.toggle('active', view === 'editor');
-      consoleToggle.classList.toggle('active', view === 'console');
-    }
-
-    if (window.innerWidth < 900) {
-      if (view === 'editor') {
-        if (editorPane) editorPane.style.display = 'flex';
-        if (consolePane) consolePane.style.display = 'none';
-        if (symbolBar) symbolBar.style.display = 'flex';
-        if (backToCodeBtn) backToCodeBtn.hidden = true;
-      } else {
-        if (editorPane) editorPane.style.display = 'none';
-        if (consolePane) consolePane.style.display = 'flex';
-        if (symbolBar) symbolBar.style.display = 'none';
-        if (backToCodeBtn) backToCodeBtn.hidden = false;
-      }
-    } else {
-      if (editorPane) editorPane.style.display = 'flex';
-      if (consolePane) consolePane.style.display = 'flex';
-      if (symbolBar) symbolBar.style.display = 'flex';
-      if (backToCodeBtn) backToCodeBtn.hidden = true;
-    }
-  }
-
-  function setStdinOpen(open, focus = false) {
-    state.stdinOpen = open;
-    const content = document.getElementById('codelabStdinContent');
-    const toggle = document.getElementById('codelabStdinToggle');
-    const chevron = document.getElementById('codelabStdinChevron');
-    const stdinInput = document.getElementById('codelabCompilerStdin');
-    if (content) content.hidden = !open;
-    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-    if (chevron) {
-      chevron.className = open ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
-    }
-    if (open && focus && stdinInput) {
-      setTimeout(() => {
-        stdinInput.focus();
-        stdinInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 50);
-    }
-  }
-
-  function toggleStdin() {
-    triggerHaptic(10);
-    setStdinOpen(!state.stdinOpen, !state.stdinOpen);
-  }
-
-  function detectInputCalls(code) {
-    if (!code) return { needsInput: false, keyword: '' };
-    const patterns = [
-      { regex: /\bScanner\s+[A-Za-z0-9_$]+\s*=\s*new\s+Scanner\s*\(\s*System\.in\s*\)/i, keyword: 'Scanner (System.in)' },
-      { regex: /\bScanner\b/, keyword: 'Scanner' },
-      { regex: /\bBufferedReader\b/, keyword: 'BufferedReader' },
-      { regex: /\bSystem\.in\b/, keyword: 'System.in' },
-      { regex: /\bscanf\s*\(/, keyword: 'scanf()' },
-      { regex: /\bcin\s*>>/, keyword: 'cin >>' },
-      { regex: /\bcin\.get\b/, keyword: 'cin.get()' },
-      { regex: /\bgetline\s*\(\s*cin\b/, keyword: 'getline(cin)' },
-      { regex: /\binput\s*\(/, keyword: 'input()' },
-      { regex: /\braw_input\s*\(/, keyword: 'raw_input()' },
-      { regex: /\bgetchar\s*\(/, keyword: 'getchar()' },
-      { regex: /\bfgets\s*\(/, keyword: 'fgets()' }
-    ];
-    for (const p of patterns) {
-      if (p.regex.test(code)) {
-        return { needsInput: true, keyword: p.keyword };
-      }
-    }
-    return { needsInput: false, keyword: '' };
-  }
-
-  function updateStdinUI(code) {
-    const wrap = document.getElementById('codelabStdinWrap');
-    const badge = document.getElementById('codelabStdinBadge');
-    const hint = document.getElementById('codelabStdinHint');
-    const stdinInput = document.getElementById('codelabCompilerStdin');
-    if (!stdinInput) return;
-
-    const hasInputText = stdinInput.value.trim().length > 0;
-    const { needsInput, keyword } = detectInputCalls(code);
-
-    if (badge) {
-      if (hasInputText) {
-        badge.hidden = false;
-        badge.textContent = 'Input Ready';
-        badge.style.background = 'rgba(34, 197, 94, 0.2)';
-        badge.style.color = '#22c55e';
-        badge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
-      } else if (needsInput) {
-        badge.hidden = false;
-        badge.textContent = 'Input Needed';
-        badge.style.background = 'rgba(245, 158, 11, 0.2)';
-        badge.style.color = '#f59e0b';
-        badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-      } else {
-        badge.hidden = true;
-      }
-    }
-
-    if (wrap) {
-      wrap.classList.toggle('codelab-stdin-needed', needsInput && !hasInputText);
-    }
-
-    if (hint) {
-      if (hasInputText) {
-        hint.textContent = 'Stdin configured';
-      } else if (needsInput) {
-        hint.textContent = `${keyword} detected`;
-      } else {
-        hint.textContent = 'For Scanner, cin, scanf, input()';
-      }
-    }
-
-    if (needsInput && !hasInputText) {
-      stdinInput.placeholder = `Enter program inputs here (one per line, e.g. for ${keyword})...`;
-    } else {
-      stdinInput.placeholder = 'Enter program inputs here (one per line)...';
-    }
-  }
-
-  // Compiler Execution Engine (Piston + Wandbox resilient fallback)
-  async function runCompilerCode() {
-    if (state.isExecuting) return;
-    triggerHaptic(15);
-
-    const editor = document.getElementById('codelabCompilerEditor');
-    const consoleOutput = document.getElementById('codelabCompilerConsole');
-    const statusText = document.getElementById('codelabCompilerStatus');
-    const runBtn = document.getElementById('codelabCompilerRunBtn');
-    const stdinInput = document.getElementById('codelabCompilerStdin');
-
-    if (!editor || !consoleOutput || !runBtn) return;
-
-    const code = editor.value;
-    const stdin = stdinInput ? stdinInput.value : '';
-    const hasStdin = stdin.trim().length > 0;
-    const lang = state.compilerLang;
-
-    // Save code to localStorage
-    saveCode(lang, code);
-
-    // Smart Input Prompt Detection:
-    // If code contains input calls and stdin box is empty, automatically expand/focus stdin panel
-    const inputCheck = detectInputCalls(code);
-    if (inputCheck.needsInput && !hasStdin && !state.stdinWarnedOnce) {
-      setStdinOpen(true, true);
-      state.stdinWarnedOnce = true;
-      triggerHaptic(20);
-
-      if (statusText) {
-        statusText.innerHTML = `<span style="color:#f59e0b"><i class="fa-solid fa-triangle-exclamation"></i> Input needed for ${inputCheck.keyword}</span>`;
-      }
-
-      consoleOutput.innerHTML = `
-<div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;color:#f59e0b;font-size:13px;line-height:1.5;">
-  <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13.5px;">
-    <i class="fa-solid fa-triangle-exclamation"></i> Input Required: ${inputCheck.keyword} detected
-  </div>
-  Your program expects user input from standard input (stdin).<br>
-  Please enter your input values (one per line) in the <strong>Custom Input (stdin)</strong> panel below and tap <strong>▶ Run Code</strong>.
-</div>`;
-
-      // On mobile, switch to console view so user immediately sees both the prompt and the stdin box right below it
-      if (window.innerWidth < 900) {
-        switchCompilerMobileView('console');
-      }
-      return;
-    }
-
-    state.stdinWarnedOnce = false;
-
-    // On mobile, switch to console view so user immediately sees execution
-    if (window.innerWidth < 900) {
-      switchCompilerMobileView('console');
-    }
-
-    state.isExecuting = true;
-    runBtn.disabled = true;
-    runBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running...</span>';
-    if (statusText) statusText.textContent = 'Compiling & executing...';
-    consoleOutput.innerHTML = '<span class="codelab-console-info">Connecting to execution engine...</span>\n';
-
-    const startTime = performance.now();
-
-    try {
-      // Smart Java filename resolution (matches `public class <ClassName>`, defaults to Main.java)
-      let javaFileName = 'Main.java';
-      if (lang === 'java') {
-        const javaClassMatch = code.match(/public\s+class\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
-        if (javaClassMatch && javaClassMatch[1]) {
-          javaFileName = `${javaClassMatch[1]}.java`;
-        }
-      }
-
-      // 1. First attempt: Piston Execution API
-      let executionResult = null;
-
-      try {
-        const pistonLangs = {
-          c: { language: 'c', version: '10.2.0', file: 'main.c' },
-          cpp: { language: 'c++', version: '10.2.0', file: 'main.cpp' },
-          java: { language: 'java', version: '15.0.2', file: javaFileName },
-          python: { language: 'python', version: '3.10.0', file: 'main.py' },
-          php: { language: 'php', version: '8.2.3', file: 'main.php' },
-          javascript: { language: 'javascript', version: '18.15.0', file: 'main.js' }
-        };
-
-        const pistonConfig = pistonLangs[lang] || pistonLangs.c;
-
-        const response = await fetch('https://emkc.org/api/v2/piston/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            language: pistonConfig.language,
-            version: pistonConfig.version,
-            files: [{ name: pistonConfig.file, content: code }],
-            stdin: stdin
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.run) {
-            executionResult = {
-              stdout: data.run.stdout || '',
-              stderr: (data.compile && data.compile.stderr) || data.run.stderr || '',
-              exitCode: data.run.code
-            };
-          }
-        }
-      } catch (err) {
-        console.warn('[CodeLab] Piston API unavailable, trying Wandbox runner:', err);
-      }
-
-      // 2. Resilient Fallback: Wandbox Engine (Free, open & robust for C, C++, Java, Python)
-      if (!executionResult) {
-        if (statusText) statusText.textContent = 'Executing via live compiler...';
-        
-        const wandboxCompilers = {
-          c: 'gcc-13.2.0-c',
-          cpp: 'gcc-13.2.0',
-          java: 'openjdk-jdk-21+35',
-          python: 'cpython-3.8.20',
-          php: 'php-8.3.12',
-          javascript: 'nodejs-20.17.0'
-        };
-
-        const compilerName = wandboxCompilers[lang] || wandboxCompilers.c;
-
-        const wandboxPayload = {
-          compiler: compilerName,
-          code: lang === 'java' ? '// BCA Java Runner' : code,
-          stdin: stdin
-        };
-
-        // For Java on Wandbox: Wandbox default file is prog.java, which causes javac to throw:
-        // "class Main is public, should be declared in a file named Main.java".
-        // Providing the Java file via `codes` and specifying it in `compiler-option-raw`
-        // instructs javac to compile `${javaFileName}` correctly.
-        if (lang === 'java') {
-          wandboxPayload.codes = [
-            {
-              file: javaFileName,
-              code: code
-            }
-          ];
-          wandboxPayload['compiler-option-raw'] = javaFileName;
-        }
-
-        const wandboxRes = await fetch('https://wandbox.org/api/compile.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(wandboxPayload)
-        });
-
-        if (wandboxRes.ok) {
-          const wData = await wandboxRes.json();
-          executionResult = {
-            stdout: wData.program_output || '',
-            stderr: wData.compiler_error || wData.program_error || '',
-            exitCode: parseInt(wData.status || '0', 10)
-          };
-        } else {
-          throw new Error(`Compiler service returned status: ${wandboxRes.status}`);
-        }
-      }
-
-      const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
-
-      // Render Console Output
-      let html = '';
-      if (executionResult.stdout) {
-        html += `<span>${escapeHtml(executionResult.stdout)}</span>`;
-      }
-
-      if (executionResult.stderr) {
-        html += `<span class="codelab-console-error">\n--- Compiler Error / Stderr ---\n${escapeHtml(executionResult.stderr)}</span>`;
-        if (
-          executionResult.stderr.includes('NoSuchElementException') ||
-          executionResult.stderr.includes('EOFError') ||
-          (executionResult.stderr.includes('Scanner') && executionResult.stderr.includes('Exception'))
-        ) {
-          html += `\n<div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;color:#f59e0b;font-size:12px;line-height:1.45;">💡 <strong>Input Tip:</strong> Program stopped because it expected user input from <code>Scanner</code> / <code>stdin</code>.<br>Enter your values (e.g. <code>1</code>, <code>2</code>, <code>5</code> on separate lines) in <strong>Custom Input (stdin)</strong> below and tap <strong>Run Code</strong>.</div>`;
-          setStdinOpen(true);
-        }
-      }
-
-      if (!executionResult.stdout && !executionResult.stderr) {
-        html += '<span class="codelab-console-info">Program finished with no output. (Exit Code ' + executionResult.exitCode + ')</span>';
-      }
-
-      consoleOutput.innerHTML = html;
-      if (statusText) {
-        const exitColor = executionResult.exitCode === 0 ? '#4ade80' : '#f87171';
-        statusText.innerHTML = `Finished in <strong>${elapsed}s</strong> &middot; <span style="color:${exitColor}">Exit code ${executionResult.exitCode}</span>`;
-      }
-
-      if (executionResult.exitCode === 0) {
-        notify('Program executed successfully! ⚡', 'success');
-        // Context-Aware PrimeBuddy celebration reaction for clean code run
-        try {
-          window.dispatchEvent(new CustomEvent('primebuddy:react', {
-            detail: { type: 'celebrate', message: 'Clean code run! ⚡' }
-          }));
-        } catch (_e) {}
-      } else {
-        notify('Execution finished with error', 'error');
-      }
-
-      // Track Code Lab execution event in analytics
-      try {
-        if (typeof trackEvent === 'function') {
-          trackEvent('codelab_run', {
-            title: currentLang,
-            type: 'code_execution',
-            seconds: parseFloat(elapsed) || 0,
-            results: executionResult.exitCode === 0 ? 1 : 0
-          });
-        }
-      } catch (_e) {}
-
-    } catch (error) {
-      console.error('[CodeLab] Execution error:', error);
-      consoleOutput.innerHTML = `<span class="codelab-console-error">Execution Failed:\n${escapeHtml(error.message || String(error))}</span>`;
-      if (statusText) statusText.textContent = 'Execution failed';
-      notify('Execution failed: check connection', 'error');
-    } finally {
-      state.isExecuting = false;
-      runBtn.disabled = false;
-      runBtn.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run Code</span>';
-    }
-  }
-
-  // ---- Mode B: Web Dev Logic ----
-  function switchWebFile(file) {
-    triggerHaptic(10);
-    // Save current
-    const editor = document.getElementById('codelabWebEditor');
-    if (editor) {
-      saveCode(state.webFile, editor.value);
-    }
-
-    state.webFile = file;
-    document.querySelectorAll('.codelab-file-tab').forEach(tab => {
-      tab.classList.toggle('active', tab.dataset.file === file);
-    });
-
-    renderWebdevCode();
-  }
-
-  function renderWebdevCode() {
-    const editor = document.getElementById('codelabWebEditor');
-    const lineNumbers = document.getElementById('codelabWebLines');
-    if (!editor || !lineNumbers) return;
-
-    editor.value = getSavedCode(state.webFile);
-    updateLineNumbers(editor, lineNumbers);
-  }
-
-  function switchWebMobileView(view) {
-    state.webMobileView = view;
-    triggerHaptic(10);
-
-    const editorToggle = document.getElementById('codelabWebEditorToggle');
-    const previewToggle = document.getElementById('codelabWebPreviewToggle');
-    const editorPane = document.getElementById('codelabWebEditorPane');
-    const previewPane = document.getElementById('codelabWebPreviewPane');
-    const symbolBar = document.getElementById('codelabWebSymbolBar');
-
-    if (editorToggle && previewToggle) {
-      editorToggle.classList.toggle('active', view === 'editor');
-      previewToggle.classList.toggle('active', view === 'preview');
-    }
-
-    if (window.innerWidth < 900) {
-      if (view === 'editor') {
-        if (editorPane) editorPane.style.display = 'flex';
-        if (previewPane) previewPane.style.display = 'none';
-        if (symbolBar) symbolBar.style.display = 'flex';
-      } else {
-        if (editorPane) editorPane.style.display = 'none';
-        if (previewPane) previewPane.style.display = 'flex';
-        if (symbolBar) symbolBar.style.display = 'none';
-        updateWebLivePreview();
-      }
-    } else {
-      if (editorPane) editorPane.style.display = 'flex';
-      if (previewPane) previewPane.style.display = 'flex';
-      if (symbolBar) symbolBar.style.display = 'flex';
-    }
-  }
-
-  function updateWebLivePreview() {
-    const iframe = document.getElementById('codelabWebPreviewFrame');
-    if (!iframe) return;
-
-    // Save current active tab first
-    const activeEditor = document.getElementById('codelabWebEditor');
-    if (activeEditor) {
-      saveCode(state.webFile, activeEditor.value);
-    }
-
-    const html = getSavedCode('html');
-    const css = getSavedCode('css');
-    const js = getSavedCode('js');
-
-    const combinedDoc = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <style>${css}</style>
-        </head>
-        <body>
-          ${html}
-          <script>${js}<\/script>
-        </body>
-      </html>
-    `;
-
-    iframe.srcdoc = combinedDoc;
-  }
-
-  // ---- Mode C: SQL Lab Logic ----
-  async function initSqlDatabase() {
-    const statusEl = document.getElementById('codelabSqlStatus');
-    if (state.sqlDb) {
-      if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-database" style="color:#4ade80"></i> SQLite 3 Ready';
-      return;
-    }
-
-    if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Initializing SQLite WASM...';
-
-    try {
-      if (typeof window.initSqlJs === 'function') {
-        const SQL = await window.initSqlJs({
-          locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/${file}`
-        });
-        state.sqlDb = new SQL.Database();
-        state.sqlDb.run(SQL_SEED);
-        if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-database" style="color:#4ade80"></i> SQLite 3 WASM Ready';
-        notify('SQLite database pre-seeded with Students & Courses!', 'success');
-      } else {
-        if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-database" style="color:#38bdf8"></i> SQL Lab Ready';
-      }
-    } catch (err) {
-      console.warn('[CodeLab] sql.js initialization warning:', err);
-      if (statusEl) statusEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> SQL Lab (Offline Mode)';
-    }
-  }
-
-  function renderSqlCode() {
-    const editor = document.getElementById('codelabSqlEditor');
-    const lineNumbers = document.getElementById('codelabSqlLines');
-    if (!editor || !lineNumbers) return;
-
-    editor.value = getSavedCode('sql');
-    updateLineNumbers(editor, lineNumbers);
-  }
-
-  function switchSqlMobileView(view) {
-    state.sqlMobileView = view;
-    triggerHaptic(10);
-
-    const editorToggle = document.getElementById('codelabSqlEditorToggle');
-    const resultsToggle = document.getElementById('codelabSqlResultsToggle');
-    const editorPane = document.getElementById('codelabSqlEditorPane');
-    const resultsPane = document.getElementById('codelabSqlResultsPane');
-    const symbolBar = document.getElementById('codelabSqlSymbolBar');
-    const backToCodeBtn = document.getElementById('codelabSqlBackToCodeBtn');
-
-    if (editorToggle && resultsToggle) {
-      editorToggle.classList.toggle('active', view === 'editor');
-      resultsToggle.classList.toggle('active', view === 'results');
-    }
-
-    if (window.innerWidth < 900) {
-      if (view === 'editor') {
-        if (editorPane) editorPane.style.display = 'flex';
-        if (resultsPane) resultsPane.style.display = 'none';
-        if (symbolBar) symbolBar.style.display = 'flex';
-        if (backToCodeBtn) backToCodeBtn.hidden = true;
-      } else {
-        if (editorPane) editorPane.style.display = 'none';
-        if (resultsPane) resultsPane.style.display = 'flex';
-        if (symbolBar) symbolBar.style.display = 'none';
-        if (backToCodeBtn) backToCodeBtn.hidden = false;
-      }
-    } else {
-      if (editorPane) editorPane.style.display = 'flex';
-      if (resultsPane) resultsPane.style.display = 'flex';
-      if (symbolBar) symbolBar.style.display = 'flex';
-      if (backToCodeBtn) backToCodeBtn.hidden = true;
-    }
-  }
-
-  function insertSqlQuery(query) {
-    triggerHaptic(10);
-    const editor = document.getElementById('codelabSqlEditor');
-    if (!editor) return;
-
-    editor.value = query;
-    saveCode('sql', query);
-    updateLineNumbers(editor, document.getElementById('codelabSqlLines'));
-    runSqlQuery();
-  }
-
-  function resetSqlDb() {
-    triggerHaptic(14);
-    if (state.sqlDb) {
-      try {
-        state.sqlDb.close();
-      } catch (e) {}
-      state.sqlDb = null;
-    }
-    initSqlDatabase();
-    notify('Database reset to fresh sample state!', 'success');
-  }
-
-  async function runSqlQuery() {
-    triggerHaptic(15);
-    const editor = document.getElementById('codelabSqlEditor');
-    const resultWrap = document.getElementById('codelabSqlResultWrap');
-    const statusText = document.getElementById('codelabSqlMeta');
-
-    if (!editor || !resultWrap) return;
-
-    const query = editor.value.trim();
-    if (!query) {
-      notify('Please enter a SQL query', 'info');
-      return;
-    }
-
-    saveCode('sql', query);
-
-    // On mobile, switch to results view
-    if (window.innerWidth < 900) {
-      switchSqlMobileView('results');
-    }
-
-    if (!state.sqlDb) {
-      await initSqlDatabase();
-    }
-
-    const startTime = performance.now();
-
-    try {
-      if (state.sqlDb) {
-        const results = state.sqlDb.exec(query);
-        const elapsed = ((performance.now() - startTime)).toFixed(1);
-
-        if (!results || results.length === 0) {
-          resultWrap.innerHTML = `
-            <div style="padding: 18px; color: #4ade80; text-align: center; font-family: 'JetBrains Mono', monospace;">
-              <i class="fa-solid fa-circle-check"></i> Query executed successfully. (0 rows returned in ${elapsed}ms)
-            </div>
-          `;
-          if (statusText) statusText.textContent = `Executed in ${elapsed}ms`;
-          notify('SQL query executed successfully!', 'success');
-          return;
-        }
-
-        const firstResult = results[0];
-        const columns = firstResult.columns;
-        const values = firstResult.values;
-
-        let tableHtml = '<table class="codelab-data-table"><thead><tr>';
-        columns.forEach(col => {
-          tableHtml += `<th>${escapeHtml(col)}</th>`;
-        });
-        tableHtml += '</tr></thead><tbody>';
-
-        values.forEach(row => {
-          tableHtml += '<tr>';
-          row.forEach(cell => {
-            tableHtml += `<td>${cell === null ? '<em style="color:#64748b">NULL</em>' : escapeHtml(String(cell))}</td>`;
-          });
-          tableHtml += '</tr>';
-        });
-        tableHtml += '</tbody></table>';
-
-        resultWrap.innerHTML = tableHtml;
-        if (statusText) {
-          statusText.innerHTML = `Returned <strong>${values.length} rows</strong> in ${elapsed}ms`;
-        }
-        notify(`Returned ${values.length} rows`, 'success');
-      } else {
-        resultWrap.innerHTML = `
-          <div style="padding: 16px; color: #38bdf8; text-align: center;">
-            <p><strong>Query received:</strong> <code>${escapeHtml(query)}</code></p>
-            <p style="color:#94a3b8; font-size:12px;">SQLite engine is loading or running in offline mock mode.</p>
-          </div>
-        `;
-      }
-    } catch (err) {
-      console.error('[CodeLab] SQL Query Error:', err);
-      resultWrap.innerHTML = `
-        <div style="padding: 16px; color: #f87171; font-family: 'JetBrains Mono', monospace;">
-          <strong><i class="fa-solid fa-triangle-exclamation"></i> SQL Error:</strong><br>
-          ${escapeHtml(err.message || String(err))}
-        </div>
-      `;
-      if (statusText) statusText.textContent = 'Query failed';
-      notify('SQL syntax error', 'error');
-    }
-  }
-
-  // ---- Extra Actions: Copy Code & Reset ----
-  async function copyCurrentCode() {
-    triggerHaptic(12);
-    let codeToCopy = '';
-
-    if (state.mode === 'compiler') {
-      const editor = document.getElementById('codelabCompilerEditor');
-      codeToCopy = editor ? editor.value : '';
-    } else if (state.mode === 'webdev') {
-      const editor = document.getElementById('codelabWebEditor');
-      codeToCopy = editor ? editor.value : '';
-    } else if (state.mode === 'sqllab') {
-      const editor = document.getElementById('codelabSqlEditor');
-      codeToCopy = editor ? editor.value : '';
-    }
-
-    if (!codeToCopy) {
-      notify('No code to copy', 'info');
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(codeToCopy);
-      notify('Code copied to clipboard! 📋', 'success');
-    } catch (e) {
-      notify('Failed to copy code', 'error');
-    }
-  }
-
-  function resetCurrentCode() {
-    triggerHaptic(14);
-    if (state.mode === 'compiler') {
-      const lang = state.compilerLang;
-      saveCode(lang, STARTERS[lang]);
-      renderCompilerCode();
-      notify(`Reset ${lang.toUpperCase()} starter template`, 'info');
-    } else if (state.mode === 'webdev') {
-      const file = state.webFile;
-      saveCode(file, STARTERS[file]);
-      renderWebdevCode();
-      updateWebLivePreview();
-      notify(`Reset ${file.toUpperCase()} file template`, 'info');
-    } else if (state.mode === 'sqllab') {
-      saveCode('sql', STARTERS.sql);
-      renderSqlCode();
-      notify('Reset sample SQL query', 'info');
-    }
-  }
-
-  function clearConsoleOutput() {
-    triggerHaptic(10);
-    const consoleOutput = document.getElementById('codelabCompilerConsole');
-    if (consoleOutput) {
-      consoleOutput.innerHTML = '<span class="codelab-console-info">Console cleared. Ready to run code.</span>';
-    }
-    const statusText = document.getElementById('codelabCompilerStatus');
-    if (statusText) statusText.textContent = 'Ready';
-  }
-
-  // Helper: HTML Escaping
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  // Debounced auto-save on input
-  function setupEditorListeners(editorId, lineNumbersId, getLangKey, onChangeCallback) {
-    const editor = document.getElementById(editorId);
-    const lineNumbers = document.getElementById(lineNumbersId);
-    if (!editor) return;
-
-    let debounceTimer = null;
-
-    editor.addEventListener('input', () => {
-      updateLineNumbers(editor, lineNumbers);
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        saveCode(getLangKey(), editor.value);
-        if (typeof onChangeCallback === 'function') onChangeCallback();
-      }, 300);
-    });
-
-    editor.addEventListener('scroll', () => {
-      if (lineNumbers) lineNumbers.scrollTop = editor.scrollTop;
-    });
-
-    // Support Tab indentation
-    editor.addEventListener('keydown', e => {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        insertSymbolAtCursor(editor, '  ');
-      }
-    });
-  }
-
-  // ---- Initialize Event Handlers ----
+  // ---- Initialize PrimeCode Event Handlers ----
   function initCodeLab() {
-    // Mode switcher buttons
-    document.querySelectorAll('.codelab-mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => switchMode(btn.dataset.mode));
-    });
-
-    // Compiler language pills
-    document.querySelectorAll('.codelab-lang-pill').forEach(pill => {
-      pill.addEventListener('click', () => switchCompilerLang(pill.dataset.lang));
-    });
-
-    // Compiler mobile view toggle buttons
-    const compEditorToggle = document.getElementById('codelabCompilerEditorToggle');
-    if (compEditorToggle) compEditorToggle.addEventListener('click', () => switchCompilerMobileView('editor'));
-
-    const compConsoleToggle = document.getElementById('codelabCompilerConsoleToggle');
-    if (compConsoleToggle) compConsoleToggle.addEventListener('click', () => switchCompilerMobileView('console'));
-
-    const backToCodeBtn = document.getElementById('codelabBackToCodeBtn');
-    if (backToCodeBtn) backToCodeBtn.addEventListener('click', () => switchCompilerMobileView('editor'));
-
-    // Web dev file tabs
-    document.querySelectorAll('.codelab-file-tab').forEach(tab => {
-      tab.addEventListener('click', () => switchWebFile(tab.dataset.file));
-    });
-
-    // Web dev mobile view buttons
-    const webEditorToggle = document.getElementById('codelabWebEditorToggle');
-    if (webEditorToggle) webEditorToggle.addEventListener('click', () => switchWebMobileView('editor'));
-
-    const webPreviewToggle = document.getElementById('codelabWebPreviewToggle');
-    if (webPreviewToggle) webPreviewToggle.addEventListener('click', () => switchWebMobileView('preview'));
-
-    // SQL mobile view toggle buttons
-    const sqlEditorToggle = document.getElementById('codelabSqlEditorToggle');
-    if (sqlEditorToggle) sqlEditorToggle.addEventListener('click', () => switchSqlMobileView('editor'));
-
-    const sqlResultsToggle = document.getElementById('codelabSqlResultsToggle');
-    if (sqlResultsToggle) sqlResultsToggle.addEventListener('click', () => switchSqlMobileView('results'));
-
-    const sqlBackToCodeBtn = document.getElementById('codelabSqlBackToCodeBtn');
-    if (sqlBackToCodeBtn) sqlBackToCodeBtn.addEventListener('click', () => switchSqlMobileView('editor'));
-
-    // Quick symbol toolbars
-    document.querySelectorAll('.codelab-sym-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const symbol = btn.dataset.sym || btn.textContent.trim();
-        let targetTextarea = null;
-
-        if (state.mode === 'compiler') {
-          targetTextarea = document.getElementById('codelabCompilerEditor');
-        } else if (state.mode === 'webdev') {
-          targetTextarea = document.getElementById('codelabWebEditor');
-        } else if (state.mode === 'sqllab') {
-          targetTextarea = document.getElementById('codelabSqlEditor');
-        }
-
-        if (symbol === 'Clear') {
-          if (targetTextarea) {
-            targetTextarea.value = '';
-            targetTextarea.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-        } else if (symbol === 'Reset') {
-          resetCurrentCode();
-        } else {
-          insertSymbolAtCursor(targetTextarea, symbol);
-        }
-      });
-    });
-
-    // Setup input listeners for auto-save & line numbers
-    setupEditorListeners('codelabCompilerEditor', 'codelabCompilerLines', () => state.compilerLang, () => {
-      const ed = document.getElementById('codelabCompilerEditor');
-      if (ed) updateStdinUI(ed.value);
-    });
-    setupEditorListeners('codelabWebEditor', 'codelabWebLines', () => state.webFile, () => updateWebLivePreview());
-    setupEditorListeners('codelabSqlEditor', 'codelabSqlLines', () => 'sql');
-
-    // Stdin live detection listener
-    const stdinInput = document.getElementById('codelabCompilerStdin');
-    if (stdinInput) {
-      stdinInput.addEventListener('input', () => {
-        state.stdinWarnedOnce = false;
-        const ed = document.getElementById('codelabCompilerEditor');
-        if (ed) updateStdinUI(ed.value);
-      });
-    }
-
-    // Action buttons
-    const runBtn = document.getElementById('codelabCompilerRunBtn');
-    if (runBtn) runBtn.addEventListener('click', runCompilerCode);
-
-    const webRunBtn = document.getElementById('codelabWebRunBtn');
-    if (webRunBtn) webRunBtn.addEventListener('click', () => {
-      triggerHaptic(12);
-      updateWebLivePreview();
-      notify('Live preview refreshed! ⚡', 'success');
-    });
-
-    const sqlRunBtn = document.getElementById('codelabSqlRunBtn');
-    if (sqlRunBtn) sqlRunBtn.addEventListener('click', runSqlQuery);
-
-    const stdinToggle = document.getElementById('codelabStdinToggle');
-    if (stdinToggle) stdinToggle.addEventListener('click', toggleStdin);
-
-    const clearConsoleBtn = document.getElementById('codelabClearConsoleBtn');
-    if (clearConsoleBtn) clearConsoleBtn.addEventListener('click', clearConsoleOutput);
-
-    const copyBtn = document.getElementById('codelabCopyBtn');
-    if (copyBtn) copyBtn.addEventListener('click', copyCurrentCode);
-
-    const resetBtn = document.getElementById('codelabResetBtn');
-    if (resetBtn) resetBtn.addEventListener('click', resetCurrentCode);
-
-    // Workspace Back Button: returns to PrimeCode Language Picker
-    const backBtn = document.getElementById('codelabBackBtn');
-    if (backBtn) {
-      backBtn.addEventListener('click', () => {
-        triggerHaptic(10);
-        switchScreen('picker');
-      });
-    }
-
-    // Step 1: PrimeCode Splash Tap to Skip
+    // 1. Splash tap to skip
     const splashEl = document.getElementById('primecodeSplash');
     if (splashEl) {
       splashEl.addEventListener('click', () => {
@@ -1401,7 +1713,7 @@ INSERT INTO courses VALUES
       });
     }
 
-    // Step 2: Language Picker Back Button (returns to Study Desk)
+    // 2. Language Picker Back Button (returns to Study Desk)
     const pickerBackBtn = document.getElementById('primecodePickerBackBtn');
     if (pickerBackBtn) {
       pickerBackBtn.addEventListener('click', () => {
@@ -1410,79 +1722,165 @@ INSERT INTO courses VALUES
       });
     }
 
-    // Step 2: Language Picker Cards (1 per row)
+    // 3. Language Cards Click
     document.querySelectorAll('.primecode-lang-card').forEach(card => {
       card.addEventListener('click', () => {
-        triggerHaptic(12);
-        const target = card.dataset.cardLang;
-        if (target === 'sqllab') {
-          switchMode('sqllab');
-        } else if (target === 'webdev') {
-          switchMode('webdev');
-        } else {
-          // target is c, cpp, java, python, php, or javascript
-          state.mode = 'compiler';
-          switchCompilerLang(target);
-          switchMode('compiler');
-        }
-        switchScreen('workspace');
+        const lang = card.dataset.cardLang;
+        const targetLang = lang === 'sqllab' ? 'mysql' : lang === 'webdev' ? 'html' : lang;
+        openLanguage(targetLang);
       });
     });
 
-    // Step 2: Request a language footer button
+    // 4. Request Language button
     const reqLangBtn = document.getElementById('primecodeRequestLangBtn');
     if (reqLangBtn) {
       reqLangBtn.addEventListener('click', () => {
-        triggerHaptic(12);
-        if (typeof window.openFeedback === 'function') {
-          window.openFeedback();
-        } else {
-          notify('Request a language: Share what language you need in Feedback!', 'info');
+        triggerHaptic(10);
+        if (typeof window.openFeedback === 'function') window.openFeedback();
+        else notify('Share requested languages in Feedback!', 'info');
+      });
+    }
+
+    // 5. Open Full Compiler button
+    const openAllBtn = document.getElementById('primecodeOpenAllLangsBtn');
+    if (openAllBtn) {
+      openAllBtn.addEventListener('click', () => {
+        openLanguage('python');
+      });
+    }
+
+    // 6. Workspace Header Back Button (returns to Language Picker)
+    const backBtn = document.getElementById('primecodeBackBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        triggerHaptic(10);
+        const editor = document.getElementById('primecodeEditor');
+        if (editor) saveCode(state.activeLang, editor.value);
+        switchScreen('picker');
+      });
+    }
+
+    // 7. Segmented Nav Pills
+    document.querySelectorAll('.primecode-segment-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        switchWorkspaceTab(pill.dataset.tab);
+      });
+    });
+
+    // 8. Header Actions (Cloud export, Options menu, Desktop run)
+    const exportBtn = document.getElementById('primecodeExportBtn');
+    if (exportBtn) exportBtn.addEventListener('click', exportCurrentFile);
+
+    const optionsBtn = document.getElementById('primecodeOptionsBtn');
+    if (optionsBtn) optionsBtn.addEventListener('click', openOptionsMenu);
+
+    const deskRunBtn = document.getElementById('primecodeDesktopRunBtn');
+    if (deskRunBtn) deskRunBtn.addEventListener('click', runPrimeCode);
+
+    // 9. File Bar Actions (Format, Practical Templates)
+    const formatBtn = document.getElementById('primecodeFormatBtn');
+    if (formatBtn) formatBtn.addEventListener('click', autoFormatCode);
+
+    const addFileBtn = document.getElementById('primecodeAddFileBtn');
+    if (addFileBtn) addFileBtn.addEventListener('click', openPracticalTemplatesSheet);
+
+    // 10. Quick Symbols Bar
+    document.querySelectorAll('.primecode-sym-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const editor = document.getElementById('primecodeEditor');
+        insertSymbolAtCursor(editor, chip.dataset.sym);
+      });
+    });
+
+    // 11. Code Editor Input & Keyboard Listeners
+    const editor = document.getElementById('primecodeEditor');
+    const lineNumbers = document.getElementById('primecodeLineNumbers');
+    if (editor) {
+      editor.addEventListener('input', () => {
+        state.stdinWarnedOnce = false;
+        saveCode(state.activeLang === 'html' ? state.activeWebFile : state.activeLang, editor.value);
+        updateLineNumbers(editor, lineNumbers);
+      });
+
+      editor.addEventListener('scroll', () => {
+        if (lineNumbers) lineNumbers.scrollTop = editor.scrollTop;
+      });
+
+      // Keyboard enhancements: Tab key, bracket pairing
+      editor.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          insertSymbolAtCursor(editor, '  ');
         }
       });
     }
 
-    // Step 2: Open Full Compiler (All Languages) ↗
-    const openAllLangsBtn = document.getElementById('primecodeOpenAllLangsBtn');
-    if (openAllLangsBtn) {
-      openAllLangsBtn.addEventListener('click', () => {
-        triggerHaptic(12);
-        switchMode('compiler');
-        switchScreen('workspace');
+    // 12. Floating Action Buttons (FAB Assist & Run)
+    const fabAssist = document.getElementById('primecodeFabAssist');
+    if (fabAssist) fabAssist.addEventListener('click', openPracticalTemplatesSheet);
+
+    const fabRun = document.getElementById('primecodeFabRun');
+    if (fabRun) fabRun.addEventListener('click', runPrimeCode);
+
+    // 13. Console Output Actions (Copy, Clear)
+    const consoleCopy = document.getElementById('primecodeConsoleCopyBtn');
+    if (consoleCopy) {
+      consoleCopy.addEventListener('click', () => {
+        triggerHaptic(10);
+        const pre = document.getElementById('primecodeConsolePre');
+        if (pre && pre.textContent) {
+          navigator.clipboard.writeText(pre.textContent).then(() => {
+            notify('Console output copied! 📋', 'success');
+          });
+        }
       });
     }
 
-    // Handle window resize for mobile vs desktop layout
+    const consoleClear = document.getElementById('primecodeConsoleClearBtn');
+    if (consoleClear) {
+      consoleClear.addEventListener('click', () => {
+        triggerHaptic(10);
+        const pre = document.getElementById('primecodeConsolePre');
+        if (pre) pre.innerHTML = '<span class="primecode-console-placeholder">Console cleared. Press \'▶ Run\' to execute.</span>';
+        const badge = document.getElementById('primecodeConsoleStatusBadge');
+        if (badge) badge.style.display = 'none';
+        notify('Console cleared', 'info');
+      });
+    }
+
+    // 14. I/O Output Actions (Copy)
+    const ioCopy = document.getElementById('primecodeIoCopyBtn');
+    if (ioCopy) {
+      ioCopy.addEventListener('click', () => {
+        triggerHaptic(10);
+        const pre = document.getElementById('primecodeIoOutputPre');
+        if (pre && pre.textContent) {
+          navigator.clipboard.writeText(pre.textContent).then(() => {
+            notify('Output copied to clipboard! 📋', 'success');
+          });
+        }
+      });
+    }
+
+    // 15. Responsive resize handler (sync split pane)
     window.addEventListener('resize', () => {
-      if (state.mode === 'compiler') {
-        switchCompilerMobileView(state.compilerMobileView);
-      } else if (state.mode === 'webdev') {
-        switchWebMobileView(state.webMobileView);
-      } else if (state.mode === 'sqllab') {
-        switchSqlMobileView(state.sqlMobileView);
-      }
+      switchWorkspaceTab(state.activeTab);
     });
 
-    // Check if initial hash is #primecode or #codelab
+    // Check hash for initial deep-link
     if (location.hash === '#primecode' || location.hash === '#codelab') {
       openCodeLab('splash');
     }
   }
 
-  // Export functions to window
+  // Export functions globally
   window.openCodeLab = openCodeLab;
   window.closeCodeLab = closeCodeLab;
   window.openCodeLabRoute = openCodeLabRoute;
-  window.switchPrimeCodeScreen = switchScreen;
-  window.setShowParentBrand = setShowParentBrand;
-  window.switchCodeLabMode = switchMode;
-  window.switchCompilerMobileView = switchCompilerMobileView;
-  window.switchWebMobileView = switchWebMobileView;
-  window.switchSqlMobileView = switchSqlMobileView;
-  window.insertSqlQuery = insertSqlQuery;
-  window.resetSqlDb = resetSqlDb;
+  window.openPrimeCodeLanguage = openLanguage;
+  window.switchPrimeCodeTab = switchWorkspaceTab;
+  window.runPrimeCode = runPrimeCode;
 
-  // Initialize on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initCodeLab);
   } else {

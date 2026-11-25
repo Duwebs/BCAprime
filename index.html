@@ -232,7 +232,7 @@
   <link rel="stylesheet" href="styles.css?v=89">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=8">
-  <link rel="stylesheet" href="codelab.css?v=20">
+  <link rel="stylesheet" href="codelab.css?v=22">
   <link rel="stylesheet" href="primeBuddy.css?v=16">
 </head>
 <body>
@@ -1968,7 +1968,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">Python</span>
-                  <span class="primecode-card-desc">Python 3.10 &middot; Data Science &amp; Automation</span>
+                  <span class="primecode-card-tag">Python 3.10</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -1982,7 +1982,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">Java</span>
-                  <span class="primecode-card-desc">Java 21 &middot; OOP, Methods &amp; Core Logic</span>
+                  <span class="primecode-card-tag">Java 21</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -1996,7 +1996,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">C</span>
-                  <span class="primecode-card-desc">GCC 13 &middot; Pointers, Memory &amp; Procedural Code</span>
+                  <span class="primecode-card-tag">GCC 13</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -2010,7 +2010,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">C++</span>
-                  <span class="primecode-card-desc">G++ 13 &middot; Fast STL, Vectors &amp; Algorithms</span>
+                  <span class="primecode-card-tag">G++ 13</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -2024,7 +2024,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">PHP</span>
-                  <span class="primecode-card-desc">PHP 8.3 &middot; Server-Side Web Scripting &amp; APIs</span>
+                  <span class="primecode-card-tag">PHP 8.3</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -2038,7 +2038,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">MySQL</span>
-                  <span class="primecode-card-desc">Relational SQL &middot; Queries, Tables &amp; SQLite</span>
+                  <span class="primecode-card-tag">MySQL / SQL</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -2052,7 +2052,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">HTML</span>
-                  <span class="primecode-card-desc">HTML5, CSS3 &amp; JS &middot; Multi-File Web Workspace</span>
+                  <span class="primecode-card-tag">HTML &middot; CSS &middot; JS</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -2066,7 +2066,7 @@
                 </div>
                 <div class="primecode-card-info">
                   <span class="primecode-card-name">JavaScript</span>
-                  <span class="primecode-card-desc">Node.js 20 &middot; Standalone Script &amp; Console Runner</span>
+                  <span class="primecode-card-tag">Node.js 20</span>
                 </div>
               </div>
               <div class="primecode-card-arrow"><i class="fa-solid fa-chevron-right"></i></div>
@@ -2089,265 +2089,185 @@
       </div>
     </div>
 
-    <!-- Step 3: Active PrimeCode Workspace -->
+    <!-- Step 3: Active PrimeCode Workspace (Exact Mobile-First IDE Architecture) -->
     <div class="primecode-workspace-wrap" id="primecodeWorkspace" hidden>
-      <!-- Header -->
-      <header class="codelab-header">
-        <div class="codelab-header-left">
-          <button type="button" class="codelab-back-btn bca-pressable" id="codelabBackBtn" aria-label="Back to languages">
-            <i class="fa-solid fa-arrow-left"></i>
-            <span class="codelab-back-text">Languages</span>
+      <!-- Top Navigation Header -->
+      <header class="primecode-ide-header" id="primecodeIdeHeader">
+        <div class="primecode-header-left">
+          <button type="button" class="primecode-icon-btn bca-pressable" id="primecodeBackBtn" aria-label="Back to language selector">
+            <i class="fa-solid fa-chevron-left"></i>
           </button>
-          <div class="codelab-title-wrap">
-            <span class="codelab-header-icon">
-              <svg viewBox="0 0 100 100" fill="none" width="20" height="20" aria-hidden="true">
-                <polygon points="31,24 45,28 38,38" fill="#2563EB"/>
-                <polygon points="50,14 62,28 50,42 38,28" fill="#2563EB"/>
-                <polygon points="69,24 62,38 55,28" fill="#2563EB"/>
-                <path d="M43 37 L21 51 L43 66" stroke="#2563EB" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M57 37 L79 51 L57 66" stroke="#2563EB" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <polygon points="44,39 44,63 64,51" fill="#FFFFFF"/>
-              </svg>
-            </span>
-            <h2 class="codelab-title" id="codeLabTitle"><span class="primecode-word-prime">Prime</span><span class="primecode-word-code">Code</span></h2>
-            <span class="codelab-title-badge">BCA</span>
-          </div>
         </div>
-        <div class="codelab-header-actions">
-          <button type="button" class="codelab-action-btn bca-pressable" id="codelabCopyBtn" title="Copy code" aria-label="Copy code">
-            <i class="fa-regular fa-copy"></i>
-            <span class="codelab-action-text">Copy</span>
+
+        <!-- Center: Rounded Segmented Pill Switcher tailored to language -->
+        <nav class="primecode-segmented-nav" id="primecodeSegmentedNav" aria-label="PrimeCode Views">
+          <button type="button" class="primecode-segment-pill active bca-pressable" data-tab="code" id="primecodeTabCode">
+            <span>Code</span>
           </button>
-          <button type="button" class="codelab-action-btn bca-pressable" id="codelabResetBtn" title="Reset starter template" aria-label="Reset starter template">
-            <i class="fa-solid fa-rotate-left"></i>
-            <span class="codelab-action-text">Reset</span>
+          <button type="button" class="primecode-segment-pill bca-pressable" data-tab="console" id="primecodeTabConsole">
+            <span>Console</span>
+          </button>
+          <button type="button" class="primecode-segment-pill bca-pressable" data-tab="io" id="primecodeTabIo">
+            <span>I/O</span>
+          </button>
+          <button type="button" class="primecode-segment-pill bca-pressable" data-tab="preview" id="primecodeTabPreview" style="display: none;">
+            <span>Preview</span>
+          </button>
+        </nav>
+
+        <!-- Right: Export, Options & Desktop Run Action -->
+        <div class="primecode-header-right">
+          <button type="button" class="primecode-icon-btn bca-pressable" id="primecodeExportBtn" title="Export / Download File" aria-label="Export file">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </button>
+          <button type="button" class="primecode-icon-btn bca-pressable" id="primecodeOptionsBtn" title="PrimeCode Options" aria-label="Options menu">
+            <i class="fa-solid fa-ellipsis-vertical"></i>
+          </button>
+          <button type="button" class="primecode-desktop-run-btn bca-pressable" id="primecodeDesktopRunBtn" aria-label="Run Code">
+            <i class="fa-solid fa-play"></i>
+            <span>Run</span>
           </button>
         </div>
       </header>
 
-      <!-- Mode Switcher -->
-      <nav class="codelab-mode-bar" aria-label="PrimeCode Modes">
-        <div class="codelab-mode-segments">
-          <button type="button" class="codelab-mode-btn active" data-mode="compiler">
-            <i class="fa-solid fa-terminal"></i> <span>Compiler</span>
+      <!-- File Tab Bar (Below Header) -->
+      <div class="primecode-file-bar" id="primecodeFileBar">
+        <div class="primecode-file-bar-left">
+          <span class="primecode-folder-icon" aria-hidden="true">
+            <i class="fa-regular fa-folder"></i>
+          </span>
+          <div class="primecode-file-tabs-track" id="primecodeFileTabsTrack">
+            <!-- Active file pill (dynamically rendered, e.g. Main.java, or index.html/styles.css/script.js) -->
+            <button type="button" class="primecode-file-tab active" data-file="main" id="primecodeActiveFileTab">
+              <span>Main.java</span>
+            </button>
+          </div>
+        </div>
+        <div class="primecode-file-bar-right">
+          <button type="button" class="primecode-file-action-btn bca-pressable" id="primecodeFormatBtn" title="Auto-Format / Indent Code" aria-label="Format code">
+            <i class="fa-solid fa-bars-staggered"></i>
           </button>
-          <button type="button" class="codelab-mode-btn" data-mode="webdev">
-            <i class="fa-solid fa-globe"></i> <span>Web Dev</span>
-          </button>
-          <button type="button" class="codelab-mode-btn" data-mode="sqllab">
-            <i class="fa-solid fa-database"></i> <span>SQL Lab</span>
+          <button type="button" class="primecode-file-action-btn bca-pressable" id="primecodeAddFileBtn" title="BCA Practical Templates" aria-label="BCA Templates">
+            <i class="fa-solid fa-plus"></i>
           </button>
         </div>
-      </nav>
+      </div>
 
-      <!-- Main Container -->
-      <main class="codelab-body">
-        <!-- Mode A: Compiler -->
-        <section class="codelab-compiler-view" id="codelabCompilerView">
-          <div class="codelab-sub-toolbar">
-            <div class="codelab-lang-pills">
-              <button type="button" class="codelab-lang-pill active" data-lang="c">C</button>
-              <button type="button" class="codelab-lang-pill" data-lang="cpp">C++</button>
-              <button type="button" class="codelab-lang-pill" data-lang="java">Java</button>
-              <button type="button" class="codelab-lang-pill" data-lang="python">Python</button>
-              <button type="button" class="codelab-lang-pill" data-lang="php">PHP</button>
-              <button type="button" class="codelab-lang-pill" data-lang="javascript">JavaScript</button>
+      <!-- Quick Symbols Toolbar (Compact) -->
+      <div class="primecode-quick-symbols" id="primecodeQuickSymbols" aria-label="Quick code symbols">
+        <button type="button" class="primecode-sym-chip" data-sym="{ }">{ }</button>
+        <button type="button" class="primecode-sym-chip" data-sym="( )">( )</button>
+        <button type="button" class="primecode-sym-chip" data-sym="[ ]">[ ]</button>
+        <button type="button" class="primecode-sym-chip" data-sym=";">;</button>
+        <button type="button" class="primecode-sym-chip" data-sym='" "'>" "</button>
+        <button type="button" class="primecode-sym-chip" data-sym="' ">' '</button>
+        <button type="button" class="primecode-sym-chip" data-sym="=">=</button>
+        <button type="button" class="primecode-sym-chip" data-sym="<">&lt;</button>
+        <button type="button" class="primecode-sym-chip" data-sym=">">&gt;</button>
+        <button type="button" class="primecode-sym-chip" data-sym="Tab">Tab</button>
+      </div>
+
+      <!-- Main IDE Workspace Container (Mobile Tabbed / Desktop 2-Pane Split) -->
+      <div class="primecode-workspace-grid" id="primecodeWorkspaceGrid">
+        <!-- PANE 1: Editor Pane (Left on Desktop, Tabbed on Mobile) -->
+        <div class="primecode-pane primecode-editor-pane" id="primecodePaneEditor">
+          <div class="primecode-editor-wrapper">
+            <div class="primecode-line-numbers" id="primecodeLineNumbers">
+              <span>1 <i class="fa-solid fa-caret-down fold-caret"></i></span>
             </div>
-          <!-- Mobile View Toggle (Editor vs Console) -->
-          <div class="codelab-view-toggle-wrap">
-            <button type="button" class="codelab-toggle-pill-btn active" id="codelabCompilerEditorToggle" data-view="editor">
-              <i class="fa-solid fa-code"></i> Code
-            </button>
-            <button type="button" class="codelab-toggle-pill-btn" id="codelabCompilerConsoleToggle" data-view="console">
-              <i class="fa-solid fa-terminal"></i> Console
-            </button>
+            <textarea class="primecode-editor-textarea" id="primecodeEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="PrimeCode Code Editor"></textarea>
           </div>
         </div>
 
-        <!-- Quick Symbol Toolbar -->
-        <div class="codelab-symbol-toolbar" id="codelabCompilerSymbolBar" aria-label="Quick code symbols">
-          <button type="button" class="codelab-sym-btn" data-sym="{ }">{ }</button>
-          <button type="button" class="codelab-sym-btn" data-sym="( )">( )</button>
-          <button type="button" class="codelab-sym-btn" data-sym="[ ]">[ ]</button>
-          <button type="button" class="codelab-sym-btn" data-sym=";">;</button>
-          <button type="button" class="codelab-sym-btn" data-sym='" "'>" "</button>
-          <button type="button" class="codelab-sym-btn" data-sym="' ">' '</button>
-          <button type="button" class="codelab-sym-btn" data-sym="=">=</button>
-          <button type="button" class="codelab-sym-btn" data-sym="<">&lt;</button>
-          <button type="button" class="codelab-sym-btn" data-sym=">">&gt;</button>
-          <button type="button" class="codelab-sym-btn" data-sym="Tab">Tab</button>
-          <button type="button" class="codelab-sym-btn" data-sym="Clear">Clear</button>
-        </div>
-
-        <!-- Split Panes: Editor on Left, Output on Right -->
-        <div class="codelab-split-container">
-          <div class="codelab-editor-pane" id="codelabCompilerEditorPane">
-            <div class="codelab-editor-wrap">
-              <div class="codelab-line-numbers" id="codelabCompilerLines">1</div>
-              <textarea class="codelab-code-input" id="codelabCompilerEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Compiler code editor"></textarea>
+        <!-- PANE 2: Output Pane (Right on Desktop, Tabbed on Mobile) -->
+        <div class="primecode-pane primecode-output-pane" id="primecodePaneOutput">
+          <!-- View A: Console View -->
+          <div class="primecode-subview primecode-console-subview" id="primecodeConsoleView">
+            <div class="primecode-section-header">
+              <div class="primecode-section-title-wrap">
+                <span class="primecode-section-title">CONSOLE</span>
+                <span class="primecode-status-badge success" id="primecodeConsoleStatusBadge" style="display: none;">
+                  <i class="fa-solid fa-check"></i> <span id="primecodeConsoleStatusText">Success · 0 ms</span>
+                </span>
+              </div>
+              <div class="primecode-section-actions">
+                <button type="button" class="primecode-section-btn bca-pressable" id="primecodeConsoleCopyBtn" title="Copy Output" aria-label="Copy Output">
+                  <i class="fa-regular fa-copy"></i>
+                </button>
+                <button type="button" class="primecode-section-btn bca-pressable" id="primecodeConsoleClearBtn" title="Clear Console" aria-label="Clear Console">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
             </div>
-          </div>
-
-          <div class="codelab-console-pane" id="codelabCompilerConsolePane">
-            <div class="codelab-console-head">
-              <span class="codelab-console-title"><i class="fa-solid fa-laptop-code"></i> Output Console</span>
-              <button type="button" class="codelab-sym-btn" id="codelabClearConsoleBtn" title="Clear console">Clear</button>
-            </div>
-            <div class="codelab-console-output" id="codelabCompilerConsole">
-              <span class="codelab-console-info">Press '▶ Run Code' to execute. Output will appear here.</span>
+            <div class="primecode-console-body" id="primecodeConsoleBody">
+              <pre class="primecode-console-pre" id="primecodeConsolePre"><span class="primecode-console-placeholder">Press '▶ Run' to compile and execute. Console output will appear here.</span></pre>
             </div>
           </div>
-        </div>
 
-        <!-- Collapsible Stdin Panel (Accessible in both Editor and Console views) -->
-        <div class="codelab-stdin-wrap" id="codelabStdinWrap">
-          <button type="button" class="codelab-stdin-toggle" id="codelabStdinToggle" aria-expanded="false" aria-controls="codelabStdinContent">
-            <span class="codelab-stdin-toggle-left">
-              <i class="fa-solid fa-terminal" style="font-size:11px"></i>
-              <span>Custom Input (stdin)</span>
-              <span class="codelab-stdin-badge" id="codelabStdinBadge" hidden>Input Needed</span>
-            </span>
-            <span class="codelab-stdin-toggle-right">
-              <span class="codelab-stdin-hint" id="codelabStdinHint">For Scanner, cin, scanf, input()</span>
-              <i class="fa-solid fa-chevron-down" id="codelabStdinChevron"></i>
-            </span>
-          </button>
-          <div class="codelab-stdin-content" id="codelabStdinContent" hidden>
-            <textarea class="codelab-stdin-input" id="codelabCompilerStdin" placeholder="Enter program inputs here (one per line)..." spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off"></textarea>
-          </div>
-        </div>
-
-        <!-- Primary Execution Bar -->
-        <div class="codelab-exec-bar">
-          <div class="codelab-exec-status" id="codelabCompilerStatus">Ready</div>
-          <div class="codelab-exec-actions">
-            <button type="button" class="codelab-backto-btn" id="codelabBackToCodeBtn" hidden>
-              <i class="fa-solid fa-code"></i> <span>Editor</span>
-            </button>
-            <button type="button" class="codelab-run-btn bca-pressable" id="codelabCompilerRunBtn">
-              <i class="fa-solid fa-play"></i>
-              <span>Run Code</span>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <!-- Mode B: Web Dev Playground -->
-      <section class="codelab-webdev-view" id="codelabWebdevView" hidden>
-        <div class="codelab-sub-toolbar">
-          <div class="codelab-file-tabs">
-            <button type="button" class="codelab-file-tab active" data-file="html">
-              <i class="fa-brands fa-html5" style="color: #f97316;"></i> index.html
-            </button>
-            <button type="button" class="codelab-file-tab" data-file="css">
-              <i class="fa-brands fa-css3-alt" style="color: #38bdf8;"></i> style.css
-            </button>
-            <button type="button" class="codelab-file-tab" data-file="js">
-              <i class="fa-brands fa-js" style="color: #facc15;"></i> script.js
-            </button>
-          </div>
-          <div class="codelab-view-toggle-wrap">
-            <button type="button" class="codelab-toggle-pill-btn active" id="codelabWebEditorToggle" data-view="editor">Editor</button>
-            <button type="button" class="codelab-toggle-pill-btn" id="codelabWebPreviewToggle" data-view="preview">Preview</button>
-          </div>
-        </div>
-
-        <div class="codelab-symbol-toolbar" id="codelabWebSymbolBar" aria-label="Quick web symbols">
-          <button type="button" class="codelab-sym-btn" data-sym="<">&lt;</button>
-          <button type="button" class="codelab-sym-btn" data-sym=">">&gt;</button>
-          <button type="button" class="codelab-sym-btn" data-sym="{ }">{ }</button>
-          <button type="button" class="codelab-sym-btn" data-sym="( )">( )</button>
-          <button type="button" class="codelab-sym-btn" data-sym="=">=</button>
-          <button type="button" class="codelab-sym-btn" data-sym=";">;</button>
-          <button type="button" class="codelab-sym-btn" data-sym='" "'>" "</button>
-          <button type="button" class="codelab-sym-btn" data-sym="Tab">Tab</button>
-          <button type="button" class="codelab-sym-btn" data-sym="Clear">Clear</button>
-        </div>
-
-        <div class="codelab-web-content">
-          <div class="codelab-web-editor-pane" id="codelabWebEditorPane">
-            <div class="codelab-editor-wrap">
-              <div class="codelab-line-numbers" id="codelabWebLines">1</div>
-              <textarea class="codelab-code-input" id="codelabWebEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Web code editor"></textarea>
+          <!-- View B: I/O View (Input stdin on top, Output on bottom) -->
+          <div class="primecode-subview primecode-io-subview" id="primecodeIoView" style="display: none;">
+            <!-- Top Input (stdin) Section -->
+            <div class="primecode-io-input-section">
+              <div class="primecode-section-header">
+                <div class="primecode-section-title-wrap">
+                  <span class="primecode-section-title">INPUT</span>
+                  <span class="primecode-input-hint" id="primecodeIoInputHint">For Scanner, cin, scanf, input()</span>
+                </div>
+              </div>
+              <div class="primecode-io-input-box">
+                <textarea class="primecode-io-textarea" id="primecodeIoInput" placeholder="Program input (optional)" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Program standard input"></textarea>
+              </div>
             </div>
-          </div>
-          <div class="codelab-preview-pane" id="codelabWebPreviewPane">
-            <iframe class="codelab-preview-frame" id="codelabWebPreviewFrame" sandbox="allow-scripts allow-modals" title="Live Web Preview"></iframe>
-          </div>
-        </div>
 
-        <div class="codelab-exec-bar">
-          <div class="codelab-exec-status">Instant Live Preview Active</div>
-          <div class="codelab-exec-actions">
-            <button type="button" class="codelab-run-btn bca-pressable" id="codelabWebRunBtn">
-              <i class="fa-solid fa-bolt"></i>
-              <span>Refresh Preview</span>
-            </button>
-          </div>
-        </div>
-      </section>
+            <!-- Bottom Output Section -->
+            <div class="primecode-io-output-section">
+              <div class="primecode-section-header">
+                <div class="primecode-section-title-wrap">
+                  <span class="primecode-section-title">OUTPUT</span>
+                  <span class="primecode-status-badge success" id="primecodeIoStatusBadge" style="display: none;">
+                    <i class="fa-solid fa-check"></i> <span id="primecodeIoStatusText">Success · 0 ms</span>
+                  </span>
+                </div>
+                <div class="primecode-section-actions">
+                  <button type="button" class="primecode-section-btn bca-pressable" id="primecodeIoCopyBtn" title="Copy Output" aria-label="Copy output">
+                    <i class="fa-regular fa-copy"></i>
+                  </button>
+                </div>
+              </div>
 
-      <!-- Mode C: SQL Lab (SQLite Sandbox) -->
-      <section class="codelab-sql-view" id="codelabSqlView" hidden>
-        <div class="codelab-sub-toolbar">
-          <div class="codelab-sql-chips">
-            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT * FROM students;')">SELECT * Students</button>
-            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT * FROM courses;')">SELECT * Courses</button>
-            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT id, name, semester, cgpa FROM students WHERE semester = 3 ORDER BY cgpa DESC;')">Top Sem 3</button>
-            <button type="button" class="codelab-sql-chip" onclick="insertSqlQuery('SELECT s.name, s.semester, c.course_name FROM students s JOIN courses c ON s.semester = c.semester;')">JOIN Query</button>
-            <button type="button" class="codelab-sql-chip" onclick="resetSqlDb()" title="Reset to fresh sample database"><i class="fa-solid fa-rotate-left"></i> Reset DB</button>
-          </div>
-          <div class="codelab-view-toggle-wrap">
-            <button type="button" class="codelab-toggle-pill-btn active" id="codelabSqlEditorToggle" data-view="editor">Editor</button>
-            <button type="button" class="codelab-toggle-pill-btn" id="codelabSqlResultsToggle" data-view="results">Results</button>
-          </div>
-        </div>
+              <!-- Empty State before execution (Circular play icon) -->
+              <div class="primecode-io-empty-state" id="primecodeIoEmptyState">
+                <div class="primecode-io-empty-icon">
+                  <i class="fa-solid fa-play"></i>
+                </div>
+                <div class="primecode-io-empty-title">No output yet</div>
+                <div class="primecode-io-empty-desc">Run your code to see the output here</div>
+              </div>
 
-        <div class="codelab-symbol-toolbar" id="codelabSqlSymbolBar" aria-label="Quick SQL keywords">
-          <button type="button" class="codelab-sym-btn" data-sym="SELECT ">SELECT</button>
-          <button type="button" class="codelab-sym-btn" data-sym="FROM ">FROM</button>
-          <button type="button" class="codelab-sym-btn" data-sym="WHERE ">WHERE</button>
-          <button type="button" class="codelab-sym-btn" data-sym="ORDER BY ">ORDER BY</button>
-          <button type="button" class="codelab-sym-btn" data-sym="JOIN ">JOIN</button>
-          <button type="button" class="codelab-sym-btn" data-sym="*">*</button>
-          <button type="button" class="codelab-sym-btn" data-sym=";">;</button>
-          <button type="button" class="codelab-sym-btn" data-sym="Clear">Clear</button>
-        </div>
-
-        <div class="codelab-split-container">
-          <div class="codelab-editor-pane" id="codelabSqlEditorPane">
-            <div class="codelab-editor-wrap">
-              <div class="codelab-line-numbers" id="codelabSqlLines">1</div>
-              <textarea class="codelab-code-input" id="codelabSqlEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="SQL query editor"></textarea>
-            </div>
-          </div>
-          <div class="codelab-sql-result-pane" id="codelabSqlResultsPane">
-            <div class="codelab-console-head">
-              <span class="codelab-console-title"><i class="fa-solid fa-table"></i> Query Results</span>
-              <span class="codelab-exec-status" id="codelabSqlMeta" style="font-size:11.5px;">Ready</span>
-            </div>
-            <div class="codelab-table-wrap" id="codelabSqlResultWrap">
-              <div style="padding: 16px; color: #94a3b8; text-align: center; font-size: 13px;">
-                Tap '▶ Run SQL Query' or choose a quick query above to view results table.
+              <!-- Output Body after execution -->
+              <div class="primecode-io-output-body" id="primecodeIoOutputBody" style="display: none;">
+                <pre class="primecode-io-pre" id="primecodeIoOutputPre"></pre>
               </div>
             </div>
           </div>
-        </div>
 
-        <div class="codelab-exec-bar">
-          <div class="codelab-exec-status" id="codelabSqlStatus"><i class="fa-solid fa-database" style="color:#38bdf8"></i> SQLite 3 Ready</div>
-          <div class="codelab-exec-actions">
-            <button type="button" class="codelab-backto-btn" id="codelabSqlBackToCodeBtn" hidden>
-              <i class="fa-solid fa-code"></i> <span>Editor</span>
-            </button>
-            <button type="button" class="codelab-run-btn bca-pressable" id="codelabSqlRunBtn">
-              <i class="fa-solid fa-play"></i>
-              <span>Run SQL</span>
-            </button>
+          <!-- View C: HTML Web Preview -->
+          <div class="primecode-subview primecode-preview-subview" id="primecodePreviewView" style="display: none;">
+            <iframe class="primecode-preview-iframe" id="primecodePreviewIframe" sandbox="allow-scripts allow-modals" title="PrimeCode Live Web Preview"></iframe>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+
+      <!-- Floating Bottom-Right Action Controls (Mobile & Tablet) -->
+      <div class="primecode-floating-actions" id="primecodeFloatingActions">
+        <button type="button" class="primecode-fab-assist bca-pressable" id="primecodeFabAssist" title="Quick BCA Templates & AI Assistant" aria-label="Assistant & Templates">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </button>
+        <button type="button" class="primecode-fab-run bca-pressable" id="primecodeFabRun" aria-label="Run Code">
+          <i class="fa-solid fa-play"></i>
+          <span>Run</span>
+        </button>
+      </div>
     </div> <!-- /primecodeWorkspace -->
   </div> <!-- /codeLabModal -->
 
@@ -2676,7 +2596,7 @@
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
-  <script src="codelab.js?v=20"></script>
+  <script src="codelab.js?v=21"></script>
   <script src="primeBuddy.js?v=16"></script>
 </body>
 </html>
