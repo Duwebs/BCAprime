@@ -232,7 +232,7 @@
   <link rel="stylesheet" href="styles.css?v=89">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=8">
-  <link rel="stylesheet" href="codelab.css?v=22">
+  <link rel="stylesheet" href="codelab.css?v=24">
   <link rel="stylesheet" href="primeBuddy.css?v=16">
 </head>
 <body>
@@ -581,13 +581,19 @@
         <button type="button" class="qa-featured-card bca-pressable" id="qaCodeLabBtn" onclick="openCodeLabRoute()" aria-label="PrimeCode — Run Python, Java, C, C++, PHP, MySQL, HTML & JavaScript live">
           <div class="qa-featured-left">
             <span class="qa-icon-wrap qa-icon-codelab">
-              <svg class="primecode-card-logo-svg" viewBox="0 0 100 100" fill="none" width="24" height="24" aria-hidden="true">
-                <polygon points="31,24 45,28 38,38" fill="#2563EB"/>
-                <polygon points="50,14 62,28 50,42 38,28" fill="#2563EB"/>
-                <polygon points="69,24 62,38 55,28" fill="#2563EB"/>
-                <path d="M43 37 L21 51 L43 66" stroke="#2563EB" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M57 37 L79 51 L57 66" stroke="#2563EB" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <polygon points="44,39 44,63 64,51" fill="#FFFFFF"/>
+              <svg class="primecode-card-logo-svg" viewBox="0 0 120 120" fill="none" width="24" height="24" aria-label="PrimeCode Logo">
+                <!-- 1. Center Crown Diamond -->
+                <polygon points="60,12 75,27 60,42 45,27" fill="#2563EB" />
+                <!-- 2. Left Crown Wing (vertex kisses center diamond at 45,27) -->
+                <polygon points="24,16 45,27 29,43" fill="#2563EB" />
+                <!-- 3. Right Crown Wing (vertex kisses center diamond at 75,27) -->
+                <polygon points="96,16 75,27 91,43" fill="#2563EB" />
+                <!-- 4. Left Code Chevron (<) with crisp beveled ends -->
+                <polygon points="41,40 41,51 23,66 41,81 41,92 10,66" fill="#2563EB" />
+                <!-- 5. Right Code Chevron (>) with crisp beveled ends -->
+                <polygon points="79,40 79,51 97,66 79,81 79,92 110,66" fill="#2563EB" />
+                <!-- 6. Center Pure White Play Triangle -->
+                <polygon points="51,50 75,66 51,82" fill="#FFFFFF" />
               </svg>
             </span>
             <div class="qa-featured-info">
@@ -1914,19 +1920,25 @@
 
       <!-- Center Stack -->
       <div class="primecode-splash-center" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 100%; max-width: 320px; margin: 0 auto;">
-        <svg class="primecode-splash-logo" viewBox="0 0 100 100" width="80" height="80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"
-          style="width: 80px; height: 80px; max-width: 80px; max-height: 80px; min-width: 80px; min-height: 80px; display: block; margin: 0 auto 20px auto; flex-shrink: 0;">
-          <!-- Top: Crisp royal-blue (#2563EB) 3-point geometric crown -->
-          <polygon points="31,24 45,28 38,38" fill="#2563EB"/>
-          <polygon points="50,14 62,28 50,42 38,28" fill="#2563EB"/>
-          <polygon points="69,24 62,38 55,28" fill="#2563EB"/>
-          
-          <!-- Sides: Left and right royal-blue (#2563EB) angled code brackets (< and >) -->
-          <path d="M43 37 L21 51 L43 66" stroke="#2563EB" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M57 37 L79 51 L57 66" stroke="#2563EB" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
-          
-          <!-- Center: Sharp pure white (#FFFFFF) play triangle (▶) -->
-          <polygon points="44,39 44,63 64,51" fill="#FFFFFF"/>
+        <svg class="primecode-splash-logo" viewBox="0 0 120 120" width="96" height="96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="PrimeCode Logo"
+          style="width: 96px; height: 96px; max-width: 96px; max-height: 96px; min-width: 96px; min-height: 96px; display: block; margin: 0 auto 20px auto; flex-shrink: 0;">
+          <!-- 1. Center Crown Diamond -->
+          <polygon points="60,12 75,27 60,42 45,27" fill="#2563EB" />
+
+          <!-- 2. Left Crown Wing (vertex kisses center diamond at 45,27) -->
+          <polygon points="24,16 45,27 29,43" fill="#2563EB" />
+
+          <!-- 3. Right Crown Wing (vertex kisses center diamond at 75,27) -->
+          <polygon points="96,16 75,27 91,43" fill="#2563EB" />
+
+          <!-- 4. Left Code Chevron (<) with crisp beveled ends -->
+          <polygon points="41,40 41,51 23,66 41,81 41,92 10,66" fill="#2563EB" />
+
+          <!-- 5. Right Code Chevron (>) with crisp beveled ends -->
+          <polygon points="79,40 79,51 97,66 79,81 79,92 110,66" fill="#2563EB" />
+
+          <!-- 6. Center Pure White Play Triangle -->
+          <polygon points="51,50 75,66 51,82" fill="#FFFFFF" />
         </svg>
 
         <h1 class="primecode-splash-wordmark" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Barlow Condensed', sans-serif; font-size: 38px; font-weight: 700; letter-spacing: -0.025em; line-height: 1; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; text-align: center;">
