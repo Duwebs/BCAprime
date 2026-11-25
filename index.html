@@ -2119,9 +2119,6 @@
           <button type="button" class="primecode-segment-pill bca-pressable" data-tab="console" id="primecodeTabConsole">
             <span>Console</span>
           </button>
-          <button type="button" class="primecode-segment-pill bca-pressable" data-tab="io" id="primecodeTabIo">
-            <span>I/O</span>
-          </button>
           <button type="button" class="primecode-segment-pill bca-pressable" data-tab="preview" id="primecodeTabPreview" style="display: none;">
             <span>Preview</span>
           </button>
@@ -2214,53 +2211,13 @@
             <div class="primecode-console-body" id="primecodeConsoleBody">
               <pre class="primecode-console-pre" id="primecodeConsolePre"><span class="primecode-console-placeholder">Press '▶ Run' to compile and execute. Console output will appear here.</span></pre>
             </div>
-          </div>
-
-          <!-- View B: I/O View (Input stdin on top, Output on bottom) -->
-          <div class="primecode-subview primecode-io-subview" id="primecodeIoView" style="display: none;">
-            <!-- Top Input (stdin) Section -->
-            <div class="primecode-io-input-section">
-              <div class="primecode-section-header">
-                <div class="primecode-section-title-wrap">
-                  <span class="primecode-section-title">INPUT</span>
-                  <span class="primecode-input-hint" id="primecodeIoInputHint">For Scanner, cin, scanf, input()</span>
-                </div>
-              </div>
-              <div class="primecode-io-input-box">
-                <textarea class="primecode-io-textarea" id="primecodeIoInput" placeholder="Program input (optional)" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Program standard input"></textarea>
-              </div>
-            </div>
-
-            <!-- Bottom Output Section -->
-            <div class="primecode-io-output-section">
-              <div class="primecode-section-header">
-                <div class="primecode-section-title-wrap">
-                  <span class="primecode-section-title">OUTPUT</span>
-                  <span class="primecode-status-badge success" id="primecodeIoStatusBadge" style="display: none;">
-                    <i class="fa-solid fa-check"></i> <span id="primecodeIoStatusText">Success · 0 ms</span>
-                  </span>
-                </div>
-                <div class="primecode-section-actions">
-                  <button type="button" class="primecode-section-btn bca-pressable" id="primecodeIoCopyBtn" title="Copy Output" aria-label="Copy output">
-                    <i class="fa-regular fa-copy"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Empty State before execution (Circular play icon) -->
-              <div class="primecode-io-empty-state" id="primecodeIoEmptyState">
-                <div class="primecode-io-empty-icon">
-                  <i class="fa-solid fa-play"></i>
-                </div>
-                <div class="primecode-io-empty-title">No output yet</div>
-                <div class="primecode-io-empty-desc">Run your code to see the output here</div>
-              </div>
-
-              <!-- Output Body after execution -->
-              <div class="primecode-io-output-body" id="primecodeIoOutputBody" style="display: none;">
-                <pre class="primecode-io-pre" id="primecodeIoOutputPre"></pre>
-              </div>
-            </div>
+            <!-- Sticky Bottom Interactive Input Bar -->
+            <form class="primecode-console-input-bar" id="primecodeConsoleInputBar" style="display: none;" onsubmit="return false;">
+              <input type="text" class="primecode-interactive-input" id="primecodeInteractiveInput" placeholder="Program input..." autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+              <button type="submit" class="primecode-interactive-submit bca-pressable" id="primecodeInteractiveSubmit" aria-label="Submit input">
+                <i class="fa-solid fa-arrow-turn-down fa-rotate-90"></i>
+              </button>
+            </form>
           </div>
 
           <!-- View C: HTML Web Preview -->
@@ -2274,6 +2231,14 @@
       <div class="primecode-floating-actions" id="primecodeFloatingActions">
         <button type="button" class="primecode-fab-assist bca-pressable" id="primecodeFabAssist" title="Quick BCA Templates & AI Assistant" aria-label="Assistant & Templates">
           <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </button>
+        <button type="button" class="primecode-fab-fix bca-pressable" id="primecodeFabFix" title="AI Fix & Explain" aria-label="AI Fix" style="display: none;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>Fix</span>
+        </button>
+        <button type="button" class="primecode-fab-stop bca-pressable" id="primecodeFabStop" title="Stop Execution" aria-label="Stop Program" style="display: none;">
+          <i class="fa-solid fa-square"></i>
+          <span>Stop</span>
         </button>
         <button type="button" class="primecode-fab-run bca-pressable" id="primecodeFabRun" aria-label="Run Code">
           <i class="fa-solid fa-play"></i>

@@ -1066,6 +1066,15 @@
         return false;
       }
 
+      // Check PrimeCode splash screen (strictly hidden during splash)
+      const splash = document.getElementById('primecodeSplash');
+      if (splash && !splash.hidden && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) {
+        return false;
+      }
+      if (document.body && document.body.classList.contains('primecode-splash-active')) {
+        return false;
+      }
+
       return true;
     } catch (_e) {
       return false;

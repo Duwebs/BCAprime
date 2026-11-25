@@ -1004,7 +1004,17 @@ body:has(#authGate:not([hidden]):not([style*="display: none"])) #primeBuddyIntro
 body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-intro-modal,
 body:has(#authGate:not([hidden]):not([style*="display: none"])) .prime-buddy-bubble,
 body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-action-pill,
-body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-focus-popup {
+body:has(#authGate:not([hidden]):not([style*="display: none"])) .buddy-focus-popup,
+body.primecode-splash-active #primeBuddyMascot,
+body.primecode-splash-active #primeBuddyWrap,
+body.primecode-splash-active .prime-buddy-wrap,
+body.primecode-splash-active #buddyActionPill,
+body.primecode-splash-active #buddyFocusPopup,
+body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyMascot,
+body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyWrap,
+body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) .prime-buddy-wrap,
+body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyActionPill,
+body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) .buddy-focus-popup {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;

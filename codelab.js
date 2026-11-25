@@ -247,6 +247,52 @@ public class Main {
 }`
       },
       {
+        name: '3. Cafe Java Order System (Interactive CLI)',
+        code: `import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("=== Swagat hai Cafe Java Me ===");
+        
+        while (true) {
+            System.out.println("\\n--- Coffee Menu ---");
+            System.out.println("1. Espresso      - Rs. 120");
+            System.out.println("2. Cappuccino    - Rs. 160");
+            System.out.println("3. Cafe Latte    - Rs. 180");
+            System.out.println("4. Cold Coffee   - Rs. 150");
+            System.out.println("5. Bill Generate Karein & Exit");
+            System.out.print("Apni choice enter karein (1-5): ");
+            int choice = sc.nextInt();
+            
+            if (choice == 5) {
+                System.out.println("Dhanyawaad! Visit again!");
+                break;
+            }
+            
+            String itemName = "";
+            double price = 0;
+            switch(choice) {
+                case 1: itemName = "Espresso"; price = 120; break;
+                case 2: itemName = "Cappuccino"; price = 160; break;
+                case 3: itemName = "Cafe Latte"; price = 180; break;
+                case 4: itemName = "Cold Coffee"; price = 150; break;
+                default: System.out.println("Galat choice! Dubara koshish karein."); continue;
+            }
+            
+            System.out.print("Kitne cup " + itemName + " chahiye? ");
+            int qty = sc.nextInt();
+            
+            System.out.print("Extra Whipped Cream / Syrup add karein? (Rs. 30/cup) [1 = Haan, 0 = Nahi]: ");
+            int addon = sc.nextInt();
+            
+            double subtotal = (price + (addon == 1 ? 30 : 0)) * qty;
+            System.out.println(qty + " x " + itemName + " order me add ho gaya! (Subtotal: Rs. " + subtotal + ")");
+        }
+    }
+}`
+      },
+      {
         name: '3. Method Overloading (Polymorphism)',
         code: `public class Main {
     // Area of Circle
@@ -678,20 +724,31 @@ loadDashboard();`
     } catch (e) {}
   }
 
-  // Mascot Controller
+  // Mascot Controller (Strictly hides PrimeBuddy during splash)
   function setPrimeBuddyVisible(visible) {
-    const buddyEl = document.querySelector('.prime-buddy-wrap') || document.getElementById('primeBuddy');
-    if (buddyEl) {
-      if (visible) {
-        buddyEl.style.removeProperty('display');
-        buddyEl.style.removeProperty('visibility');
-        buddyEl.style.removeProperty('opacity');
-      } else {
-        buddyEl.style.setProperty('display', 'none', 'important');
-        buddyEl.style.setProperty('visibility', 'hidden', 'important');
-        buddyEl.style.setProperty('opacity', '0', 'important');
-      }
-    }
+    const buddySelectors = [
+      '#primeBuddyMascot',
+      '.prime-buddy-wrap',
+      '#primeBuddy',
+      '#buddyActionPill',
+      '#buddyFocusPopup',
+      '.prime-buddy-bubble'
+    ];
+    buddySelectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(el => {
+        if (visible) {
+          el.style.removeProperty('display');
+          el.style.removeProperty('visibility');
+          el.style.removeProperty('opacity');
+          el.style.removeProperty('pointer-events');
+        } else {
+          el.style.setProperty('display', 'none', 'important');
+          el.style.setProperty('visibility', 'hidden', 'important');
+          el.style.setProperty('opacity', '0', 'important');
+          el.style.setProperty('pointer-events', 'none', 'important');
+        }
+      });
+    });
   }
 
   // ---- Screen Navigation (Splash -> Picker -> Workspace) ----
@@ -720,7 +777,7 @@ loadDashboard();`
       if (pickerEl) pickerEl.hidden = true;
       if (workspaceEl) workspaceEl.hidden = true;
 
-      // Auto transition after 1.2s
+      // Auto transition after 2.2s (smooth 300ms fade-out)
       state.splashTimer = setTimeout(() => {
         if (state.screen === 'splash') {
           if (splashEl) {
@@ -728,17 +785,17 @@ loadDashboard();`
             setTimeout(() => {
               if (state.screen === 'splash') {
                 document.body.classList.remove('primecode-splash-active');
-                setPrimeBuddyVisible(true);
                 switchScreen('picker');
+                setPrimeBuddyVisible(true);
               }
-            }, 240);
+            }, 300);
           } else {
             document.body.classList.remove('primecode-splash-active');
-            setPrimeBuddyVisible(true);
             switchScreen('picker');
+            setPrimeBuddyVisible(true);
           }
         }
-      }, 1200);
+      }, 2200);
     } else if (screen === 'picker') {
       document.body.classList.remove('primecode-splash-active');
       setPrimeBuddyVisible(true);
@@ -848,26 +905,19 @@ loadDashboard();`
     state.activeLang = langKey;
     const config = LANG_CONFIG[langKey] || LANG_CONFIG.python;
 
-    // 1. Configure Segmented Pill Switcher
+    // 1. Configure Segmented Pill Switcher (Only [Code | Console] and [Code | Preview])
     const pillCode = document.getElementById('primecodeTabCode');
     const pillConsole = document.getElementById('primecodeTabConsole');
-    const pillIo = document.getElementById('primecodeTabIo');
     const pillPreview = document.getElementById('primecodeTabPreview');
 
     if (pillCode) pillCode.style.display = 'inline-flex';
 
     if (langKey === 'html') {
       if (pillConsole) pillConsole.style.display = 'none';
-      if (pillIo) pillIo.style.display = 'none';
       if (pillPreview) pillPreview.style.display = 'inline-flex';
-    } else if (langKey === 'mysql') {
-      if (pillConsole) pillConsole.style.display = 'none';
-      if (pillIo) pillIo.style.display = 'inline-flex';
-      if (pillPreview) pillPreview.style.display = 'none';
     } else {
-      // Compiler (python, java, c, cpp, php, javascript)
+      // Compilers and MySQL use Console
       if (pillConsole) pillConsole.style.display = 'inline-flex';
-      if (pillIo) pillIo.style.display = 'inline-flex';
       if (pillPreview) pillPreview.style.display = 'none';
     }
 
@@ -916,14 +966,11 @@ loadDashboard();`
     const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
     if (consoleBadge) consoleBadge.style.display = 'none';
 
-    const ioBadge = document.getElementById('primecodeIoStatusBadge');
-    if (ioBadge) ioBadge.style.display = 'none';
+    const inputBar = document.getElementById('primecodeConsoleInputBar');
+    if (inputBar) inputBar.style.display = 'none';
 
-    const ioEmpty = document.getElementById('primecodeIoEmptyState');
-    if (ioEmpty) ioEmpty.style.display = 'flex';
-
-    const ioBody = document.getElementById('primecodeIoOutputBody');
-    if (ioBody) ioBody.style.display = 'none';
+    const floatingActions = document.getElementById('primecodeFloatingActions');
+    if (floatingActions) floatingActions.classList.remove('with-input-bar');
 
     // 5. Default tab: 'code'
     switchWorkspaceTab('code');
@@ -951,7 +998,6 @@ loadDashboard();`
     const editorPane = document.getElementById('primecodePaneEditor');
     const outputPane = document.getElementById('primecodePaneOutput');
     const consoleView = document.getElementById('primecodeConsoleView');
-    const ioView = document.getElementById('primecodeIoView');
     const previewView = document.getElementById('primecodePreviewView');
 
     if (!isDesktop) {
@@ -964,7 +1010,6 @@ loadDashboard();`
         if (outputPane) outputPane.style.display = 'flex';
 
         if (consoleView) consoleView.style.display = tab === 'console' ? 'flex' : 'none';
-        if (ioView) ioView.style.display = tab === 'io' ? 'flex' : 'none';
         if (previewView) previewView.style.display = tab === 'preview' ? 'flex' : 'none';
       }
     } else {
@@ -974,23 +1019,10 @@ loadDashboard();`
 
       if (state.activeLang === 'html') {
         if (consoleView) consoleView.style.display = 'none';
-        if (ioView) ioView.style.display = 'none';
         if (previewView) previewView.style.display = 'flex';
-      } else if (state.activeLang === 'mysql') {
-        if (consoleView) consoleView.style.display = 'none';
-        if (ioView) ioView.style.display = 'flex';
-        if (previewView) previewView.style.display = 'none';
       } else {
-        // Compiler languages
-        if (tab === 'io') {
-          if (consoleView) consoleView.style.display = 'none';
-          if (ioView) ioView.style.display = 'flex';
-          if (previewView) previewView.style.display = 'none';
-        } else {
-          if (consoleView) consoleView.style.display = 'flex';
-          if (ioView) ioView.style.display = 'none';
-          if (previewView) previewView.style.display = 'none';
-        }
+        if (consoleView) consoleView.style.display = 'flex';
+        if (previewView) previewView.style.display = 'none';
       }
     }
   }
@@ -1138,134 +1170,182 @@ loadDashboard();`
       }
 
       const startTime = performance.now();
-      const ioStatusBadge = document.getElementById('primecodeIoStatusBadge');
-      const ioStatusText = document.getElementById('primecodeIoStatusText');
-      const ioEmpty = document.getElementById('primecodeIoEmptyState');
-      const ioBody = document.getElementById('primecodeIoOutputBody');
-      const ioPre = document.getElementById('primecodeIoOutputPre');
+      const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+      const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
+      const consolePre = document.getElementById('primecodeConsolePre');
+      const inputBar = document.getElementById('primecodeConsoleInputBar');
+      if (inputBar) inputBar.style.display = 'none';
+
+      const floatingActions = document.getElementById('primecodeFloatingActions');
+      if (floatingActions) floatingActions.classList.remove('with-input-bar');
 
       try {
         if (state.sqlDb) {
           const results = state.sqlDb.exec(query);
-          const elapsed = (performance.now() - startTime).toFixed(1);
+          const elapsed = Math.round(performance.now() - startTime);
 
           if (!results || results.length === 0) {
             const tableText = 'Query executed successfully. (0 rows returned)';
-            if (ioPre) ioPre.textContent = tableText;
-            if (ioStatusText) ioStatusText.textContent = `Success · ${elapsed} ms`;
-            if (ioStatusBadge) {
-              ioStatusBadge.className = 'primecode-status-badge success';
-              ioStatusBadge.style.display = 'inline-flex';
+            if (consolePre) consolePre.textContent = tableText;
+            if (consoleStatusText) consoleStatusText.innerHTML = `<i class="fa-solid fa-check"></i> <span>Success · ${elapsed} ms</span>`;
+            if (consoleBadge) {
+              consoleBadge.className = 'primecode-status-badge success';
+              consoleBadge.style.display = 'inline-flex';
             }
           } else {
             const first = results[0];
             const tableText = formatSqlToAsciiTable(first.columns, first.values);
-            if (ioPre) ioPre.textContent = tableText;
-            if (ioStatusText) ioStatusText.textContent = `Success · ${elapsed} ms`;
-            if (ioStatusBadge) {
-              ioStatusBadge.className = 'primecode-status-badge success';
-              ioStatusBadge.style.display = 'inline-flex';
+            if (consolePre) consolePre.textContent = tableText;
+            if (consoleStatusText) consoleStatusText.innerHTML = `<i class="fa-solid fa-check"></i> <span>Success · ${elapsed} ms</span>`;
+            if (consoleBadge) {
+              consoleBadge.className = 'primecode-status-badge success';
+              consoleBadge.style.display = 'inline-flex';
             }
           }
-          if (ioEmpty) ioEmpty.style.display = 'none';
-          if (ioBody) ioBody.style.display = 'block';
-          switchWorkspaceTab('io');
+          switchWorkspaceTab('console');
           notify('SQL query executed successfully!', 'success');
         } else {
-          if (ioPre) ioPre.textContent = `-- SQLite engine ready. Sample table: students (id, name, semester, cgpa)\n${query}`;
-          if (ioEmpty) ioEmpty.style.display = 'none';
-          if (ioBody) ioBody.style.display = 'block';
-          switchWorkspaceTab('io');
+          if (consolePre) consolePre.textContent = `-- SQLite engine ready. Sample table: students (id, name, semester, cgpa)\n${query}`;
+          switchWorkspaceTab('console');
         }
       } catch (err) {
-        const elapsed = (performance.now() - startTime).toFixed(1);
-        if (ioPre) ioPre.textContent = `SQL Error: ${err.message || String(err)}`;
-        if (ioStatusText) ioStatusText.textContent = `Error · ${elapsed} ms`;
-        if (ioStatusBadge) {
-          ioStatusBadge.className = 'primecode-status-badge error';
-          ioStatusBadge.style.display = 'inline-flex';
+        const elapsed = Math.round(performance.now() - startTime);
+        if (consolePre) consolePre.textContent = `SQL Error: ${err.message || String(err)}`;
+        if (consoleStatusText) consoleStatusText.innerHTML = `<span class="primecode-status-dot">●</span> <span>Error · ${elapsed} ms</span>`;
+        if (consoleBadge) {
+          consoleBadge.className = 'primecode-status-badge error';
+          consoleBadge.style.display = 'inline-flex';
         }
-        if (ioEmpty) ioEmpty.style.display = 'none';
-        if (ioBody) ioBody.style.display = 'block';
-        switchWorkspaceTab('io');
+        switchWorkspaceTab('console');
         notify('SQL syntax error', 'error');
       }
       return;
     }
 
     // === 3. COMPILER LANGUAGES (Java, Python, C, C++, PHP, JavaScript) ===
-    const code = editor.value;
-    const stdinInput = document.getElementById('primecodeIoInput');
-    const stdin = stdinInput ? stdinInput.value : '';
-    const hasStdin = stdin.trim().length > 0;
+    saveCode(lang, editor.value);
 
-    saveCode(lang, code);
-
-    // Smart Input Prompt Detection:
-    const inputCheck = detectInputCalls(code);
-    if (inputCheck.needsInput && !hasStdin && !state.stdinWarnedOnce) {
-      state.stdinWarnedOnce = true;
-      triggerHaptic(18);
-
-      switchWorkspaceTab('io');
-      if (stdinInput) {
-        stdinInput.placeholder = `Enter program inputs here (one per line, e.g. for ${inputCheck.keyword})...`;
-        stdinInput.focus();
-      }
-      notify(`Input Required: Enter values for ${inputCheck.keyword} in the INPUT box and tap ▶ Run`, 'info');
+    // If session is already running and user clicked Run/Stop, stop it
+    if (state.interactiveSession && state.interactiveSession.active) {
+      stopInteractiveExecution();
       return;
     }
 
-    state.stdinWarnedOnce = false;
+    // Start New Interactive Live Session
+    state.interactiveSession = {
+      active: true,
+      isWaitingForInput: false,
+      isKilled: false,
+      lang: lang,
+      code: editor.value,
+      turns: [],
+      fullStdout: '',
+      startTime: performance.now(),
+      abortController: new AbortController()
+    };
     state.isExecuting = true;
 
-    // UI Badges & Buttons state
-    const fabRun = document.getElementById('primecodeFabRun');
-    const deskRun = document.getElementById('primecodeDesktopRunBtn');
+    // Switch to console view immediately
+    switchWorkspaceTab('console');
+
+    // UI state
     const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
     const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
     const consolePre = document.getElementById('primecodeConsolePre');
+    const fabStop = document.getElementById('primecodeFabStop');
+    const fabRun = document.getElementById('primecodeFabRun');
+    const fabAssist = document.getElementById('primecodeFabAssist');
+    const fabFix = document.getElementById('primecodeFabFix');
+    const deskRun = document.getElementById('primecodeDesktopRunBtn');
+    const inputBar = document.getElementById('primecodeConsoleInputBar');
 
-    const ioBadge = document.getElementById('primecodeIoStatusBadge');
-    const ioStatusText = document.getElementById('primecodeIoStatusText');
-    const ioEmpty = document.getElementById('primecodeIoEmptyState');
-    const ioBody = document.getElementById('primecodeIoOutputBody');
-    const ioPre = document.getElementById('primecodeIoOutputPre');
-
-    if (fabRun) fabRun.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running...</span>';
-    if (deskRun) deskRun.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running...</span>';
-
-    if (consoleStatusText) consoleStatusText.textContent = 'Running...';
     if (consoleBadge) {
       consoleBadge.className = 'primecode-status-badge running';
       consoleBadge.style.display = 'inline-flex';
     }
-    if (ioStatusText) ioStatusText.textContent = 'Running...';
-    if (ioBadge) {
-      ioBadge.className = 'primecode-status-badge running';
-      ioBadge.style.display = 'inline-flex';
+    if (consoleStatusText) {
+      consoleStatusText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running</span>';
+    }
+    if (consolePre) {
+      consolePre.textContent = 'Connecting to execution engine...\n';
+    }
+    if (inputBar) inputBar.style.display = 'none';
+
+    if (fabAssist) fabAssist.style.display = 'none';
+    if (fabFix) fabFix.style.display = 'none';
+    if (fabRun) fabRun.style.display = 'none';
+    if (fabStop) fabStop.style.display = 'inline-flex';
+    if (deskRun) {
+      deskRun.innerHTML = '<i class="fa-solid fa-square"></i> <span>Stop</span>';
+      deskRun.classList.add('primecode-btn-stop-active');
     }
 
-    if (consolePre) consolePre.textContent = 'Connecting to execution engine...\n';
+    executeInteractiveStep();
+  }
 
-    // Switch to console view on run
-    switchWorkspaceTab('console');
+  // ---- Interactive Console HTML Renderer ----
+  function renderInteractiveConsole(turns, fullStdout, isWaitingForInput, isKilled) {
+    const consolePre = document.getElementById('primecodeConsolePre');
+    if (!consolePre) return;
 
-    const startTime = performance.now();
+    function esc(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    let html = '';
+    let consumed = 0;
+
+    for (let i = 0; i < turns.length; i++) {
+      const turn = turns[i];
+      const chunk = fullStdout.slice(consumed, consumed + turn.promptLength);
+      consumed += turn.promptLength;
+      html += esc(chunk);
+      html += `<span class="primecode-echo-input">${esc(turn.userInput)}</span>\n`;
+    }
+
+    const remaining = fullStdout.slice(consumed);
+    html += esc(remaining);
+
+    if (isWaitingForInput) {
+      html += `<span class="primecode-terminal-cursor">|</span>`;
+    } else if (isKilled) {
+      html += `<span class="primecode-killed-text">Execution killed</span>`;
+    }
+
+    consolePre.innerHTML = html;
+
+    const consoleBody = document.getElementById('primecodeConsoleBody');
+    if (consoleBody) {
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
+  }
+
+  // ---- Interactive Step Execution Engine ----
+  async function executeInteractiveStep() {
+    if (!state.interactiveSession || !state.interactiveSession.active) return;
+
+    const session = state.interactiveSession;
+    const lang = session.lang;
+    const code = session.code;
+
+    // Stdin from accumulated turns
+    const stdin = session.turns.map(t => t.userInput).join('\n') + (session.turns.length > 0 ? '\n' : '');
+
+    // Smart Java filename resolution
+    let javaFileName = 'Main.java';
+    if (lang === 'java') {
+      const javaClassMatch = code.match(/public\s+class\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
+      if (javaClassMatch && javaClassMatch[1]) {
+        javaFileName = `${javaClassMatch[1]}.java`;
+      }
+    }
+
+    let executionResult = null;
 
     try {
-      // Smart Java filename resolution
-      let javaFileName = 'Main.java';
-      if (lang === 'java') {
-        const javaClassMatch = code.match(/public\s+class\s+([A-Za-z_$][A-Za-z0-9_$]*)/);
-        if (javaClassMatch && javaClassMatch[1]) {
-          javaFileName = `${javaClassMatch[1]}.java`;
-        }
-      }
-
-      let executionResult = null;
-
-      // 1. Primary Execution Engine: Wandbox (Fast, robust, full stdin support)
+      // 1. Primary Engine: Wandbox
       try {
         const wandboxCompilers = {
           c: 'gcc-13.2.0-c',
@@ -1291,7 +1371,8 @@ loadDashboard();`
         const wbRes = await fetch('https://wandbox.org/api/compile.json', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(wandboxPayload)
+          body: JSON.stringify(wandboxPayload),
+          signal: session.abortController ? session.abortController.signal : undefined
         });
 
         if (wbRes.ok) {
@@ -1303,11 +1384,12 @@ loadDashboard();`
           };
         }
       } catch (err) {
-        console.warn('[PrimeCode] Wandbox runner error, attempting fallback:', err);
+        if (err.name === 'AbortError') return;
+        console.warn('[PrimeCode] Wandbox runner error:', err);
       }
 
-      // 2. Secondary Fallback: Piston API
-      if (!executionResult) {
+      // 2. Secondary Engine: Piston
+      if (!executionResult && (!session.abortController || !session.abortController.signal.aborted)) {
         try {
           const pistonLangs = {
             c: { language: 'c', version: '10.2.0', file: 'main.c' },
@@ -1319,7 +1401,6 @@ loadDashboard();`
           };
 
           const pistonConfig = pistonLangs[lang] || pistonLangs.c;
-
           const response = await fetch('https://emkc.org/api/v2/piston/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1328,7 +1409,8 @@ loadDashboard();`
               version: pistonConfig.version,
               files: [{ name: pistonConfig.file, content: code }],
               stdin: stdin
-            })
+            }),
+            signal: session.abortController ? session.abortController.signal : undefined
           });
 
           if (response.ok) {
@@ -1342,72 +1424,326 @@ loadDashboard();`
             }
           }
         } catch (err) {
-          console.warn('[PrimeCode] Secondary Piston fallback failed:', err);
+          if (err.name === 'AbortError') return;
+          console.warn('[PrimeCode] Piston fallback error:', err);
         }
       }
 
-      const elapsed = Math.round(performance.now() - startTime);
+      if (session.isKilled || !session.active) return;
 
-      if (executionResult) {
-        const isSuccess = executionResult.exitCode === 0 && !executionResult.stderr;
-        let outText = '';
+      const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+      const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
+      const inputBar = document.getElementById('primecodeConsoleInputBar');
+      const inputEl = document.getElementById('primecodeInteractiveInput');
+      const floatingActions = document.getElementById('primecodeFloatingActions');
+      const fabStop = document.getElementById('primecodeFabStop');
+      const fabRun = document.getElementById('primecodeFabRun');
+      const fabAssist = document.getElementById('primecodeFabAssist');
+      const fabFix = document.getElementById('primecodeFabFix');
+      const deskRun = document.getElementById('primecodeDesktopRunBtn');
 
-        if (executionResult.stdout) {
-          outText += executionResult.stdout;
-        }
-        if (executionResult.stderr) {
-          if (outText) outText += '\n--- Error / Stderr ---\n';
-          outText += executionResult.stderr;
-        }
-        if (!outText) {
-          outText = isSuccess ? 'Program completed with no output (exit code 0).' : `Process exited with code ${executionResult.exitCode}.`;
-        }
-
-        // Render into both Console and I/O outputs
-        if (consolePre) consolePre.textContent = outText;
-        if (ioPre) ioPre.textContent = outText;
-        if (ioEmpty) ioEmpty.style.display = 'none';
-        if (ioBody) ioBody.style.display = 'block';
-
-        const badgeClass = isSuccess ? 'primecode-status-badge success' : 'primecode-status-badge error';
-        const badgeText = isSuccess ? `Success · ${elapsed} ms` : `Exit code ${executionResult.exitCode} · ${elapsed} ms`;
-        const iconHtml = isSuccess ? '<i class="fa-solid fa-check"></i> ' : '<i class="fa-solid fa-circle-exclamation"></i> ';
-
-        if (consoleStatusText) consoleStatusText.innerHTML = `${iconHtml}${badgeText}`;
+      if (!executionResult) {
+        const errMsg = 'Execution service is unreachable. Please verify your internet connection.';
+        session.fullStdout = errMsg;
+        renderInteractiveConsole([], errMsg, false, false);
         if (consoleBadge) {
-          consoleBadge.className = badgeClass;
+          consoleBadge.className = 'primecode-status-badge error';
           consoleBadge.style.display = 'inline-flex';
         }
+        if (consoleStatusText) consoleStatusText.textContent = 'Network Error';
+        session.active = false;
+        state.isExecuting = false;
+        if (fabStop) fabStop.style.display = 'none';
+        if (fabFix) fabFix.style.display = 'inline-flex';
+        if (fabRun) fabRun.style.display = 'inline-flex';
+        return;
+      }
 
-        if (ioStatusText) ioStatusText.innerHTML = `${iconHtml}${badgeText}`;
-        if (ioBadge) {
-          ioBadge.className = badgeClass;
-          ioBadge.style.display = 'inline-flex';
+      const rawStdout = executionResult.stdout || '';
+      const rawStderr = executionResult.stderr || '';
+
+      // Detection: is the program awaiting input?
+      const isEofError = 
+        /NoSuchElementException/i.test(rawStderr) ||
+        /EOFError/i.test(rawStderr) ||
+        /End of file/i.test(rawStderr) ||
+        /unexpected EOF/i.test(rawStderr);
+
+      const promptRegex = /([:?\]>]|\([0-9\-,/ ]+\):?)\s*$/;
+      const endsWithPrompt = promptRegex.test(rawStdout.trimEnd());
+      const hasInputCalls = detectInputCalls(code).needsInput;
+
+      const isWaiting = isEofError || (hasInputCalls && endsWithPrompt);
+
+      if (isWaiting) {
+        session.isWaitingForInput = true;
+        session.fullStdout = rawStdout;
+
+        // Running pill badge
+        if (consoleBadge) {
+          consoleBadge.className = 'primecode-status-badge running';
+          consoleBadge.style.display = 'inline-flex';
         }
+        if (consoleStatusText) {
+          consoleStatusText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running</span>';
+        }
+
+        // Render console with blue blinking cursor
+        renderInteractiveConsole(session.turns, rawStdout, true, false);
+
+        // Show sticky input bar
+        if (inputBar) inputBar.style.display = 'flex';
+        if (floatingActions) floatingActions.classList.add('with-input-bar');
+        if (inputEl) {
+          inputEl.disabled = false;
+          inputEl.focus();
+        }
+
+        // Stop button active
+        if (fabStop) fabStop.style.display = 'inline-flex';
+        if (fabRun) fabRun.style.display = 'none';
+        if (fabAssist) fabAssist.style.display = 'none';
+        if (fabFix) fabFix.style.display = 'none';
+      } else {
+        // Finished or compilation/runtime error
+        session.active = false;
+        session.isWaitingForInput = false;
+        state.isExecuting = false;
+        session.fullStdout = rawStdout;
+
+        const elapsed = Math.round(performance.now() - session.startTime);
+        const isSuccess = executionResult.exitCode === 0 && !rawStderr;
+
+        let finalText = rawStdout;
+        if (rawStderr) {
+          if (finalText) finalText += '\n';
+          finalText += rawStderr;
+        }
+        if (!finalText) {
+          finalText = isSuccess ? 'Program completed with no output (exit code 0).' : `Process exited with code ${executionResult.exitCode}.`;
+        }
+
+        renderInteractiveConsole(session.turns, finalText, false, false);
+
+        if (inputBar) inputBar.style.display = 'none';
+        if (floatingActions) floatingActions.classList.remove('with-input-bar');
 
         if (isSuccess) {
+          if (consoleBadge) {
+            consoleBadge.className = 'primecode-status-badge success';
+            consoleBadge.style.display = 'inline-flex';
+          }
+          if (consoleStatusText) {
+            consoleStatusText.innerHTML = `<i class="fa-solid fa-check"></i> <span>Success · ${elapsed} ms</span>`;
+          }
+          if (fabStop) fabStop.style.display = 'none';
+          if (fabFix) fabFix.style.display = 'none';
+          if (fabAssist) fabAssist.style.display = 'inline-flex';
+          if (fabRun) {
+            fabRun.style.display = 'inline-flex';
+            fabRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+          }
+          if (deskRun) {
+            deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+            deskRun.classList.remove('primecode-btn-stop-active');
+          }
           notify('Code executed successfully!', 'success');
         } else {
+          const elapsedSec = (elapsed / 1000).toFixed(1);
+          if (consoleBadge) {
+            consoleBadge.className = 'primecode-status-badge error';
+            consoleBadge.style.display = 'inline-flex';
+          }
+          if (consoleStatusText) {
+            consoleStatusText.innerHTML = `<span class="primecode-status-dot">●</span> <span>Error · ${elapsedSec}s</span>`;
+          }
+          if (fabStop) fabStop.style.display = 'none';
+          if (fabAssist) fabAssist.style.display = 'none';
+          if (fabFix) fabFix.style.display = 'inline-flex';
+          if (fabRun) {
+            fabRun.style.display = 'inline-flex';
+            fabRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+          }
+          if (deskRun) {
+            deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+            deskRun.classList.remove('primecode-btn-stop-active');
+          }
           notify('Program exited with error', 'error');
         }
-      } else {
-        const fallbackMsg = 'Execution service is unreachable. Please verify your internet connection.';
-        if (consolePre) consolePre.textContent = fallbackMsg;
-        if (ioPre) ioPre.textContent = fallbackMsg;
-        if (ioEmpty) ioEmpty.style.display = 'none';
-        if (ioBody) ioBody.style.display = 'block';
       }
     } catch (err) {
-      console.error('[PrimeCode] Run error:', err);
-      const errMsg = `Execution failed: ${err.message || String(err)}`;
-      if (consolePre) consolePre.textContent = errMsg;
-      if (ioPre) ioPre.textContent = errMsg;
-      if (ioEmpty) ioEmpty.style.display = 'none';
-      if (ioBody) ioBody.style.display = 'block';
-    } finally {
-      state.isExecuting = false;
-      if (fabRun) fabRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
-      if (deskRun) deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+      if (err.name === 'AbortError') return;
+      console.error('[PrimeCode] Interactive execution error:', err);
+    }
+  }
+
+  // ---- Submit Interactive Stdin Input ----
+  function submitInteractiveInput() {
+    const inputEl = document.getElementById('primecodeInteractiveInput');
+    if (!inputEl) return;
+    const val = inputEl.value;
+    if (!state.interactiveSession || !state.interactiveSession.active) return;
+    if (!state.interactiveSession.isWaitingForInput) return;
+
+    triggerHaptic(10);
+
+    let prevConsumed = 0;
+    state.interactiveSession.turns.forEach(t => { prevConsumed += t.promptLength; });
+    const promptLength = Math.max(0, (state.interactiveSession.fullStdout || '').length - prevConsumed);
+
+    state.interactiveSession.turns.push({
+      promptLength: promptLength,
+      userInput: val
+    });
+
+    inputEl.value = '';
+    state.interactiveSession.isWaitingForInput = false;
+
+    // Immediately render echoed input in blue
+    renderInteractiveConsole(
+      state.interactiveSession.turns,
+      state.interactiveSession.fullStdout,
+      false,
+      false
+    );
+
+    const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
+    if (consoleStatusText) {
+      consoleStatusText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running</span>';
+    }
+
+    executeInteractiveStep();
+  }
+
+  // ---- Stop Execution Handler ----
+  function stopInteractiveExecution() {
+    triggerHaptic(15);
+    if (!state.interactiveSession || !state.interactiveSession.active) return;
+
+    if (state.interactiveSession.abortController) {
+      try {
+        state.interactiveSession.abortController.abort();
+      } catch (_e) {}
+    }
+
+    state.interactiveSession.active = false;
+    state.interactiveSession.isWaitingForInput = false;
+    state.interactiveSession.isKilled = true;
+    state.isExecuting = false;
+
+    const elapsedSec = ((performance.now() - state.interactiveSession.startTime) / 1000).toFixed(1);
+
+    const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+    const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
+    if (consoleBadge) {
+      consoleBadge.className = 'primecode-status-badge error';
+      consoleBadge.style.display = 'inline-flex';
+    }
+    if (consoleStatusText) {
+      consoleStatusText.innerHTML = `<span class="primecode-status-dot">●</span> <span>Error · ${elapsedSec}s</span>`;
+    }
+
+    renderInteractiveConsole(
+      state.interactiveSession.turns,
+      state.interactiveSession.fullStdout || '',
+      false,
+      true
+    );
+
+    const inputBar = document.getElementById('primecodeConsoleInputBar');
+    if (inputBar) inputBar.style.display = 'none';
+
+    const floatingActions = document.getElementById('primecodeFloatingActions');
+    if (floatingActions) floatingActions.classList.remove('with-input-bar');
+
+    const fabStop = document.getElementById('primecodeFabStop');
+    const fabRun = document.getElementById('primecodeFabRun');
+    const fabAssist = document.getElementById('primecodeFabAssist');
+    const fabFix = document.getElementById('primecodeFabFix');
+    const deskRun = document.getElementById('primecodeDesktopRunBtn');
+
+    if (fabStop) fabStop.style.display = 'none';
+    if (fabAssist) fabAssist.style.display = 'none';
+    if (fabFix) fabFix.style.display = 'inline-flex';
+    if (fabRun) {
+      fabRun.style.display = 'inline-flex';
+      fabRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+    }
+    if (deskRun) {
+      deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
+      deskRun.classList.remove('primecode-btn-stop-active');
+    }
+
+    notify('Execution stopped', 'info');
+  }
+
+  // ---- AI Fix & Diagnostic Sheet ----
+  function openAiFixSheet() {
+    triggerHaptic(12);
+    const lang = state.activeLang;
+
+    let fixHtml = `
+      <div style="display:flex;flex-direction:column;gap:14px;padding:6px 0 24px;">
+        <div style="background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:12px;padding:14px;">
+          <div style="display:flex;align-items:center;gap:8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:16px;color:#38bdf8;">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>PrimeBuddy AI Code Insights</span>
+          </div>
+          <p style="margin:8px 0 0;font-size:13.5px;color:var(--ui-color-text-sub,#94a3b8);line-height:1.5;">
+            ${state.interactiveSession && state.interactiveSession.isKilled
+              ? 'Execution was killed manually by user. If your program entered an unexpected infinite loop or was awaiting input, review loop conditions or choice handlers.'
+              : 'Diagnostics analyzed your latest run error. Below are quick fixes to run cleanly.'}
+          </p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button type="button" class="bca-pressable" id="primecodeFixLoadCafeBtn"
+            style="width:100%;text-align:left;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-weight:600;font-size:14px;">☕ Load Tested Practical Template</div>
+              <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Load clean, verified interactive starter code</div>
+            </div>
+            <i class="fa-solid fa-arrow-rotate-right" style="color:#2563eb;"></i>
+          </button>
+
+          <button type="button" class="bca-pressable" id="primecodeFixClearConsoleBtn"
+            style="width:100%;text-align:left;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:inherit;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-weight:600;font-size:14px;">🧹 Reset & Clear Console</div>
+              <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Wipe killed process output and start fresh</div>
+            </div>
+            <i class="fa-solid fa-trash-can" style="color:#ef4444;"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    if (window.BCA_UI && window.BCA_UI.BottomSheet) {
+      const sheet = new window.BCA_UI.BottomSheet({
+        title: 'PrimeCode AI Fix & Diagnostics',
+        content: fixHtml
+      });
+      sheet.open();
+
+      setTimeout(() => {
+        const loadBtn = document.getElementById('primecodeFixLoadCafeBtn');
+        if (loadBtn) {
+          loadBtn.addEventListener('click', () => {
+            sheet.close();
+            openPracticalTemplatesSheet();
+          });
+        }
+        const clearBtn = document.getElementById('primecodeFixClearConsoleBtn');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', () => {
+            sheet.close();
+            const clearAction = document.getElementById('primecodeConsoleClearBtn');
+            if (clearAction) clearAction.click();
+          });
+        }
+      }, 50);
+    } else {
+      openPracticalTemplatesSheet();
     }
   }
 
@@ -1775,7 +2111,15 @@ loadDashboard();`
     if (optionsBtn) optionsBtn.addEventListener('click', openOptionsMenu);
 
     const deskRunBtn = document.getElementById('primecodeDesktopRunBtn');
-    if (deskRunBtn) deskRunBtn.addEventListener('click', runPrimeCode);
+    if (deskRunBtn) {
+      deskRunBtn.addEventListener('click', () => {
+        if (state.interactiveSession && state.interactiveSession.active) {
+          stopInteractiveExecution();
+        } else {
+          runPrimeCode();
+        }
+      });
+    }
 
     // 9. File Bar Actions (Format, Practical Templates)
     const formatBtn = document.getElementById('primecodeFormatBtn');
@@ -1797,7 +2141,6 @@ loadDashboard();`
     const lineNumbers = document.getElementById('primecodeLineNumbers');
     if (editor) {
       editor.addEventListener('input', () => {
-        state.stdinWarnedOnce = false;
         saveCode(state.activeLang === 'html' ? state.activeWebFile : state.activeLang, editor.value);
         updateLineNumbers(editor, lineNumbers);
       });
@@ -1815,14 +2158,47 @@ loadDashboard();`
       });
     }
 
-    // 12. Floating Action Buttons (FAB Assist & Run)
+    // 12. Floating Action Buttons (FAB Assist, Run, Stop, Fix)
     const fabAssist = document.getElementById('primecodeFabAssist');
     if (fabAssist) fabAssist.addEventListener('click', openPracticalTemplatesSheet);
 
     const fabRun = document.getElementById('primecodeFabRun');
     if (fabRun) fabRun.addEventListener('click', runPrimeCode);
 
-    // 13. Console Output Actions (Copy, Clear)
+    const fabStop = document.getElementById('primecodeFabStop');
+    if (fabStop) fabStop.addEventListener('click', stopInteractiveExecution);
+
+    const fabFix = document.getElementById('primecodeFabFix');
+    if (fabFix) fabFix.addEventListener('click', openAiFixSheet);
+
+    // 13. Interactive Console Stdin Bar Submit
+    const inputForm = document.getElementById('primecodeConsoleInputBar');
+    if (inputForm) {
+      inputForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        submitInteractiveInput();
+      });
+    }
+
+    const inputSubmit = document.getElementById('primecodeInteractiveSubmit');
+    if (inputSubmit) {
+      inputSubmit.addEventListener('click', (e) => {
+        e.preventDefault();
+        submitInteractiveInput();
+      });
+    }
+
+    const interactiveInput = document.getElementById('primecodeInteractiveInput');
+    if (interactiveInput) {
+      interactiveInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          submitInteractiveInput();
+        }
+      });
+    }
+
+    // 14. Console Output Actions (Copy, Clear)
     const consoleCopy = document.getElementById('primecodeConsoleCopyBtn');
     if (consoleCopy) {
       consoleCopy.addEventListener('click', () => {
@@ -1840,25 +2216,18 @@ loadDashboard();`
     if (consoleClear) {
       consoleClear.addEventListener('click', () => {
         triggerHaptic(10);
+        if (state.interactiveSession && state.interactiveSession.active) {
+          stopInteractiveExecution();
+        }
         const pre = document.getElementById('primecodeConsolePre');
         if (pre) pre.innerHTML = '<span class="primecode-console-placeholder">Console cleared. Press \'▶ Run\' to execute.</span>';
         const badge = document.getElementById('primecodeConsoleStatusBadge');
         if (badge) badge.style.display = 'none';
+        const inputBar = document.getElementById('primecodeConsoleInputBar');
+        if (inputBar) inputBar.style.display = 'none';
+        const floatingActions = document.getElementById('primecodeFloatingActions');
+        if (floatingActions) floatingActions.classList.remove('with-input-bar');
         notify('Console cleared', 'info');
-      });
-    }
-
-    // 14. I/O Output Actions (Copy)
-    const ioCopy = document.getElementById('primecodeIoCopyBtn');
-    if (ioCopy) {
-      ioCopy.addEventListener('click', () => {
-        triggerHaptic(10);
-        const pre = document.getElementById('primecodeIoOutputPre');
-        if (pre && pre.textContent) {
-          navigator.clipboard.writeText(pre.textContent).then(() => {
-            notify('Output copied to clipboard! 📋', 'success');
-          });
-        }
       });
     }
 
