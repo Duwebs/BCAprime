@@ -40,8 +40,13 @@
   background: rgba(18, 18, 24, 0.98) !important;
 }
 
-.prime-buddy-wrap.is-hidden {
+.prime-buddy-wrap.is-hidden,
+body.primecode-splash-active .prime-buddy-wrap,
+body:has(#primecodeSplash:not([hidden]):not(.fade-out)) .prime-buddy-wrap {
   display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 /* Mascot Body & SVG Canvas */

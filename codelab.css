@@ -173,7 +173,7 @@ html:not([data-theme="dark"]) .qa-icon-codelab {
   padding: 0 !important;
   border-radius: 0 !important;
   border: none !important;
-  z-index: 9995 !important;
+  z-index: 100100 !important;
   background: #090d16;
   color: #f1f5f9;
   display: none !important;
@@ -742,15 +742,29 @@ html:not([data-theme="dark"]) .codelab-code-input {
 
 /* Collapsible Stdin Box */
 .codelab-stdin-wrap {
-  background: #111520;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: #0f131c;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  position: relative;
+  z-index: 5;
 }
 
 [data-theme="light"] .codelab-stdin-wrap,
 html:not([data-theme="dark"]) .codelab-stdin-wrap {
-  background: #f1f5f9;
+  background: #f8fafc;
   border-top-color: #e2e8f0;
+}
+
+.codelab-stdin-wrap.codelab-stdin-needed {
+  border-top-color: rgba(245, 158, 11, 0.55);
+  background: rgba(245, 158, 11, 0.04);
+}
+
+[data-theme="light"] .codelab-stdin-wrap.codelab-stdin-needed,
+html:not([data-theme="dark"]) .codelab-stdin-wrap.codelab-stdin-needed {
+  border-top-color: rgba(217, 119, 6, 0.55);
+  background: rgba(254, 243, 199, 0.35);
 }
 
 .codelab-stdin-toggle {
@@ -763,29 +777,81 @@ html:not([data-theme="dark"]) .codelab-stdin-wrap {
   border: none;
   color: #94a3b8;
   font-family: 'Roboto Condensed', sans-serif !important;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+.codelab-stdin-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.codelab-stdin-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.codelab-stdin-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+[data-theme="light"] .codelab-stdin-badge,
+html:not([data-theme="dark"]) .codelab-stdin-badge {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.codelab-stdin-hint {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+[data-theme="light"] .codelab-stdin-hint,
+html:not([data-theme="dark"]) .codelab-stdin-hint {
+  color: #94a3b8;
 }
 
 .codelab-stdin-content {
-  padding: 4px 12px 8px;
+  padding: 2px 12px 8px;
 }
 
 .codelab-stdin-input {
   width: 100%;
-  height: 48px;
+  height: 52px;
+  min-height: 48px;
+  max-height: 120px;
   border-radius: 8px;
   background: #070a0f;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #e2e8f0;
-  font-family: 'JetBrains Mono', monospace;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+  font-family: 'JetBrains Mono', Consolas, monospace;
   font-size: 12px;
-  padding: 6px 10px;
-  resize: none;
+  line-height: 1.4;
+  padding: 7px 10px;
+  resize: vertical;
   outline: none;
   box-sizing: border-box;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.codelab-stdin-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
 [data-theme="light"] .codelab-stdin-input,
@@ -793,6 +859,12 @@ html:not([data-theme="dark"]) .codelab-stdin-input {
   background: #ffffff;
   border-color: #cbd5e1;
   color: #0f172a;
+}
+
+[data-theme="light"] .codelab-stdin-input:focus,
+html:not([data-theme="dark"]) .codelab-stdin-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 /* Console & Execution Pane */
@@ -1219,4 +1291,512 @@ html:not([data-theme="dark"]) .codelab-data-table td {
 [data-theme="light"] .codelab-data-table tr:nth-child(even) td,
 html:not([data-theme="dark"]) .codelab-data-table tr:nth-child(even) td {
   background: #f1f5f9;
+}
+
+/* ============================================================
+   PrimeCode 2-Step Native Mobile Experience
+   Step 1: Branded Splash Screen (with "from BCAPrime" signature)
+   Step 2: Stacked Language Picker Screen (Matching Sketch)
+   Step 3: PrimeCode Workspace
+   ============================================================ */
+
+/* ---- Step 1: PrimeCode Splash Screen ---- */
+.primecode-splash-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
+  background: #050505 !important;
+  color: #f8fafc;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 40px 24px calc(env(safe-area-inset-bottom, 24px) + 20px) !important;
+  box-sizing: border-box !important;
+  z-index: 100100 !important;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 240ms cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  cursor: pointer;
+  overflow: hidden !important;
+}
+
+[data-theme="light"] .primecode-splash-screen,
+html:not([data-theme="dark"]) .primecode-splash-screen {
+  background: #ffffff !important;
+  color: #0f172a;
+}
+
+.primecode-splash-screen.fade-out {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Hide PrimeBuddy mascot while splash screen is active */
+body.primecode-splash-active #primeBuddy,
+body.primecode-splash-active .prime-buddy-container,
+body:has(#primecodeSplash:not([hidden]):not(.fade-out)) #primeBuddy,
+body:has(#primecodeSplash:not([hidden]):not(.fade-out)) .prime-buddy-container {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Top Spacer for optical vertical balance */
+.primecode-splash-top-spacer {
+  height: 32px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+/* Center Stack */
+.primecode-splash-center {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  max-width: 320px;
+  margin: 0 auto !important;
+}
+
+/* Reusable Finalized Logo (80px × 80px, no outer border) */
+.primecode-splash-logo {
+  width: 80px !important;
+  height: 80px !important;
+  max-width: 80px !important;
+  max-height: 80px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  flex-shrink: 0 !important;
+  margin: 0 auto 20px auto !important;
+  display: block !important;
+}
+
+/* Wordmark: Prime in pure white (#FFFFFF), Code in royal blue (#2563EB) */
+.primecode-splash-wordmark {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Barlow Condensed', sans-serif !important;
+  font-size: 38px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.025em !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+.primecode-word-prime {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .primecode-word-prime,
+html:not([data-theme="dark"]) .primecode-word-prime {
+  color: #0f172a !important;
+}
+
+.primecode-word-code {
+  color: #2563eb !important;
+}
+
+/* Bottom Endorsement: from [crown] BCAPrime (anchored at the very bottom in 1 row) */
+.primecode-brand-endorsement {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding-bottom: env(safe-area-inset-bottom, 16px) !important;
+  flex-shrink: 0 !important;
+  user-select: none !important;
+}
+
+.primecode-endorsement-from {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Roboto Condensed', sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 500 !important;
+  color: #71717a !important; /* zinc-500 */
+}
+
+.primecode-endorsement-crown {
+  width: 15px !important;
+  height: 15px !important;
+  object-fit: contain !important;
+  filter: grayscale(1) opacity(0.65) !important;
+  display: inline-block !important;
+}
+
+.primecode-endorsement-name {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, 'Barlow Condensed', sans-serif !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  color: #71717a !important; /* zinc-500 */
+}
+
+/* ---- Step 2: Language Picker Screen ---- */
+.primecode-picker-screen {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #090d16;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+[data-theme="light"] .primecode-picker-screen,
+html:not([data-theme="dark"]) .primecode-picker-screen {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.primecode-picker-header {
+  height: 52px;
+  min-height: 52px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0d111a;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+[data-theme="light"] .primecode-picker-header,
+html:not([data-theme="dark"]) .primecode-picker-header {
+  background: #ffffff;
+  border-bottom-color: #e2e8f0;
+}
+
+.primecode-picker-back-btn {
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 140ms ease, transform 140ms ease;
+}
+
+.primecode-picker-back-btn:active {
+  transform: scale(0.97);
+}
+
+[data-theme="light"] .primecode-picker-back-btn,
+html:not([data-theme="dark"]) .primecode-picker-back-btn {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.primecode-picker-title {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: inherit;
+  margin: 0;
+  text-align: center;
+}
+
+.primecode-picker-spacer {
+  width: 44px;
+  height: 44px;
+}
+
+.primecode-picker-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px calc(env(safe-area-inset-bottom, 24px) + 24px);
+  box-sizing: border-box;
+}
+
+.primecode-picker-container {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.primecode-picker-headline {
+  text-align: center;
+  padding: 4px 0 6px;
+}
+
+.primecode-picker-subtitle {
+  font-family: 'Roboto Condensed', sans-serif !important;
+  font-size: 13.5px;
+  color: #94a3b8;
+  margin: 0;
+  font-weight: 500;
+}
+
+[data-theme="light"] .primecode-picker-subtitle,
+html:not([data-theme="dark"]) .primecode-picker-subtitle {
+  color: #64748b;
+}
+
+/* Stacked Language Cards (1 per row, full-width) */
+.primecode-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.primecode-lang-card {
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #111622;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-sizing: border-box;
+  text-align: left;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.primecode-lang-card:hover {
+  background: #161e2e;
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.primecode-lang-card:active {
+  transform: scale(0.98) !important;
+}
+
+[data-theme="light"] .primecode-lang-card,
+html:not([data-theme="dark"]) .primecode-lang-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .primecode-lang-card:hover,
+html:not([data-theme="dark"]) .primecode-lang-card:hover {
+  background: #f8fafc;
+  border-color: #93c5fd;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.primecode-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.primecode-card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.primecode-card-icon-python {
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  color: #38bdf8;
+}
+
+.primecode-card-icon-java {
+  background: rgba(249, 115, 22, 0.12);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  color: #f97316;
+}
+
+.primecode-card-icon-c {
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  color: #3b82f6;
+}
+
+.primecode-card-icon-cpp {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: #6366f1;
+}
+
+.primecode-card-icon-php {
+  background: rgba(129, 140, 248, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.25);
+  color: #818cf8;
+}
+
+.primecode-card-icon-mysql {
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  color: #06b6d4;
+}
+
+.primecode-card-icon-html {
+  background: rgba(234, 88, 12, 0.12);
+  border: 1px solid rgba(234, 88, 12, 0.25);
+  color: #ea580c;
+}
+
+.primecode-card-icon-js {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  color: #eab308;
+}
+
+.primecode-glyph-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-weight: 800;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.primecode-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.primecode-card-name {
+  font-family: 'Barlow Condensed', sans-serif !important;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: inherit;
+  line-height: 1.2;
+}
+
+.primecode-card-desc {
+  font-family: 'Roboto Condensed', sans-serif !important;
+  font-size: 12.5px;
+  color: #94a3b8;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+[data-theme="light"] .primecode-card-desc,
+html:not([data-theme="dark"]) .primecode-card-desc {
+  color: #64748b;
+}
+
+.primecode-card-arrow {
+  color: #64748b;
+  font-size: 14px;
+  transition: transform 140ms ease, color 140ms ease;
+  margin-left: 8px;
+}
+
+.primecode-lang-card:hover .primecode-card-arrow {
+  transform: translateX(2px);
+  color: #38bdf8;
+}
+
+/* Footer Links */
+.primecode-picker-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 0 8px;
+  flex-wrap: wrap;
+}
+
+.primecode-footer-btn {
+  background: transparent;
+  border: none;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Roboto Condensed', sans-serif !important;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 8px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.primecode-footer-btn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.primecode-footer-btn:active {
+  transform: scale(0.97);
+}
+
+[data-theme="light"] .primecode-footer-btn,
+html:not([data-theme="dark"]) .primecode-footer-btn {
+  color: #64748b;
+}
+
+[data-theme="light"] .primecode-footer-btn:hover,
+html:not([data-theme="dark"]) .primecode-footer-btn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.primecode-footer-compiler {
+  color: #38bdf8;
+}
+
+[data-theme="light"] .primecode-footer-compiler,
+html:not([data-theme="dark"]) .primecode-footer-compiler {
+  color: #2563eb;
+}
+
+.primecode-footer-dot {
+  color: #475569;
+  font-size: 12px;
+}
+
+/* Step 3: Workspace Wrap */
+.primecode-workspace-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }

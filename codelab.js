@@ -67,6 +67,41 @@ print(f"Scores: {scores}")
 print(f"Semester Average: {average:.1f}%")
 print(f"Award: {grade} 🏆")
 `,
+    php: `<?php
+// BCAPrime PHP Lab 🐘
+echo "Welcome to BCAPrime PHP Lab! 🚀\\n";
+echo "Server-Side Scripting & Logic for BCA\\n\\n";
+
+$students = [
+    ["name" => "Aarav Sharma", "semester" => 3, "score" => 92],
+    ["name" => "Priya Patel", "semester" => 3, "score" => 95],
+    ["name" => "Rohan Verma", "semester" => 3, "score" => 84]
+];
+
+echo "BCA Top Performers:\\n";
+foreach ($students as $index => $s) {
+    echo ($index + 1) . ". " . $s["name"] . " - Sem " . $s["semester"] . " (" . $s["score"] . "%)\\n";
+}
+?>`,
+    javascript: `// BCAPrime JavaScript & Node.js Lab ⚡
+console.log("Welcome to BCAPrime JavaScript Lab! 🚀");
+console.log("Modern ES6+ & Node.js Runtime for BCA\\n");
+
+const subjects = [
+  { code: 'BCA-301', name: 'Data Structures', credits: 4 },
+  { code: 'BCA-302', name: 'Database Management', credits: 4 },
+  { code: 'BCA-303', name: 'Web Technology', credits: 3 },
+  { code: 'BCA-304', name: 'Python Programming', credits: 3 }
+];
+
+console.log("Registered Semester Courses:");
+subjects.forEach((subj, idx) => {
+  console.log(\`\${idx + 1}. [\${subj.code}] \${subj.name} (\${subj.credits} Credits)\`);
+});
+
+const totalCredits = subjects.reduce((sum, s) => sum + s.credits, 0);
+console.log(\`\\nTotal Semester Credits: \${totalCredits}\`);
+`,
     html: `<div class="card">
   <h2>BCAPrime Web Lab 🚀</h2>
   <p>Interactive client-side sandbox for HTML5, CSS3 &amp; JavaScript.</p>
@@ -165,14 +200,18 @@ INSERT INTO courses VALUES
 
   // Code Lab State
   const state = {
+    screen: 'splash', // 'splash' | 'picker' | 'workspace'
+    showParentBrand: true, // prop/flag for "from BCAPrime" signature
+    splashTimer: null,
     mode: 'compiler', // 'compiler' | 'webdev' | 'sqllab'
-    compilerLang: 'c', // 'c' | 'cpp' | 'java' | 'python'
+    compilerLang: 'python', // 'python' | 'java' | 'c' | 'cpp' | 'php' | 'javascript'
     compilerMobileView: 'editor', // 'editor' | 'console'
     webFile: 'html', // 'html' | 'css' | 'js'
     webMobileView: 'editor', // 'editor' | 'preview'
     sqlMobileView: 'editor', // 'editor' | 'results'
     isExecuting: false,
     stdinOpen: false,
+    stdinWarnedOnce: false,
     sqlDb: null,
     sqlJsLoading: false
   };
@@ -218,28 +257,136 @@ INSERT INTO courses VALUES
     } catch (e) {}
   }
 
-  // ---- Open & Close Code Lab ----
-  function openCodeLab() {
+  // Brand Endorsement Signature Controller
+  function setShowParentBrand(val) {
+    state.showParentBrand = Boolean(val);
+    const endorsement = document.getElementById('primecodeBrandEndorsement');
+    if (endorsement) {
+      endorsement.style.display = state.showParentBrand ? 'flex' : 'none';
+    }
+  }
+
+  // PrimeBuddy Mascot Visibility Controller (hides mascot during PrimeCode splash/modal)
+  function setPrimeBuddyVisible(visible) {
+    const buddyEl = document.querySelector('.prime-buddy-wrap') || document.getElementById('primeBuddy');
+    if (buddyEl) {
+      if (visible) {
+        buddyEl.style.removeProperty('display');
+        buddyEl.style.removeProperty('visibility');
+        buddyEl.style.removeProperty('opacity');
+      } else {
+        buddyEl.style.setProperty('display', 'none', 'important');
+        buddyEl.style.setProperty('visibility', 'hidden', 'important');
+        buddyEl.style.setProperty('opacity', '0', 'important');
+      }
+    }
+  }
+
+  // ---- Screen Transition (Splash -> Picker -> Workspace) ----
+  function switchScreen(screen) {
+    state.screen = screen;
+    const splashEl = document.getElementById('primecodeSplash');
+    const pickerEl = document.getElementById('primecodePicker');
+    const workspaceEl = document.getElementById('primecodeWorkspace');
+
+    if (state.splashTimer) {
+      clearTimeout(state.splashTimer);
+      state.splashTimer = null;
+    }
+
+    setShowParentBrand(state.showParentBrand);
+
+    if (screen === 'splash') {
+      document.body.classList.add('primecode-splash-active');
+      setPrimeBuddyVisible(false);
+      if (splashEl) {
+        splashEl.hidden = false;
+        splashEl.classList.remove('fade-out');
+        splashEl.style.display = 'flex';
+        splashEl.style.opacity = '1';
+        splashEl.style.visibility = 'visible';
+        splashEl.style.pointerEvents = 'auto';
+      }
+      if (pickerEl) pickerEl.hidden = true;
+      if (workspaceEl) workspaceEl.hidden = true;
+
+      // Automatically transition after ~1.2s (1200ms) with smooth fade
+      state.splashTimer = setTimeout(() => {
+        if (state.screen === 'splash') {
+          if (splashEl) {
+            splashEl.classList.add('fade-out');
+            setTimeout(() => {
+              if (state.screen === 'splash') {
+                document.body.classList.remove('primecode-splash-active');
+                setPrimeBuddyVisible(true);
+                switchScreen('picker');
+              }
+            }, 240);
+          } else {
+            document.body.classList.remove('primecode-splash-active');
+            setPrimeBuddyVisible(true);
+            switchScreen('picker');
+          }
+        }
+      }, 1200);
+    } else if (screen === 'picker') {
+      document.body.classList.remove('primecode-splash-active');
+      setPrimeBuddyVisible(true);
+      if (splashEl) {
+        splashEl.classList.add('fade-out');
+        splashEl.hidden = true;
+        splashEl.style.display = 'none';
+      }
+      if (pickerEl) {
+        pickerEl.hidden = false;
+        const scrollArea = pickerEl.querySelector('.primecode-picker-scroll');
+        if (scrollArea) scrollArea.scrollTop = 0;
+      }
+      if (workspaceEl) workspaceEl.hidden = true;
+    } else if (screen === 'workspace') {
+      document.body.classList.remove('primecode-splash-active');
+      setPrimeBuddyVisible(true);
+      if (splashEl) {
+        splashEl.classList.add('fade-out');
+        splashEl.hidden = true;
+        splashEl.style.display = 'none';
+      }
+      if (pickerEl) pickerEl.hidden = true;
+      if (workspaceEl) workspaceEl.hidden = false;
+
+      // Synchronize current mode & views
+      switchMode(state.mode);
+    }
+  }
+
+  // ---- Open & Close PrimeCode Modal ----
+  function openCodeLab(directScreen = 'splash') {
     triggerHaptic(14);
     const modal = document.getElementById('codeLabModal');
     if (!modal) return;
 
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
+    setPrimeBuddyVisible(false);
 
-    // Synchronize current mode & views
-    switchMode(state.mode);
+    switchScreen(directScreen || 'splash');
   }
 
   function closeCodeLab(syncHistory = true) {
     triggerHaptic(10);
+    document.body.classList.remove('primecode-splash-active');
+    setPrimeBuddyVisible(true);
+    if (state.splashTimer) {
+      clearTimeout(state.splashTimer);
+      state.splashTimer = null;
+    }
     const modal = document.getElementById('codeLabModal');
     if (!modal) return;
 
     modal.classList.remove('open');
     document.body.style.overflow = '';
 
-    if (syncHistory && location.hash === '#codelab') {
+    if (syncHistory && (location.hash === '#primecode' || location.hash === '#codelab')) {
       try {
         history.back();
       } catch (e) {
@@ -250,19 +397,19 @@ INSERT INTO courses VALUES
 
   function openCodeLabRoute() {
     try {
-      if (location.hash !== '#codelab') {
-        history.pushState(null, '', '#codelab');
+      if (location.hash !== '#primecode') {
+        history.pushState(null, '', '#primecode');
       }
     } catch (e) {
-      location.hash = '#codelab';
+      location.hash = '#primecode';
     }
-    openCodeLab();
+    openCodeLab('splash');
   }
 
   // Listen to hash changes for browser/Android back button
   window.addEventListener('hashchange', () => {
-    if (location.hash === '#codelab') {
-      openCodeLab();
+    if (location.hash === '#primecode' || location.hash === '#codelab') {
+      openCodeLab('splash');
     } else {
       const modal = document.getElementById('codeLabModal');
       if (modal && modal.classList.contains('open')) {
@@ -377,6 +524,7 @@ INSERT INTO courses VALUES
 
     editor.value = getSavedCode(state.compilerLang);
     updateLineNumbers(editor, lineNumbers);
+    updateStdinUI(editor.value);
   }
 
   function switchCompilerMobileView(view) {
@@ -415,14 +563,100 @@ INSERT INTO courses VALUES
     }
   }
 
+  function setStdinOpen(open, focus = false) {
+    state.stdinOpen = open;
+    const content = document.getElementById('codelabStdinContent');
+    const toggle = document.getElementById('codelabStdinToggle');
+    const chevron = document.getElementById('codelabStdinChevron');
+    const stdinInput = document.getElementById('codelabCompilerStdin');
+    if (content) content.hidden = !open;
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (chevron) {
+      chevron.className = open ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+    }
+    if (open && focus && stdinInput) {
+      setTimeout(() => {
+        stdinInput.focus();
+        stdinInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+  }
+
   function toggleStdin() {
     triggerHaptic(10);
-    state.stdinOpen = !state.stdinOpen;
-    const content = document.getElementById('codelabStdinContent');
-    const chevron = document.getElementById('codelabStdinChevron');
-    if (content) content.hidden = !state.stdinOpen;
-    if (chevron) {
-      chevron.className = state.stdinOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+    setStdinOpen(!state.stdinOpen, !state.stdinOpen);
+  }
+
+  function detectInputCalls(code) {
+    if (!code) return { needsInput: false, keyword: '' };
+    const patterns = [
+      { regex: /\bScanner\s+[A-Za-z0-9_$]+\s*=\s*new\s+Scanner\s*\(\s*System\.in\s*\)/i, keyword: 'Scanner (System.in)' },
+      { regex: /\bScanner\b/, keyword: 'Scanner' },
+      { regex: /\bBufferedReader\b/, keyword: 'BufferedReader' },
+      { regex: /\bSystem\.in\b/, keyword: 'System.in' },
+      { regex: /\bscanf\s*\(/, keyword: 'scanf()' },
+      { regex: /\bcin\s*>>/, keyword: 'cin >>' },
+      { regex: /\bcin\.get\b/, keyword: 'cin.get()' },
+      { regex: /\bgetline\s*\(\s*cin\b/, keyword: 'getline(cin)' },
+      { regex: /\binput\s*\(/, keyword: 'input()' },
+      { regex: /\braw_input\s*\(/, keyword: 'raw_input()' },
+      { regex: /\bgetchar\s*\(/, keyword: 'getchar()' },
+      { regex: /\bfgets\s*\(/, keyword: 'fgets()' }
+    ];
+    for (const p of patterns) {
+      if (p.regex.test(code)) {
+        return { needsInput: true, keyword: p.keyword };
+      }
+    }
+    return { needsInput: false, keyword: '' };
+  }
+
+  function updateStdinUI(code) {
+    const wrap = document.getElementById('codelabStdinWrap');
+    const badge = document.getElementById('codelabStdinBadge');
+    const hint = document.getElementById('codelabStdinHint');
+    const stdinInput = document.getElementById('codelabCompilerStdin');
+    if (!stdinInput) return;
+
+    const hasInputText = stdinInput.value.trim().length > 0;
+    const { needsInput, keyword } = detectInputCalls(code);
+
+    if (badge) {
+      if (hasInputText) {
+        badge.hidden = false;
+        badge.textContent = 'Input Ready';
+        badge.style.background = 'rgba(34, 197, 94, 0.2)';
+        badge.style.color = '#22c55e';
+        badge.style.borderColor = 'rgba(34, 197, 94, 0.4)';
+      } else if (needsInput) {
+        badge.hidden = false;
+        badge.textContent = 'Input Needed';
+        badge.style.background = 'rgba(245, 158, 11, 0.2)';
+        badge.style.color = '#f59e0b';
+        badge.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+      } else {
+        badge.hidden = true;
+      }
+    }
+
+    if (wrap) {
+      wrap.classList.toggle('codelab-stdin-needed', needsInput && !hasInputText);
+    }
+
+    if (hint) {
+      if (hasInputText) {
+        hint.textContent = 'Stdin configured';
+      } else if (needsInput) {
+        hint.textContent = `${keyword} detected`;
+      } else {
+        hint.textContent = 'For Scanner, cin, scanf, input()';
+      }
+    }
+
+    if (needsInput && !hasInputText) {
+      stdinInput.placeholder = `Enter program inputs here (one per line, e.g. for ${keyword})...`;
+    } else {
+      stdinInput.placeholder = 'Enter program inputs here (one per line)...';
     }
   }
 
@@ -441,10 +675,41 @@ INSERT INTO courses VALUES
 
     const code = editor.value;
     const stdin = stdinInput ? stdinInput.value : '';
+    const hasStdin = stdin.trim().length > 0;
     const lang = state.compilerLang;
 
     // Save code to localStorage
     saveCode(lang, code);
+
+    // Smart Input Prompt Detection:
+    // If code contains input calls and stdin box is empty, automatically expand/focus stdin panel
+    const inputCheck = detectInputCalls(code);
+    if (inputCheck.needsInput && !hasStdin && !state.stdinWarnedOnce) {
+      setStdinOpen(true, true);
+      state.stdinWarnedOnce = true;
+      triggerHaptic(20);
+
+      if (statusText) {
+        statusText.innerHTML = `<span style="color:#f59e0b"><i class="fa-solid fa-triangle-exclamation"></i> Input needed for ${inputCheck.keyword}</span>`;
+      }
+
+      consoleOutput.innerHTML = `
+<div style="padding:14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;color:#f59e0b;font-size:13px;line-height:1.5;">
+  <div style="font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:6px;font-size:13.5px;">
+    <i class="fa-solid fa-triangle-exclamation"></i> Input Required: ${inputCheck.keyword} detected
+  </div>
+  Your program expects user input from standard input (stdin).<br>
+  Please enter your input values (one per line) in the <strong>Custom Input (stdin)</strong> panel below and tap <strong>▶ Run Code</strong>.
+</div>`;
+
+      // On mobile, switch to console view so user immediately sees both the prompt and the stdin box right below it
+      if (window.innerWidth < 900) {
+        switchCompilerMobileView('console');
+      }
+      return;
+    }
+
+    state.stdinWarnedOnce = false;
 
     // On mobile, switch to console view so user immediately sees execution
     if (window.innerWidth < 900) {
@@ -477,7 +742,9 @@ INSERT INTO courses VALUES
           c: { language: 'c', version: '10.2.0', file: 'main.c' },
           cpp: { language: 'c++', version: '10.2.0', file: 'main.cpp' },
           java: { language: 'java', version: '15.0.2', file: javaFileName },
-          python: { language: 'python', version: '3.10.0', file: 'main.py' }
+          python: { language: 'python', version: '3.10.0', file: 'main.py' },
+          php: { language: 'php', version: '8.2.3', file: 'main.php' },
+          javascript: { language: 'javascript', version: '18.15.0', file: 'main.js' }
         };
 
         const pistonConfig = pistonLangs[lang] || pistonLangs.c;
@@ -515,7 +782,9 @@ INSERT INTO courses VALUES
           c: 'gcc-13.2.0-c',
           cpp: 'gcc-13.2.0',
           java: 'openjdk-jdk-21+35',
-          python: 'cpython-3.8.20'
+          python: 'cpython-3.8.20',
+          php: 'php-8.3.12',
+          javascript: 'nodejs-20.17.0'
         };
 
         const compilerName = wandboxCompilers[lang] || wandboxCompilers.c;
@@ -568,6 +837,14 @@ INSERT INTO courses VALUES
 
       if (executionResult.stderr) {
         html += `<span class="codelab-console-error">\n--- Compiler Error / Stderr ---\n${escapeHtml(executionResult.stderr)}</span>`;
+        if (
+          executionResult.stderr.includes('NoSuchElementException') ||
+          executionResult.stderr.includes('EOFError') ||
+          (executionResult.stderr.includes('Scanner') && executionResult.stderr.includes('Exception'))
+        ) {
+          html += `\n<div style="margin-top:10px;padding:10px 12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:6px;color:#f59e0b;font-size:12px;line-height:1.45;">💡 <strong>Input Tip:</strong> Program stopped because it expected user input from <code>Scanner</code> / <code>stdin</code>.<br>Enter your values (e.g. <code>1</code>, <code>2</code>, <code>5</code> on separate lines) in <strong>Custom Input (stdin)</strong> below and tap <strong>Run Code</strong>.</div>`;
+          setStdinOpen(true);
+        }
       }
 
       if (!executionResult.stdout && !executionResult.stderr) {
@@ -1063,9 +1340,22 @@ INSERT INTO courses VALUES
     });
 
     // Setup input listeners for auto-save & line numbers
-    setupEditorListeners('codelabCompilerEditor', 'codelabCompilerLines', () => state.compilerLang);
+    setupEditorListeners('codelabCompilerEditor', 'codelabCompilerLines', () => state.compilerLang, () => {
+      const ed = document.getElementById('codelabCompilerEditor');
+      if (ed) updateStdinUI(ed.value);
+    });
     setupEditorListeners('codelabWebEditor', 'codelabWebLines', () => state.webFile, () => updateWebLivePreview());
     setupEditorListeners('codelabSqlEditor', 'codelabSqlLines', () => 'sql');
+
+    // Stdin live detection listener
+    const stdinInput = document.getElementById('codelabCompilerStdin');
+    if (stdinInput) {
+      stdinInput.addEventListener('input', () => {
+        state.stdinWarnedOnce = false;
+        const ed = document.getElementById('codelabCompilerEditor');
+        if (ed) updateStdinUI(ed.value);
+      });
+    }
 
     // Action buttons
     const runBtn = document.getElementById('codelabCompilerRunBtn');
@@ -1093,8 +1383,74 @@ INSERT INTO courses VALUES
     const resetBtn = document.getElementById('codelabResetBtn');
     if (resetBtn) resetBtn.addEventListener('click', resetCurrentCode);
 
+    // Workspace Back Button: returns to PrimeCode Language Picker
     const backBtn = document.getElementById('codelabBackBtn');
-    if (backBtn) backBtn.addEventListener('click', () => closeCodeLab(true));
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        triggerHaptic(10);
+        switchScreen('picker');
+      });
+    }
+
+    // Step 1: PrimeCode Splash Tap to Skip
+    const splashEl = document.getElementById('primecodeSplash');
+    if (splashEl) {
+      splashEl.addEventListener('click', () => {
+        triggerHaptic(10);
+        switchScreen('picker');
+      });
+    }
+
+    // Step 2: Language Picker Back Button (returns to Study Desk)
+    const pickerBackBtn = document.getElementById('primecodePickerBackBtn');
+    if (pickerBackBtn) {
+      pickerBackBtn.addEventListener('click', () => {
+        triggerHaptic(10);
+        closeCodeLab(true);
+      });
+    }
+
+    // Step 2: Language Picker Cards (1 per row)
+    document.querySelectorAll('.primecode-lang-card').forEach(card => {
+      card.addEventListener('click', () => {
+        triggerHaptic(12);
+        const target = card.dataset.cardLang;
+        if (target === 'sqllab') {
+          switchMode('sqllab');
+        } else if (target === 'webdev') {
+          switchMode('webdev');
+        } else {
+          // target is c, cpp, java, python, php, or javascript
+          state.mode = 'compiler';
+          switchCompilerLang(target);
+          switchMode('compiler');
+        }
+        switchScreen('workspace');
+      });
+    });
+
+    // Step 2: Request a language footer button
+    const reqLangBtn = document.getElementById('primecodeRequestLangBtn');
+    if (reqLangBtn) {
+      reqLangBtn.addEventListener('click', () => {
+        triggerHaptic(12);
+        if (typeof window.openFeedback === 'function') {
+          window.openFeedback();
+        } else {
+          notify('Request a language: Share what language you need in Feedback!', 'info');
+        }
+      });
+    }
+
+    // Step 2: Open Full Compiler (All Languages) ↗
+    const openAllLangsBtn = document.getElementById('primecodeOpenAllLangsBtn');
+    if (openAllLangsBtn) {
+      openAllLangsBtn.addEventListener('click', () => {
+        triggerHaptic(12);
+        switchMode('compiler');
+        switchScreen('workspace');
+      });
+    }
 
     // Handle window resize for mobile vs desktop layout
     window.addEventListener('resize', () => {
@@ -1107,9 +1463,9 @@ INSERT INTO courses VALUES
       }
     });
 
-    // Check if initial hash is #codelab
-    if (location.hash === '#codelab') {
-      openCodeLab();
+    // Check if initial hash is #primecode or #codelab
+    if (location.hash === '#primecode' || location.hash === '#codelab') {
+      openCodeLab('splash');
     }
   }
 
@@ -1117,6 +1473,8 @@ INSERT INTO courses VALUES
   window.openCodeLab = openCodeLab;
   window.closeCodeLab = closeCodeLab;
   window.openCodeLabRoute = openCodeLabRoute;
+  window.switchPrimeCodeScreen = switchScreen;
+  window.setShowParentBrand = setShowParentBrand;
   window.switchCodeLabMode = switchMode;
   window.switchCompilerMobileView = switchCompilerMobileView;
   window.switchWebMobileView = switchWebMobileView;
