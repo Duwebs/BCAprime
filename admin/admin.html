@@ -26,8 +26,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="admin.css?v=22">
+  <link rel="stylesheet" href="/ui/ui.css">
+  <link rel="stylesheet" href="/admin/admin.css?v=23">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
         <span class="eyebrow">BCAPRIME CONSOLE</span>
       </div>
       <div class="auth-logo-wrap" style="display:flex;justify-content:center;margin-bottom:12px">
-        <img src="../public/icons/admin-icon-192.png" alt="BCAPrime Admin" width="56" height="56" style="border-radius:14px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 6px 18px rgba(0,0,0,0.35);object-fit:contain">
+        <img src="/public/icons/admin-icon-192.png" alt="BCAPrime Admin" width="56" height="56" style="border-radius:14px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 6px 18px rgba(0,0,0,0.35);object-fit:contain">
       </div>
       <h1 id="authTitle">BCAPrime Admin</h1>
       <p id="authDescription">Sign in with authorized administrator credentials to manage library and community queues.</p>
@@ -65,12 +65,12 @@
     <!-- Sticky Admin Topbar -->
     <header class="adm-topbar">
       <div class="adm-topbar-left">
-        <a class="adm-back-btn bca-pressable" href="../index.html" aria-label="Back to main app">
+        <a class="adm-back-btn bca-pressable" href="/" aria-label="Back to main app">
           <i class="fa-solid fa-arrow-left"></i>
           <span class="adm-back-text">App</span>
         </a>
         <div class="adm-brand">
-          <img src="../public/icons/admin-icon-192.png" alt="Admin" class="adm-brand-img" width="34" height="34">
+          <img src="/public/icons/admin-icon-192.png" alt="Admin" class="adm-brand-img" width="34" height="34">
           <div class="adm-brand-info">
             <span class="adm-brand-title">BCAPrime <span class="adm-brand-accent">Admin</span></span>
             <span class="adm-console-badge">ADMIN CONSOLE</span>
@@ -81,7 +81,7 @@
         <button type="button" class="adm-icon-btn bca-pressable" id="adminInstallBtn" onclick="installAdminPwa()" title="Install BCAPrime Admin App" aria-label="Install Admin App" hidden>
           <i class="fa-solid fa-download"></i>
         </button>
-        <a href="../analytics/index.html" class="adm-icon-btn bca-pressable" title="BCAPrime Stats" aria-label="BCAPrime Stats" style="color:#00B67A">
+        <a href="/stats" class="adm-icon-btn bca-pressable" title="BCAPrime Stats" aria-label="BCAPrime Stats" style="color:#00B67A">
           <i class="fa-solid fa-chart-simple"></i>
         </a>
         <button type="button" class="adm-icon-btn bca-pressable" id="admRefreshBtn" onclick="refreshAdminData()" title="Refresh Dashboard Data" aria-label="Refresh Dashboard">
@@ -1057,10 +1057,10 @@
 
   <!-- ================= Scripts ================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="../env.js"></script>
-  <script src="../supabase-config.js"></script>
-  <script src="../lib/colleges.js?v=1"></script>
-  <script type="module" src="../ui/index.js"></script>
-  <script src="admin.js?v=21"></script>
+  <script src="/env.js"></script>
+  <script src="/supabase-config.js"></script>
+  <script src="/lib/colleges.js?v=1"></script>
+  <script type="module" src="/ui/index.js"></script>
+  <script src="/admin/admin.js?v=22"></script>
 </body>
 </html>

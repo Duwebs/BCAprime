@@ -6,37 +6,53 @@
    3) Supabase REST (library list)     -> network-first w/ cache fallback
    4) Trusted CDNs (firebase, supabase, fonts, font-awesome) -> network-first
    --------------------------------------------------------------- */
-const CACHE_NAME = 'bcaprime-app-v69';
+const CACHE_NAME = 'bcaprime-app-v70';
 const FILE_CACHE = 'bcaprime-files-v1';
 const CDN_CACHE  = 'bcaprime-cdn-v1';
 const SUPABASE_HOST = 'kjesjaakjddfxykisssh.supabase.co';
 const APP_SHELL = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './codelab.css',
-  './codelab.js',
-  './whats-new.js',
-  './push-subscribe.js',
-  './manifest.webmanifest',
-  './admin-manifest.webmanifest',
-  './stats-manifest.webmanifest',
-  './env.js',
-  './supabase-config.js',
-  './lib/pdf.min.js',
-  './lib/pdf.worker.min.js',
-  './assets/logo.png',
-  './assets/icon-192.png',
-  './assets/icon-512.png',
-  './public/icons/admin-icon-192.png',
-  './public/icons/admin-icon-512.png',
-  './public/icons/stats-icon-192.png',
-  './public/icons/stats-icon-512.png',
-  './assets/og-image.png',
-  './assets/mascot-peeking.png',
-  './assets/mascot-pointing.png',
-  './assets/durgesh.jpeg'
+  '/',
+  '/index.html',
+  '/styles.css',
+  '/app.js',
+  '/admin/index.html',
+  '/admin/admin.css',
+  '/admin/admin.js',
+  '/analytics/index.html',
+  '/analytics/analytics.css',
+  '/analytics/analytics.js',
+  '/ui/ui.css',
+  '/ui/index.js',
+  '/ui/overlayManager.js',
+  '/ui/config.js',
+  '/ui/bottomSheet.js',
+  '/ui/pressable.js',
+  '/ui/toast.js',
+  '/ui/skeleton.js',
+  '/ui/emptyState.js',
+  '/codelab.css',
+  '/codelab.js',
+  '/whats-new.js',
+  '/push-subscribe.js',
+  '/manifest.webmanifest',
+  '/admin-manifest.webmanifest',
+  '/stats-manifest.webmanifest',
+  '/env.js',
+  '/supabase-config.js',
+  '/lib/colleges.js',
+  '/lib/pdf.min.js',
+  '/lib/pdf.worker.min.js',
+  '/assets/logo.png',
+  '/assets/icon-192.png',
+  '/assets/icon-512.png',
+  '/public/icons/admin-icon-192.png',
+  '/public/icons/admin-icon-512.png',
+  '/public/icons/stats-icon-192.png',
+  '/public/icons/stats-icon-512.png',
+  '/assets/og-image.png',
+  '/assets/mascot-peeking.png',
+  '/assets/mascot-pointing.png',
+  '/assets/durgesh.jpeg'
 ];
 const CDN_DOMAINS = ['www.gstatic.com','fonts.googleapis.com','fonts.gstatic.com','cdn.jsdelivr.net','cdnjs.cloudflare.com'];
 
@@ -183,15 +199,17 @@ self.addEventListener('fetch', event => {
           })
           .catch(() => {
             if (url.pathname.startsWith('/admin')) {
-              return caches.match('./admin/index.html')
-                .then(r => r || caches.match('./admin/admin.html'))
-                .then(r => r || caches.match('./index.html'));
+              return caches.match('/admin/index.html')
+                .then(r => r || caches.match('/admin/admin.html'))
+                .then(r => r || caches.match('./admin/index.html'))
+                .then(r => r || caches.match('/index.html'));
             }
             if (url.pathname.startsWith('/stats') || url.pathname.startsWith('/analytics')) {
-              return caches.match('./analytics/index.html')
-                .then(r => r || caches.match('./index.html'));
+              return caches.match('/analytics/index.html')
+                .then(r => r || caches.match('./analytics/index.html'))
+                .then(r => r || caches.match('/index.html'));
             }
-            return caches.match('./index.html');
+            return caches.match('/index.html').then(r => r || caches.match('./index.html'));
           })
       );
       return;

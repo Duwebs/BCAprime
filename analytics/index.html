@@ -30,8 +30,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <link rel="stylesheet" href="../ui/ui.css">
-  <link rel="stylesheet" href="analytics.css?v=6">
+  <link rel="stylesheet" href="/ui/ui.css">
+  <link rel="stylesheet" href="/analytics/analytics.css?v=7">
 </head>
 <body>
 
@@ -43,7 +43,7 @@
         <span class="eyebrow">BCAPRIME STATS</span>
       </div>
       <div class="auth-logo">
-        <img src="../public/icons/stats-icon-192.png" alt="BCAPrime Stats" width="56" height="56" style="border-radius:14px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 6px 18px rgba(0,0,0,0.35);object-fit:contain">
+        <img src="/public/icons/stats-icon-192.png" alt="BCAPrime Stats" width="56" height="56" style="border-radius:14px;border:1px solid rgba(255,255,255,0.15);box-shadow:0 6px 18px rgba(0,0,0,0.35);object-fit:contain">
       </div>
       <h1>Stats Console</h1>
       <p>Sign in with verified administrator credentials to view live student engagement telemetry.</p>
@@ -69,7 +69,7 @@
     <!-- PWA Install Banner (Dismissible & Native-Prompt Ready) -->
     <div class="pwa-install-banner" id="pwaInstallBanner" hidden>
       <div class="pwa-install-left">
-        <img src="../public/icons/stats-icon-192.png" alt="Stats" class="pwa-install-img" width="32" height="32">
+        <img src="/public/icons/stats-icon-192.png" alt="Stats" class="pwa-install-img" width="32" height="32">
         <div class="pwa-install-text">
           <strong class="pwa-install-title">Install BCAPrime Stats</strong>
           <span class="pwa-install-sub" id="pwaInstallSub">Add to Home Screen for 1-tap executive telemetry</span>
@@ -89,12 +89,12 @@
     <!-- Sticky Executive Top App Bar -->
     <header class="topbar">
       <div class="topbar-left">
-        <a href="../admin/admin.html" class="btn-topbar-back bca-pressable" title="Return to Admin Panel" aria-label="Back to Admin Panel">
+        <a href="/admin" class="btn-topbar-back bca-pressable" title="Return to Admin Panel" aria-label="Back to Admin Panel">
           <i class="fa-solid fa-arrow-left"></i>
           <span class="topbar-back-text">Admin</span>
         </a>
         <div class="topbar-brand">
-          <img src="../public/icons/stats-icon-192.png" alt="Stats" class="topbar-brand-img" width="30" height="30">
+          <img src="/public/icons/stats-icon-192.png" alt="Stats" class="topbar-brand-img" width="30" height="30">
           <div class="topbar-brand-meta">
             <span class="topbar-brand-title">BCAPrime Stats</span>
             <span class="topbar-brand-eyebrow">Executive suite</span>
@@ -639,10 +639,10 @@
   <!-- ================= Scripts ================= -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="../env.js"></script>
-  <script src="../supabase-config.js"></script>
-  <script src="../lib/colleges.js?v=1"></script>
-  <script type="module" src="../ui/index.js"></script>
-  <script src="analytics.js?v=6"></script>
+  <script src="/env.js"></script>
+  <script src="/supabase-config.js"></script>
+  <script src="/lib/colleges.js?v=1"></script>
+  <script type="module" src="/ui/index.js"></script>
+  <script src="/analytics/analytics.js?v=7"></script>
 </body>
 </html>
