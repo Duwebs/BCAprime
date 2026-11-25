@@ -1014,7 +1014,18 @@ body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBud
 body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyWrap,
 body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) .prime-buddy-wrap,
 body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyActionPill,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) .buddy-focus-popup {
+body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyFocusPopup,
+body:has(.bca-bottom-sheet) #primeBuddyMascot,
+body:has(.bca-bottom-sheet) #primeBuddyWrap,
+body:has(.bca-bottom-sheet) .prime-buddy-wrap,
+body:has(.bca-bottom-sheet) #buddyActionPill,
+body:has(.bca-bottom-sheet) #buddyFocusPopup,
+body:has(.bca-bottom-sheet-backdrop) #primeBuddyMascot,
+body:has(#primecodeWorkspace:not([hidden])) #primeBuddyMascot,
+body:has(#primecodeWorkspace:not([hidden])) #primeBuddyWrap,
+body:has(#primecodeWorkspace:not([hidden])) .prime-buddy-wrap,
+body:has(#primecodeWorkspace:not([hidden])) #buddyActionPill,
+body:has(#primecodeWorkspace:not([hidden])) #buddyFocusPopup {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;

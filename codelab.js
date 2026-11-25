@@ -786,19 +786,19 @@ loadDashboard();`
               if (state.screen === 'splash') {
                 document.body.classList.remove('primecode-splash-active');
                 switchScreen('picker');
-                setPrimeBuddyVisible(true);
+                setPrimeBuddyVisible(false);
               }
             }, 300);
           } else {
             document.body.classList.remove('primecode-splash-active');
             switchScreen('picker');
-            setPrimeBuddyVisible(true);
+            setPrimeBuddyVisible(false);
           }
         }
       }, 2200);
     } else if (screen === 'picker') {
       document.body.classList.remove('primecode-splash-active');
-      setPrimeBuddyVisible(true);
+      setPrimeBuddyVisible(false);
       if (splashEl) {
         splashEl.classList.add('fade-out');
         splashEl.hidden = true;
@@ -812,7 +812,7 @@ loadDashboard();`
       if (workspaceEl) workspaceEl.hidden = true;
     } else if (screen === 'workspace') {
       document.body.classList.remove('primecode-splash-active');
-      setPrimeBuddyVisible(true);
+      setPrimeBuddyVisible(false);
       if (splashEl) {
         splashEl.classList.add('fade-out');
         splashEl.hidden = true;
@@ -848,6 +848,9 @@ loadDashboard();`
     if (!modal) return;
 
     modal.classList.remove('open');
+    modal.style.height = '';
+    const workspace = document.getElementById('primecodeWorkspace');
+    if (workspace) workspace.style.height = '';
     document.body.style.overflow = '';
 
     if (syncHistory && (location.hash === '#primecode' || location.hash === '#codelab')) {
@@ -993,6 +996,12 @@ loadDashboard();`
     document.querySelectorAll('.primecode-segment-pill').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.tab === tab);
     });
+
+    // Quick symbol toolbar must ONLY appear in the Code editor tab
+    const quickSymbols = document.getElementById('primecodeQuickSymbols');
+    if (quickSymbols) {
+      quickSymbols.style.display = tab === 'code' ? 'flex' : 'none';
+    }
 
     const isDesktop = window.innerWidth >= 768;
     const editorPane = document.getElementById('primecodePaneEditor');
@@ -1264,7 +1273,7 @@ loadDashboard();`
       consoleBadge.style.display = 'inline-flex';
     }
     if (consoleStatusText) {
-      consoleStatusText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running</span>';
+      consoleStatusText.innerHTML = '<span class="primecode-spinner"></span> <span>Running</span>';
     }
     if (consolePre) {
       consolePre.textContent = 'Connecting to execution engine...\n';
@@ -1479,13 +1488,13 @@ loadDashboard();`
         session.isWaitingForInput = true;
         session.fullStdout = rawStdout;
 
-        // Running pill badge
+        // Running pill badge with spinning loader
         if (consoleBadge) {
           consoleBadge.className = 'primecode-status-badge running';
           consoleBadge.style.display = 'inline-flex';
         }
         if (consoleStatusText) {
-          consoleStatusText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running</span>';
+          consoleStatusText.innerHTML = '<span class="primecode-spinner"></span> <span>Running</span>';
         }
 
         // Render console with blue blinking cursor
@@ -1609,7 +1618,7 @@ loadDashboard();`
 
     const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
     if (consoleStatusText) {
-      consoleStatusText.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> <span>Running</span>';
+      consoleStatusText.innerHTML = '<span class="primecode-spinner"></span> <span>Running</span>';
     }
 
     executeInteractiveStep();
@@ -1810,46 +1819,28 @@ loadDashboard();`
       <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0 20px;">
         <button type="button" id="optBcaTemplates" class="bca-pressable"
           style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
-          <i class="fa-solid fa-book-open" style="color:#38bdf8;width:20px;text-align:center;"></i>
+          <i class="fa-solid fa-book-open" style="color:#2563eb;width:20px;text-align:center;font-size:16px;"></i>
           <div>
-            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">BCA Practical Templates</div>
+            <div style="font-family:'Roboto Condensed',sans-serif;font-weight:600;font-size:14.5px;">BCA Practical Templates</div>
             <div style="font-size:12px;color:#94a3b8;">Curated university practical programs</div>
-          </div>
-        </button>
-
-        <button type="button" id="optResetCode" class="bca-pressable"
-          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
-          <i class="fa-solid fa-rotate-left" style="color:#f59e0b;width:20px;text-align:center;"></i>
-          <div>
-            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Reset to Starter Code</div>
-            <div style="font-size:12px;color:#94a3b8;">Restore default template for ${config.name}</div>
           </div>
         </button>
 
         <button type="button" id="optFontSize" class="bca-pressable"
           style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
-          <i class="fa-solid fa-text-height" style="color:#a855f7;width:20px;text-align:center;"></i>
+          <i class="fa-solid fa-text-height" style="color:#2563eb;width:20px;text-align:center;font-size:16px;"></i>
           <div>
-            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Font Size: <span id="optCurrentFontSize">${state.fontSize}</span></div>
+            <div style="font-family:'Roboto Condensed',sans-serif;font-weight:600;font-size:14.5px;">Editor Font Size: <span id="optCurrentFontSize">${state.fontSize}</span></div>
             <div style="font-size:12px;color:#94a3b8;">Tap to toggle (13.5px / 15px / 18px)</div>
           </div>
         </button>
 
-        <button type="button" id="optCopyCode" class="bca-pressable"
+        <button type="button" id="optResetCode" class="bca-pressable"
           style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
-          <i class="fa-regular fa-copy" style="color:#22c55e;width:20px;text-align:center;"></i>
+          <i class="fa-solid fa-rotate-left" style="color:#2563eb;width:20px;text-align:center;font-size:16px;"></i>
           <div>
-            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Copy All Code</div>
-            <div style="font-size:12px;color:#94a3b8;">Copy current file to clipboard</div>
-          </div>
-        </button>
-
-        <button type="button" id="optExportFile" class="bca-pressable"
-          style="width:100%;text-align:left;padding:14px 16px;border-radius:12px;background:var(--ui-color-card-bg,#161e2e);border:1px solid rgba(255,255,255,0.08);color:inherit;cursor:pointer;display:flex;align-items:center;gap:12px;">
-          <i class="fa-solid fa-download" style="color:#2563eb;width:20px;text-align:center;"></i>
-          <div>
-            <div style="font-family:\'Roboto Condensed\',sans-serif;font-weight:600;font-size:14.5px;">Export / Download File</div>
-            <div style="font-size:12px;color:#94a3b8;">Save ${config.filename} to device</div>
+            <div style="font-family:'Roboto Condensed',sans-serif;font-weight:600;font-size:14.5px;">Reset to Starter Code</div>
+            <div style="font-size:12px;color:#94a3b8;">Restore default template for ${config.name}</div>
           </div>
         </button>
       </div>
@@ -1872,23 +1863,6 @@ loadDashboard();`
           });
         }
 
-        // Reset code
-        const btnReset = document.getElementById('optResetCode');
-        if (btnReset) {
-          btnReset.addEventListener('click', () => {
-            const editor = document.getElementById('primecodeEditor');
-            if (editor) {
-              const defaultCode = STARTERS[lang] || '';
-              editor.value = defaultCode;
-              saveCode(lang, defaultCode);
-              const lineNumbers = document.getElementById('primecodeLineNumbers');
-              updateLineNumbers(editor, lineNumbers);
-              notify('Reset to default starter template', 'info');
-            }
-            sheet.close();
-          });
-        }
-
         // Font size toggle
         const btnFont = document.getElementById('optFontSize');
         if (btnFont) {
@@ -1908,26 +1882,20 @@ loadDashboard();`
           });
         }
 
-        // Copy code
-        const btnCopy = document.getElementById('optCopyCode');
-        if (btnCopy) {
-          btnCopy.addEventListener('click', () => {
+        // Reset code
+        const btnReset = document.getElementById('optResetCode');
+        if (btnReset) {
+          btnReset.addEventListener('click', () => {
             const editor = document.getElementById('primecodeEditor');
             if (editor) {
-              navigator.clipboard.writeText(editor.value).then(() => {
-                notify('Code copied to clipboard! 📋', 'success');
-              });
+              const defaultCode = STARTERS[lang] || '';
+              editor.value = defaultCode;
+              saveCode(lang, defaultCode);
+              const lineNumbers = document.getElementById('primecodeLineNumbers');
+              updateLineNumbers(editor, lineNumbers);
+              notify('Reset to default starter template', 'info');
             }
             sheet.close();
-          });
-        }
-
-        // Export file
-        const btnExport = document.getElementById('optExportFile');
-        if (btnExport) {
-          btnExport.addEventListener('click', () => {
-            sheet.close();
-            exportCurrentFile();
           });
         }
       }, 50);
@@ -2196,6 +2164,13 @@ loadDashboard();`
           submitInteractiveInput();
         }
       });
+      interactiveInput.addEventListener('focus', () => {
+        setTimeout(syncVisualViewport, 60);
+        setTimeout(syncVisualViewport, 200);
+      });
+      interactiveInput.addEventListener('blur', () => {
+        setTimeout(syncVisualViewport, 60);
+      });
     }
 
     // 14. Console Output Actions (Copy, Clear)
@@ -2231,8 +2206,41 @@ loadDashboard();`
       });
     }
 
-    // 15. Responsive resize handler (sync split pane)
+    // 15. Responsive resize & Visual Viewport handler (locks mobile keyboard jump)
+    function syncVisualViewport() {
+      const modal = document.getElementById('codeLabModal');
+      const workspace = document.getElementById('primecodeWorkspace');
+      if (modal && modal.classList.contains('open')) {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+        if (window.visualViewport) {
+          const vh = Math.round(window.visualViewport.height);
+          modal.style.height = `${vh}px`;
+          if (workspace && state.screen === 'workspace') {
+            workspace.style.height = `${vh}px`;
+          }
+        }
+        if (state.activeTab === 'console') {
+          const consoleBody = document.getElementById('primecodeConsoleBody');
+          if (consoleBody) {
+            consoleBody.scrollTop = consoleBody.scrollHeight;
+          }
+        }
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncVisualViewport);
+      window.visualViewport.addEventListener('scroll', () => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      });
+    }
+
     window.addEventListener('resize', () => {
+      syncVisualViewport();
       switchWorkspaceTab(state.activeTab);
     });
 

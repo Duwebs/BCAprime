@@ -12,9 +12,9 @@
 .qa-featured-card {
   width: 100%;
   min-height: 60px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: 16px;
+  background: #111114;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -25,17 +25,17 @@
   color: inherit;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1),
               background 180ms ease,
-              border-color 180ms ease,
-              box-shadow 180ms ease;
+              border-color 180ms ease;
 }
 
 .qa-featured-card:hover {
-  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(6, 182, 212, 0.14) 100%);
-  border-color: rgba(59, 130, 246, 0.45);
-  transform: translateY(-1.5px);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.18);
+  background: #18181c;
+  border-color: rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
 }
 
 .qa-featured-card:active {
@@ -52,15 +52,14 @@
 .qa-icon-codelab {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(6, 182, 212, 0.25));
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  color: #38bdf8;
+  border-radius: 12px;
+  background: #18181c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #2563eb;
   display: grid;
   place-items: center;
   font-size: 16px;
   flex: 0 0 40px;
-  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
 }
 
 .qa-featured-info {
@@ -82,14 +81,14 @@
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.01em;
-  color: #ffffff;
+  color: inherit;
   line-height: 1.15;
 }
 
 .qa-codelab-badge {
-  background: rgba(34, 197, 94, 0.18);
-  color: #4ade80;
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: rgba(37, 99, 235, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(37, 99, 235, 0.25);
   font-family: 'Barlow Condensed', sans-serif !important;
   font-size: 10.5px;
   font-weight: 700;
@@ -112,7 +111,7 @@
 }
 
 .qa-featured-arrow {
-  color: #38bdf8;
+  color: #2563eb;
   font-size: 15px;
   flex: 0 0 auto;
   margin-left: 8px;
@@ -126,16 +125,16 @@
 /* Light theme for featured pill card */
 [data-theme="light"] .qa-featured-card,
 html:not([data-theme="dark"]) .qa-featured-card {
-  background: linear-gradient(135deg, rgba(239, 246, 255, 0.95) 0%, rgba(240, 253, 250, 0.95) 100%);
-  border-color: #bfdbfe;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.06);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .qa-featured-card:hover,
 html:not([data-theme="dark"]) .qa-featured-card:hover {
-  background: linear-gradient(135deg, #e0f2fe 0%, #ecfeff 100%);
-  border-color: #93c5fd;
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
 }
 
 [data-theme="light"] .qa-featured-title,
@@ -145,14 +144,21 @@ html:not([data-theme="dark"]) .qa-featured-title {
 
 [data-theme="light"] .qa-featured-subtitle,
 html:not([data-theme="dark"]) .qa-featured-subtitle {
-  color: #475569;
+  color: #64748b;
 }
 
 [data-theme="light"] .qa-icon-codelab,
 html:not([data-theme="dark"]) .qa-icon-codelab {
-  background: #e0f2fe;
-  border-color: #7dd3fc;
-  color: #0284c7;
+  background: #eff6ff;
+  border-color: #dbeafe;
+  color: #2563eb;
+}
+
+[data-theme="light"] .qa-codelab-badge,
+html:not([data-theme="dark"]) .qa-codelab-badge {
+  background: #eff6ff;
+  color: #2563eb;
+  border-color: #bfdbfe;
 }
 
 /* ============================================================
@@ -1413,6 +1419,15 @@ html:not([data-theme="dark"]) .primecode-word-prime {
   color: #2563eb !important;
 }
 
+.primecode-logo-play {
+  fill: #ffffff !important;
+}
+
+[data-theme="light"] .primecode-logo-play,
+html:not([data-theme="dark"]) .primecode-logo-play {
+  fill: #0f172a !important;
+}
+
 /* Bottom Endorsement: from [crown] BCAPrime (anchored at the very bottom in 1 row) */
 .primecode-brand-endorsement {
   display: flex !important;
@@ -2463,6 +2478,33 @@ html:not([data-theme="dark"]) .primecode-status-badge.running {
   border: 1px solid #cbd5e1;
 }
 
+/* Real Smooth Spinning Circular Border Loader (14px × 14px) */
+.primecode-spinner {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  min-height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: primecodeSpin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+[data-theme="light"] .primecode-spinner,
+html:not([data-theme="dark"]) .primecode-spinner {
+  border: 2px solid rgba(15, 23, 42, 0.2);
+  border-top-color: #2563eb;
+}
+
+@keyframes primecodeSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 .primecode-status-badge.error {
   background: rgba(239, 68, 68, 0.12);
   color: #ef4444;
@@ -2692,14 +2734,14 @@ html:not([data-theme="dark"]) .primecode-interactive-input {
   min-width: 50px;
   min-height: 50px;
   border-radius: 9999px;
-  background: #161e2e;
+  background: #111114;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #38bdf8;
+  color: #ffffff;
   font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -2712,8 +2754,8 @@ html:not([data-theme="dark"]) .primecode-interactive-input {
 html:not([data-theme="dark"]) .primecode-fab-assist {
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  color: #2563eb;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  color: #0f172a;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* AI Fix Button (Shown on error/killed) */
@@ -2723,7 +2765,7 @@ html:not([data-theme="dark"]) .primecode-fab-assist {
   padding: 0 20px;
   border-radius: 9999px;
   background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: #ffffff;
   font-family: 'Roboto Condensed', sans-serif;
   font-size: 16px;
@@ -2731,7 +2773,7 @@ html:not([data-theme="dark"]) .primecode-fab-assist {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   letter-spacing: 0.02em;
   -webkit-tap-highlight-color: transparent;
@@ -2768,7 +2810,7 @@ html:not([data-theme="dark"]) .primecode-fab-fix {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.45);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   letter-spacing: 0.02em;
   -webkit-tap-highlight-color: transparent;
@@ -2801,7 +2843,7 @@ html:not([data-theme="dark"]) .primecode-fab-fix {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   letter-spacing: 0.02em;
   -webkit-tap-highlight-color: transparent;
