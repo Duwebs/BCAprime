@@ -24,7 +24,7 @@ import webpush from 'npm:web-push@3.6.7';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-admin-secret',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const LF_MAX_DAILY = 3;
@@ -45,8 +45,20 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
 
   const expected = (Deno.env.get('NOTIFY_SECRET') ?? '').trim();
-  if (!expected || String(body.secret ?? '').trim() !== expected) {
-    return jsonRes({ error: 'Unauthorized', hint: 'Secret does not match.' }, 401);
+  const authHeader = (req.headers.get('authorization') ?? '').trim();
+  const bearer = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const receivedSecret = String(body.secret ?? req.headers.get('x-admin-secret') ?? '').trim();
+
+  let isAuthorized = false;
+  if (expected && receivedSecret === expected) {
+    isAuthorized = true;
+  } else if (bearer && bearer.startsWith('eyJ')) {
+    const adminUser = await verifyAdminToken(bearer);
+    if (adminUser) isAuthorized = true;
+  }
+
+  if (!isAuthorized) {
+    return jsonRes({ error: 'Unauthorized', hint: 'Admin session or secret does not match.' }, 401);
   }
 
   const postId = Number(body.post_id);
@@ -153,3 +165,27 @@ Deno.serve(async (req) => {
 
   return jsonRes({ ok: true, sent, failed, removed: stale.length, post_id: postId });
 });
+
+async function verifyAdminToken(token: string) {
+  if (!token) return null;
+  const supabaseUrl = (Deno.env.get('SUPABASE_URL') ?? '').trim().replace(/\/$/, '');
+  const apikey = (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '').trim();
+  if (!supabaseUrl || !apikey) return null;
+  try {
+    const res = await fetch(supabaseUrl + '/auth/v1/user', {
+      headers: { apikey, Authorization: 'Bearer ' + token },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || !data.id) return null;
+    const role = data.app_metadata?.role || data.user_metadata?.role;
+    const email = String(data.email || '').toLowerCase();
+    const isOwner = email === 'contact.bcaprime@gmail.com' || email === 'admin@bcaprime.web' || email.includes('admin');
+    if (role === 'admin' || isOwner) {
+      return { uid: data.id, email: data.email };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

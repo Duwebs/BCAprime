@@ -4927,7 +4927,20 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         else{toast('That doesn\'t look like a file — drag a PDF/photo here')}
       });
     }
-    async function previewResource(id){const resource=resources.find(item=>item.title.replace(/\W/g,'')===id);if(!resource)return;const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
+    async function previewResource(id){
+      if(!id)return;
+      const cleanId=String(id).replace(/^#resource-/,'').trim();
+      const resource=resources.find(item=>String(item.id)===cleanId||item.title===id||item.title===cleanId||item.title.replace(/\W/g,'')===cleanId||item.title.replace(/\W/g,'').toLowerCase()===cleanId.toLowerCase());
+      if(!resource){
+        const searchInput=document.getElementById('search');
+        if(searchInput){
+          searchInput.value=cleanId;
+          if(typeof window.searchResources==='function')window.searchResources(cleanId);
+          searchInput.scrollIntoView({behavior:'smooth'});
+        }
+        return;
+      }
+      const src=resource.fileUrl||resource.fileData;if(!src){toast('Preview not available for this demo item');return}
       /* Guest reading unlimited + signed URL (private bucket) */
       if(!consumeGuestPreview(resource))return;
       ensureFileAvailable(resource,'preview').then(async ok=>{
@@ -7787,12 +7800,26 @@ function handleQuickActionRoutes() {
       openSeniorRequest();
     } else if (h === '#lostfound' || h === '#lost-and-found') {
       scrollToLostFound();
+    } else if (h.startsWith('#resource-')) {
+      const resId = location.hash.slice('#resource-'.length).trim();
+      if (typeof previewResource === 'function') previewResource(resId);
     }
     updateDynamicSeo();
   } catch (e) {}
 }
 window.addEventListener('hashchange', handleQuickActionRoutes);
 setTimeout(handleQuickActionRoutes, 1200);
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', event => {
+    if (event.data && event.data.type === 'push-clicked' && event.data.url) {
+      const url = event.data.url;
+      const hashIdx = url.indexOf('#');
+      if (hashIdx !== -1) {
+        location.hash = url.slice(hashIdx);
+      }
+    }
+  });
+}
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => updateDynamicSeo());
 } else {

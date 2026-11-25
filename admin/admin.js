@@ -653,7 +653,7 @@ function render() {
     const relTime = formatRelativeTime(item.date);
     const collegeDisplay = collegeNames[item.college] || item.college || 'All colleges';
 
-    return `<tr class="${rowClass} adm-material-row" data-id="${id}">
+    return `<tr class="${rowClass} adm-material-row" data-id="${id}" id="row-${id}">
       <td class="adm-mat-td" colspan="7">
         <div class="adm-mat-card ${item.status}">
           <!-- Top Row: Checkbox + Badges + Time -->
@@ -766,60 +766,89 @@ function saveLocalMirror() {
 async function updateStatus(id, status) {
   const item = uploads.find(entry => String(entry.id) === String(id));
   if (!item) return;
-  if (adminSupabaseClient && !id.startsWith('demo-') && !id.startsWith('local-')) {
-    const { error } = await adminSupabaseClient.from('resources').update({ status }).eq('id', id);
-    if (error) { alert('Update failed: ' + error.message); load(); return; }
+
+  // Visual feedback: find approve/action button and show pending spinner
+  const row = document.getElementById(`row-${id}`);
+  const actionBtn = row ? row.querySelector(`.adm-${status === 'approved' ? 'approve' : (status === 'rejected' ? 'reject' : 'archive')}-btn`) : null;
+  const originalHtml = actionBtn ? actionBtn.innerHTML : null;
+  if (actionBtn) {
+    actionBtn.disabled = true;
+    actionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
   }
-  item.status = status;
-  saveLocalMirror();
-  render();
-  if (status === 'approved' && $('notifyOnApprove') && $('notifyOnApprove').checked) {
-    notifyResourceApproved(item);
+
+  try {
+    if (adminSupabaseClient && !id.startsWith('demo-') && !id.startsWith('local-')) {
+      const { error } = await adminSupabaseClient.from('resources').update({ status }).eq('id', id);
+      if (error) {
+        showAdminToast('Update failed: ' + error.message, 'error');
+        if (actionBtn && originalHtml) {
+          actionBtn.disabled = false;
+          actionBtn.innerHTML = originalHtml;
+        }
+        return; // NEVER modify local status or remove from UI if mutation fails!
+      }
+    }
+
+    // Database update succeeded: update local state & re-render
+    item.status = status;
+    saveLocalMirror();
+    render();
+
+    // Show crisp toast notification
+    if (status === 'approved') {
+      showAdminToast('Approved & published!', 'success');
+      if ($('notifyOnApprove') && $('notifyOnApprove').checked) {
+        notifyResourceApproved(item);
+      }
+    } else if (status === 'rejected') {
+      showAdminToast('Material rejected', 'info');
+    } else if (status === 'archived') {
+      showAdminToast('Material archived', 'info');
+    }
+  } catch (err) {
+    console.error('updateStatus error:', err);
+    showAdminToast('Update failed: ' + (err.message || 'Unknown error'), 'error');
+    if (actionBtn && originalHtml) {
+      actionBtn.disabled = false;
+      actionBtn.innerHTML = originalHtml;
+    }
   }
 }
 
 async function bulkUpdateStatus(status) {
   if (!selectedIds.size) return;
   const cloudIds = [...selectedIds].filter(id => !id.startsWith('demo-') && !id.startsWith('local-'));
-  if (adminSupabaseClient && cloudIds.length) {
-    const { error } = await adminSupabaseClient.from('resources').update({ status }).in('id', cloudIds);
-    if (error) { alert('Bulk update failed: ' + error.message); return; }
-  }
-  const newlyApproved = status === 'approved'
-    ? uploads.filter(item => selectedIds.has(String(item.id)))
-    : [];
-  uploads.forEach(item => { if (selectedIds.has(String(item.id))) item.status = status; });
-  saveLocalMirror();
-  selectedIds.clear();
-  render();
-  const autoNotify = $('notifyOnApprove') && $('notifyOnApprove').checked;
-  if (status === 'approved' && newlyApproved.length && autoNotify) {
-    if (newlyApproved.length === 1) {
-      notifyResourceApproved(newlyApproved[0]);
-    } else {
-      // STRICT semester scoping: har approved resource ki apni semester (+college)
-      // group banao aur har group KOI ek targeted push bhejo. Semester-less
-      // broadcast BILKUL nahi — Sem 1 ke materials sirf Sem 1 subscribers tak.
-      const groups = new Map();
-      newlyApproved.forEach(item => {
-        const sem = item.sem != null && item.sem !== '' ? Number(item.sem) : null;
-        if (sem == null || Number.isNaN(sem)) return; // bina semester -> auto-push nahi
-        const col = item.college ? String(item.college) : 'all';
-        const key = sem + '|' + col;
-        if (!groups.has(key)) groups.set(key, { sem, col, count: 0 });
-        groups.get(key).count += 1;
-      });
-      for (const g of groups.values()) {
-        sendPushBroadcast(
-          g.count > 1
-            ? `${g.count} new Semester ${g.sem} materials available! 📚`
-            : `New Semester ${g.sem} material available! 📚`,
-          'Fresh notes & PYQs were just approved on BCAPrime — open the library to grab them.',
-          'resource-approved',
-          { college: g.col, semester: g.sem }
-        );
+  try {
+    if (adminSupabaseClient && cloudIds.length) {
+      const { error } = await adminSupabaseClient.from('resources').update({ status }).in('id', cloudIds);
+      if (error) {
+        showAdminToast('Bulk update failed: ' + error.message, 'error');
+        return; // DO NOT mutate or remove from UI on failure!
       }
     }
+    const newlyApproved = status === 'approved'
+      ? uploads.filter(item => selectedIds.has(String(item.id)))
+      : [];
+    uploads.forEach(item => { if (selectedIds.has(String(item.id))) item.status = status; });
+    saveLocalMirror();
+    selectedIds.clear();
+    render();
+
+    if (status === 'approved') {
+      showAdminToast(`${newlyApproved.length} materials approved & published!`, 'success');
+    } else {
+      showAdminToast(`Selected materials marked as ${status}`, 'info');
+    }
+
+    const autoNotify = $('notifyOnApprove') && $('notifyOnApprove').checked;
+    if (status === 'approved' && newlyApproved.length && autoNotify) {
+      for (const item of newlyApproved) {
+        notifyResourceApproved(item).catch(err => console.warn('Bulk notify error:', err));
+      }
+    }
+  } catch (err) {
+    console.error('bulkUpdateStatus error:', err);
+    showAdminToast('Bulk update failed: ' + (err.message || 'Unknown error'), 'error');
   }
 }
 
@@ -880,12 +909,6 @@ function getAdminSecret() {
   if (window.__ADMIN_NOTIFY_SECRET) return window.__ADMIN_NOTIFY_SECRET;
   let s = '';
   try { s = sessionStorage.getItem('bcaprime_admin_notify_secret') || ''; } catch (e) {}
-  if (!s) {
-    s = (window.prompt('Enter Admin Secret (stored in current tab session only):') || '').trim();
-    if (s) {
-      try { sessionStorage.setItem('bcaprime_admin_notify_secret', s); } catch (e) {}
-    }
-  }
   return s;
 }
 
@@ -930,64 +953,191 @@ async function sendPushBroadcast(title, body, tag, target) {
     return false;
   }
   const sec = getAdminSecret();
-  if (!sec) {
-    alert('Admin secret is required to broadcast notifications.');
-    return false;
+  let authHeader = 'Bearer ' + (typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : '');
+  if (adminSupabaseClient) {
+    try {
+      const { data } = await adminSupabaseClient.auth.getSession();
+      if (data && data.session && data.session.access_token) {
+        authHeader = 'Bearer ' + data.session.access_token;
+      }
+    } catch (e) {}
   }
+
   try {
-    const payload = { title, body, url: '/index.html', tag: tag || 'bcaprime-broadcast', secret: sec };
-        // Optional targeting (college + semester) — when provided, only matching users get the push.
+    const payload = {
+      title,
+      body,
+      url: (target && target.url) || '/index.html',
+      tag: tag || 'bcaprime-broadcast'
+    };
+    if (sec) payload.secret = sec;
+    // Optional targeting (college + semester + uid)
     if (target && target.college) payload.college = target.college;
     if (target && target.semester != null) payload.semester = Number(target.semester);
+    if (target && target.uid) payload.uid = target.uid;
+    if (target && target.excludeUid) payload.excludeUid = target.excludeUid;
+    if (target && target.strict) payload.strict = true;
+    if (target && target.skipInApp) payload.skipInApp = true;
+
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : '',
+      'Authorization': authHeader
+    };
+    if (sec) headers['x-admin-secret'] = sec;
+
     const response = await fetch(SEND_PUSH_FUNCTION_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_PUBLISHABLE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_PUBLISHABLE_KEY
-      },
+      headers: headers,
       body: JSON.stringify(payload)
     });
     const result = await response.json().catch(() => ({}));
     if (!response.ok) {
       const detail = [result.error, result.hint].filter(Boolean).join(' | ');
-      alert('Notification failed: ' + (detail || response.status));
+      console.warn('Push notification warning: ' + (detail || response.status));
       return false;
     }
     return { ok: true, sent: result.sent ?? 0, failed: result.failed ?? 0, removed: result.removed ?? 0 };
   } catch (error) {
-    alert('Notification failed: ' + error.message);
+    console.warn('Push notification failed: ' + error.message);
     return false;
   }
 }
 
-function notifyResourceApproved(item) {
-  const college = collegeNames[item.college] || item.college || 'all colleges';
-  const title = item.type === 'pyq' ? 'New PYQ available! 📝' : 'New notes available! 📚';
-  const body = `${item.title} — Semester ${item.sem}, ${college}. Open BCAPrime to download.`;
+async function notifyResourceApproved(item) {
+  if (!item) return;
 
-  // Real-time In-App Notification Bell trigger backed by Supabase
-  if (adminSupabaseClient) {
-    const row = {
-      title: title,
-      message: body,
-      type: item.type === 'pyq' ? 'pyq' : 'note',
-      college: item.college || 'all',
-      semester: item.sem != null ? Number(item.sem) : null,
-      target_resource: item.title,
-      target_url: '#finderSection',
-      is_read: false
-    };
-    adminSupabaseClient.from('notifications').insert(row).then(() => {
-      try {
-        const chan = adminSupabaseClient.channel('bca-notifications-live');
-        chan.send({ type: 'broadcast', event: 'admin-notification', payload: row });
-      } catch (e) {}
-    }, (err) => console.warn('In-app notif insert error:', err));
+  // 1. Strict metadata inspection
+  const collegeKey = item.college ? String(item.college).trim().toLowerCase() : '';
+  const semNumber = item.sem != null && item.sem !== '' ? Number(item.sem) : null;
+
+  // Strict targeting rule: Both college and semester MUST be valid. Never broadcast globally.
+  if (!collegeKey || collegeKey === 'all' || !semNumber || Number.isNaN(semNumber) || semNumber < 1 || semNumber > 8) {
+    console.warn('[notifyResourceApproved] Notification skipped: missing strict college or semester metadata.', {
+      id: item.id,
+      title: item.title,
+      college: item.college,
+      sem: item.sem
+    });
+    return;
   }
 
-  // Targeting: only subscribed users matching this college + semester receive it.
-  return sendPushBroadcast(title, body, 'resource-approved', { college: item.college || 'all', semester: item.sem != null ? Number(item.sem) : null });
+  // Deduplication check: prevent duplicating notifications if clicked twice
+  window.__notifiedResourceIds = window.__notifiedResourceIds || new Set();
+  const resKey = String(item.id);
+  if (window.__notifiedResourceIds.has(resKey)) {
+    console.info('[notifyResourceApproved] Notification already processed in this session for resource:', resKey);
+    return;
+  }
+  window.__notifiedResourceIds.add(resKey);
+
+  if (adminSupabaseClient) {
+    try {
+      const { data: existing } = await adminSupabaseClient
+        .from('notifications')
+        .select('id')
+        .eq('target_resource', resKey)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        console.info('[notifyResourceApproved] Notification row already exists in database for resource:', resKey);
+        return;
+      }
+    } catch (e) {
+      console.warn('[notifyResourceApproved] Error checking existing notification:', e);
+    }
+  }
+
+  const isPyq = String(item.type || '').toLowerCase() === 'pyq';
+  const kindLabel = isPyq ? 'PYQ' : 'Notes';
+  const subjectPart = item.subject && String(item.subject).trim() ? ` (${String(item.subject).trim()})` : '';
+
+  // Classmate payload (exact specified format)
+  const classmateTitle = isPyq ? 'New PYQ Added' : 'New Notes Added';
+  const classmateBody = `"${item.title}"${subjectPart} is now available for Semester ${semNumber}.`;
+  const targetUrl = `#resource-${resKey}`;
+
+  // Uploader payload (personal confirmation)
+  const uploaderUid = item.uploaderUid ? String(item.uploaderUid).trim() : '';
+  const uploaderTitle = 'Material Approved! 🎉';
+  const uploaderBody = `Your ${kindLabel} "${item.title}" has been approved and published!`;
+
+  // 2. Database Insert: Insert clean targeted rows
+  if (adminSupabaseClient) {
+    const rowsToInsert = [
+      {
+        title: classmateTitle,
+        message: classmateBody,
+        type: isPyq ? 'pyq' : 'note',
+        college: collegeKey,
+        semester: semNumber,
+        user_id: null, // Classmates in matching college & semester
+        target_resource: resKey,
+        target_url: targetUrl,
+        is_read: false
+      }
+    ];
+
+    if (uploaderUid) {
+      rowsToInsert.push({
+        title: uploaderTitle,
+        message: uploaderBody,
+        type: isPyq ? 'pyq' : 'note',
+        college: collegeKey,
+        semester: semNumber,
+        user_id: uploaderUid, // Targeted specifically to uploader
+        target_resource: resKey,
+        target_url: targetUrl,
+        is_read: false
+      });
+    }
+
+    try {
+      const { error: insertErr } = await adminSupabaseClient.from('notifications').insert(rowsToInsert);
+      if (insertErr) {
+        console.warn('[notifyResourceApproved] Could not insert notification rows:', insertErr.message);
+      } else {
+        // Fast-path Realtime broadcast across open client channels
+        try {
+          const chan = adminSupabaseClient.channel('bca-notifications-live');
+          rowsToInsert.forEach(row => {
+            chan.send({ type: 'broadcast', event: 'admin-notification', payload: row });
+          });
+        } catch (_c) {}
+      }
+    } catch (dbErr) {
+      console.warn('[notifyResourceApproved] Database error:', dbErr);
+    }
+  }
+
+  // 3. Web Push: Classmates (strictly matching college + semester, excluding uploader)
+  await sendPushBroadcast(
+    classmateTitle,
+    classmateBody,
+    `resource-approved-${resKey}`,
+    {
+      college: collegeKey,
+      semester: semNumber,
+      excludeUid: uploaderUid || undefined,
+      strict: true,
+      skipInApp: true,
+      url: `/index.html#resource-${resKey}`
+    }
+  );
+
+  // 4. Web Push: Uploader personal confirmation
+  if (uploaderUid) {
+    await sendPushBroadcast(
+      uploaderTitle,
+      uploaderBody,
+      `resource-approved-uploader-${resKey}`,
+      {
+        uid: uploaderUid,
+        strict: true,
+        skipInApp: true,
+        url: `/index.html#resource-${resKey}`
+      }
+    );
+  }
 }
 
 async function handleNotifyFormSubmit(event) {
@@ -2060,27 +2210,46 @@ async function extendLostFoundPost(id) {
 }
 window.extendLostFoundPost = extendLostFoundPost;
 async function approveLostFoundPost(id){
-  if(!adminSupabaseClient)return;
-  const {error}=await adminSupabaseClient.from('lost_found').update({status:'active'}).eq('id',id);
-  if(error){ alert('Approve failed: ' + error.message); return; }
+  if(!adminSupabaseClient) return;
+  const { error } = await adminSupabaseClient.from('lost_found').update({ status: 'active' }).eq('id', id);
+  if (error) {
+    showAdminToast('Approve failed: ' + error.message, 'error');
+    return;
+  }
+  showAdminToast('Post approved!', 'success');
   /* Approve hote hi college ko push (notify-lostfound Edge Function) */
-  try{
+  try {
     const sec = getAdminSecret();
+    let authHeader = 'Bearer ' + (typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : '');
+    if (adminSupabaseClient) {
+      try {
+        const { data } = await adminSupabaseClient.auth.getSession();
+        if (data && data.session && data.session.access_token) {
+          authHeader = 'Bearer ' + data.session.access_token;
+        }
+      } catch (e) {}
+    }
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': typeof SUPABASE_PUBLISHABLE_KEY !== 'undefined' ? SUPABASE_PUBLISHABLE_KEY : '',
+      'Authorization': authHeader
+    };
+    if (sec) headers['x-admin-secret'] = sec;
     const res = await fetch(SUPABASE_URL + '/functions/v1/notify-lostfound', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: headers,
       body: JSON.stringify({ post_id: id, secret: sec })
     });
-    const result = await res.json();
+    const result = await res.json().catch(() => ({}));
     if (!res.ok && result.blocked === 'daily-limit') {
-      alert('Notification blocked: daily post limit reached for this user.');
+      showAdminToast('Notification blocked: daily post limit reached for this user.', 'info');
     } else if (!res.ok) {
       const detail = [result.error, result.hint].filter(Boolean).join(' | ');
-      alert('Notification failed: ' + (detail || res.status));
+      console.warn('LostFound notification failed: ' + (detail || res.status));
     } else {
       console.info('[LostFound] push sent:', result.sent, 'failed:', result.failed);
     }
-  }catch(e){ console.warn('LostFound notify failed:', e.message); }
+  } catch(e) { console.warn('LostFound notify failed:', e.message); }
   loadLostFoundAdmin();
 }
 async function removeLostFoundPost(id){

@@ -91,6 +91,13 @@
 
     // 5. Hash navigation
     if (destination.startsWith('#')) {
+      if (destination.startsWith('#resource-')) {
+        const resId = destination.replace('#resource-', '').trim();
+        if (typeof window.previewResource === 'function') {
+          window.previewResource(resId);
+          return;
+        }
+      }
       const targetEl = document.querySelector(destination);
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: 'smooth' });
@@ -169,17 +176,87 @@
   }
 
   /**
-   * Filters and deduplicates notification list by unique ID
+   * Evaluates strict college & semester targeting for the current student.
+   * - Personal confirmations (with user_id) only show to that specific user.
+   * - Classmate broadcasts only show to students whose profile matches BOTH college & semester.
+   */
+  function shouldShowNotificationToUser(notif) {
+    if (!notif) return false;
+
+    const currentUid = typeof window.__bcaSessionUid === 'function' ? window.__bcaSessionUid() : '';
+
+    // 1. Direct user targeting (e.g. personal uploader confirmation)
+    if (notif.user_id && String(notif.user_id).trim() !== '') {
+      return !!(currentUid && String(notif.user_id).trim() === currentUid);
+    }
+
+    // 2. Classmate broadcast (user_id is null/empty):
+    // Retrieve user's enrolled college and semester
+    let userCollege = '';
+    let userSem = null;
+    try {
+      userCollege = (localStorage.getItem('bca-college') || localStorage.getItem('bca-profile-college') || '').trim().toLowerCase();
+      var rawSem = localStorage.getItem('bca-profile-sem') || localStorage.getItem('bca-enrolled-sem') || localStorage.getItem('bca-sem');
+      if (rawSem && rawSem !== 'all') {
+        var num = Number(rawSem);
+        if (!isNaN(num) && num >= 1 && num <= 8) userSem = num;
+      }
+    } catch (e) {}
+
+    const notifCollege = notif.college ? String(notif.college).trim().toLowerCase() : '';
+
+    // College matching:
+    // If notification has a specific college (not 'all'), user MUST match that exact college (case-insensitive)
+    if (notifCollege && notifCollege !== 'all') {
+      if (!userCollege || userCollege === 'all' || userCollege !== notifCollege) {
+        return false; // different college -> NEVER show
+      }
+    }
+
+    // Semester matching:
+    // If notification has a specific semester, user MUST match that exact semester
+    if (notif.semester != null && notif.semester !== '' && notif.semester !== 'all') {
+      const semNum = Number(notif.semester);
+      if (!userSem || userSem !== semNum) {
+        return false; // different semester -> NEVER show
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Filters and deduplicates notification list by unique ID, targeting,
    * and content (title + message) to prevent repeated items in drawer.
+   * If user is the uploader and received personal confirmation, omits the generic classmate broadcast.
    */
   function deduplicateNotifications(list) {
     if (!Array.isArray(list)) return [];
+    const currentUid = typeof window.__bcaSessionUid === 'function' ? window.__bcaSessionUid() : '';
     const seenIds = new Set();
     const seenContent = new Set();
-    const unique = [];
+    const uploaderResKeys = new Set();
 
+    // First pass: identify if current user has an uploader confirmation for any target_resource
     for (const item of list) {
       if (!item) continue;
+      if (item.user_id && currentUid && String(item.user_id).trim() === currentUid && item.target_resource) {
+        uploaderResKeys.add(String(item.target_resource).trim());
+      }
+    }
+
+    const unique = [];
+    for (const item of list) {
+      if (!item) continue;
+
+      // Filter by strict college & semester targeting
+      if (!shouldShowNotificationToUser(item)) continue;
+
+      // If this is a generic classmate notification (user_id is null/empty) for a resource
+      // where the user is the uploader (already has personal confirmation), skip the classmate notification!
+      if (!item.user_id && item.target_resource && uploaderResKeys.has(String(item.target_resource).trim())) {
+        continue;
+      }
 
       const idKey = item.id != null ? String(item.id).trim() : null;
       const titleKey = String(item.title || '').trim().toLowerCase();
@@ -690,24 +767,9 @@
       return;
     }
 
-    // Targeting check: User UID (broadcast if empty/null)
-    const currentUid =
-      typeof window.__bcaSessionUid === 'function' ? window.__bcaSessionUid() : '';
-    if (newNotif.user_id && String(newNotif.user_id).trim() !== '') {
-      if (!currentUid || String(newNotif.user_id).trim() !== currentUid) {
-        return; // targeted to another user
-      }
-    }
-
-    // Targeting check: College & Semester
-    const userCollege = (typeof localStorage !== 'undefined' && localStorage.getItem('bca-college')) || 'all';
-    const userSem = (typeof localStorage !== 'undefined' && (localStorage.getItem('bca-profile-sem') || localStorage.getItem('bca-sem'))) || null;
-
-    if (newNotif.college && newNotif.college !== 'all' && userCollege !== 'all' && newNotif.college !== userCollege) {
-      return; // different college
-    }
-    if (newNotif.semester != null && userSem != null && Number(newNotif.semester) !== Number(userSem)) {
-      return; // different semester
+    // Strict targeting check: User UID, College, and Semester
+    if (!shouldShowNotificationToUser(newNotif)) {
+      return;
     }
 
     console.info('[Notifications] Real-time alert received instantly:', newNotif);
