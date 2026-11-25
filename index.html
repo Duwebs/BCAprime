@@ -2169,7 +2169,7 @@
         <button type="button" class="primecode-sym-chip" data-sym="[ ]">[ ]</button>
         <button type="button" class="primecode-sym-chip" data-sym=";">;</button>
         <button type="button" class="primecode-sym-chip" data-sym='" "'>" "</button>
-        <button type="button" class="primecode-sym-chip" data-sym="' ">' '</button>
+        <button type="button" class="primecode-sym-chip" data-sym="' '">&apos; &apos;</button>
         <button type="button" class="primecode-sym-chip" data-sym="=">=</button>
         <button type="button" class="primecode-sym-chip" data-sym="<">&lt;</button>
         <button type="button" class="primecode-sym-chip" data-sym=">">&gt;</button>
@@ -2180,7 +2180,8 @@
       <div class="primecode-workspace-grid" id="primecodeWorkspaceGrid">
         <!-- PANE 1: Editor Pane (Left on Desktop, Tabbed on Mobile) -->
         <div class="primecode-pane primecode-editor-pane" id="primecodePaneEditor">
-          <div class="primecode-editor-wrapper">
+          <div class="primecode-editor-wrapper" id="primecodeEditorWrapper">
+            <div id="primecodeCodeMirrorMount" class="primecode-cm-mount"></div>
             <div class="primecode-line-numbers" id="primecodeLineNumbers">
               <span>1 <i class="fa-solid fa-caret-down fold-caret"></i></span>
             </div>
@@ -2573,6 +2574,7 @@
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>
+  <script type="module" src="codemirror.js"></script>
   <script src="codelab.js?v=21"></script>
   <script src="primeBuddy.js?v=16"></script>
 </body>

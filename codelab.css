@@ -2337,6 +2337,41 @@ html:not([data-theme="dark"]) .primecode-editor-wrapper {
   background: #ffffff;
 }
 
+/* CodeMirror 6 Mounting & Integration */
+.primecode-cm-mount {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.primecode-cm-mount .cm-editor {
+  width: 100%;
+  height: 100%;
+  outline: none !important;
+  font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.primecode-cm-mount .cm-scroller {
+  overflow: auto !important;
+  font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  line-height: 1.6;
+  -webkit-overflow-scrolling: touch;
+}
+
+.primecode-cm-mount .cm-content {
+  padding-bottom: 100px !important; /* pb-24: ensures floating Run button never covers bottom lines */
+  font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.primecode-cm-mount .cm-gutters {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .primecode-line-numbers {
   width: 44px;
   min-width: 44px;

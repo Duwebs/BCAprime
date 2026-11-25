@@ -681,8 +681,60 @@ loadDashboard();`
     isExecuting: false,
     stdinWarnedOnce: false,
     sqlDb: null,
-    sqlJsLoading: false
+    sqlJsLoading: false,
+    cmInitialized: false
   };
+
+  // ---- CodeMirror 6 Bridge Helpers ----
+  function syncCodeMirror(langKey, code) {
+    const mountEl = document.getElementById('primecodeCodeMirrorMount');
+    const editor = document.getElementById('primecodeEditor');
+    const lineNumbers = document.getElementById('primecodeLineNumbers');
+
+    if (window.PrimeCodeMirror && window.PrimeCodeMirror.isReady && mountEl) {
+      if (!state.cmInitialized) {
+        if (editor) editor.style.display = 'none';
+        if (lineNumbers) lineNumbers.style.display = 'none';
+
+        window.PrimeCodeMirror.createEditor(
+          mountEl,
+          code,
+          langKey,
+          state.fontSize,
+          (newCode) => {
+            const activeKey = state.activeLang === 'html' ? state.activeWebFile : state.activeLang;
+            saveCode(activeKey, newCode);
+            if (editor) editor.value = newCode;
+          }
+        );
+        state.cmInitialized = true;
+      } else {
+        window.PrimeCodeMirror.setLanguage(langKey);
+        window.PrimeCodeMirror.setCode(code);
+      }
+    }
+  }
+
+  function getActiveCode() {
+    if (window.PrimeCodeMirror && window.PrimeCodeMirror.isReady && state.cmInitialized) {
+      return window.PrimeCodeMirror.getCode();
+    }
+    const editor = document.getElementById('primecodeEditor');
+    return editor ? editor.value : '';
+  }
+
+  function setActiveCode(code, lang = state.activeLang) {
+    const editor = document.getElementById('primecodeEditor');
+    if (editor) {
+      editor.value = code;
+      const lineNumbers = document.getElementById('primecodeLineNumbers');
+      if (lineNumbers) updateLineNumbers(editor, lineNumbers);
+    }
+    if (window.PrimeCodeMirror && window.PrimeCodeMirror.isReady && state.cmInitialized) {
+      window.PrimeCodeMirror.setCode(code);
+      if (lang) window.PrimeCodeMirror.setLanguage(lang);
+    }
+  }
 
   // ---- Haptics & Notification ----
   function triggerHaptic(duration = 10) {
@@ -820,6 +872,8 @@ loadDashboard();`
       }
       if (pickerEl) pickerEl.hidden = true;
       if (workspaceEl) workspaceEl.hidden = false;
+      const codeKey = state.activeLang === 'html' ? state.activeWebFile : state.activeLang;
+      syncCodeMirror(state.activeLang, getSavedCode(codeKey));
     }
   }
 
@@ -952,18 +1006,20 @@ loadDashboard();`
       }
     }
 
-    // 3. Load Code into Editor
+    // 3. Load Code into Editor & CodeMirror
+    const codeKey = langKey === 'html' ? state.activeWebFile : langKey;
+    const initialCode = getSavedCode(codeKey);
     const editor = document.getElementById('primecodeEditor');
     const lineNumbers = document.getElementById('primecodeLineNumbers');
     if (editor) {
-      const codeKey = langKey === 'html' ? 'html' : langKey;
-      editor.value = getSavedCode(codeKey);
+      editor.value = initialCode;
       editor.style.fontSize = state.fontSize;
       if (lineNumbers) {
         lineNumbers.style.fontSize = state.fontSize;
         updateLineNumbers(editor, lineNumbers);
       }
     }
+    syncCodeMirror(langKey, initialCode);
 
     // 4. Reset Output Badges & Bodies
     const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
@@ -1039,15 +1095,12 @@ loadDashboard();`
   // ---- HTML Multi-File Switching ----
   function switchWebFile(fileKey) {
     triggerHaptic(10);
-    const editor = document.getElementById('primecodeEditor');
-    if (editor) {
-      // Save previous file
-      saveCode(state.activeWebFile, editor.value);
-      state.activeWebFile = fileKey;
-      editor.value = getSavedCode(fileKey);
-      const lineNumbers = document.getElementById('primecodeLineNumbers');
-      updateLineNumbers(editor, lineNumbers);
-    }
+    // Save previous file
+    saveCode(state.activeWebFile, getActiveCode());
+    state.activeWebFile = fileKey;
+    const nextCode = getSavedCode(fileKey);
+    const lang = fileKey === 'js' ? 'javascript' : fileKey === 'css' ? 'css' : 'html';
+    setActiveCode(nextCode, lang);
 
     // Update active tab styling
     document.querySelectorAll('#primecodeFileTabsTrack .primecode-file-tab').forEach(btn => {
@@ -1140,7 +1193,7 @@ loadDashboard();`
 
     // === 1. HTML WEB DEV WORKSPACE ===
     if (lang === 'html') {
-      saveCode(state.activeWebFile, editor.value);
+      saveCode(state.activeWebFile, getActiveCode());
       const html = getSavedCode('html');
       const css = getSavedCode('css');
       const js = getSavedCode('js');
@@ -1167,7 +1220,7 @@ loadDashboard();`
 
     // === 2. MYSQL QUERY EXECUTION ===
     if (lang === 'mysql') {
-      const query = editor.value.trim();
+      const query = getActiveCode().trim();
       if (!query) {
         notify('Please enter a SQL query', 'info');
         return;
@@ -1246,7 +1299,7 @@ loadDashboard();`
       isWaitingForInput: false,
       isKilled: false,
       lang: lang,
-      code: editor.value,
+      code: getActiveCode(),
       turns: [],
       fullStdout: '',
       startTime: performance.now(),
@@ -1793,14 +1846,9 @@ loadDashboard();`
             const idx = parseInt(btn.dataset.templateIdx, 10);
             const chosen = templates[idx];
             if (chosen) {
-              const editor = document.getElementById('primecodeEditor');
-              if (editor) {
-                editor.value = chosen.code;
-                saveCode(lang, chosen.code);
-                const lineNumbers = document.getElementById('primecodeLineNumbers');
-                updateLineNumbers(editor, lineNumbers);
-                notify(`Loaded: ${chosen.name}`, 'success');
-              }
+              setActiveCode(chosen.code, lang);
+              saveCode(lang, chosen.code);
+              notify(`Loaded: ${chosen.name}`, 'success');
             }
             sheet.close();
           });
@@ -1875,6 +1923,9 @@ loadDashboard();`
             const lineNumbers = document.getElementById('primecodeLineNumbers');
             if (editor) editor.style.fontSize = state.fontSize;
             if (lineNumbers) lineNumbers.style.fontSize = state.fontSize;
+            if (window.PrimeCodeMirror && window.PrimeCodeMirror.isReady) {
+              window.PrimeCodeMirror.setFontSize(state.fontSize);
+            }
 
             const label = document.getElementById('optCurrentFontSize');
             if (label) label.textContent = state.fontSize;
@@ -1886,15 +1937,10 @@ loadDashboard();`
         const btnReset = document.getElementById('optResetCode');
         if (btnReset) {
           btnReset.addEventListener('click', () => {
-            const editor = document.getElementById('primecodeEditor');
-            if (editor) {
-              const defaultCode = STARTERS[lang] || '';
-              editor.value = defaultCode;
-              saveCode(lang, defaultCode);
-              const lineNumbers = document.getElementById('primecodeLineNumbers');
-              updateLineNumbers(editor, lineNumbers);
-              notify('Reset to default starter template', 'info');
-            }
+            const defaultCode = STARTERS[lang] || '';
+            setActiveCode(defaultCode, lang);
+            saveCode(lang, defaultCode);
+            notify('Reset to default starter template', 'info');
             sheet.close();
           });
         }
@@ -1905,15 +1951,13 @@ loadDashboard();`
   // ---- Export / Download File ----
   function exportCurrentFile() {
     triggerHaptic(12);
-    const editor = document.getElementById('primecodeEditor');
-    if (!editor) return;
-
+    const code = getActiveCode();
     const lang = state.activeLang;
     const config = LANG_CONFIG[lang] || LANG_CONFIG.python;
     const filename = lang === 'html' ? `${state.activeWebFile}.${state.activeWebFile === 'js' ? 'js' : state.activeWebFile === 'css' ? 'css' : 'html'}` : config.filename;
 
     try {
-      const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([code], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -1924,7 +1968,7 @@ loadDashboard();`
       URL.revokeObjectURL(url);
       notify(`Exported ${filename} successfully!`, 'success');
     } catch (e) {
-      navigator.clipboard.writeText(editor.value);
+      navigator.clipboard.writeText(code);
       notify('Code copied to clipboard (download blocked)', 'info');
     }
   }
@@ -1932,10 +1976,9 @@ loadDashboard();`
   // ---- Auto-Format Current Code ----
   function autoFormatCode() {
     triggerHaptic(12);
-    const editor = document.getElementById('primecodeEditor');
-    if (!editor) return;
+    const code = getActiveCode();
+    if (!code) return;
 
-    const code = editor.value;
     const lines = code.split('\n');
     let indentLevel = 0;
     const formatted = [];
@@ -1960,15 +2003,22 @@ loadDashboard();`
       }
     }
 
-    editor.value = formatted.join('\n');
-    saveCode(state.activeLang, editor.value);
-    const lineNumbers = document.getElementById('primecodeLineNumbers');
-    updateLineNumbers(editor, lineNumbers);
+    const formattedCode = formatted.join('\n');
+    setActiveCode(formattedCode, state.activeLang);
+    saveCode(state.activeLang, formattedCode);
     notify('Code formatted & indented! ✨', 'success');
   }
 
   // ---- Symbol Insertion at Cursor ----
   function insertSymbolAtCursor(textareaEl, symbol) {
+    triggerHaptic(8);
+    if (window.PrimeCodeMirror && window.PrimeCodeMirror.isReady && state.cmInitialized) {
+      window.PrimeCodeMirror.insertSymbolAtCursor(symbol);
+      const activeKey = state.activeLang === 'html' ? state.activeWebFile : state.activeLang;
+      saveCode(activeKey, window.PrimeCodeMirror.getCode());
+      return;
+    }
+
     if (!textareaEl) return;
     textareaEl.focus();
 
@@ -2003,7 +2053,6 @@ loadDashboard();`
     textareaEl.selectionStart = textareaEl.selectionEnd = start + cursorOffset;
 
     textareaEl.dispatchEvent(new Event('input', { bubbles: true }));
-    triggerHaptic(10);
   }
 
   // ---- Initialize PrimeCode Event Handlers ----
@@ -2058,8 +2107,7 @@ loadDashboard();`
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         triggerHaptic(10);
-        const editor = document.getElementById('primecodeEditor');
-        if (editor) saveCode(state.activeLang, editor.value);
+        saveCode(state.activeLang === 'html' ? state.activeWebFile : state.activeLang, getActiveCode());
         switchScreen('picker');
       });
     }
@@ -2238,6 +2286,13 @@ loadDashboard();`
         document.body.scrollTop = 0;
       });
     }
+
+    window.addEventListener('primecodemirror:ready', () => {
+      if (state.screen === 'workspace') {
+        const codeKey = state.activeLang === 'html' ? state.activeWebFile : state.activeLang;
+        syncCodeMirror(state.activeLang, getSavedCode(codeKey));
+      }
+    });
 
     window.addEventListener('resize', () => {
       syncVisualViewport();
