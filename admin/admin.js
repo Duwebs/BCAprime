@@ -80,30 +80,86 @@ const collegeNames = new Proxy({}, {
 });
 
 let customCollegesQueue = [];
+let approvedCollegesSearchQuery = '';
 
 async function loadApprovedCustomCollegesAdmin() {
-  if (!adminSupabaseClient) return;
+  const queueHost = $('collegeApprovalsQueue');
+  const approvedHost = $('approvedCollegesList');
+
+  if (queueHost && !customCollegesQueue.length) {
+    queueHost.innerHTML = '<p class="note" style="padding:16px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Loading college approvals&hellip;</p>';
+  }
+  if (approvedHost && !approvedHost.innerHTML.trim()) {
+    approvedHost.innerHTML = '<p class="note" style="padding:16px 0;"><i class="fa-solid fa-spinner fa-spin"></i> Loading active colleges directory&hellip;</p>';
+  }
+
+  if (typeof adminSupabaseClient === 'undefined' || !adminSupabaseClient) {
+    if (queueHost) {
+      queueHost.innerHTML = `
+        <div style="padding:16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;color:var(--danger,#ef4444);font-size:13px;display:flex;align-items:center;gap:12px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:18px;"></i>
+          <div>
+            <strong style="display:block;font-size:14px;margin-bottom:2px;">Supabase is not configured or session is missing</strong>
+            <span style="font-size:12px;opacity:0.85;">Please verify your Supabase configuration or login credentials.</span>
+          </div>
+        </div>
+      `;
+    }
+    renderApprovedCollegesAdmin();
+    return;
+  }
+
   try {
     const { data, error } = await adminSupabaseClient
       .from('custom_colleges')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (!error && Array.isArray(data)) {
-      customCollegesQueue = data;
-      const approved = data.filter(c => c.status === 'approved');
-      const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
-        ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
-        : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
-      if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.mergeColleges) {
-        dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(baseColleges, approved);
+    if (error) {
+      console.warn('[Admin] custom_colleges query error:', error);
+      if (queueHost) {
+        queueHost.innerHTML = `
+          <div style="padding:16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;color:var(--danger,#ef4444);font-size:13px;display:flex;align-items:center;gap:12px;">
+            <i class="fa-solid fa-triangle-exclamation" style="font-size:18px;"></i>
+            <div>
+              <strong style="display:block;font-size:14px;margin-bottom:2px;">Could not fetch college requests</strong>
+              <span style="font-size:12px;opacity:0.85;">${escapeHtml(error.message || 'Database error occurred')}</span>
+            </div>
+          </div>
+        `;
       }
-      populateAdminCollegeDropdowns();
-      updateCollegeBadgeCount();
-      renderCustomCollegesAdmin();
+      renderApprovedCollegesAdmin();
+      return;
     }
+
+    customCollegesQueue = Array.isArray(data) ? data : [];
+    const approved = customCollegesQueue.filter(c => c.status === 'approved');
+    const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+      ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
+      : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
+
+    if (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.mergeColleges) {
+      dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(baseColleges, approved);
+    }
+
+    populateAdminCollegeDropdowns();
+    updateCollegeBadgeCount();
+    renderCustomCollegesAdmin();
+    renderApprovedCollegesAdmin();
   } catch (err) {
-    console.warn('[Admin] loadApprovedCustomCollegesAdmin error:', err);
+    console.warn('[Admin] loadApprovedCustomCollegesAdmin exception:', err);
+    if (queueHost) {
+      queueHost.innerHTML = `
+        <div style="padding:16px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;color:var(--danger,#ef4444);font-size:13px;display:flex;align-items:center;gap:12px;">
+          <i class="fa-solid fa-triangle-exclamation" style="font-size:18px;"></i>
+          <div>
+            <strong style="display:block;font-size:14px;margin-bottom:2px;">Network or connection error</strong>
+            <span style="font-size:12px;opacity:0.85;">${escapeHtml(err.message || 'Failed to communicate with Supabase')}</span>
+          </div>
+        </div>
+      `;
+    }
+    renderApprovedCollegesAdmin();
   }
 }
 
@@ -113,6 +169,19 @@ function updateCollegeBadgeCount() {
   if (badge) {
     badge.textContent = pendingCount;
     badge.hidden = (pendingCount === 0);
+  }
+  const pendingBadge = $('collegePendingCountBadge');
+  if (pendingBadge) {
+    pendingBadge.textContent = `${pendingCount} Pending`;
+  }
+  const approvedCustom = customCollegesQueue.filter(c => c.status === 'approved').length;
+  const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+    ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
+    : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
+  const baseCount = baseColleges.filter(c => c[0] !== 'all' && c[0] !== 'other').length;
+  const approvedBadge = $('collegeApprovedCountBadge');
+  if (approvedBadge) {
+    approvedBadge.textContent = `${approvedCustom + baseCount} Active`;
   }
 }
 
@@ -170,63 +239,135 @@ try {
   }
 } catch(_e) {}
 
-async function renderCustomCollegesAdmin() {
+function renderCustomCollegesAdmin() {
   const host = $('collegeApprovalsQueue');
   if (!host) return;
-  if (!customCollegesQueue.length) {
-    host.innerHTML = '<p class="note">No custom college requests yet.</p>';
+
+  const pending = customCollegesQueue.filter(c => c.status === 'pending');
+
+  if (pending.length === 0) {
+    host.innerHTML = `
+      <div class="adm-card" style="padding:28px 20px;text-align:center;border:1px solid var(--line);border-radius:14px;background:var(--surface2);">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(37,99,235,0.12);color:#2563eb;display:inline-flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:10px;">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h4 style="margin:0 0 4px;font-size:15px;font-weight:600;color:var(--ink);">No pending college approvals right now</h4>
+        <p style="margin:0;font-size:13px;color:var(--muted);">All student-submitted custom college requests have been reviewed.</p>
+      </div>
+    `;
     return;
   }
 
-  host.innerHTML = customCollegesQueue.map(c => {
-    const time = c.created_at ? new Date(c.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '';
-    const stBadge = c.status === 'approved'
-      ? '<span class="adm-pill active" style="background:#059669;color:#fff;font-size:11px;">APPROVED</span>'
-      : (c.status === 'rejected'
-        ? '<span class="adm-pill" style="background:#dc2626;color:#fff;font-size:11px;">REJECTED</span>'
-        : '<span class="adm-pill" style="background:#f59e0b;color:#000;font-size:11px;font-weight:700;">PENDING REVIEW</span>');
-
-    let actions = '';
-    if (c.status === 'pending') {
-      actions = `
-        <div class="row-actions" style="margin-top:10px;display:flex;gap:8px;">
-          <button class="button primary bca-pressable" onclick="approveCustomCollege(${c.id}, '${escapeHtml(c.name)}')">
-            <i class="fa-solid fa-check"></i> Approve
-          </button>
-          <button class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})">
-            <i class="fa-solid fa-xmark"></i> Reject
-          </button>
-        </div>`;
-    } else if (c.status === 'approved') {
-      actions = `
-        <div class="row-actions" style="margin-top:10px;">
-          <button class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})">
-            <i class="fa-solid fa-trash"></i> Revoke / Archive
-          </button>
-        </div>`;
-    } else {
-      actions = `
-        <div class="row-actions" style="margin-top:10px;">
-          <button class="button bca-pressable" onclick="approveCustomCollege(${c.id}, '${escapeHtml(c.name)}')">
-            <i class="fa-solid fa-rotate-left"></i> Re-Approve
-          </button>
-        </div>`;
-    }
+  host.innerHTML = pending.map(c => {
+    const time = c.created_at ? new Date(c.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : 'Recently';
+    const submitter = c.submitted_by_name || 'Student';
 
     return `
-      <div class="lf-admin-item ${c.status}" style="padding:14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--surface2);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <h3 style="margin:0;font-size:16px;font-family:var(--font-condensed-heading);">${escapeHtml(c.name)}</h3>
-          ${stBadge}
+      <div class="adm-card" style="padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);margin-bottom:12px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0 0 4px;font-size:16px;font-weight:700;color:var(--ink);">${escapeHtml(c.name)}</h3>
+            <div style="font-size:12.5px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;">
+              <span><i class="fa-solid fa-user" style="margin-right:4px;color:#2563eb;"></i> Submitted by: <b>@${escapeHtml(submitter.replace(/^@/, ''))}</b></span>
+              <span><i class="fa-solid fa-clock" style="margin-right:4px;"></i> ${time} IST</span>
+            </div>
+          </div>
+          <span class="adm-pill" style="background:rgba(245,158,11,0.15);color:#d97706;border:1px solid rgba(245,158,11,0.3);font-size:11px;font-weight:700;padding:3px 8px;border-radius:9999px;">PENDING APPROVAL</span>
         </div>
-        <div style="font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;">
-          <span><i class="fa-solid fa-user"></i> Requested by: <b>@${escapeHtml((c.submitted_by_name || 'student').replace(/^@/, ''))}</b></span>
-          <span><i class="fa-solid fa-clock"></i> ${time} IST</span>
+
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button type="button" class="button bca-pressable" onclick="approveCustomCollege(${c.id}, this.dataset.name)" data-name="${escapeHtml(c.name)}"
+            style="background:#2563eb;border-color:#2563eb;color:#ffffff;font-weight:600;padding:8px 16px;border-radius:9px;cursor:pointer;">
+            <i class="fa-solid fa-check"></i> Approve
+          </button>
+          <button type="button" class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})"
+            style="color:#ef4444;border:1px solid rgba(239,68,68,0.3);background:transparent;padding:8px 16px;border-radius:9px;cursor:pointer;">
+            <i class="fa-solid fa-xmark"></i> Reject
+          </button>
         </div>
-        ${actions}
       </div>
     `;
   }).join('');
+
+  initAdminPressables();
+}
+
+function renderApprovedCollegesAdmin(searchFilter) {
+  const host = $('approvedCollegesList');
+  if (!host) return;
+
+  if (typeof searchFilter === 'string') {
+    approvedCollegesSearchQuery = searchFilter.trim().toLowerCase();
+  }
+  const q = approvedCollegesSearchQuery;
+
+  // 1. Approved custom colleges from DB
+  const approvedCustom = customCollegesQueue.filter(c => c.status === 'approved').map(c => ({
+    id: c.id,
+    code: `custom-${c.id}`,
+    name: c.name,
+    isCustom: true,
+    created_at: c.created_at
+  }));
+
+  // 2. Base system colleges from lib/colleges.js
+  const baseColleges = ((window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+    ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
+    : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES)
+    .filter(c => c[0] !== 'all' && c[0] !== 'other')
+    .map(c => ({
+      code: c[0],
+      name: c[1],
+      isCustom: false
+    }));
+
+  let allColleges = [...approvedCustom, ...baseColleges];
+
+  if (q) {
+    allColleges = allColleges.filter(c =>
+      c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    );
+  }
+
+  if (allColleges.length === 0) {
+    host.innerHTML = `
+      <div class="adm-card" style="padding:24px;text-align:center;border:1px solid var(--line);border-radius:12px;background:var(--surface2);color:var(--muted);font-size:13px;">
+        No colleges match "${escapeHtml(q)}".
+      </div>
+    `;
+    return;
+  }
+
+  host.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:10px;">
+      ${allColleges.map(c => {
+        return `
+          <div class="adm-card" style="padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface2);display:flex;align-items:center;justify-content:space-between;gap:10px;">
+            <div style="min-width:0;flex:1;">
+              <div style="font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.name)}</div>
+              <div style="font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px;">
+                <span class="adm-pill" style="font-size:10px;padding:1px 6px;border-radius:4px;${c.isCustom ? 'background:rgba(5,150,105,0.15);color:#059669;' : 'background:rgba(100,116,139,0.15);color:#64748b;'}">
+                  ${c.isCustom ? 'Custom Approved' : 'Built-in'}
+                </span>
+                <span style="font-family:monospace;font-size:11px;opacity:0.7;">${escapeHtml(c.code)}</span>
+              </div>
+            </div>
+            ${c.isCustom ? `
+              <button type="button" class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})" title="Revoke / Archive approval" style="padding:5px 9px;font-size:11px;border-radius:7px;">
+                <i class="fa-solid fa-trash-can"></i> Revoke
+              </button>
+            ` : ''}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  initAdminPressables();
+}
+
+function filterApprovedCollegesAdmin(query) {
+  renderApprovedCollegesAdmin(query);
 }
 
 async function approveCustomCollege(id, name) {
@@ -260,9 +401,12 @@ async function rejectCustomCollege(id) {
     showAdminToast('Could not reject college: ' + err.message, 'error');
   }
 }
+
+window.loadApprovedCustomCollegesAdmin = loadApprovedCustomCollegesAdmin;
 window.loadCustomCollegesAdmin = loadApprovedCustomCollegesAdmin;
 window.approveCustomCollege = approveCustomCollege;
 window.rejectCustomCollege = rejectCustomCollege;
+window.filterApprovedCollegesAdmin = filterApprovedCollegesAdmin;
 
 let uploads = [];
 const selectedIds = new Set();
@@ -1687,7 +1831,7 @@ function switchTab(tab) {
   }
 
   document.querySelectorAll('.admin-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-  ['material', 'feedback', 'community', 'subjects', 'quizzes', 'users'].forEach(id => {
+  ['material', 'feedback', 'community', 'colleges', 'subjects', 'quizzes', 'users'].forEach(id => {
     const el = $('tab-' + id);
     if (el) el.hidden = (id !== tab);
   });

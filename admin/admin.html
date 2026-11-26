@@ -531,15 +531,40 @@
     <!-- ============ TAB: College Approvals ============ -->
     <section class="tab-panel" id="tab-colleges" hidden>
       <section class="panel">
-        <div class="toolbar">
+        <div class="toolbar" style="margin-bottom:16px;">
           <div>
-            <h2>Custom College Approvals</h2>
-            <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Review student-submitted custom college requests. Approved colleges immediately appear in all app dropdowns.</p>
+            <h2>College Management &amp; Approvals</h2>
+            <p style="color:var(--muted);font-size:13px;margin:2px 0 0">Review student-submitted custom college requests and manage active university listings.</p>
           </div>
-          <button class="button bca-pressable" onclick="loadCustomCollegesAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          <button class="button bca-pressable" onclick="loadApprovedCustomCollegesAdmin()"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
         </div>
-        <div id="collegeApprovalsQueue" class="college-approvals-queue"><p class="note">Loading&hellip;</p></div>
-        <div class="note">Approving a college automatically syncs it across BCAPrime, Admin broadcast targeting, and Stats analytics. Rejection archives it.</div>
+
+        <!-- 1. Pending Approvals Section -->
+        <div style="margin-bottom:28px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="font-size:15px;margin:0;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--ink);">
+              <i class="fa-solid fa-clock-rotate-left" style="color:#2563eb;"></i>
+              <span>Pending Approvals</span>
+              <span class="count-badge" id="collegePendingCountBadge">0 Pending</span>
+            </h3>
+          </div>
+          <div id="collegeApprovalsQueue" class="college-approvals-queue"><p class="note">Loading&hellip;</p></div>
+        </div>
+
+        <!-- 2. Approved & Active Colleges Directory -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+            <h3 style="font-size:15px;margin:0;font-weight:700;display:flex;align-items:center;gap:8px;color:var(--ink);">
+              <i class="fa-solid fa-building-columns" style="color:#2563eb;"></i>
+              <span>Approved &amp; Active Colleges</span>
+              <span class="count-badge" id="collegeApprovedCountBadge">0 Active</span>
+            </h3>
+            <input type="text" id="approvedCollegesSearch" class="search" placeholder="Filter colleges by name or code…" oninput="filterApprovedCollegesAdmin(this.value)" style="max-width:280px;height:36px;">
+          </div>
+          <div id="approvedCollegesList" class="approved-colleges-list"></div>
+        </div>
+
+        <div class="note" style="margin-top:20px;">Approving a college automatically syncs it across BCAPrime student onboarding, broadcast targeting, and Stats analytics. Rejection archives it.</div>
       </section>
     </section>
 
