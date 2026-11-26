@@ -179,7 +179,7 @@ html:not([data-theme="dark"]) .qa-codelab-badge {
   padding: 0 !important;
   border-radius: 0 !important;
   border: none !important;
-  z-index: 100100 !important;
+  z-index: 38 !important;
   background: #090d16;
   color: #f1f5f9;
   display: none !important;
@@ -1351,8 +1351,8 @@ html:not([data-theme="dark"]) .primecode-splash-screen {
 /* Hide PrimeBuddy mascot while splash screen is active */
 body.primecode-splash-active #primeBuddy,
 body.primecode-splash-active .prime-buddy-container,
-body:has(#primecodeSplash:not([hidden]):not(.fade-out)) #primeBuddy,
-body:has(#primecodeSplash:not([hidden]):not(.fade-out)) .prime-buddy-container {
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not(.fade-out):not([style*="display: none"])) #primeBuddy,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not(.fade-out):not([style*="display: none"])) .prime-buddy-container {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
@@ -2898,11 +2898,11 @@ body.primecode-splash-active #primeBuddyWrap,
 body.primecode-splash-active .prime-buddy-wrap,
 body.primecode-splash-active #buddyActionPill,
 body.primecode-splash-active #buddyFocusPopup,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyMascot,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyWrap,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) .prime-buddy-wrap,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyActionPill,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyFocusPopup {
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #primeBuddyMascot,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #primeBuddyWrap,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) .prime-buddy-wrap,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #buddyActionPill,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #buddyFocusPopup {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

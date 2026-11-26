@@ -1066,13 +1066,17 @@
         return false;
       }
 
-      // Check PrimeCode splash screen (strictly hidden during splash)
-      const splash = document.getElementById('primecodeSplash');
-      if (splash && !splash.hidden && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) {
-        return false;
-      }
-      if (document.body && document.body.classList.contains('primecode-splash-active')) {
-        return false;
+      // Check PrimeCode splash screen (strictly hidden ONLY while 2.2s splash overlay is actively open)
+      const codelabModal = document.getElementById('codeLabModal');
+      const isCodelabOpen = codelabModal && codelabModal.classList.contains('open');
+      if (isCodelabOpen) {
+        const splash = document.getElementById('primecodeSplash');
+        if (splash && !splash.hidden && splash.style.display !== 'none' && !splash.classList.contains('fade-out')) {
+          return false;
+        }
+        if (document.body && document.body.classList.contains('primecode-splash-active')) {
+          return false;
+        }
       }
 
       return true;
@@ -1083,8 +1087,6 @@
 
   function isBuddyVisible() {
     if (!isInsideMainApp()) return false;
-    const seenIntro = localStorage.getItem(STORAGE_KEY_INTRO_SEEN);
-    if (!seenIntro) return false;
     return isBuddyEnabled() && !isTemporarilyHiddenForSession;
   }
 
@@ -1435,7 +1437,7 @@
     mascotEl.style.position = 'fixed';
     mascotEl.style.top = '0px';
     mascotEl.style.left = '0px';
-    mascotEl.style.zIndex = '10050'; // Floats above top header and bottom nav
+    mascotEl.style.zIndex = '50'; // Floats above page content and cards (z-40/z-50)
     mascotEl.style.width = '66px';
     mascotEl.style.height = '66px';
     mascotEl.style.touchAction = 'none';
@@ -1478,8 +1480,13 @@
     const maxX = getMaxX();
     const maxY = getMaxY();
 
-    let x = maxX - 12;
-    let y = Math.max(0, maxY - 120);
+    const isDesktop = (window.innerWidth || 360) >= 768;
+    // Clean bottom-right offset: bottom-20 right-4 on mobile (~80px bottom, 16px right), bottom-6 right-6 on desktop (24px bottom, 24px right)
+    const defaultRightOffset = isDesktop ? 24 : 16;
+    const defaultBottomOffset = isDesktop ? 24 : 80;
+
+    let x = Math.max(0, maxX - defaultRightOffset);
+    let y = Math.max(0, maxY - defaultBottomOffset);
 
     const saved = localStorage.getItem(STORAGE_KEY_POS);
     if (saved) {

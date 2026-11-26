@@ -776,7 +776,7 @@ loadDashboard();`
     } catch (e) {}
   }
 
-  // Mascot Controller (Strictly hides PrimeBuddy during splash)
+  // Mascot Controller (Strictly hides PrimeBuddy during 2.2s splash only)
   function setPrimeBuddyVisible(visible) {
     const buddySelectors = [
       '#primeBuddyMascot',
@@ -801,6 +801,11 @@ loadDashboard();`
         }
       });
     });
+    if (visible && window.PrimeBuddy) {
+      try {
+        window.PrimeBuddy.checkNavigationState?.();
+      } catch (_e) {}
+    }
   }
 
   // ---- Screen Navigation (Splash -> Picker -> Workspace) ----
@@ -838,19 +843,19 @@ loadDashboard();`
               if (state.screen === 'splash') {
                 document.body.classList.remove('primecode-splash-active');
                 switchScreen('picker');
-                setPrimeBuddyVisible(false);
+                setPrimeBuddyVisible(true);
               }
             }, 300);
           } else {
             document.body.classList.remove('primecode-splash-active');
             switchScreen('picker');
-            setPrimeBuddyVisible(false);
+            setPrimeBuddyVisible(true);
           }
         }
       }, 2200);
     } else if (screen === 'picker') {
       document.body.classList.remove('primecode-splash-active');
-      setPrimeBuddyVisible(false);
+      setPrimeBuddyVisible(true);
       if (splashEl) {
         splashEl.classList.add('fade-out');
         splashEl.hidden = true;
@@ -864,7 +869,7 @@ loadDashboard();`
       if (workspaceEl) workspaceEl.hidden = true;
     } else if (screen === 'workspace') {
       document.body.classList.remove('primecode-splash-active');
-      setPrimeBuddyVisible(false);
+      setPrimeBuddyVisible(true);
       if (splashEl) {
         splashEl.classList.add('fade-out');
         splashEl.hidden = true;
@@ -885,7 +890,14 @@ loadDashboard();`
 
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
-    setPrimeBuddyVisible(false);
+
+    if (!directScreen || directScreen === 'splash') {
+      document.body.classList.add('primecode-splash-active');
+      setPrimeBuddyVisible(false);
+    } else {
+      document.body.classList.remove('primecode-splash-active');
+      setPrimeBuddyVisible(true);
+    }
 
     switchScreen(directScreen || 'splash');
   }

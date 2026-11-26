@@ -8,7 +8,7 @@
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
-  z-index: 10050 !important;
+  z-index: 50 !important;
   display: block !important;
   width: 66px;
   height: 66px;
@@ -19,6 +19,7 @@
   filter: drop-shadow(0 8px 24px rgba(37, 99, 235, 0.4));
   will-change: transform;
   contain: layout style;
+  pointer-events: auto;
   transform: translate3d(0, 0, 0);
   transition: opacity 0.25s ease;
 }
@@ -42,7 +43,7 @@
 
 .prime-buddy-wrap.is-hidden,
 body.primecode-splash-active .prime-buddy-wrap,
-body:has(#primecodeSplash:not([hidden]):not(.fade-out)) .prime-buddy-wrap {
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not(.fade-out):not([style*="display: none"])) .prime-buddy-wrap {
   display: none !important;
   opacity: 0 !important;
   visibility: hidden !important;
@@ -651,7 +652,7 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble.bubble-below::after
 .buddy-pill-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 10054;
+  z-index: 54;
   background: transparent;
   display: none;
 }
@@ -661,7 +662,7 @@ body:not(.dark):not([data-theme="dark"]) .prime-buddy-bubble.bubble-below::after
 
 .buddy-action-pill {
   position: fixed;
-  z-index: 10055;
+  z-index: 55;
   width: min(284px, calc(100vw - 24px));
   height: 44px;
   border-radius: 9999px;
@@ -839,7 +840,7 @@ body:not(.dark):not([data-theme="dark"]) .buddy-focus-digits {
 /* Focus Control Popup */
 .buddy-focus-popup {
   position: fixed;
-  z-index: 10058;
+  z-index: 56;
   width: 184px;
   background: rgba(18, 18, 24, 0.96);
   backdrop-filter: blur(20px);
@@ -1010,22 +1011,17 @@ body.primecode-splash-active #primeBuddyWrap,
 body.primecode-splash-active .prime-buddy-wrap,
 body.primecode-splash-active #buddyActionPill,
 body.primecode-splash-active #buddyFocusPopup,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyMascot,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #primeBuddyWrap,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) .prime-buddy-wrap,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyActionPill,
-body:has(#primecodeSplash:not([hidden]):not([style*="display: none"])) #buddyFocusPopup,
-body:has(.bca-bottom-sheet) #primeBuddyMascot,
-body:has(.bca-bottom-sheet) #primeBuddyWrap,
-body:has(.bca-bottom-sheet) .prime-buddy-wrap,
-body:has(.bca-bottom-sheet) #buddyActionPill,
-body:has(.bca-bottom-sheet) #buddyFocusPopup,
-body:has(.bca-bottom-sheet-backdrop) #primeBuddyMascot,
-body:has(#primecodeWorkspace:not([hidden])) #primeBuddyMascot,
-body:has(#primecodeWorkspace:not([hidden])) #primeBuddyWrap,
-body:has(#primecodeWorkspace:not([hidden])) .prime-buddy-wrap,
-body:has(#primecodeWorkspace:not([hidden])) #buddyActionPill,
-body:has(#primecodeWorkspace:not([hidden])) #buddyFocusPopup {
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #primeBuddyMascot,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #primeBuddyWrap,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) .prime-buddy-wrap,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #buddyActionPill,
+body:has(#codeLabModal.open #primecodeSplash:not([hidden]):not([style*="display: none"]):not(.fade-out)) #buddyFocusPopup,
+body:has(.bca-bottom-sheet.is-open) #primeBuddyMascot,
+body:has(.bca-bottom-sheet.is-open) #primeBuddyWrap,
+body:has(.bca-bottom-sheet.is-open) .prime-buddy-wrap,
+body:has(.bca-bottom-sheet.is-open) #buddyActionPill,
+body:has(.bca-bottom-sheet.is-open) #buddyFocusPopup,
+body:has(.bca-bottom-sheet-backdrop.is-visible) #primeBuddyMascot {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
