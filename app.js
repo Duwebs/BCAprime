@@ -6692,38 +6692,54 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     }
 
     function getDynamicOnboardingColleges() {
-      const list = [];
-      const seen = new Set();
+      const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
+        ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
+        : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
 
-      // 1. Approved colleges from Supabase custom_colleges
+      // 1. Valid base colleges (excluding 'all')
+      const list = baseColleges.filter(c => c[0] !== 'all').map(c => [c[0], c[1]]);
+      const seenNames = new Set(list.map(c => c[1].toLowerCase().trim()));
+      const seenIds = new Set(list.map(c => c[0].toLowerCase().trim()));
+
+      // 2. Approved custom colleges from Supabase custom_colleges
       if (Array.isArray(approvedCustomColleges)) {
         approvedCustomColleges.forEach(c => {
           if (!c || !c.name) return;
           const name = String(c.name).trim();
+          const nameKey = name.toLowerCase();
+          if (seenNames.has(nameKey)) return;
+
           const id = 'custom-' + (c.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
-          const key = name.toLowerCase();
-          if (!seen.has(key)) {
-            seen.add(key);
-            list.push([id, name]);
-          }
+          seenNames.add(nameKey);
+          seenIds.add(id);
+          list.push([id, name]);
         });
       }
 
-      // 2. Local custom submissions in this browser
+      // 3. Local custom submissions in this browser
       try {
         const raw = JSON.parse(localStorage.getItem('bca-custom-colleges') || '[]');
         raw.forEach(c => {
           if (Array.isArray(c) && c.length === 2 && c[1]) {
-            const key = String(c[1]).toLowerCase().trim();
-            if (!seen.has(key)) {
-              seen.add(key);
+            const name = String(c[1]).trim();
+            const nameKey = name.toLowerCase();
+            if (!seenNames.has(nameKey)) {
+              seenNames.add(nameKey);
+              seenIds.add(c[0]);
               list.push(c);
             }
           }
         });
       } catch (_e) {}
 
-      return list;
+      // Sort with Avviare and Glocal first, then alphabetical
+      return list.sort((a, b) => {
+        if (a[0] === 'avviare') return -1;
+        if (b[0] === 'avviare') return 1;
+        if (a[0] === 'glocal') return -1;
+        if (b[0] === 'glocal') return 1;
+        return a[1].localeCompare(b[1]);
+      });
     }
 
     function renderOnboardingColleges(query=''){
@@ -6731,7 +6747,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(!container)return;
       const q=(query||'').trim().toLowerCase();
 
-      // Dynamic approved colleges strictly from Supabase / local submissions
+      // Valid institutions with Avviare & Glocal prioritized, merged with dynamic database additions
       const allList = getDynamicOnboardingColleges();
       const filtered=q?allList.filter(c=>{
         const id=c[0].toLowerCase();
@@ -6742,29 +6758,12 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }):allList;
 
       if(filtered.length===0){
-        if(!q){
-          container.innerHTML=`
-            <div class="ob-empty-state">
-              <i class="fa-solid fa-building-columns"></i>
-              <p><b>No approved colleges yet</b></p>
-              <p style="font-size:13px;opacity:0.85;">Can't find your college? Tap below to add your university!</p>
-              <button type="button" class="ob-empty-add-btn bca-pressable" onclick="toggleCustomCollegeDrawer(true)">
-                <i class="fa-solid fa-plus"></i> Can't find it? Add your college
-              </button>
-            </div>`;
-        } else {
-          container.innerHTML=`
-            <div class="ob-empty-state">
-              <i class="fa-solid fa-building-columns"></i>
-              <p>No college matching "<b>${escHtml(query)}</b>"</p>
-              <button type="button" class="ob-empty-add-btn bca-pressable" onclick="prefillCustomCollege('${escJsStr(query)}')">
-                <i class="fa-solid fa-plus"></i> Add "${escHtml(query)}"
-              </button>
-            </div>`;
-        }
-        if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
-          container.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
-        }
+        container.innerHTML=`
+          <div class="ob-empty-state">
+            <i class="fa-solid fa-building-columns"></i>
+            <p style="margin:0;font-weight:600;color:var(--ink);">No college matching "<b>${escHtml(query)}</b>"</p>
+            <p style="font-size:13px;color:var(--muted);margin:4px 0 0;">Use the button below to add your college</p>
+          </div>`;
         return;
       }
 
