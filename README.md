@@ -1,15 +1,15 @@
 <div align="center">
 
-<img src="./og-image.png" alt="BCAPrime Banner" width="100%" />
+<img src="./og-image.png" alt="BCAPrime — The Ultimate BCA Study Ecosystem" width="100%" />
 
 # 👑 BCAPrime
-### **The Ultimate Peer-to-Peer BCA Study Companion & Live Coding Ecosystem**
+### **The Peer-to-Peer BCA Study Companion & Live Coding Ecosystem**
 
 *Built by BCA students, for BCA students — no trackers, no paywalls, just pure academic momentum.*
 
 [![Live App](https://img.shields.io/badge/Launch_BCAPrime-2563EB?style=for-the-badge&logo=vercel&logoColor=white)](https://bcaprime.vercel.app)
 [![Version](https://img.shields.io/badge/Version-3.4.0-16A34A?style=for-the-badge)](#)
-[![Stack](https://img.shields.io/badge/Stack-Vanilla_JS_%7C_Supabase_%7C_Vercel-0A0A0A?style=for-the-badge)](#tech-stack)
+[![Stack](https://img.shields.io/badge/Stack-Supabase_%7C_Vercel_%7C_Tailwind_v4-0A0A0A?style=for-the-badge)](#tech-stack)
 [![Community](https://img.shields.io/badge/Community-Peer--Powered-F59E0B?style=for-the-badge)](#contributing)
 
 </div>
@@ -46,9 +46,9 @@ Every contribution makes the platform stronger for the next batch. **Take what h
 ### 📚 2. Crowdsourced Notes & PYQs
 
 - **College & Semester Personalised:** Tailored to your specific institution (including *Avviare Educational Hub*, *Glocal University*, and community-submitted colleges) across **Semesters 1 to 6**.
-- **PrimeFinder Smart Search:** Match by College + Semester + Subject, then filter by Notes / PYQs.
+- **PrimeFinder Smart Search:** Match by College + Semester + Subject, then filter by Notes / PYQs / All.
 - **Continue Reading Tracker:** Automatically remembers the exact PDF and page number you left off on so you can resume in one tap.
-- **Offline Support:** Files you've opened stay available without internet.
+- **Offline Support:** Files you've opened stay available without internet via the Service Worker cache.
 
 ### 🤖 3. PrimeBuddy — Your Interactive Study Mascot
 
@@ -63,22 +63,24 @@ Every contribution makes the platform stronger for the next batch. **Take what h
 
 ### 🤝 5. Campus Community & Peer Support Hub
 
-- **Ask a Senior:** Post doubts about subjects, minor/major projects, or NIMCET/MCA prep.
-- **Juniors Request Board:** Request missing notes, practical files, or specific question papers.
+- **Ask a Senior:** Post doubts about subjects, minor/major projects, or NIMCET/MCA prep — seniors who have already cleared them answer directly.
+- **Juniors Request Board:** Request missing notes, practical files, or specific question papers from your batch or seniors.
 - **Campus Lost & Found:** Report or recover misplaced ID cards, chargers, notebooks, and campus items.
 
-### 🔐 6. Auth & Security
+### 🔐 6. Auth & Security — 100% Supabase
 
-- **Google OAuth + Email/Password** via Firebase Authentication.
-- **Dual verification** — hashed 6-digit OTP *and* a one-time verification link, both time-limited.
-- **Device Linking** — WhatsApp-style: new devices need approval from an already-approved device via a code.
-- **QR Code Login** — scan the desktop QR with your phone to approve sign-in instantly.
+- **Google & LinkedIn OAuth + Email/Password** — all powered by Supabase Auth (`supabaseClient.auth.signInWithOAuth`).
+- **Dual verification** — hashed 6-digit OTP *and* a one-time verification link, both time-limited, issued via Vercel serverless functions backed by Supabase.
+- **Device Linking** — WhatsApp-style: new devices need a code from an already-approved device.
+- **QR Code Login** — scan the desktop QR with your phone to approve sign-in instantly. Sessions stored in Supabase.
+- **Row Level Security (RLS)** — all data access is enforced at the PostgreSQL level; no client-side gates.
 
 ### 🔔 7. Web Push Notifications
 
 - Alerts delivered **even when the app is closed**, with action buttons, sound, and vibration.
 - **Targeted**: new approved material only notifies the matching college + semester subscribers.
 - **Admin broadcasts** from the admin console.
+- Powered by **Supabase Edge Functions** (`send-push`, `notify-seniors`, `notify-lostfound`).
 
 ---
 
@@ -107,7 +109,7 @@ BCAPrime grows when students treat it as **their own community**:
 
 1. **Upload Study Material:** Share clean PDFs, unit notes, lab manuals, or external PYQs for your semester.
 2. **Invite Your Classmates:** Share [bcaprime.vercel.app](https://bcaprime.vercel.app) in your college WhatsApp/Telegram groups — more peers = faster doubt solving and more notes for everyone.
-3. **Add Your College:** Don't see your institution listed during onboarding? Submit it directly in-app for instant review.
+3. **Add Your College:** Don't see your institution listed during onboarding? Submit it directly in-app for instant admin review.
 4. **Report Bugs & Suggest Features:** Use the in-app ★ feedback box or open a GitHub Issue to shape upcoming releases.
 
 ---
@@ -118,9 +120,11 @@ BCAPrime grows when students treat it as **their own community**:
 |------|-----------|
 | **Frontend** | Vanilla HTML / CSS / JavaScript, Tailwind CSS v4, CodeMirror 6, Font Awesome |
 | **UI System** | Custom design system (`ui/`) — PressableScale, BottomSheet, Skeleton, EmptyState, Toast |
-| **Authentication** | Firebase Authentication (email/password + Google OAuth) |
-| **Database & Storage** | Supabase (PostgreSQL, Row Level Security, Storage) |
-| **Serverless (email/OTP)** | Vercel Functions (Node.js) in `api/` |
+| **Authentication** | **Supabase Auth** — email/password, Google OAuth, LinkedIn OAuth |
+| **Database** | **Supabase** (PostgreSQL + Row Level Security) |
+| **File Storage** | **Supabase Storage** |
+| **Serverless Functions** | Vercel Functions (`api/`) — OTP issue/verify, password reset, welcome email |
+| **Edge Functions** | **Supabase Edge Functions** — `send-push`, `notify-seniors`, `notify-lostfound`, `sign-resource`, `telegram-new-user` |
 | **Transactional Email** | Resend |
 | **Push Notifications** | Web Push + VAPID via Supabase Edge Functions |
 | **Code Execution** | Multi-language compiler & interactive `stdin` console pipeline |
@@ -131,14 +135,21 @@ BCAPrime grows when students treat it as **their own community**:
 ## 🏗 Architecture
 
 ```
-Browser (PWA)
+Browser (PWA + Service Worker)
    │
-   ├── Firebase Auth ──────────────────── Student sign-in (email, Google, guest)
+   ├── Supabase Auth ──────────────────── All sign-in: email, Google OAuth, LinkedIn OAuth
    │
-   ├── Supabase (Postgres + RLS) ─────── Notes, PYQs, profiles, colleges, sessions
-   │   └── Edge Functions ──────────────── Targeted push notifications
+   ├── Supabase (Postgres + RLS) ──────── Notes, PYQs, profiles, colleges, device sessions,
+   │   │                                  push subscriptions, QR login, OTPs
+   │   └── Edge Functions ─────────────── Push notifications, resource signing,
+   │       send-push / notify-seniors      Telegram admin alerts
+   │       notify-lostfound / sign-resource
    │
-   ├── Vercel Functions (api/) ─────────── OTP issue/verify, password reset, emails
+   ├── Supabase Storage ───────────────── PDF notes, PYQ files, profile avatars
+   │
+   ├── Vercel Functions (api/) ─────────── OTP issue/verify, password reset,
+   │   send-otp / verify-otp               Google welcome email (Resend)
+   │   forgot-password / google-welcome
    │
    └── Code Execution Pipeline ─────────── Multi-language compiler (PrimeCode)
 ```
@@ -147,7 +158,7 @@ Browser (PWA)
 
 ## 📦 Local Setup
 
-**Prerequisites:** Node.js ≥ 18, `npm`, accounts on Firebase, Supabase, and Vercel.
+**Prerequisites:** Node.js ≥ 18, `npm`, a Supabase project, and a Vercel account.
 
 ```bash
 # 1. Clone the repository
@@ -158,16 +169,17 @@ cd BCAprime
 npm install
 
 # 3. Configure environment variables
+# Copy the example file and fill in your Supabase credentials
 cp .env.example .env.local
-# Fill in your Supabase URL, Anon Key, Firebase config, and compiler endpoint
 
-# 4. Run the development server (Vercel CLI handles serverless functions)
-npx vercel dev
+# 4. Run the development server
+npm run dev
+# This runs: generate-env.js → generate-sitemap.js → vercel dev
 # Or serve statically for frontend-only work:
 python3 -m http.server 3000
 ```
 
-> **Local tip:** Always open the app at `http://localhost:<port>` (not `127.0.0.1` or a LAN IP) — OAuth providers don't reliably accept raw IP addresses.
+> **Local tip:** Always open the app at `http://localhost:<port>` (not `127.0.0.1` or a LAN IP) — Supabase OAuth redirects only work with `localhost`.
 
 ### 🔑 Required Environment Variables
 
@@ -175,16 +187,18 @@ Set these as **Vercel environment variables** — never hardcode them in browser
 
 | Variable | Used For |
 |----------|----------|
-| `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase admin access |
-| `FIREBASE_SERVICE_ACCOUNT_JSON` | Firebase Admin SDK (server only) |
+| `VITE_SUPABASE_URL` | Supabase project URL (safe to expose in browser build) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase publishable key (safe to expose in browser build) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only Supabase admin access (Vercel Functions) |
 | `RESEND_API_KEY` | Transactional email sending |
 | `BCAPRIME_FROM_EMAIL` | Sender email address |
-| `BCAPRIME_APP_URL` | App base URL (for email links) |
+| `BCAPRIME_APP_URL` | App base URL (for email links & redirects) |
 | `OTP_PEPPER` | Hash salt for OTP security |
 | `NOTIFY_SECRET` | Admin push notification auth |
-| `VAPID_PUBLIC_KEY` | Web Push (browser-safe) |
-| `VAPID_PRIVATE_KEY` | Web Push (server secret only) |
+| `VAPID_PUBLIC_KEY` | Web Push public key (browser-safe) |
+| `VAPID_PRIVATE_KEY` | Web Push private key (server secret — never in browser) |
+
+> There are **no Firebase variables**. Auth, storage, and all data are handled exclusively by Supabase.
 
 ### 📂 Project Structure
 
@@ -194,18 +208,44 @@ BCAprime/
 ├── app.js                  # Core application logic
 ├── styles.css              # Main stylesheet
 ├── tailwind.css            # Tailwind CSS compiled output
-├── primeBuddy.js / .css    # Floating study mascot
+├── tailwind.input.css      # Tailwind source (import root)
+├── primeBuddy.js / .css    # Floating study mascot & physics
 ├── codelab.js / .css       # PrimeCode IDE (CodeMirror 6)
-├── codemirror.js           # CodeMirror syntax engine
-├── ui/                     # Shared design system (pressable, bottomSheet, skeleton…)
+├── codemirror.js           # CodeMirror syntax engine & language packs
+├── supabase-config.js      # Supabase client config (URL + anon key)
+├── ui/                     # Shared design system
+│   ├── config.js           # Design tokens (spacing, radius, animation, z-index)
+│   ├── ui.css              # CSS custom properties
+│   ├── pressable.js        # PressableScale + haptics
+│   ├── bottomSheet.js      # Native-feel bottom sheet
+│   ├── skeleton.js         # Shimmer loading skeletons
+│   ├── emptyState.js       # Empty state component
+│   └── toast.js            # Toast notification system
 ├── admin/                  # Admin console (HTML, JS, CSS)
 ├── analytics/              # Stats dashboard
-├── api/                    # Vercel serverless functions (email, OTP, password)
-├── supabase/               # SQL schema + Edge Functions
-├── lib/                    # Shared utilities (colleges, subjects…)
+├── api/                    # Vercel serverless functions
+│   ├── _lib/supabaseAuth.js  # Server-side Supabase auth helpers
+│   ├── send-otp.js           # OTP generation & email
+│   ├── verify-otp.js         # OTP verification
+│   ├── forgot-password.js    # Password reset link
+│   ├── google-welcome.js     # OAuth welcome email
+│   ├── resource.js           # Resource signing/fetching
+│   └── generate-quiz.js      # Mock test generation
+├── supabase/               # Supabase backend
+│   ├── migrations/         # SQL schema migrations
+│   ├── analytics-dashboard.sql
+│   └── functions/          # Edge Functions
+│       ├── send-push/          # Web push delivery
+│       ├── notify-seniors/     # Senior notification on new requests
+│       ├── notify-lostfound/   # Lost & Found alerts
+│       ├── sign-resource/      # Signed storage URLs
+│       └── telegram-new-user/  # Telegram admin alerts
+├── lib/                    # Shared utilities
+│   └── colleges.js         # Approved college constants
+├── scripts/                # Build scripts
+│   ├── generate-env.js     # Writes env.js from Vercel env vars
+│   └── generate-sitemap.js # Generates sitemap.xml
 ├── public/                 # PWA icons
-├── firebase-config.js      # Firebase web config (fill YOUR_… placeholders)
-├── supabase-config.js      # Supabase client config
 └── sw.js                   # Service Worker (PWA + offline caching)
 ```
 
@@ -216,18 +256,18 @@ BCAprime/
 1. Fork the repo and create a feature branch (`git checkout -b feat/your-feature`).
 2. Make your changes and test locally at `http://localhost:3000`.
 3. Run `npm run build` to verify Tailwind rebuilds cleanly with no errors.
-4. Open a pull request with a clear description of what you changed and why.
+4. Open a pull request with a clear description of what changed and why.
 5. Keep PRs focused — avoid committing generated build artifacts or secrets.
 
-> **Adding a new feature?** Update the **What's Inside** section above and bump the version in `package.json` + `whats-new.js` so the *What's New* modal surfaces it to returning users.
+> **Shipping a new feature?** Update the **What's Inside** section in `README.md`, bump the version in `package.json`, and add an entry in `whats-new.js` so the *What's New* modal surfaces it to returning users. See [`AGENTS.md`](./AGENTS.md) for the full agent contribution rules.
 
 ---
 
 ## 🔒 Security Notes
 
-- **Never commit real credentials.** The Firebase web config (`firebase-config.js`) is intentionally browser-safe; Supabase and VAPID server keys are **not** — keep them in environment variables only.
-- Authoritative access control lives in **Supabase RLS policies** and **Firebase Security Rules**, not in client-side code.
-- Keep the **service-role key**, **VAPID private key**, and **Firebase service-account JSON** out of the repository entirely.
+- **No Firebase anywhere.** Auth, storage, and all data are handled exclusively by Supabase. `firebase-config.js` is a tombstone file left in the repo only because file deletion is unavailable in the current environment — it loads nothing.
+- **Never commit real credentials.** `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are publishable and safe in the browser build; `SUPABASE_SERVICE_ROLE_KEY`, `VAPID_PRIVATE_KEY`, and `RESEND_API_KEY` are server secrets — keep them in Vercel environment variables only.
+- **Authoritative access control lives in Supabase RLS policies**, not in client-side code.
 
 ---
 

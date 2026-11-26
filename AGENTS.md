@@ -91,3 +91,30 @@ Before finishing any task, feature implementation, or UI refactoring:
 1. Audit the modified code against these 10 rules.
 2. Verify that all interactive elements and states conform to the design system.
 3. Explicitly state in the final response which rules were applied and satisfied.
+
+---
+
+## README Auto-Maintenance Rules
+
+> **IMPORTANT FOR AGENTS**: `README.md` must always reflect the actual live state of BCAPrime. Apply the following rules whenever you ship features or update the stack.
+
+### When to Update `README.md`
+Update `README.md` in the same commit whenever you:
+- Add or remove a **major user-facing feature** (e.g., new PrimeCode language, new community board, new mascot behaviour).
+- Change the **backend or infrastructure** (e.g., adding an Edge Function, a new Vercel serverless endpoint, changing storage strategy).
+- Change **authentication providers or flow** (e.g., adding/removing OAuth providers, changing session handling).
+- Update the **tech stack** in `package.json` with a new major dependency.
+- Rename, move, or delete **key files or directories** referenced in the Project Structure section.
+
+### What to Update in `README.md`
+- **Features section**: Add a bullet under the relevant feature or create a new subsection.
+- **Tech Stack table**: Update the row for the affected area.
+- **Architecture diagram**: Adjust the ASCII diagram if a new service, function, or data flow is added.
+- **Project Structure**: Add new files/directories with a one-line description.
+- **Environment Variables table**: Add any new required secrets.
+
+### Strict Prohibitions in `README.md`
+- **Never re-introduce Firebase** — auth, storage, and all data are 100% Supabase. `firebase-config.js` is a tombstone file and must not be referenced as an active dependency.
+- **Never reference React, Vite, or Next.js** — the student-facing frontend is Vanilla HTML/CSS/JS with Tailwind CSS v4. The admin and analytics panels are also Vanilla JS.
+- **Never add placeholder secrets or hardcoded keys** — all sensitive values belong in Vercel environment variables only.
+- **Never claim the stack uses services that are no longer active** — always verify against `package.json`, `supabase-config.js`, and `api/_lib/supabaseAuth.js` before writing tech stack descriptions.
