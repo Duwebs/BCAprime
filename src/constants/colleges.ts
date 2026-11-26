@@ -55,17 +55,7 @@ export const BCA_BASE_COLLEGES: [string, string][] = [
   ['srm', 'SRM Institute of Science and Technology'],
   ['tripura', 'Tripura University'],
   ['uok', 'University of Kashmir'],
-  ['kerala', 'University of Kerala'],
-  ['ccsu', 'CCSU Meerut'],
-  ['du', 'Delhi University'],
-  ['ipu', 'GGSIPU Delhi'],
-  ['aktu', 'AKTU / UPTU'],
-  ['ignou', 'IGNOU'],
-  ['mdu', 'MDU Rohtak'],
-  ['bhu', 'BHU'],
-  ['pune', 'Pune University'],
-  ['bangalore', 'Bangalore University'],
-  ['other', 'Other University']
+  ['kerala', 'University of Kerala']
 ];
 
 export const BCA_COLLEGES: [string, string][] = [...BCA_BASE_COLLEGES];
@@ -105,10 +95,7 @@ export const CUSTOM_MONOGRAMS: Record<string, string> = {
   srm: 'SR',
   tripura: 'TU',
   uok: 'UK',
-  kerala: 'UK',
-  ccsu: 'CC',
-  du: 'DU',
-  ipu: 'GG'
+  kerala: 'UK'
 };
 
 export const BADGE_COLORS: Record<string, string> = {
@@ -141,10 +128,7 @@ export const BADGE_COLORS: Record<string, string> = {
   srm: '#ea580c',
   tripura: '#16a34a',
   uok: '#4f46e5',
-  kerala: '#059669',
-  ccsu: '#3b82f6',
-  du: '#1e40af',
-  ipu: '#dc2626'
+  kerala: '#059669'
 };
 
 /**
@@ -198,7 +182,6 @@ export function formatCollegeName(codeOrId: string, customList: [string, string]
   if (!codeOrId) return 'All Colleges';
   const c = String(codeOrId).toLowerCase().trim();
   if (c === 'all') return 'All Colleges';
-  if (c === 'other') return 'Other University';
   if (COLLEGE_NAMES_MAP[c]) return COLLEGE_NAMES_MAP[c];
   const cleanCode = c.replace(/^custom-/, '');
   if (COLLEGE_NAMES_MAP[cleanCode]) return COLLEGE_NAMES_MAP[cleanCode];
@@ -213,7 +196,7 @@ export function formatCollegeName(codeOrId: string, customList: [string, string]
   }
   const formatted = cleanCode.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   if (/^\d+$/.test(formatted.trim())) return 'Other Affiliated College';
-  return formatted || 'Other University';
+  return formatted || 'All Colleges';
 }
 
 /**
@@ -241,13 +224,7 @@ export function mergeColleges(
     seenNames.add(nameLower);
     seenIds.add(id);
 
-    // Insert custom colleges right before 'other'
-    const otherIdx = merged.findIndex(c => c[0] === 'other');
-    if (otherIdx !== -1) {
-      merged.splice(otherIdx, 0, [id, name]);
-    } else {
-      merged.push([id, name]);
-    }
+    merged.push([id, name]);
   }
 
   return merged;

@@ -34,24 +34,14 @@ const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_M
     ['srm', 'SRM Institute of Science and Technology'],
     ['tripura', 'Tripura University'],
     ['uok', 'University of Kashmir'],
-    ['kerala', 'University of Kerala'],
-    ['ccsu', 'CCSU Meerut'],
-    ['du', 'Delhi University'],
-    ['ipu', 'GGSIPU Delhi'],
-    ['aktu', 'AKTU / UPTU'],
-    ['ignou', 'IGNOU'],
-    ['mdu', 'MDU Rohtak'],
-    ['bhu', 'BHU'],
-    ['pune', 'Pune University'],
-    ['bangalore', 'Bangalore University'],
-    ['other', 'Other University']
+    ['kerala', 'University of Kerala']
   ],
   mergeColleges: function(b, c) { return b; },
   getCollegeBadgeData: function(id, name) { return { monogram: 'BC', color: '#2563eb' }; },
   formatCollegeName: function(id) { return id || 'All Colleges'; }
 };
 
-const ONBOARDING_COLLEGES = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.filter(c => c[0] !== 'all' && c[0] !== 'other');
+const ONBOARDING_COLLEGES = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.filter(c => c[0] !== 'all');
 let colleges = BCA_COLLEGES_MOD.BCA_BASE_COLLEGES.slice();
 
 function getCollegeBadgeData(id, name) {
@@ -4664,7 +4654,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function toggleProfileCard(event){if(event)event.stopPropagation();const pop=$('profilePop');if(!pop)return;const willShow=pop.hidden;if(willShow){const av=$('popAvatar');if(av)av.src=getAvatar();const n=$('popName');if(n)n.textContent=accountSession?getUserName(accountSession):'Guest';const m=$('popMail');if(m)m.textContent=accountSession&&accountSession.email?accountSession.email:'Browsing as guest';const c=$('popCollege');if(c)c.textContent=(colleges.find(cc=>cc[0]===state.college)||colleges[0])[1];const profSem=state.profileSemester||getProfileSemester();const s=$('popSem');if(s)s.textContent=profSem?('Semester '+profSem):'All semesters';}const lo=$('popLogoutBtn');if(lo)lo.hidden=!accountSession;const lb=$('popLoginBtn');if(lb)lb.hidden=!!accountSession;const sc=$('popScanBtn');if(sc)sc.hidden=isGuestMode();pop.hidden=!willShow}
     function hideProfileCard(){const pop=$('profilePop');if(pop&&!pop.hidden)pop.hidden=true}
     async function logoutFromPop(){hideProfileCard();openLogoutConfirm()}
-    function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].filter(c=>c[0]!=='all').sort((a,b)=>{if(a[0]==='avviare')return -1;if(b[0]==='avviare')return 1;const order=['ccsu','du','ipu','aktu','ignou','mdu','bhu','pune','bangalore'];const aIndex=order.indexOf(a[0]);const bIndex=order.indexOf(b[0]);if(aIndex!==-1||bIndex!==-1){if(aIndex===-1)return 1;if(bIndex===-1)return -1;return aIndex-bIndex}return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
+    function renderColleges(query=''){const q=query.toLowerCase();const ranked=[...colleges].filter(c=>c[0]!=='all').sort((a,b)=>{if(a[0]==='avviare')return -1;if(b[0]==='avviare')return 1;return a[1].localeCompare(b[1])});$('collegeList').innerHTML=ranked.filter(c=>c[1].toLowerCase().includes(q)).map(c=>`<button class="college-option ${state.college===c[0]?'selected':''}" onclick="selectCollege('${c[0]}')"><span><b>${escHtml(c[1])}</b><small>BCA resources</small></span><i class="fa-solid ${state.college===c[0]?'fa-circle-check':'fa-chevron-right'}"></i></button>`).join('')}
     function selectCollege(id){state.college=id;localStorage.setItem('bca-college',id);if($('collegeLabel'))$('collegeLabel').textContent=(colleges.find(c=>c[0]===id)||['',id])[1];closeModals();renderSubjectFilter();render();saveProfileToAccount()}
     async function submitCustomCollegeWorkflow(name) {
       const cleanName = String(name || '').trim();
@@ -6622,6 +6612,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function openOnboardingFlow(force=false){
       if(!force && localStorage.getItem('bca-onboarded')) return;
       try{document.body.classList.add('bca-onboarding-open')}catch(e){}
+      try{loadCloudColleges()}catch(e){}
       state.onboardingDone=false;
       state.onboardingSem='';
       const sInp=$('onboardingSearch');if(sInp)sInp.value='';
@@ -6700,13 +6691,48 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       renderOnboardingColleges('');
     }
 
+    function getDynamicOnboardingColleges() {
+      const list = [];
+      const seen = new Set();
+
+      // 1. Approved colleges from Supabase custom_colleges
+      if (Array.isArray(approvedCustomColleges)) {
+        approvedCustomColleges.forEach(c => {
+          if (!c || !c.name) return;
+          const name = String(c.name).trim();
+          const id = 'custom-' + (c.id || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+          const key = name.toLowerCase();
+          if (!seen.has(key)) {
+            seen.add(key);
+            list.push([id, name]);
+          }
+        });
+      }
+
+      // 2. Local custom submissions in this browser
+      try {
+        const raw = JSON.parse(localStorage.getItem('bca-custom-colleges') || '[]');
+        raw.forEach(c => {
+          if (Array.isArray(c) && c.length === 2 && c[1]) {
+            const key = String(c[1]).toLowerCase().trim();
+            if (!seen.has(key)) {
+              seen.add(key);
+              list.push(c);
+            }
+          }
+        });
+      } catch (_e) {}
+
+      return list;
+    }
+
     function renderOnboardingColleges(query=''){
       const container=$('onboardingList');
       if(!container)return;
       const q=(query||'').trim().toLowerCase();
 
-      // Combined dynamic list: colleges array (merged from base + approved + local custom, excluding 'all')
-      const allList = colleges.filter(c => c[0] !== 'all');
+      // Dynamic approved colleges strictly from Supabase / local submissions
+      const allList = getDynamicOnboardingColleges();
       const filtered=q?allList.filter(c=>{
         const id=c[0].toLowerCase();
         const name=c[1].toLowerCase();
@@ -6716,14 +6742,26 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }):allList;
 
       if(filtered.length===0){
-        container.innerHTML=`
-          <div class="ob-empty-state">
-            <i class="fa-solid fa-building-columns"></i>
-            <p>No college matching "<b>${escHtml(query)}</b>"</p>
-            <button type="button" class="ob-empty-add-btn bca-pressable" onclick="prefillCustomCollege('${escJsStr(query)}')">
-              <i class="fa-solid fa-plus"></i> Add "${escHtml(query)}"
-            </button>
-          </div>`;
+        if(!q){
+          container.innerHTML=`
+            <div class="ob-empty-state">
+              <i class="fa-solid fa-building-columns"></i>
+              <p><b>No approved colleges yet</b></p>
+              <p style="font-size:13px;opacity:0.85;">Can't find your college? Tap below to add your university!</p>
+              <button type="button" class="ob-empty-add-btn bca-pressable" onclick="toggleCustomCollegeDrawer(true)">
+                <i class="fa-solid fa-plus"></i> Can't find it? Add your college
+              </button>
+            </div>`;
+        } else {
+          container.innerHTML=`
+            <div class="ob-empty-state">
+              <i class="fa-solid fa-building-columns"></i>
+              <p>No college matching "<b>${escHtml(query)}</b>"</p>
+              <button type="button" class="ob-empty-add-btn bca-pressable" onclick="prefillCustomCollege('${escJsStr(query)}')">
+                <i class="fa-solid fa-plus"></i> Add "${escHtml(query)}"
+              </button>
+            </div>`;
+        }
         if(window.BCA_UI&&typeof window.BCA_UI.initPressable==='function'){
           container.querySelectorAll('.bca-pressable').forEach(el=>window.BCA_UI.initPressable(el));
         }

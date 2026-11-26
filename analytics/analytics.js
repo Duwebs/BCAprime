@@ -1763,17 +1763,7 @@ let statsDynamicColleges = (BCA_COLLEGES_MOD && BCA_COLLEGES_MOD.BCA_BASE_COLLEG
   ['srm', 'SRM Institute of Science and Technology'],
   ['tripura', 'Tripura University'],
   ['uok', 'University of Kashmir'],
-  ['kerala', 'University of Kerala'],
-  ['ccsu', 'CCSU Meerut'],
-  ['du', 'Delhi University'],
-  ['ipu', 'GGSIPU Delhi'],
-  ['aktu', 'AKTU / UPTU'],
-  ['ignou', 'IGNOU'],
-  ['mdu', 'MDU Rohtak'],
-  ['bhu', 'BHU'],
-  ['pune', 'Pune University'],
-  ['bangalore', 'Bangalore University'],
-  ['other', 'Other University']
+  ['kerala', 'University of Kerala']
 ];
 
 async function loadApprovedCollegesForStats() {

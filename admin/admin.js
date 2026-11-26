@@ -7,8 +7,8 @@ const STORAGE_KEY = 'bca-uploads';
 
 /* ---- Fallback demo data (used only when Supabase is not configured) ---- */
 const demoUploads = [
-  { id: 'demo-1', title: 'DBMS Unit 2 Revision Notes', type: 'notes', sem: 3, year: 2, subject: 'Database Management Systems', college: 'du', fileName: 'dbms-unit-2.pdf', status: 'approved' },
-  { id: 'demo-2', title: 'Operating Systems PYQ 2024', type: 'pyq', sem: 6, year: 3, subject: 'Operating Systems', college: 'ccsu', fileName: 'os-pyq-2024.pdf', status: 'approved' },
+  { id: 'demo-1', title: 'DBMS Unit 2 Revision Notes', type: 'notes', sem: 3, year: 2, subject: 'Database Management Systems', college: 'amity', fileName: 'dbms-unit-2.pdf', status: 'approved' },
+  { id: 'demo-2', title: 'Operating Systems PYQ 2024', type: 'pyq', sem: 6, year: 3, subject: 'Operating Systems', college: 'avviare', fileName: 'os-pyq-2024.pdf', status: 'approved' },
   { id: 'demo-3', title: 'C Programming Crash Notes', type: 'notes', sem: 1, year: 1, subject: 'Programming Principles & C', college: 'all', fileName: 'c-programming-notes.pdf', status: 'approved' }
 ];
 
@@ -45,17 +45,7 @@ const BCA_COLLEGES_MOD = (typeof window !== 'undefined' && window.BCA_COLLEGES_M
     ['srm', 'SRM Institute of Science and Technology'],
     ['tripura', 'Tripura University'],
     ['uok', 'University of Kashmir'],
-    ['kerala', 'University of Kerala'],
-    ['ccsu', 'CCSU Meerut'],
-    ['du', 'Delhi University'],
-    ['ipu', 'GGSIPU Delhi'],
-    ['aktu', 'AKTU / UPTU'],
-    ['ignou', 'IGNOU'],
-    ['mdu', 'MDU Rohtak'],
-    ['bhu', 'BHU'],
-    ['pune', 'Pune University'],
-    ['bangalore', 'Bangalore University'],
-    ['other', 'Other University']
+    ['kerala', 'University of Kerala']
   ],
   COLLEGE_NAMES_MAP: {},
   mergeColleges: function(b, c) { return b; },
@@ -178,7 +168,7 @@ function updateCollegeBadgeCount() {
   const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
     ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
     : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
-  const baseCount = baseColleges.filter(c => c[0] !== 'all' && c[0] !== 'other').length;
+  const baseCount = baseColleges.filter(c => c[0] !== 'all').length;
   const approvedBadge = $('collegeApprovedCountBadge');
   if (approvedBadge) {
     approvedBadge.textContent = `${approvedCustom + baseCount} Active`;
@@ -314,7 +304,7 @@ function renderApprovedCollegesAdmin(searchFilter) {
   const baseColleges = ((window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
     ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
     : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES)
-    .filter(c => c[0] !== 'all' && c[0] !== 'other')
+    .filter(c => c[0] !== 'all')
     .map(c => ({
       code: c[0],
       name: c[1],
@@ -4010,10 +4000,7 @@ function filterRecentUsers() {
       // College filter
       if (colFilter !== 'all') {
         const uCol = (u.college || '').toLowerCase();
-        if (colFilter === 'other') {
-          const known = ['avviare', 'glocal', 'ccsu', 'du', 'ipu', 'aktu', 'ignou', 'pune', 'bangalore'];
-          if (known.includes(uCol)) return false;
-        } else if (uCol !== colFilter) {
+        if (uCol !== colFilter) {
           return false;
         }
       }
