@@ -4,23 +4,66 @@
  * Multi-language support: Python, Java, C/C++, PHP, MySQL, HTML, CSS, JavaScript
  */
 
-import { EditorView, basicSetup } from 'https://esm.sh/codemirror@6.0.1';
-import { EditorState, Compartment } from 'https://esm.sh/@codemirror/state@6.5.2';
-import { HighlightStyle, syntaxHighlighting, indentUnit, foldGutter, bracketMatching } from 'https://esm.sh/@codemirror/language@6.10.8';
-import { tags } from 'https://esm.sh/@lezer/highlight@1.2.1';
-import { keymap } from 'https://esm.sh/@codemirror/view@6.36.4';
-import { defaultKeymap, indentWithTab } from 'https://esm.sh/@codemirror/commands@6.8.0';
-import { closeBrackets } from 'https://esm.sh/@codemirror/autocomplete@6.18.4';
-import { python } from 'https://esm.sh/@codemirror/lang-python@6.1.6';
-import { java } from 'https://esm.sh/@codemirror/lang-java@6.0.1';
-import { cpp } from 'https://esm.sh/@codemirror/lang-cpp@6.0.2';
-import { php } from 'https://esm.sh/@codemirror/lang-php@6.0.1';
-import { sql, MySQL } from 'https://esm.sh/@codemirror/lang-sql@6.8.0';
-import { html } from 'https://esm.sh/@codemirror/lang-html@6.4.9';
-import { css } from 'https://esm.sh/@codemirror/lang-css@6.3.1';
-import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6.2.2';
+import {
+  EditorView,
+  keymap,
+  highlightSpecialChars,
+  drawSelection,
+  highlightActiveLine,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor,
+  lineNumbers,
+  highlightActiveLineGutter
+} from 'https://esm.sh/@codemirror/view@6.36.4';
 
-// 1. Language Extension Loader
+import {
+  EditorState,
+  Compartment
+} from 'https://esm.sh/@codemirror/state@6.5.2';
+
+import {
+  syntaxHighlighting,
+  indentOnInput,
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  indentUnit,
+  HighlightStyle
+} from 'https://esm.sh/@codemirror/language@6.10.8';
+
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab
+} from 'https://esm.sh/@codemirror/commands@6.8.0';
+
+import {
+  searchKeymap,
+  highlightSelectionMatches
+} from 'https://esm.sh/@codemirror/search@6.5.8';
+
+import {
+  autocompletion,
+  completionKeymap,
+  closeBrackets,
+  closeBracketsKeymap
+} from 'https://esm.sh/@codemirror/autocomplete@6.18.4';
+
+import { tags } from 'https://esm.sh/@lezer/highlight@1.2.1';
+
+// Pinned language extensions sharing single state/view/language instances
+import { python } from 'https://esm.sh/@codemirror/lang-python@6.1.6?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { java } from 'https://esm.sh/@codemirror/lang-java@6.0.1?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { cpp } from 'https://esm.sh/@codemirror/lang-cpp@6.0.2?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { php } from 'https://esm.sh/@codemirror/lang-php@6.0.1?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { sql, MySQL } from 'https://esm.sh/@codemirror/lang-sql@6.8.0?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { html } from 'https://esm.sh/@codemirror/lang-html@6.4.9?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { css } from 'https://esm.sh/@codemirror/lang-css@6.3.1?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+import { javascript } from 'https://esm.sh/@codemirror/lang-javascript@6.2.2?deps=@codemirror/state@6.5.2,@codemirror/view@6.36.4,@codemirror/language@6.10.8';
+
+// 1. Language Extension Loader (Maps all 8 BCA languages)
 function getLanguageExtension(langKey) {
   const k = (langKey || '').toLowerCase();
   switch (k) {
@@ -50,60 +93,94 @@ function getLanguageExtension(langKey) {
   }
 }
 
-// 2. Rich VS Code-Style Syntax Highlighting (Dark & Light)
+// 2. Vibrant VS Code-Style Syntax Highlighting (Dark & Light)
 const darkHighlightStyle = HighlightStyle.define([
-  { tag: [tags.keyword, tags.controlKeyword, tags.operatorKeyword, tags.definitionKeyword, tags.moduleKeyword], color: '#60a5fa', fontWeight: '500' },
-  { tag: [tags.string, tags.character, tags.special(tags.string)], color: '#34d399' },
-  { tag: [tags.typeName, tags.className, tags.standard(tags.typeName)], color: '#22d3ee', fontWeight: '500' },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.definition(tags.function(tags.variableName))], color: '#38bdf8' },
-  { tag: [tags.number, tags.integer, tags.float, tags.bool, tags.null], color: '#fb923c' },
-  { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], color: '#64748b', fontStyle: 'italic' },
-  { tag: tags.variableName, color: '#f8fafc' },
-  { tag: tags.propertyName, color: '#93c5fd' },
-  { tag: [tags.operator, tags.punctuation], color: '#94a3b8' },
-  { tag: tags.bracket, color: '#cbd5e1' },
-  { tag: tags.invalid, color: '#ef4444', textDecoration: 'underline wavy #ef4444' }
+  // Keywords (royal/sky blue)
+  { tag: [tags.keyword, tags.operatorKeyword, tags.definitionKeyword, tags.moduleKeyword], color: '#569cd6', fontWeight: '600' },
+  // Control flow keywords (crisp purple)
+  { tag: tags.controlKeyword, color: '#c586c0', fontWeight: '600' },
+  // Strings & characters (warm amber / emerald)
+  { tag: [tags.string, tags.character, tags.special(tags.string)], color: '#ce9178' },
+  // Type names, class names, standard types (crisp cyan/teal)
+  { tag: [tags.typeName, tags.className, tags.standard(tags.typeName)], color: '#4ec9b0', fontWeight: '500' },
+  // Functions & methods (warm gold / sky blue)
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.definition(tags.function(tags.variableName))], color: '#dcdcaa' },
+  // Numbers, integers, floats, booleans, null (soft green / orange)
+  { tag: [tags.number, tags.integer, tags.float, tags.bool, tags.null], color: '#b5cea8' },
+  // Comments (muted green-gray italics)
+  { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], color: '#6a9955', fontStyle: 'italic' },
+  // Variables & identifiers (light sky blue / clean white)
+  { tag: [tags.variableName, tags.definition(tags.variableName)], color: '#9cdcfe' },
+  // Properties & attributes (sky blue)
+  { tag: [tags.propertyName, tags.attributeName], color: '#9cdcfe' },
+  // HTML / XML tag names (royal blue)
+  { tag: tags.tagName, color: '#569cd6', fontWeight: '500' },
+  // Operators & punctuation (muted light gray)
+  { tag: [tags.operator, tags.punctuation], color: '#d4d4d4' },
+  // Brackets & delimiters
+  { tag: tags.bracket, color: '#ffd700' },
+  // Meta, preprocessor (#include, annotations)
+  { tag: tags.meta, color: '#9b9b9b' },
+  // Invalid / errors
+  { tag: tags.invalid, color: '#f87171', textDecoration: 'underline wavy #ef4444' }
 ]);
 
 const lightHighlightStyle = HighlightStyle.define([
-  { tag: [tags.keyword, tags.controlKeyword, tags.operatorKeyword, tags.definitionKeyword, tags.moduleKeyword], color: '#2563eb', fontWeight: '500' },
-  { tag: [tags.string, tags.character, tags.special(tags.string)], color: '#059669' },
-  { tag: [tags.typeName, tags.className, tags.standard(tags.typeName)], color: '#0891b2', fontWeight: '500' },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.definition(tags.function(tags.variableName))], color: '#0284c7' },
-  { tag: [tags.number, tags.integer, tags.float, tags.bool, tags.null], color: '#ea580c' },
-  { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], color: '#64748b', fontStyle: 'italic' },
-  { tag: tags.variableName, color: '#0f172a' },
-  { tag: tags.propertyName, color: '#2563eb' },
-  { tag: [tags.operator, tags.punctuation], color: '#64748b' },
-  { tag: tags.bracket, color: '#475569' },
+  // Keywords (crisp royal blue)
+  { tag: [tags.keyword, tags.operatorKeyword, tags.definitionKeyword, tags.moduleKeyword], color: '#0000ff', fontWeight: '600' },
+  // Control flow keywords (crisp purple)
+  { tag: tags.controlKeyword, color: '#af00db', fontWeight: '600' },
+  // Strings & characters (warm dark red / emerald)
+  { tag: [tags.string, tags.character, tags.special(tags.string)], color: '#a31515' },
+  // Type names, class names, standard types (crisp cyan/teal)
+  { tag: [tags.typeName, tags.className, tags.standard(tags.typeName)], color: '#267f99', fontWeight: '500' },
+  // Functions & methods (warm brown / deep blue)
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName), tags.definition(tags.function(tags.variableName))], color: '#795e26' },
+  // Numbers, integers, floats, booleans, null (deep green / orange)
+  { tag: [tags.number, tags.integer, tags.float, tags.bool, tags.null], color: '#098658' },
+  // Comments (muted olive green italics)
+  { tag: [tags.comment, tags.lineComment, tags.blockComment, tags.docComment], color: '#008000', fontStyle: 'italic' },
+  // Variables & identifiers (dark slate)
+  { tag: [tags.variableName, tags.definition(tags.variableName)], color: '#001080' },
+  // Properties & attributes (deep red / blue)
+  { tag: [tags.propertyName, tags.attributeName], color: '#e50000' },
+  // HTML / XML tag names (royal blue)
+  { tag: tags.tagName, color: '#800000', fontWeight: '500' },
+  // Operators & punctuation (slate)
+  { tag: [tags.operator, tags.punctuation], color: '#334155' },
+  // Brackets & delimiters
+  { tag: tags.bracket, color: '#0451a5' },
+  // Meta, preprocessor
+  { tag: tags.meta, color: '#666666' },
+  // Invalid
   { tag: tags.invalid, color: '#dc2626', textDecoration: 'underline wavy #dc2626' }
 ]);
 
 // 3. Editor Surface Themes (Dark & Light)
 const darkTheme = EditorView.theme({
   '&': {
-    backgroundColor: '#080b12',
+    backgroundColor: '#0a0d14',
     color: '#f8fafc',
     height: '100%',
     fontFamily: "'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace"
   },
   '.cm-content': {
-    paddingBottom: '96px',
-    caretColor: '#3b82f6'
+    paddingBottom: '100px',
+    caretColor: '#38bdf8'
   },
   '.cm-cursor, .cm-dropCursor': {
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: '#38bdf8',
     borderLeftWidth: '2px'
   },
   '&.cm-focused .cm-cursor': {
-    borderLeftColor: '#3b82f6'
+    borderLeftColor: '#38bdf8'
   },
   '.cm-activeLine': {
     backgroundColor: 'rgba(255, 255, 255, 0.04)'
   },
   '.cm-activeLineGutter': {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
-    color: '#93c5fd'
+    color: '#38bdf8'
   },
   '.cm-gutters': {
     backgroundColor: '#080b12',
@@ -116,8 +193,8 @@ const darkTheme = EditorView.theme({
     minWidth: '32px'
   },
   '.cm-matchingBracket': {
-    backgroundColor: 'rgba(37, 99, 235, 0.25)',
-    outline: '1px solid #3b82f6',
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+    outline: '1px solid #38bdf8',
     color: '#ffffff !important'
   },
   '.cm-nonmatchingBracket': {
@@ -126,13 +203,13 @@ const darkTheme = EditorView.theme({
     color: '#f87171 !important'
   },
   '.cm-selectionBackground, ::selection': {
-    backgroundColor: 'rgba(37, 99, 235, 0.35) !important'
+    backgroundColor: 'rgba(56, 189, 248, 0.3) !important'
   },
   '.cm-scroller': {
     fontFamily: "'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace",
     lineHeight: '1.6',
     overflow: 'auto',
-    paddingBottom: '96px'
+    paddingBottom: '100px'
   }
 }, { dark: true });
 
@@ -144,7 +221,7 @@ const lightTheme = EditorView.theme({
     fontFamily: "'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace"
   },
   '.cm-content': {
-    paddingBottom: '96px',
+    paddingBottom: '100px',
     caretColor: '#2563eb'
   },
   '.cm-cursor, .cm-dropCursor': {
@@ -188,7 +265,7 @@ const lightTheme = EditorView.theme({
     fontFamily: "'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace",
     lineHeight: '1.6',
     overflow: 'auto',
-    paddingBottom: '96px'
+    paddingBottom: '100px'
   }
 }, { dark: false });
 
@@ -216,19 +293,58 @@ function createEditor(mountEl, initialCode = '', initialLang = 'python', fontSiz
     activeView = null;
   }
 
+  if (mountEl) {
+    mountEl.innerHTML = '';
+  }
+
   currentLanguage = initialLang;
   currentFontSize = fontSize;
   onCodeChangeCallback = onChange;
   const dark = isDarkMode();
 
+  const customBasicSetup = [
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    highlightSpecialChars(),
+    history(),
+    foldGutter(),
+    drawSelection(),
+    dropCursor(),
+    EditorState.allowMultipleSelections.of(true),
+    indentOnInput(),
+    bracketMatching(),
+    closeBrackets(),
+    autocompletion(),
+    rectangularSelection(),
+    crosshairCursor(),
+    highlightActiveLine(),
+    highlightSelectionMatches(),
+    keymap.of([
+      indentWithTab,
+      ...closeBracketsKeymap,
+      ...defaultKeymap,
+      ...searchKeymap,
+      ...historyKeymap,
+      ...foldKeymap,
+      ...completionKeymap
+    ])
+  ];
+
   const state = EditorState.create({
     doc: initialCode,
     extensions: [
-      basicSetup,
-      keymap.of([indentWithTab, ...defaultKeymap]),
+      customBasicSetup,
       indentUnit.of('    '),
-      bracketMatching(),
-      closeBrackets(),
+      EditorView.editable.of(true),
+      EditorState.readOnly.of(false),
+      EditorView.lineWrapping,
+      EditorView.contentAttributes.of({
+        tabindex: '0',
+        spellcheck: 'false',
+        autocapitalize: 'off',
+        autocomplete: 'off',
+        autocorrect: 'off'
+      }),
       languageCompartment.of(getLanguageExtension(initialLang)),
       themeCompartment.of(dark ? darkTheme : lightTheme),
       highlightCompartment.of(syntaxHighlighting(dark ? darkHighlightStyle : lightHighlightStyle)),
@@ -250,6 +366,14 @@ function createEditor(mountEl, initialCode = '', initialLang = 'python', fontSiz
     state,
     parent: mountEl
   });
+
+  // Tap anywhere in mount to focus
+  if (mountEl) {
+    mountEl.style.display = 'flex';
+    mountEl.addEventListener('click', () => {
+      if (activeView && !activeView.hasFocus) activeView.focus();
+    });
+  }
 
   return activeView;
 }

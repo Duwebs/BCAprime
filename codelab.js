@@ -682,7 +682,8 @@ loadDashboard();`
     stdinWarnedOnce: false,
     sqlDb: null,
     sqlJsLoading: false,
-    cmInitialized: false
+    cmInitialized: false,
+    consoleStateByLang: {}
   };
 
   // ---- CodeMirror 6 Bridge Helpers ----
@@ -695,6 +696,7 @@ loadDashboard();`
       if (!state.cmInitialized) {
         if (editor) editor.style.display = 'none';
         if (lineNumbers) lineNumbers.style.display = 'none';
+        mountEl.style.display = 'flex';
 
         window.PrimeCodeMirror.createEditor(
           mountEl,
@@ -709,10 +711,33 @@ loadDashboard();`
         );
         state.cmInitialized = true;
       } else {
+        if (editor) editor.style.display = 'none';
+        if (lineNumbers) lineNumbers.style.display = 'none';
+        mountEl.style.display = 'flex';
         window.PrimeCodeMirror.setLanguage(langKey);
         window.PrimeCodeMirror.setCode(code);
       }
+    } else {
+      // Fallback: If CodeMirror is still loading or unavailable, ensure native textarea is active
+      if (mountEl) mountEl.style.display = 'none';
+      if (editor) editor.style.display = 'block';
+      if (lineNumbers) lineNumbers.style.display = 'block';
     }
+  }
+
+  function saveConsoleState(langKey) {
+    if (!langKey) return;
+    if (!state.consoleStateByLang) state.consoleStateByLang = {};
+    const consolePre = document.getElementById('primecodeConsolePre');
+    const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+    const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
+    state.consoleStateByLang[langKey] = {
+      hasRun: true,
+      outputHtml: consolePre ? consolePre.innerHTML : '',
+      badgeVisible: consoleBadge ? (consoleBadge.style.display !== 'none') : false,
+      badgeClass: consoleBadge ? consoleBadge.className : '',
+      badgeText: consoleStatusText ? consoleStatusText.innerHTML : ''
+    };
   }
 
   function getActiveCode() {
@@ -1033,15 +1058,43 @@ loadDashboard();`
     }
     syncCodeMirror(langKey, initialCode);
 
-    // 4. Reset Output Badges & Bodies
-    const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
-    if (consoleBadge) consoleBadge.style.display = 'none';
+    // 4. Isolate Console Output Per Language (Never show stale output from another language)
+    if (state.interactiveSession && state.interactiveSession.active) {
+      stopInteractiveExecution();
+    }
+    state.isExecuting = false;
 
+    const consolePre = document.getElementById('primecodeConsolePre');
+    const consoleBadge = document.getElementById('primecodeConsoleStatusBadge');
+    const consoleStatusText = document.getElementById('primecodeConsoleStatusText');
     const inputBar = document.getElementById('primecodeConsoleInputBar');
     if (inputBar) inputBar.style.display = 'none';
 
     const floatingActions = document.getElementById('primecodeFloatingActions');
     if (floatingActions) floatingActions.classList.remove('with-input-bar');
+
+    if (!state.consoleStateByLang) {
+      state.consoleStateByLang = {};
+    }
+
+    const langConsole = state.consoleStateByLang[langKey];
+    if (langConsole && langConsole.hasRun && langConsole.outputHtml) {
+      if (consolePre) consolePre.innerHTML = langConsole.outputHtml;
+      if (consoleBadge && langConsole.badgeVisible) {
+        consoleBadge.className = langConsole.badgeClass || 'primecode-status-badge success';
+        consoleBadge.style.display = 'inline-flex';
+        if (consoleStatusText) consoleStatusText.innerHTML = langConsole.badgeText || '';
+      } else if (consoleBadge) {
+        consoleBadge.style.display = 'none';
+      }
+    } else {
+      // Clean pristine console for newly opened languages
+      if (consolePre) {
+        consolePre.innerHTML = '<span class="primecode-console-placeholder">No output yet &mdash; Run your code to see the output here.</span>';
+      }
+      if (consoleBadge) consoleBadge.style.display = 'none';
+      if (consoleStatusText) consoleStatusText.innerHTML = '';
+    }
 
     // 5. Default tab: 'code'
     switchWorkspaceTab('code');
@@ -1277,10 +1330,12 @@ loadDashboard();`
             }
           }
           switchWorkspaceTab('console');
+          saveConsoleState('mysql');
           notify('SQL query executed successfully!', 'success');
         } else {
           if (consolePre) consolePre.textContent = `-- SQLite engine ready. Sample table: students (id, name, semester, cgpa)\n${query}`;
           switchWorkspaceTab('console');
+          saveConsoleState('mysql');
         }
       } catch (err) {
         const elapsed = Math.round(performance.now() - startTime);
@@ -1291,13 +1346,14 @@ loadDashboard();`
           consoleBadge.style.display = 'inline-flex';
         }
         switchWorkspaceTab('console');
+        saveConsoleState('mysql');
         notify('SQL syntax error', 'error');
       }
       return;
     }
 
     // === 3. COMPILER LANGUAGES (Java, Python, C, C++, PHP, JavaScript) ===
-    saveCode(lang, editor.value);
+    saveCode(lang, getActiveCode());
 
     // If session is already running and user clicked Run/Stop, stop it
     if (state.interactiveSession && state.interactiveSession.active) {
@@ -1389,6 +1445,7 @@ loadDashboard();`
     }
 
     consolePre.innerHTML = html;
+    saveConsoleState(state.activeLang);
 
     const consoleBody = document.getElementById('primecodeConsoleBody');
     if (consoleBody) {
@@ -1621,6 +1678,7 @@ loadDashboard();`
             deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
             deskRun.classList.remove('primecode-btn-stop-active');
           }
+          saveConsoleState(state.activeLang);
           notify('Code executed successfully!', 'success');
         } else {
           const elapsedSec = (elapsed / 1000).toFixed(1);
@@ -1642,6 +1700,7 @@ loadDashboard();`
             deskRun.innerHTML = '<i class="fa-solid fa-play"></i> <span>Run</span>';
             deskRun.classList.remove('primecode-btn-stop-active');
           }
+          saveConsoleState(state.activeLang);
           notify('Program exited with error', 'error');
         }
       }
@@ -2254,8 +2313,11 @@ loadDashboard();`
         if (state.interactiveSession && state.interactiveSession.active) {
           stopInteractiveExecution();
         }
+        if (state.consoleStateByLang) {
+          state.consoleStateByLang[state.activeLang] = null;
+        }
         const pre = document.getElementById('primecodeConsolePre');
-        if (pre) pre.innerHTML = '<span class="primecode-console-placeholder">Console cleared. Press \'▶ Run\' to execute.</span>';
+        if (pre) pre.innerHTML = '<span class="primecode-console-placeholder">No output yet &mdash; Run your code to see the output here.</span>';
         const badge = document.getElementById('primecodeConsoleStatusBadge');
         if (badge) badge.style.display = 'none';
         const inputBar = document.getElementById('primecodeConsoleInputBar');
@@ -2263,6 +2325,21 @@ loadDashboard();`
         const floatingActions = document.getElementById('primecodeFloatingActions');
         if (floatingActions) floatingActions.classList.remove('with-input-bar');
         notify('Console cleared', 'info');
+      });
+    }
+
+    // Tap anywhere in editor wrapper to focus active editor (mobile-friendly)
+    const editorWrap = document.getElementById('primecodeEditorWrapper');
+    if (editorWrap) {
+      editorWrap.addEventListener('click', (e) => {
+        if (!e.target.closest('#primecodeLineNumbers')) {
+          if (window.PrimeCodeMirror && window.PrimeCodeMirror.isReady && state.cmInitialized) {
+            window.PrimeCodeMirror.focus();
+          } else {
+            const ed = document.getElementById('primecodeEditor');
+            if (ed && document.activeElement !== ed) ed.focus();
+          }
+        }
       });
     }
 
@@ -2300,10 +2377,10 @@ loadDashboard();`
     }
 
     window.addEventListener('primecodemirror:ready', () => {
-      if (state.screen === 'workspace') {
-        const codeKey = state.activeLang === 'html' ? state.activeWebFile : state.activeLang;
-        syncCodeMirror(state.activeLang, getSavedCode(codeKey));
-      }
+      const codeKey = state.activeLang === 'html' ? state.activeWebFile : state.activeLang;
+      const editor = document.getElementById('primecodeEditor');
+      const currentCode = (editor && editor.value) ? editor.value : getSavedCode(codeKey);
+      syncCodeMirror(state.activeLang, currentCode);
     });
 
     window.addEventListener('resize', () => {

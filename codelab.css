@@ -2330,6 +2330,9 @@ html:not([data-theme="dark"]) .primecode-sym-chip:hover {
   overflow: hidden;
   position: relative;
   background: #080b12;
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 [data-theme="light"] .primecode-editor-wrapper,
@@ -2346,6 +2349,11 @@ html:not([data-theme="dark"]) .primecode-editor-wrapper {
   flex-direction: column;
   overflow: hidden;
   position: relative;
+  pointer-events: auto !important;
+}
+
+.primecode-cm-mount:empty {
+  display: none !important;
 }
 
 .primecode-cm-mount .cm-editor {
@@ -2353,6 +2361,7 @@ html:not([data-theme="dark"]) .primecode-editor-wrapper {
   height: 100%;
   outline: none !important;
   font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  pointer-events: auto !important;
 }
 
 .primecode-cm-mount .cm-scroller {
@@ -2365,6 +2374,10 @@ html:not([data-theme="dark"]) .primecode-editor-wrapper {
 .primecode-cm-mount .cm-content {
   padding-bottom: 100px !important; /* pb-24: ensures floating Run button never covers bottom lines */
   font-family: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
 }
 
 .primecode-cm-mount .cm-gutters {
@@ -2419,6 +2432,9 @@ html:not([data-theme="dark"]) .primecode-line-numbers {
   overflow: auto;
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
+  pointer-events: auto !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
 }
 
 [data-theme="light"] .primecode-editor-textarea,
