@@ -30,6 +30,41 @@ module.exports = withCors(async (req, res) => {
     return send(res, 400, { error: 'Missing required field: type' });
   }
 
+  // When a college request is received, guarantee persistence in Supabase custom_colleges table
+  if (type === 'college_request' && payload) {
+    try {
+      const collegeName = String(payload.name || payload.college_name || '').trim();
+      if (collegeName) {
+        const { createClient } = require('@supabase/supabase-js');
+        const supabaseUrl = (process.env.SUPABASE_URL || 'https://kjesjaakjddfxykisssh.supabase.co').trim();
+        const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ZZ-StuiDnSwyJ9xNRjbY7A_eoyZF7Fl').trim();
+        if (supabaseUrl && serviceKey) {
+          const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+          const isValidUuid = (uid) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(uid || ''));
+          const submittedBy = isValidUuid(payload.submitted_by) ? payload.submitted_by : null;
+          const submittedByName = payload.submitted_by_name || payload.username || 'A student';
+
+          const { data: existing } = await supabaseAdmin
+            .from('custom_colleges')
+            .select('id, name, status')
+            .ilike('name', collegeName)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabaseAdmin.from('custom_colleges').insert({
+              name: collegeName,
+              submitted_by: submittedBy,
+              submitted_by_name: submittedByName,
+              status: 'pending'
+            });
+          }
+        }
+      }
+    } catch (dbErr) {
+      console.warn('[telegram-admin-alert] custom_colleges persistence note:', dbErr.message || dbErr);
+    }
+  }
+
   const result = await sendAdminTelegramAlert(type, payload || {});
 
   if (!result.ok) {

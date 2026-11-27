@@ -123,7 +123,7 @@ async function loadApprovedCustomCollegesAdmin() {
     }
 
     customCollegesQueue = Array.isArray(data) ? data : [];
-    const approved = customCollegesQueue.filter(c => c.status === 'approved');
+    const approved = customCollegesQueue.filter(c => c.status === 'approved' || c.is_approved === true);
     const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
       ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
       : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
@@ -154,7 +154,7 @@ async function loadApprovedCustomCollegesAdmin() {
 }
 
 function updateCollegeBadgeCount() {
-  const pendingCount = customCollegesQueue.filter(c => c.status === 'pending').length;
+  const pendingCount = customCollegesQueue.filter(c => c.status === 'pending' || (c.status !== 'approved' && c.status !== 'rejected' && !c.is_approved)).length;
   const badge = $('tabCollegeBadge');
   if (badge) {
     badge.textContent = pendingCount;
@@ -164,7 +164,7 @@ function updateCollegeBadgeCount() {
   if (pendingBadge) {
     pendingBadge.textContent = `${pendingCount} Pending`;
   }
-  const approvedCustom = customCollegesQueue.filter(c => c.status === 'approved').length;
+  const approvedCustom = customCollegesQueue.filter(c => c.status === 'approved' || c.is_approved === true).length;
   const baseColleges = (window.BCA_COLLEGES_MODULE && window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES)
     ? window.BCA_COLLEGES_MODULE.BCA_BASE_COLLEGES
     : BCA_COLLEGES_MOD.BCA_BASE_COLLEGES;
@@ -181,7 +181,7 @@ function populateAdminCollegeDropdowns() {
     if (customCollegesQueue.length > 0 && window.BCA_COLLEGES_MODULE.mergeColleges) {
       dynamicCollegesList = window.BCA_COLLEGES_MODULE.mergeColleges(
         baseColleges,
-        customCollegesQueue.filter(c => c.status === 'approved')
+        customCollegesQueue.filter(c => c.status === 'approved' || c.is_approved === true)
       );
     } else if (dynamicCollegesList.length <= 10) {
       dynamicCollegesList = baseColleges.slice();
@@ -233,7 +233,7 @@ function renderCustomCollegesAdmin() {
   const host = $('collegeApprovalsQueue');
   if (!host) return;
 
-  const pending = customCollegesQueue.filter(c => c.status === 'pending');
+  const pending = customCollegesQueue.filter(c => c.status === 'pending' || (c.status !== 'approved' && c.status !== 'rejected' && !c.is_approved));
 
   if (pending.length === 0) {
     host.innerHTML = `
@@ -292,7 +292,7 @@ function renderApprovedCollegesAdmin(searchFilter) {
   const q = approvedCollegesSearchQuery;
 
   // 1. Approved custom colleges from DB
-  const approvedCustom = customCollegesQueue.filter(c => c.status === 'approved').map(c => ({
+  const approvedCustom = customCollegesQueue.filter(c => c.status === 'approved' || c.is_approved === true).map(c => ({
     id: c.id,
     code: `custom-${c.id}`,
     name: c.name,
@@ -312,6 +312,9 @@ function renderApprovedCollegesAdmin(searchFilter) {
     }));
 
   let allColleges = [...approvedCustom, ...baseColleges];
+
+  // Strictly sort alphabetically A -> Z
+  allColleges.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
   if (q) {
     allColleges = allColleges.filter(c =>
@@ -343,9 +346,14 @@ function renderApprovedCollegesAdmin(searchFilter) {
               </div>
             </div>
             ${c.isCustom ? `
-              <button type="button" class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})" title="Revoke / Archive approval" style="padding:5px 9px;font-size:11px;border-radius:7px;">
-                <i class="fa-solid fa-trash-can"></i> Revoke
-              </button>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button type="button" class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})" title="Revoke / Archive approval" style="padding:5px 9px;font-size:11px;border-radius:7px;">
+                  <i class="fa-solid fa-ban"></i> Revoke
+                </button>
+                <button type="button" class="button danger bca-pressable" onclick="deleteCustomCollege(${c.id}, this.dataset.name)" data-name="${escapeHtml(c.name)}" title="Permanently delete from database" style="padding:5px 9px;font-size:11px;border-radius:7px;background:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.4);">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
             ` : ''}
           </div>
         `;
@@ -363,10 +371,18 @@ function filterApprovedCollegesAdmin(query) {
 async function approveCustomCollege(id, name) {
   if (!adminSupabaseClient) return;
   try {
-    const { error } = await adminSupabaseClient
+    let { error } = await adminSupabaseClient
       .from('custom_colleges')
-      .update({ status: 'approved', updated_at: new Date().toISOString() })
+      .update({ status: 'approved', is_approved: true, updated_at: new Date().toISOString() })
       .eq('id', id);
+
+    if (error && (error.code === '42703' || String(error.message || '').includes('is_approved'))) {
+      const fallback = await adminSupabaseClient
+        .from('custom_colleges')
+        .update({ status: 'approved', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      error = fallback.error;
+    }
 
     if (error) throw error;
     showAdminToast(`Approved "${name}"! Synced to all app dropdowns ✓`, 'success');
@@ -379,10 +395,18 @@ async function approveCustomCollege(id, name) {
 async function rejectCustomCollege(id) {
   if (!adminSupabaseClient) return;
   try {
-    const { error } = await adminSupabaseClient
+    let { error } = await adminSupabaseClient
       .from('custom_colleges')
-      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .update({ status: 'rejected', is_approved: false, updated_at: new Date().toISOString() })
       .eq('id', id);
+
+    if (error && (error.code === '42703' || String(error.message || '').includes('is_approved'))) {
+      const fallback = await adminSupabaseClient
+        .from('custom_colleges')
+        .update({ status: 'rejected', updated_at: new Date().toISOString() })
+        .eq('id', id);
+      error = fallback.error;
+    }
 
     if (error) throw error;
     showAdminToast('College request rejected/archived.', 'info');
@@ -392,10 +416,28 @@ async function rejectCustomCollege(id) {
   }
 }
 
+async function deleteCustomCollege(id, name) {
+  if (!adminSupabaseClient) return;
+  if (!confirm(`Are you sure you want to permanently delete "${name || 'this college'}" from the database?`)) return;
+  try {
+    const { error } = await adminSupabaseClient
+      .from('custom_colleges')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    showAdminToast(`Permanently deleted "${name || 'college'}" ✓`, 'info');
+    await loadApprovedCustomCollegesAdmin();
+  } catch (err) {
+    showAdminToast('Could not delete college: ' + err.message, 'error');
+  }
+}
+
 window.loadApprovedCustomCollegesAdmin = loadApprovedCustomCollegesAdmin;
 window.loadCustomCollegesAdmin = loadApprovedCustomCollegesAdmin;
 window.approveCustomCollege = approveCustomCollege;
 window.rejectCustomCollege = rejectCustomCollege;
+window.deleteCustomCollege = deleteCustomCollege;
 window.filterApprovedCollegesAdmin = filterApprovedCollegesAdmin;
 
 let uploads = [];

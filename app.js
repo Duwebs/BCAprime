@@ -4674,17 +4674,26 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       syncGlobalCollegesList();
 
       // 2. Insert into Supabase custom_colleges table as 'pending'
+      const uploaderUid = accountUid() || '';
+      const uploaderName = (accountSession && (accountSession.displayName || accountSession.username)) || localStorage.getItem('bca-username') || 'A student';
+      const isValidUuid = (uid) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(uid || ''));
+      const submittedBy = isValidUuid(uploaderUid) ? uploaderUid : null;
+
       if (supabaseClient) {
         try {
-          const uploaderUid = accountUid() || '';
-          const uploaderName = (accountSession && (accountSession.displayName || accountSession.username)) || 'A student';
-          supabaseClient.from('custom_colleges').insert({
+          const insertPayload = {
             name: cleanName,
-            submitted_by: uploaderUid,
+            submitted_by: submittedBy,
             submitted_by_name: uploaderName,
             status: 'pending'
-          }).then(() => {}, (err) => console.warn('[BCAPrime] custom_colleges insert note:', err));
-        } catch (_e) {}
+          };
+          const { error } = await supabaseClient.from('custom_colleges').insert(insertPayload);
+          if (error) {
+            console.warn('[BCAPrime] custom_colleges client insert note:', error.message || error);
+          }
+        } catch (_e) {
+          console.warn('[BCAPrime] custom_colleges insert exception:', _e);
+        }
       }
 
       // 3. Trigger instant Telegram notification to BCAPrime Admin Bot
@@ -4692,6 +4701,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         const username = (accountSession && (accountSession.username || accountSession.displayName)) || localStorage.getItem('bca-username') || 'Student';
         sendAdminTelegramAlert('college_request', {
           name: cleanName,
+          submitted_by: submittedBy,
           submitted_by_name: username
         });
       } catch (_e) {}
@@ -6732,14 +6742,8 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
         });
       } catch (_e) {}
 
-      // Sort with Avviare and Glocal first, then alphabetical
-      return list.sort((a, b) => {
-        if (a[0] === 'avviare') return -1;
-        if (b[0] === 'avviare') return 1;
-        if (a[0] === 'glocal') return -1;
-        if (b[0] === 'glocal') return 1;
-        return a[1].localeCompare(b[1]);
-      });
+      // Strict alphabetical sorting (A -> Z)
+      return list.sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: 'base' }));
     }
 
     function renderOnboardingColleges(query=''){
