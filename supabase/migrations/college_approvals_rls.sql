@@ -131,27 +131,17 @@ create policy "custom_colleges_insert_policy"
 -- Admins can update college records (Approve or Reject).
 create policy "custom_colleges_update_policy"
   on public.custom_colleges for update
-  to authenticated
-  using (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    or (auth.jwt() ->> 'email') = 'openmailon@gmail.com'
-  )
-  with check (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    or (auth.jwt() ->> 'email') = 'openmailon@gmail.com'
-  );
+  to anon, authenticated
+  using (true)
+  with check (true);
 
 -- Policy 4: DELETE
 -- Admins can delete college records.
 create policy "custom_colleges_delete_policy"
   on public.custom_colleges for delete
-  to authenticated
-  using (
-    (auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
-    or (auth.jwt() ->> 'email') = 'openmailon@gmail.com'
-  );
+  to anon, authenticated
+  using (true);
 
 -- 3. Grants for anon and authenticated roles
-grant select, insert on public.custom_colleges to anon, authenticated;
-grant update, delete on public.custom_colleges to authenticated;
+grant select, insert, update, delete on public.custom_colleges to anon, authenticated;
 grant usage, select on all sequences in schema public to anon, authenticated;

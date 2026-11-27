@@ -266,11 +266,18 @@ function renderCustomCollegesAdmin() {
         </div>
 
         <div style="display:flex;gap:10px;margin-top:4px;">
-          <button type="button" class="button bca-pressable" onclick="approveCustomCollege(${c.id}, this.dataset.name)" data-name="${escapeHtml(c.name)}"
+          <button type="button" class="button bca-pressable adm-college-approve-btn"
+            data-college-action="approve"
+            data-id="${c.id}"
+            data-name="${escapeHtml(c.name)}"
+            onclick="approveCustomCollege('${c.id}', this.getAttribute('data-name'), this)"
             style="background:#2563eb;border-color:#2563eb;color:#ffffff;font-weight:600;padding:8px 16px;border-radius:9px;cursor:pointer;">
             <i class="fa-solid fa-check"></i> Approve
           </button>
-          <button type="button" class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})"
+          <button type="button" class="button danger bca-pressable adm-college-reject-btn"
+            data-college-action="reject"
+            data-id="${c.id}"
+            onclick="rejectCustomCollege('${c.id}', this)"
             style="color:#ef4444;border:1px solid rgba(239,68,68,0.3);background:transparent;padding:8px 16px;border-radius:9px;cursor:pointer;">
             <i class="fa-solid fa-xmark"></i> Reject
           </button>
@@ -347,10 +354,21 @@ function renderApprovedCollegesAdmin(searchFilter) {
             </div>
             ${c.isCustom ? `
               <div style="display:flex;gap:6px;align-items:center;">
-                <button type="button" class="button danger bca-pressable" onclick="rejectCustomCollege(${c.id})" title="Revoke / Archive approval" style="padding:5px 9px;font-size:11px;border-radius:7px;">
+                <button type="button" class="button danger bca-pressable"
+                  data-college-action="reject"
+                  data-id="${c.id}"
+                  onclick="rejectCustomCollege('${c.id}', this)"
+                  title="Revoke / Archive approval"
+                  style="padding:5px 9px;font-size:11px;border-radius:7px;">
                   <i class="fa-solid fa-ban"></i> Revoke
                 </button>
-                <button type="button" class="button danger bca-pressable" onclick="deleteCustomCollege(${c.id}, this.dataset.name)" data-name="${escapeHtml(c.name)}" title="Permanently delete from database" style="padding:5px 9px;font-size:11px;border-radius:7px;background:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.4);">
+                <button type="button" class="button danger bca-pressable"
+                  data-college-action="delete"
+                  data-id="${c.id}"
+                  data-name="${escapeHtml(c.name)}"
+                  onclick="deleteCustomCollege('${c.id}', this.getAttribute('data-name'), this)"
+                  title="Permanently delete from database"
+                  style="padding:5px 9px;font-size:11px;border-radius:7px;background:rgba(239,68,68,0.15);color:#ef4444;border-color:rgba(239,68,68,0.4);">
                   <i class="fa-solid fa-trash-can"></i>
                 </button>
               </div>
@@ -368,68 +386,237 @@ function filterApprovedCollegesAdmin(query) {
   renderApprovedCollegesAdmin(query);
 }
 
-async function approveCustomCollege(id, name) {
-  if (!adminSupabaseClient) return;
-  try {
-    let { error } = await adminSupabaseClient
-      .from('custom_colleges')
-      .update({ status: 'approved', is_approved: true, updated_at: new Date().toISOString() })
-      .eq('id', id);
+async function approveCustomCollege(id, name, btn) {
+  if (!id) {
+    showAdminToast('Error: Invalid college ID', 'error');
+    return;
+  }
 
-    if (error && (error.code === '42703' || String(error.message || '').includes('is_approved'))) {
-      const fallback = await adminSupabaseClient
-        .from('custom_colleges')
-        .update({ status: 'approved', updated_at: new Date().toISOString() })
-        .eq('id', id);
-      error = fallback.error;
+  const originalHtml = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Approving...';
+  }
+
+  try {
+    let success = false;
+    let errorMsg = null;
+
+    // 1. Try client-side update via adminSupabaseClient
+    if (adminSupabaseClient) {
+      try {
+        let updateRes = await adminSupabaseClient
+          .from('custom_colleges')
+          .update({ status: 'approved', is_approved: true, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select();
+
+        if (updateRes.error && (updateRes.error.code === '42703' || String(updateRes.error.message || '').includes('is_approved'))) {
+          updateRes = await adminSupabaseClient
+            .from('custom_colleges')
+            .update({ status: 'approved', updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select();
+        }
+
+        if (!updateRes.error && Array.isArray(updateRes.data) && updateRes.data.length > 0) {
+          success = true;
+        } else if (updateRes.error) {
+          errorMsg = updateRes.error.message;
+        }
+      } catch (clientErr) {
+        errorMsg = clientErr.message;
+      }
     }
 
-    if (error) throw error;
-    showAdminToast(`Approved "${name}"! Synced to all app dropdowns ✓`, 'success');
+    // 2. Server-side fallback via /api/admin-college-action
+    if (!success) {
+      try {
+        const res = await fetch('/api/admin-college-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve', id, name })
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          success = true;
+        } else if (json.error) {
+          errorMsg = json.error;
+        }
+      } catch (apiErr) {
+        console.warn('[Admin] Server fallback error:', apiErr);
+      }
+    }
+
+    if (!success) {
+      throw new Error(errorMsg || 'Could not update database record. Please verify permissions.');
+    }
+
+    // Optimistically update customCollegesQueue in memory
+    const target = customCollegesQueue.find(c => String(c.id) === String(id));
+    if (target) {
+      target.status = 'approved';
+      target.is_approved = true;
+    }
+
+    showAdminToast(`Approved "${name || 'College'}"! Synced to all app dropdowns ✓`, 'success');
     await loadApprovedCustomCollegesAdmin();
   } catch (err) {
+    console.error('[Admin] approveCustomCollege error:', err);
     showAdminToast('Could not approve college: ' + err.message, 'error');
+    if (btn && originalHtml) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
-async function rejectCustomCollege(id) {
-  if (!adminSupabaseClient) return;
-  try {
-    let { error } = await adminSupabaseClient
-      .from('custom_colleges')
-      .update({ status: 'rejected', is_approved: false, updated_at: new Date().toISOString() })
-      .eq('id', id);
+async function rejectCustomCollege(id, btn) {
+  if (!id) return;
 
-    if (error && (error.code === '42703' || String(error.message || '').includes('is_approved'))) {
-      const fallback = await adminSupabaseClient
-        .from('custom_colleges')
-        .update({ status: 'rejected', updated_at: new Date().toISOString() })
-        .eq('id', id);
-      error = fallback.error;
+  const originalHtml = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  }
+
+  try {
+    let success = false;
+    let errorMsg = null;
+
+    if (adminSupabaseClient) {
+      try {
+        let updateRes = await adminSupabaseClient
+          .from('custom_colleges')
+          .update({ status: 'rejected', is_approved: false, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .select();
+
+        if (updateRes.error && (updateRes.error.code === '42703' || String(updateRes.error.message || '').includes('is_approved'))) {
+          updateRes = await adminSupabaseClient
+            .from('custom_colleges')
+            .update({ status: 'rejected', updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .select();
+        }
+
+        if (!updateRes.error && Array.isArray(updateRes.data) && updateRes.data.length > 0) {
+          success = true;
+        } else if (updateRes.error) {
+          errorMsg = updateRes.error.message;
+        }
+      } catch (clientErr) {
+        errorMsg = clientErr.message;
+      }
     }
 
-    if (error) throw error;
+    if (!success) {
+      try {
+        const res = await fetch('/api/admin-college-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reject', id })
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          success = true;
+        } else if (json.error) {
+          errorMsg = json.error;
+        }
+      } catch (apiErr) {
+        console.warn('[Admin] Server fallback error:', apiErr);
+      }
+    }
+
+    if (!success) {
+      throw new Error(errorMsg || 'Could not reject request.');
+    }
+
+    // Optimistically update in memory
+    const target = customCollegesQueue.find(c => String(c.id) === String(id));
+    if (target) {
+      target.status = 'rejected';
+      target.is_approved = false;
+    }
+
     showAdminToast('College request rejected/archived.', 'info');
     await loadApprovedCustomCollegesAdmin();
   } catch (err) {
+    console.error('[Admin] rejectCustomCollege error:', err);
     showAdminToast('Could not reject college: ' + err.message, 'error');
+    if (btn && originalHtml) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
-async function deleteCustomCollege(id, name) {
-  if (!adminSupabaseClient) return;
+async function deleteCustomCollege(id, name, btn) {
+  if (!id) return;
   if (!confirm(`Are you sure you want to permanently delete "${name || 'this college'}" from the database?`)) return;
-  try {
-    const { error } = await adminSupabaseClient
-      .from('custom_colleges')
-      .delete()
-      .eq('id', id);
 
-    if (error) throw error;
+  const originalHtml = btn ? btn.innerHTML : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  }
+
+  try {
+    let success = false;
+    let errorMsg = null;
+
+    if (adminSupabaseClient) {
+      try {
+        const delRes = await adminSupabaseClient
+          .from('custom_colleges')
+          .delete()
+          .eq('id', id)
+          .select();
+
+        if (!delRes.error && Array.isArray(delRes.data) && delRes.data.length > 0) {
+          success = true;
+        } else if (delRes.error) {
+          errorMsg = delRes.error.message;
+        }
+      } catch (clientErr) {
+        errorMsg = clientErr.message;
+      }
+    }
+
+    if (!success) {
+      try {
+        const res = await fetch('/api/admin-college-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', id, name })
+        });
+        const json = await res.json();
+        if (res.ok && json.success) {
+          success = true;
+        } else if (json.error) {
+          errorMsg = json.error;
+        }
+      } catch (apiErr) {
+        console.warn('[Admin] Server fallback error:', apiErr);
+      }
+    }
+
+    if (!success) {
+      throw new Error(errorMsg || 'Could not delete college from database.');
+    }
+
+    // Remove from in-memory queue
+    customCollegesQueue = customCollegesQueue.filter(c => String(c.id) !== String(id));
+
     showAdminToast(`Permanently deleted "${name || 'college'}" ✓`, 'info');
     await loadApprovedCustomCollegesAdmin();
   } catch (err) {
+    console.error('[Admin] deleteCustomCollege error:', err);
     showAdminToast('Could not delete college: ' + err.message, 'error');
+    if (btn && originalHtml) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
 
