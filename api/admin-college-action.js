@@ -36,19 +36,8 @@ module.exports = async function handler(req, res) {
     if (action === 'approve') {
       let { data, error } = await supabase
         .from('custom_colleges')
-        .update({ status: 'approved', is_approved: true, updated_at: now })
-        .eq('id', id)
-        .select();
-
-      if (error && (error.code === '42703' || String(error.message || '').includes('is_approved'))) {
-        const fallback = await supabase
-          .from('custom_colleges')
-          .update({ status: 'approved', updated_at: now })
-          .eq('id', id)
-          .select();
-        data = fallback.data;
-        error = fallback.error;
-      }
+        .update({ status: 'approved' })
+        .eq('id', id);
 
       if (error) throw error;
       return res.status(200).json({ success: true, action: 'approve', id, data });
@@ -57,19 +46,8 @@ module.exports = async function handler(req, res) {
     if (action === 'reject') {
       let { data, error } = await supabase
         .from('custom_colleges')
-        .update({ status: 'rejected', is_approved: false, updated_at: now })
-        .eq('id', id)
-        .select();
-
-      if (error && (error.code === '42703' || String(error.message || '').includes('is_approved'))) {
-        const fallback = await supabase
-          .from('custom_colleges')
-          .update({ status: 'rejected', updated_at: now })
-          .eq('id', id)
-          .select();
-        data = fallback.data;
-        error = fallback.error;
-      }
+        .update({ status: 'rejected' })
+        .eq('id', id);
 
       if (error) throw error;
       return res.status(200).json({ success: true, action: 'reject', id, data });

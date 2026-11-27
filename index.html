@@ -229,7 +229,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Roboto+Condensed:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,700&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="stylesheet" href="tailwind.css?v=1">
-  <link rel="stylesheet" href="styles.css?v=89">
+  <link rel="stylesheet" href="styles.css?v=90">
   <link rel="stylesheet" href="ui/ui.css">
   <link rel="stylesheet" href="mocktest.css?v=8">
   <link rel="stylesheet" href="codelab.css?v=24">
@@ -431,74 +431,80 @@
           <div class="ob-sheet ob-sheet-sem">
             <!-- Centered Mascot Resting on the Semester Sheet seam, pointing down -->
             <div class="ob-mascot ob-mascot-step2-center" aria-hidden="true">
-              <img src="assets/mascot-pointing.png" alt="" width="132" height="118" loading="eager">
+              <img src="assets/onboarding-mascot-user.png?v=user-mascot-final" onerror="this.onerror=null;this.src='assets/onboarding-guide.png'" alt="" width="138" height="185" loading="eager">
             </div>
 
-            <!-- Upgraded 2x3 Grid of Interactive Academic Semester Cards -->
+            <!-- Upgraded 2-Column Grid of Native Academic Semester Cards -->
             <div class="ob-semester-grid" id="onboardingSemesters" role="radiogroup" aria-label="Choose your semester">
-              <button type="button" class="ob-sem-card bca-pressable" data-sem="1" onclick="chooseOnboardingSemester(1,this)">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="1" onclick="chooseOnboardingSemester(1,this)" role="radio" aria-checked="false">
                 <div class="ob-sem-top-row">
-                  <span class="ob-sem-tag">SEM 01</span>
-                  <span class="ob-sem-year-pill">1st Year</span>
+                  <span class="ob-sem-year">1st Year</span>
+                  <span class="ob-sem-indicator" aria-hidden="true">
+                    <i class="fa-solid fa-check"></i>
+                  </span>
                 </div>
-                <div class="ob-sem-main-row">
+                <div class="ob-sem-bottom-row">
                   <strong class="ob-sem-title">Semester 1</strong>
-                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
                 </div>
               </button>
-              <button type="button" class="ob-sem-card bca-pressable" data-sem="2" onclick="chooseOnboardingSemester(2,this)">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="2" onclick="chooseOnboardingSemester(2,this)" role="radio" aria-checked="false">
                 <div class="ob-sem-top-row">
-                  <span class="ob-sem-tag">SEM 02</span>
-                  <span class="ob-sem-year-pill">1st Year</span>
+                  <span class="ob-sem-year">1st Year</span>
+                  <span class="ob-sem-indicator" aria-hidden="true">
+                    <i class="fa-solid fa-check"></i>
+                  </span>
                 </div>
-                <div class="ob-sem-main-row">
+                <div class="ob-sem-bottom-row">
                   <strong class="ob-sem-title">Semester 2</strong>
-                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
                 </div>
               </button>
-              <button type="button" class="ob-sem-card bca-pressable" data-sem="3" onclick="chooseOnboardingSemester(3,this)">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="3" onclick="chooseOnboardingSemester(3,this)" role="radio" aria-checked="false">
                 <div class="ob-sem-top-row">
-                  <span class="ob-sem-tag">SEM 03</span>
-                  <span class="ob-sem-year-pill">2nd Year</span>
+                  <span class="ob-sem-year">2nd Year</span>
+                  <span class="ob-sem-indicator" aria-hidden="true">
+                    <i class="fa-solid fa-check"></i>
+                  </span>
                 </div>
-                <div class="ob-sem-main-row">
+                <div class="ob-sem-bottom-row">
                   <strong class="ob-sem-title">Semester 3</strong>
-                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
                 </div>
               </button>
-              <button type="button" class="ob-sem-card bca-pressable" data-sem="4" onclick="chooseOnboardingSemester(4,this)">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="4" onclick="chooseOnboardingSemester(4,this)" role="radio" aria-checked="false">
                 <div class="ob-sem-top-row">
-                  <span class="ob-sem-tag">SEM 04</span>
-                  <span class="ob-sem-year-pill">2nd Year</span>
+                  <span class="ob-sem-year">2nd Year</span>
+                  <span class="ob-sem-indicator" aria-hidden="true">
+                    <i class="fa-solid fa-check"></i>
+                  </span>
                 </div>
-                <div class="ob-sem-main-row">
+                <div class="ob-sem-bottom-row">
                   <strong class="ob-sem-title">Semester 4</strong>
-                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
                 </div>
               </button>
-              <button type="button" class="ob-sem-card bca-pressable" data-sem="5" onclick="chooseOnboardingSemester(5,this)">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="5" onclick="chooseOnboardingSemester(5,this)" role="radio" aria-checked="false">
                 <div class="ob-sem-top-row">
-                  <span class="ob-sem-tag">SEM 05</span>
-                  <span class="ob-sem-year-pill">3rd Year</span>
+                  <span class="ob-sem-year">3rd Year</span>
+                  <span class="ob-sem-indicator" aria-hidden="true">
+                    <i class="fa-solid fa-check"></i>
+                  </span>
                 </div>
-                <div class="ob-sem-main-row">
+                <div class="ob-sem-bottom-row">
                   <strong class="ob-sem-title">Semester 5</strong>
-                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
                 </div>
               </button>
-              <button type="button" class="ob-sem-card bca-pressable" data-sem="6" onclick="chooseOnboardingSemester(6,this)">
+              <button type="button" class="ob-sem-card bca-pressable" data-sem="6" onclick="chooseOnboardingSemester(6,this)" role="radio" aria-checked="false">
                 <div class="ob-sem-top-row">
-                  <span class="ob-sem-tag">SEM 06</span>
-                  <span class="ob-sem-year-pill">3rd Year</span>
+                  <span class="ob-sem-year">3rd Year</span>
+                  <span class="ob-sem-indicator" aria-hidden="true">
+                    <i class="fa-solid fa-check"></i>
+                  </span>
                 </div>
-                <div class="ob-sem-main-row">
+                <div class="ob-sem-bottom-row">
                   <strong class="ob-sem-title">Semester 6</strong>
-                  <i class="fa-solid fa-circle-check ob-sem-check" aria-hidden="true"></i>
                 </div>
               </button>
             </div>
 
-            <p class="ob-sem-note">Tap one. You can change it later.</p>
+            <p class="ob-sem-note">Tap your current semester &middot; You can switch anytime</p>
           </div>
         </div>
       </div>
@@ -2570,7 +2576,7 @@
   }</script>
   <script type="module" src="ui/index.js"></script>
   <script src="whats-new.js?v=21"></script>
-  <script src="app.js?v=88"></script>
+  <script src="app.js?v=89"></script>
   <script src="mocktest.js?v=8"></script>
   <script src="notifications.js?v=1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js"></script>

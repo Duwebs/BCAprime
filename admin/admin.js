@@ -5,6 +5,29 @@
 
 const STORAGE_KEY = 'bca-uploads';
 
+function $(id) {
+  return document.getElementById(id);
+}
+
+/* ---- Isolated Supabase client for the Admin panel ----
+   Uses a separate localStorage prefix ('bca-admin-') so admin login
+   does not collide with the main BCAPrime user session. */
+function createIsolatedStorage(prefix) {
+  return {
+    getItem: async (key) => localStorage.getItem(prefix + key),
+    setItem: async (key, value) => { localStorage.setItem(prefix + key, value); },
+    removeItem: async (key) => { localStorage.removeItem(prefix + key); },
+  };
+}
+
+const adminSupabaseClient = (typeof window !== 'undefined' && window.supabase && typeof SUPABASE_URL !== 'undefined') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    storage: createIsolatedStorage('bca-admin-'),
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+}) : null;
+
 /* ---- Fallback demo data (used only when Supabase is not configured) ---- */
 const demoUploads = [
   { id: 'demo-1', title: 'DBMS Unit 2 Revision Notes', type: 'notes', sem: 3, year: 2, subject: 'Database Management Systems', college: 'amity', fileName: 'dbms-unit-2.pdf', status: 'approved' },
@@ -405,23 +428,14 @@ async function approveCustomCollege(id, name, btn) {
     // 1. Try client-side update via adminSupabaseClient
     if (adminSupabaseClient) {
       try {
-        let updateRes = await adminSupabaseClient
+        const updateRes = await adminSupabaseClient
           .from('custom_colleges')
-          .update({ status: 'approved', is_approved: true, updated_at: new Date().toISOString() })
-          .eq('id', id)
-          .select();
+          .update({ status: 'approved' })
+          .eq('id', id);
 
-        if (updateRes.error && (updateRes.error.code === '42703' || String(updateRes.error.message || '').includes('is_approved'))) {
-          updateRes = await adminSupabaseClient
-            .from('custom_colleges')
-            .update({ status: 'approved', updated_at: new Date().toISOString() })
-            .eq('id', id)
-            .select();
-        }
-
-        if (!updateRes.error && Array.isArray(updateRes.data) && updateRes.data.length > 0) {
+        if (!updateRes.error) {
           success = true;
-        } else if (updateRes.error) {
+        } else {
           errorMsg = updateRes.error.message;
         }
       } catch (clientErr) {
@@ -486,23 +500,14 @@ async function rejectCustomCollege(id, btn) {
 
     if (adminSupabaseClient) {
       try {
-        let updateRes = await adminSupabaseClient
+        const updateRes = await adminSupabaseClient
           .from('custom_colleges')
-          .update({ status: 'rejected', is_approved: false, updated_at: new Date().toISOString() })
-          .eq('id', id)
-          .select();
+          .update({ status: 'rejected' })
+          .eq('id', id);
 
-        if (updateRes.error && (updateRes.error.code === '42703' || String(updateRes.error.message || '').includes('is_approved'))) {
-          updateRes = await adminSupabaseClient
-            .from('custom_colleges')
-            .update({ status: 'rejected', updated_at: new Date().toISOString() })
-            .eq('id', id)
-            .select();
-        }
-
-        if (!updateRes.error && Array.isArray(updateRes.data) && updateRes.data.length > 0) {
+        if (!updateRes.error) {
           success = true;
-        } else if (updateRes.error) {
+        } else {
           errorMsg = updateRes.error.message;
         }
       } catch (clientErr) {
@@ -570,12 +575,11 @@ async function deleteCustomCollege(id, name, btn) {
         const delRes = await adminSupabaseClient
           .from('custom_colleges')
           .delete()
-          .eq('id', id)
-          .select();
+          .eq('id', id);
 
-        if (!delRes.error && Array.isArray(delRes.data) && delRes.data.length > 0) {
+        if (!delRes.error) {
           success = true;
-        } else if (delRes.error) {
+        } else {
           errorMsg = delRes.error.message;
         }
       } catch (clientErr) {
@@ -629,26 +633,6 @@ window.filterApprovedCollegesAdmin = filterApprovedCollegesAdmin;
 
 let uploads = [];
 const selectedIds = new Set();
-
-const $ = id => document.getElementById(id);
-
-/* ---- Isolated Supabase client for the Admin panel ----.
-   Uses a separate localStorage prefix ('bca-admin-') so admin login
-   does not collide with the main BCAPrime user session. */
-function createIsolatedStorage(prefix) {
-  return {
-    getItem: async (key) => localStorage.getItem(prefix + key),
-    setItem: async (key, value) => { localStorage.setItem(prefix + key, value); },
-    removeItem: async (key) => { localStorage.removeItem(prefix + key); },
-  };
-}
-const adminSupabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: createIsolatedStorage('bca-admin-'),
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-}) : null;
 
 /* ---- Admin alert helpers (new-upload / new-signup detection) ---- */
 let lastPendingCount = 0;

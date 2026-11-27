@@ -6838,8 +6838,14 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function chooseOnboardingSemester(sem,button){
       if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
       state.onboardingSem=String(sem);
-      document.querySelectorAll('#onboardingSemesters .ob-sem-card').forEach(item=>item.classList.remove('selected'));
-      if(button)button.classList.add('selected');
+      document.querySelectorAll('#onboardingSemesters .ob-sem-card').forEach(item => {
+        item.classList.remove('selected');
+        item.setAttribute('aria-checked', 'false');
+      });
+      if(button) {
+        button.classList.add('selected');
+        button.setAttribute('aria-checked', 'true');
+      }
       const p3=$('obProgSeg3');if(p3)p3.classList.add('active');
       if(state.onboardingCollege&&!state.onboardingDone){
         setTimeout(()=>finishOnboarding(),320);

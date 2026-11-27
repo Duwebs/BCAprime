@@ -2450,25 +2450,26 @@ body.light .ob-add-custom-btn {
 .ob-hero-step2 {
   flex: 1;
   min-height: 0;
-  padding: 6px 18px 20px;
+  padding: 4px 16px 6px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   position: relative;
   overflow: visible !important;
   z-index: 10;
 }
 
 .ob-title-center {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.18;
-  margin: 0 0 14px;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 6px;
   color: #ffffff;
   text-align: center;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
 }
 
 [data-theme="light"] .ob-title-center,
@@ -2485,37 +2486,38 @@ body.light .ob-title-center {
 }
 
 .ob-college-badge-lg {
-  width: 78px;
-  height: 78px;
+  width: 50px;
+  height: 50px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   color: #ffffff;
   font-weight: 800;
-  font-size: 26px;
+  font-size: 19px;
   letter-spacing: 0.02em;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.14);
-  margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), 0 0 0 2.5px rgba(255, 255, 255, 0.12);
+  margin-bottom: 5px;
   transition: transform 0.2s ease;
 }
 
 [data-theme="light"] .ob-college-badge-lg,
 body.light .ob-college-badge-lg {
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12), 0 0 0 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10), 0 0 0 2.5px rgba(0, 0, 0, 0.06);
 }
 
 .ob-selected-college-name-center {
-  font-size: 20px;
-  font-weight: 800;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 17px;
+  font-weight: 700;
   color: #ffffff;
   max-width: 92%;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 6px;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
+  margin-bottom: 3px;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
 }
 
 [data-theme="light"] .ob-selected-college-name-center,
@@ -2526,15 +2528,15 @@ body.light .ob-selected-college-name-center {
 .ob-college-program-tag {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 3px 12px;
+  gap: 5px;
+  padding: 1.5px 9px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   color: rgba(255, 255, 255, 0.65);
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  margin-bottom: 12px;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
 }
 
 [data-theme="light"] .ob-college-program-tag,
@@ -2544,23 +2546,24 @@ body.light .ob-college-program-tag {
 }
 
 .ob-college-program-tag i {
-  font-size: 11px;
+  font-size: 10px;
   opacity: 0.85;
 }
 
 .ob-change-college-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
+  gap: 5px;
+  padding: 4px 12px;
   border-radius: 999px;
   border: 1px solid rgba(0, 112, 243, 0.35);
   background: rgba(0, 112, 243, 0.1);
   color: #0070f3;
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s ease;
+  min-height: 32px;
 }
 
 .ob-change-college-pill:hover {
@@ -2568,13 +2571,14 @@ body.light .ob-college-program-tag {
   border-color: #0070f3;
 }
 
-/* Centered Mascot on Semester Sheet Seam (Unclipped, fully visible, z-35) */
+/* Centered Mascot on Semester Sheet Seam (User-Crafted Transparent Silhouette) */
 .ob-mascot-step2-center {
   position: absolute;
-  top: -76px;
+  top: -96px;
   left: 50%;
   transform: translateX(-50%);
-  width: 126px;
+  width: 138px;
+  max-width: 48vw;
   right: auto;
   z-index: 35;
   pointer-events: none;
@@ -2585,74 +2589,92 @@ body.light .ob-college-program-tag {
   width: 100%;
   height: auto;
   display: block;
-  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.30));
 }
 
-/* Semester Bottom Sheet shifted down with mt-auto & top clearance for mascot */
+/* Semester Bottom Sheet shifted down with mt-auto, smooth 28px top corners, and balanced padding */
 .ob-sheet-sem {
   margin-top: auto;
   flex: 0 0 auto;
-  padding: 42px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-radius: 28px 28px 0 0;
+  padding: 38px 18px calc(24px + env(safe-area-inset-bottom, 0px));
   justify-content: flex-end;
   overflow: visible !important;
   position: relative;
   z-index: 20;
+  background: #0d0f14;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -12px 36px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .ob-sheet-sem,
+body.light .ob-sheet-sem {
+  background: #ffffff;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.06);
 }
 
 .ob-semester-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
   width: 100%;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .ob-sem-card {
-  min-height: 64px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1.5px solid rgba(255, 255, 255, 0.07);
-  background: #131d2e;
+  min-height: 78px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #141519;
   color: #ffffff;
   text-align: left;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 6px;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  gap: 8px;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
   box-sizing: border-box;
   touch-action: manipulation;
   position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ob-sem-card:active {
+  transform: scale(0.97);
 }
 
 [data-theme="light"] .ob-sem-card,
 body.light .ob-sem-card {
-  background: #f8fafc;
-  border-color: rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.09);
   color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .ob-sem-card:hover {
-  border-color: rgba(0, 112, 243, 0.5);
-  background: #172439;
+  border-color: rgba(37, 99, 235, 0.45);
+  background: #191b22;
 }
 
 [data-theme="light"] .ob-sem-card:hover,
 body.light .ob-sem-card:hover {
-  border-color: rgba(0, 112, 243, 0.5);
-  background: #f1f5f9;
+  border-color: rgba(37, 99, 235, 0.45);
+  background: #f8fafc;
 }
 
 .ob-sem-card.selected {
-  border-color: #0070f3 !important;
-  background: rgba(0, 112, 243, 0.16) !important;
-  box-shadow: 0 0 16px rgba(0, 112, 243, 0.28), 0 0 0 1px #0070f3;
+  border: 1.5px solid #2563eb !important;
+  background: rgba(37, 99, 235, 0.10) !important;
+  box-shadow: 0 0 0 1px #2563eb, 0 4px 18px rgba(37, 99, 235, 0.22) !important;
 }
 
 [data-theme="light"] .ob-sem-card.selected,
 body.light .ob-sem-card.selected {
-  background: rgba(0, 112, 243, 0.1) !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  box-shadow: 0 0 0 1px #2563eb, 0 4px 16px rgba(37, 99, 235, 0.15) !important;
 }
 
 .ob-sem-top-row {
@@ -2662,74 +2684,104 @@ body.light .ob-sem-card.selected {
   width: 100%;
 }
 
-.ob-sem-tag {
-  font-family: 'Geist Mono', monospace;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.75);
-  letter-spacing: 0.04em;
-}
-
-[data-theme="light"] .ob-sem-tag,
-body.light .ob-sem-tag {
-  background: rgba(0, 0, 0, 0.06);
-  color: #475569;
-}
-
-.ob-sem-card.selected .ob-sem-tag {
-  background: rgba(0, 112, 243, 0.25);
-  color: #0070f3;
-}
-
-.ob-sem-year-pill {
-  font-size: 10.5px;
+.ob-sem-year {
+  font-family: var(--font-condensed-body, -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 11px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.50);
+  letter-spacing: 0.01em;
+  transition: color 0.16s ease;
 }
 
-[data-theme="light"] .ob-sem-year-pill,
-body.light .ob-sem-year-pill {
+[data-theme="light"] .ob-sem-year,
+body.light .ob-sem-year {
   color: #64748b;
 }
 
-.ob-sem-main-row {
+.ob-sem-card.selected .ob-sem-year {
+  color: #60a5fa;
+}
+
+[data-theme="light"] .ob-sem-card.selected .ob-sem-year,
+body.light .ob-sem-card.selected .ob-sem-year {
+  color: #2563eb;
+}
+
+.ob-sem-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  font-size: 9.5px;
+  color: transparent;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .ob-sem-indicator,
+body.light .ob-sem-indicator {
+  border-color: rgba(0, 0, 0, 0.20);
+}
+
+.ob-sem-indicator i {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ob-sem-card.selected .ob-sem-indicator {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+}
+
+.ob-sem-card.selected .ob-sem-indicator i {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.ob-sem-bottom-row {
+  display: flex;
+  align-items: center;
   width: 100%;
 }
 
 .ob-sem-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: inherit;
-  line-height: 1.2;
+  font-family: var(--font-condensed-heading, 'Barlow Condensed', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.15;
+  color: #ffffff;
+  transition: color 0.16s ease;
 }
 
-.ob-sem-check {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.18);
-  transition: all 0.2s ease;
+[data-theme="light"] .ob-sem-title,
+body.light .ob-sem-title {
+  color: #0f172a;
 }
 
-[data-theme="light"] .ob-sem-check,
-body.light .ob-sem-check {
-  color: rgba(0, 0, 0, 0.15);
+.ob-sem-card.selected .ob-sem-title {
+  color: #ffffff;
 }
 
-.ob-sem-card.selected .ob-sem-check {
-  color: #0070f3;
-  transform: scale(1.1);
+[data-theme="light"] .ob-sem-card.selected .ob-sem-title,
+body.light .ob-sem-card.selected .ob-sem-title {
+  color: #1e3a8a;
 }
 
 .ob-sem-note {
-  text-align: center;
-  margin: 14px 0 2px;
+  font-family: var(--font-condensed-body, -apple-system, BlinkMacSystemFont, sans-serif);
   font-size: 12.5px;
-  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.48);
+  text-align: center;
+  margin: 18px 0 0;
+  letter-spacing: 0.01em;
 }
 
 [data-theme="light"] .ob-sem-note,

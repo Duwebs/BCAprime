@@ -23,6 +23,8 @@
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
     "tailwindcss": "^4.3.3"
   }
 }
