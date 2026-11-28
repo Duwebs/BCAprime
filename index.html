@@ -345,8 +345,8 @@
         </div>
       </div>
     </div></section>
-  <aside class="install-banner" id="installBanner" aria-live="polite"><span class="install-banner-icon"><img src="assets/logo.png" alt="BCAPrime logo" width="36" height="36"></span><span class="install-banner-copy"><strong>Install BCAPrime</strong><span>Keep your study library one tap away.</span></span><span class="install-banner-actions"><button class="primary" onclick="installApp()"><i class="fa-solid fa-download"></i> Install</button><button class="install-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss install prompt" title="Dismiss"><i class="fa-solid fa-xmark"></i><span>Later</span></button></span></aside>  <aside class="device-request-banner" id="deviceRequestBanner" aria-live="polite"><span class="device-request-icon"><i class="fa-solid fa-mobile-screen-button"></i></span><span class="device-request-copy"><strong>New device login request</strong><span id="deviceReqName">A new device wants to log in</span></span><span class="device-request-actions"><button class="primary" onclick="approveDeviceReq()"><i class="fa-solid fa-check"></i> Approve</button><button class="danger" onclick="denyDeviceReq()"><i class="fa-solid fa-xmark"></i> Deny</button></span></aside>  <div class="onboarding" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
-    <div class="ob-shell">
+  <aside class="install-banner" id="installBanner" aria-live="polite"><span class="install-banner-icon"><img src="assets/logo.png" alt="BCAPrime logo" width="36" height="36"></span><span class="install-banner-copy"><strong>Install BCAPrime</strong><span>Keep your study library one tap away.</span></span><span class="install-banner-actions"><button class="primary" onclick="installApp()"><i class="fa-solid fa-download"></i> Install</button><button class="install-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss install prompt" title="Dismiss"><i class="fa-solid fa-xmark"></i><span>Later</span></button></span></aside>  <aside class="device-request-banner" id="deviceRequestBanner" aria-live="polite"><span class="device-request-icon"><i class="fa-solid fa-mobile-screen-button"></i></span><span class="device-request-copy"><strong>New device login request</strong><span id="deviceReqName">A new device wants to log in</span></span><span class="device-request-actions"><button class="primary" onclick="approveDeviceReq()"><i class="fa-solid fa-check"></i> Approve</button><button class="danger" onclick="denyDeviceReq()"><i class="fa-solid fa-xmark"></i> Deny</button></span></aside>  <div class="onboarding is-welcome" id="onboarding" role="dialog" aria-modal="true" aria-labelledby="onboardingTitle">
+    <div class="ob-shell is-welcome">
       <!-- Top Navigation Bar -->
       <header class="ob-topbar">
         <button type="button" class="ob-back-btn bca-pressable" id="obBackBtn" onclick="handleOnboardingBack()" aria-label="Back">
@@ -362,8 +362,44 @@
 
       <!-- Viewport: Only the active step is rendered (Zero right-edge horizontal bleeding) -->
       <div class="ob-viewport" id="obViewport">
+        <!-- STEP 0: Post-Signup Welcome Screen -->
+        <div class="ob-step ob-step-welcome active" id="obStepWelcome">
+          <!-- Top Brand Header -->
+          <div class="ob-welcome-header">
+            <div class="ob-welcome-brand">
+              <img src="assets/logo.png" alt="BCAPrime logo" class="ob-welcome-logo dark-only" width="34" height="34" loading="eager">
+              <img src="assets/logo-light.png" alt="BCAPrime logo" class="ob-welcome-logo light-only" width="34" height="34" loading="eager">
+              <span class="ob-welcome-brand-text">BCA<span class="ob-welcome-brand-prime">Prime</span></span>
+            </div>
+          </div>
+
+          <!-- Center Hero Duo Illustration -->
+          <div class="ob-welcome-hero">
+            <div class="ob-welcome-duo-container">
+              <img src="assets/welcome-hero-duo.png" alt="BCAPrime Study Duo" class="ob-welcome-duo-img" width="310" height="402" loading="eager">
+            </div>
+          </div>
+
+          <!-- Typography & Bottom Controls -->
+          <div class="ob-welcome-footer">
+            <h1 class="ob-welcome-title">Your BCA Study Desk, Upgraded</h1>
+            <p class="ob-welcome-subtitle">Notes, PYQs, live coding &amp; seniors &mdash; all in one place.</p>
+
+            <div class="ob-welcome-dots" aria-hidden="true">
+              <span class="ob-welcome-dot active"></span>
+              <span class="ob-welcome-dot"></span>
+              <span class="ob-welcome-dot"></span>
+              <span class="ob-welcome-dot"></span>
+            </div>
+
+            <button type="button" class="ob-welcome-cta bca-pressable" id="obWelcomeCta" onclick="proceedFromWelcomeToOnboarding()">
+              <span>Get Started &rarr;</span>
+            </button>
+          </div>
+        </div>
+
         <!-- STEP 1: College Selection -->
-        <div class="ob-step ob-step-1 active" id="obStep1">
+        <div class="ob-step ob-step-1" id="obStep1">
           <div class="ob-hero ob-hero-step1">
             <div class="ob-hero-copy">
               <h1 class="ob-title" id="onboardingTitle">Where do you study?</h1>

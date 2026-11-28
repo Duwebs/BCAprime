@@ -6619,7 +6619,30 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       }catch(e){}
     }
 
-    function openOnboardingFlow(force=false){
+    function proceedFromWelcomeToOnboarding(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const sW=$('obStepWelcome');if(sW)sW.classList.remove('active');
+      const s1=$('obStep1');if(s1)s1.classList.add('active');
+      const s2=$('obStep2');if(s2)s2.classList.remove('active');
+      const modal=$('onboarding');if(modal)modal.classList.remove('is-welcome');
+      const shell=document.querySelector('.ob-shell');if(shell)shell.classList.remove('is-welcome');
+      const p1=$('obProgSeg1');if(p1)p1.classList.add('active');
+      const p2=$('obProgSeg2');if(p2)p2.classList.remove('active');
+      const p3=$('obProgSeg3');if(p3)p3.classList.remove('active');
+      const sInp=$('onboardingSearch');if(sInp){sInp.value='';try{sInp.focus()}catch(e){}}
+      renderOnboardingColleges();
+    }
+
+    function backToOnboardingWelcome(){
+      if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
+      const sW=$('obStepWelcome');if(sW)sW.classList.add('active');
+      const s1=$('obStep1');if(s1)s1.classList.remove('active');
+      const s2=$('obStep2');if(s2)s2.classList.remove('active');
+      const modal=$('onboarding');if(modal)modal.classList.add('is-welcome');
+      const shell=document.querySelector('.ob-shell');if(shell)shell.classList.add('is-welcome');
+    }
+
+    function openOnboardingFlow(force=false, startStep='welcome'){
       if(!force && localStorage.getItem('bca-onboarded')) return;
       try{document.body.classList.add('bca-onboarding-open')}catch(e){}
       try{loadCloudColleges()}catch(e){}
@@ -6628,15 +6651,34 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       const sInp=$('onboardingSearch');if(sInp)sInp.value='';
       const sClr=$('obSearchClear');if(sClr)sClr.hidden=true;
       toggleCustomCollegeDrawer(false);
-      const p1=$('obProgSeg1');if(p1)p1.classList.add('active');
-      const p2=$('obProgSeg2');if(p2)p2.classList.remove('active');
-      const p3=$('obProgSeg3');if(p3)p3.classList.remove('active');
-      const s1=$('obStep1');if(s1)s1.classList.add('active');
-      const s2=$('obStep2');if(s2)s2.classList.remove('active');
+
+      const sW=$('obStepWelcome');
+      const s1=$('obStep1');
+      const s2=$('obStep2');
+      const modal=$('onboarding');
+      const shell=document.querySelector('.ob-shell');
+
+      if(startStep==='welcome' && sW){
+        if(modal)modal.classList.add('is-welcome');
+        if(shell)shell.classList.add('is-welcome');
+        sW.classList.add('active');
+        if(s1)s1.classList.remove('active');
+        if(s2)s2.classList.remove('active');
+      } else {
+        if(modal)modal.classList.remove('is-welcome');
+        if(shell)shell.classList.remove('is-welcome');
+        if(sW)sW.classList.remove('active');
+        if(s1)s1.classList.add('active');
+        if(s2)s2.classList.remove('active');
+        const p1=$('obProgSeg1');if(p1)p1.classList.add('active');
+        const p2=$('obProgSeg2');if(p2)p2.classList.remove('active');
+        const p3=$('obProgSeg3');if(p3)p3.classList.remove('active');
+      }
+
       const track=$('obTrack');if(track)track.classList.remove('step2');
       document.querySelectorAll('#onboardingSemesters .ob-sem-card').forEach(b=>b.classList.remove('selected'));
       renderOnboardingColleges();
-      const modal=$('onboarding');if(modal)modal.classList.add('open');
+      if(modal)modal.classList.add('open');
     }
 
     function showOnboardingIfNeeded(){
@@ -6650,8 +6692,11 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
     function handleOnboardingBack(){
       if(window.BCA_UI&&typeof window.BCA_UI.triggerLightHaptic==='function')window.BCA_UI.triggerLightHaptic();
       const s2=$('obStep2');
+      const s1=$('obStep1');
       if(s2&&s2.classList.contains('active')){
         backToOnboardingCollege();
+      }else if(s1&&s1.classList.contains('active')&&$('obStepWelcome')){
+        backToOnboardingWelcome();
       }else{
         if(localStorage.getItem('bca-onboarded')||sessionStorage.getItem('bca-guest-mode')==='true'){
           const modal=$('onboarding');if(modal)modal.classList.remove('open');
@@ -6865,7 +6910,7 @@ function card(r){const id=r.title.replace(/\W/g,'');const saved=state.saved.incl
       if(chosenSem){
         saveProfileSemester(chosenSem);
       }
-      try{$('onboarding').classList.remove('open')}catch(error){}
+      try{$('onboarding').classList.remove('open');$('onboarding').classList.remove('is-welcome');document.querySelector('.ob-shell')?.classList.remove('is-welcome')}catch(error){}
       try{document.body.classList.remove('bca-onboarding-open')}catch(e){}
       try{
         updateSemesterOptions();
